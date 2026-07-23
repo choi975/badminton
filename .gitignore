@@ -1,0 +1,13 @@
+node_modules/
+.wrangler/
+.wrangler-dry-run/
+.playwright-cli/
+output/
+*.log
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+.DS_Store
+Thumbs.db

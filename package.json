@@ -1,0 +1,20 @@
+{
+  "name": "badminton-level",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/sync-public.js",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "d1:create": "wrangler d1 create Badminton-level",
+    "d1:migrate:local": "wrangler d1 migrations apply DB --local",
+    "d1:migrate:remote": "wrangler d1 migrations apply DB --remote"
+  },
+  "devDependencies": {
+    "wrangler": "latest"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1"
+  }
+}

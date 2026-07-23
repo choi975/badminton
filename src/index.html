@@ -1,0 +1,3561 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>中羽等级</title>
+  <style>
+    :root {
+      --bg: #f2f6f5;
+      --panel: #ffffff;
+      --panel-soft: #f7faf9;
+      --line: #d9e2e0;
+      --line-strong: #b8c6c3;
+      --text: #172522;
+      --muted: #61706d;
+      --accent: #14786f;
+      --accent-dark: #0b5d56;
+      --accent-soft: #dff3ef;
+      --focus: rgba(20, 120, 111, 0.16);
+      --amber: #a35c00;
+      --amber-soft: #fff1d6;
+      --danger: #b42318;
+      --shadow-soft: 0 2px 10px rgba(23, 37, 34, 0.06);
+      --shadow: 0 24px 64px rgba(18, 38, 33, 0.2);
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line-strong);
+      background: #fff;
+      color: var(--text);
+      min-height: 38px;
+      border-radius: 6px;
+      padding: 0 13px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease, transform 0.08s ease;
+    }
+
+    button:hover {
+      border-color: var(--accent);
+      background: #f4faf8;
+      color: var(--accent-dark);
+    }
+
+    button:active:not(:disabled) { transform: translateY(1px); }
+
+    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 1px;
+    }
+
+    button:disabled { cursor: not-allowed; opacity: 0.48; }
+
+    .app-shell {
+      width: min(1580px, 100%);
+      height: 100vh;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 16px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 180px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--accent-dark);
+      color: #fff;
+      font-weight: 700;
+      font-size: 20px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 3px 8px rgba(11, 93, 86, 0.18);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .sync-state {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      min-height: 16px;
+      line-height: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sync-state::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      flex: 0 0 7px;
+      border-radius: 50%;
+      background: #8a9894;
+      box-shadow: 0 0 0 3px rgba(138, 152, 148, 0.12);
+    }
+
+    .sync-state[data-state="success"]::before {
+      background: #1a8b65;
+      box-shadow: 0 0 0 3px rgba(26, 139, 101, 0.13);
+    }
+
+    .sync-state[data-state="working"]::before {
+      background: #cc7a12;
+      box-shadow: 0 0 0 3px rgba(204, 122, 18, 0.13);
+    }
+
+    .sync-state[data-state="error"] {
+      color: var(--danger);
+    }
+
+    .sync-state[data-state="error"]::before {
+      background: #d43b31;
+      box-shadow: 0 0 0 3px rgba(212, 59, 49, 0.13);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .primary-btn {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(20, 120, 111, 0.18);
+    }
+
+    .primary-btn:hover {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(11, 93, 86, 0.2);
+    }
+
+    .icon-text {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .filterbar {
+      display: grid;
+      grid-template-columns: minmax(260px, 420px) 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 12px;
+    }
+
+    .search-input, .filter-input, .filter-select, .modal input, .modal textarea {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      min-height: 38px;
+      padding: 7px 10px;
+      outline: none;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+    }
+
+    .search-input:focus, .filter-input:focus, .filter-select:focus, .modal input:focus, .modal textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--focus);
+    }
+
+    .search-input {
+      background: #fbfdfc;
+      font-size: 14px;
+    }
+
+    .search-input::placeholder { color: #879490; }
+
+    .count-pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      min-width: 58px;
+      padding: 6px 11px;
+      color: var(--accent-dark);
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      background: var(--accent-soft);
+      border-color: #c8e6df;
+    }
+
+    .table-tools {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .column-menu-wrap {
+      position: relative;
+    }
+
+    .column-visibility-btn {
+      min-height: 34px;
+      padding: 0 10px;
+      background: #fbfdfc;
+      color: #30413d;
+      font-size: 13px;
+    }
+
+    .column-visibility-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      z-index: 20;
+      width: 184px;
+      padding: 6px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 0 12px 28px rgba(18, 38, 33, 0.16);
+    }
+
+    .column-visibility-menu[hidden] { display: none; }
+
+    .column-visibility-option {
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 6px 8px;
+      border-radius: 5px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .column-visibility-option:hover { background: var(--panel-soft); }
+
+    .column-visibility-option input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .table-wrap {
+      min-height: 0;
+      overflow: auto;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow-soft);
+      scrollbar-color: #b8c6c3 transparent;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1180px;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    th, td {
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      vertical-align: top;
+      transition: background-color 0.12s ease;
+    }
+
+    th:last-child, td:last-child { border-right: 0; }
+    tbody tr:last-child td { border-bottom: 0; }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      padding: 9px;
+      background: #edf4f2;
+      color: #30413d;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .header-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 28px;
+    }
+
+    .sort-btn {
+      width: 32px;
+      min-width: 32px;
+      min-height: 30px;
+      padding: 0;
+      font-size: 14px;
+      line-height: 1;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .sort-btn.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+    }
+
+    .filter-row {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+
+    .filter-menu-wrap {
+      position: relative;
+      min-width: 0;
+    }
+
+    .multi-filter-btn {
+      width: 100%;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0 10px;
+      background: #fff;
+      color: var(--text);
+      font-weight: 600;
+      text-align: left;
+    }
+
+    .multi-filter-btn.active {
+      border-color: var(--accent);
+      background: #edf9f6;
+      color: var(--accent-dark);
+    }
+
+    .multi-filter-btn::after {
+      content: "▾";
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .multi-filter-menu {
+      position: absolute;
+      top: calc(100% + 5px);
+      left: 0;
+      z-index: 35;
+      width: min(190px, 80vw);
+      max-height: 310px;
+      overflow: auto;
+      padding: 6px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 0 12px 28px rgba(18, 38, 33, 0.16);
+    }
+
+    .multi-filter-menu[hidden] { display: none; }
+
+    .multi-filter-clear {
+      width: 100%;
+      min-height: 30px;
+      margin-bottom: 4px;
+      padding: 0 8px;
+      color: var(--accent-dark);
+      font-size: 13px;
+      text-align: left;
+      background: var(--accent-soft);
+      border-color: #c8e6df;
+    }
+
+    .multi-filter-option {
+      min-height: 30px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 7px;
+      border-radius: 5px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .multi-filter-option:hover { background: var(--panel-soft); }
+
+    .multi-filter-option input {
+      width: 15px;
+      height: 15px;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    td {
+      height: 44px;
+      padding: 0;
+      font-size: 14px;
+    }
+
+    .cell {
+      min-height: 44px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      padding: 9px 11px;
+      outline: none;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    td.selected .cell {
+      box-shadow: inset 0 0 0 2px var(--accent);
+      background: #edf9f6;
+    }
+
+    tbody tr:nth-child(even) td { background: #fbfdfc; }
+    tbody tr:hover td { background: #f4faf8; }
+    tbody tr:hover td.selected { background: #edf9f6; }
+
+    td.description-cell .cell {
+      line-height: 1.58;
+      color: #41514d;
+      max-height: 150px;
+      overflow: auto;
+      align-items: flex-start;
+    }
+
+    .empty-hint { color: #98a2b3; }
+
+    .name-cell-content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 28px;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .name-cell-content > span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .delete-member-btn {
+      width: 24px;
+      min-height: 24px;
+      padding: 0;
+      border-radius: 6px;
+      color: #8c9a96;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      line-height: 1;
+      background: transparent;
+      border-color: transparent;
+    }
+
+    .delete-member-btn:hover {
+      border-color: #f04438;
+      background: #fff1f0;
+    }
+
+    .edit-input {
+      width: 100%;
+      min-height: 44px;
+      border: 0;
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+      padding: 8px 10px;
+      background: #fff;
+    }
+
+    .level-cell-content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 24px;
+      align-items: stretch;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .level-select, .affiliation-select {
+      min-width: 0;
+      width: 100%;
+      height: 38px;
+      padding: 0 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+    }
+
+    .level-select:focus, .affiliation-select:focus {
+      outline: 2px solid rgba(20, 132, 124, 0.24);
+      border-color: var(--accent);
+    }
+
+    .level-buttons {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 2px;
+      align-self: center;
+    }
+
+    .mini-btn {
+      min-height: 17px;
+      height: 17px;
+      width: 22px;
+      padding: 0;
+      font-size: 10px;
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(17, 30, 27, 0.52);
+      z-index: 50;
+      padding: 18px;
+      backdrop-filter: blur(2px);
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      width: min(980px, 100%);
+      max-height: min(88vh, 860px);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+    }
+
+    .modal.wide { width: min(1360px, 100%); }
+    .modal.medium { width: min(760px, 100%); }
+    .modal.chain-dialog {
+      width: min(1680px, calc(100vw - 16px));
+      height: calc(100vh - 12px);
+      max-height: calc(100vh - 12px);
+    }
+
+    .chain-dialog .modal-header { padding: 8px 16px; }
+
+    .chain-dialog .modal-body {
+      min-height: 0;
+      overflow: hidden;
+      padding: 10px;
+    }
+    .modal.guide-dialog {
+      width: min(1360px, calc(100vw - 36px));
+      height: min(86vh, 900px);
+      max-height: calc(100vh - 36px);
+    }
+
+    .modal-header, .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .modal-footer {
+      border-top: 1px solid var(--line);
+      border-bottom: 0;
+      justify-content: flex-end;
+      background: var(--panel-soft);
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 18px;
+      color: #20312d;
+    }
+
+    .modal-body {
+      overflow: auto;
+      padding: 16px;
+      background: var(--panel-soft);
+    }
+
+    .modal-close-btn {
+      width: 36px;
+      min-width: 36px;
+      min-height: 36px;
+      padding: 0;
+      border-color: transparent;
+      background: transparent;
+      color: var(--muted);
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .modal-close-btn:hover {
+      border-color: var(--line);
+      background: #f1f5f4;
+      color: var(--text);
+    }
+
+    .guide-body {
+      display: grid;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .guide-editor {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      resize: none;
+      line-height: 1.55;
+      white-space: pre;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .export-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      background: #fff;
+      transition: border-color 0.16s ease, background-color 0.16s ease;
+    }
+
+    .check-item:hover { border-color: var(--accent); background: #f4faf8; }
+
+    .check-item input { width: auto; min-height: auto; }
+
+    .chain-grid {
+      display: grid;
+      grid-template-columns: minmax(250px, 0.9fr) minmax(430px, 1.25fr) minmax(260px, 0.72fr);
+      gap: 10px;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .chain-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(23, 37, 34, 0.04);
+    }
+
+    .chain-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 7px 9px;
+      border-bottom: 1px solid var(--line);
+      font-weight: 700;
+      background: #edf4f2;
+    }
+
+    .chain-head-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chain-mode-btn {
+      min-width: 82px;
+      white-space: nowrap;
+      background: #fff;
+    }
+
+    .chain-mode-btn.active {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: #ecf9f7;
+    }
+
+    .chain-textarea {
+      border: 0;
+      border-radius: 0;
+      resize: none;
+      min-height: 100%;
+      line-height: 1.5;
+      background: #fff;
+      padding: 9px 10px;
+    }
+
+    .chain-output-list {
+      min-height: 100%;
+      overflow: auto;
+      padding: 4px 8px;
+      background: #fff;
+    }
+
+    .chain-output-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) auto;
+      align-items: center;
+      gap: 6px;
+      min-height: 28px;
+      padding: 1px 2px;
+      border-bottom: 1px solid #edf1f0;
+    }
+
+    .chain-output-row:last-child { border-bottom: 0; }
+
+    .chain-output-text {
+      min-width: 0;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .inline-plus-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .inline-gender-choice {
+      display: grid;
+      grid-template-columns: 34px 48px;
+      overflow: hidden;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .inline-gender-choice button {
+      min-height: 30px;
+      padding: 0 5px;
+      border: 0;
+      border-radius: 0;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .inline-gender-choice button + button { border-left: 1px solid var(--line-strong); }
+
+    .inline-gender-choice button.active {
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+    }
+
+    .inline-level-select {
+      width: 148px;
+      min-height: 32px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 0 7px;
+      font-size: 12px;
+    }
+
+    .side-stack {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .summary-panel {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(23, 37, 34, 0.04);
+    }
+
+    .summary-head {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--line);
+      background: #edf4f2;
+      font-weight: 700;
+    }
+
+    .stats-box {
+      border: 0;
+      border-radius: 0;
+      background: #fff;
+      padding: 10px 12px;
+      overflow: auto;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      box-shadow: none;
+    }
+
+    .stats-divider {
+      height: 1px;
+      margin: 9px 0;
+      background: var(--line);
+    }
+
+    .fee-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px 12px;
+      display: grid;
+      gap: 7px;
+      box-shadow: 0 1px 4px rgba(23, 37, 34, 0.04);
+    }
+
+    .fee-title {
+      color: #30413d;
+      font-weight: 700;
+    }
+
+    .fee-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .payment-dialog {
+      width: min(840px, calc(100vw - 36px));
+    }
+
+    .payment-dialog[data-group-count="2"] {
+      width: min(620px, calc(100vw - 36px));
+    }
+
+    .payment-dialog[data-group-count="1"] {
+      width: min(400px, calc(100vw - 36px));
+    }
+
+    .payment-dialog .modal-header {
+      min-height: 50px;
+      padding: 8px 12px 8px 15px;
+    }
+
+    .payment-dialog .modal-body {
+      padding: 0;
+    }
+
+    .payment-dialog .modal-footer {
+      min-height: 42px;
+      padding: 6px 12px;
+    }
+
+    .payment-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .payment-capture-btn {
+      min-height: 30px;
+      padding: 0 9px;
+      border-color: var(--accent);
+      background: #edf9f6;
+      color: var(--accent-dark);
+      font-size: 13px;
+    }
+
+    .payment-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: start;
+      gap: 8px;
+      padding: 8px;
+      background: var(--panel-soft);
+    }
+
+    .payment-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: grid;
+      grid-template-rows: auto auto;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(23, 37, 34, 0.04);
+    }
+
+    .payment-card[hidden] { display: none; }
+
+    .payment-grid[data-group-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .payment-grid[data-group-count="1"] { grid-template-columns: minmax(0, 1fr); }
+
+    .payment-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: #edf4f2;
+    }
+
+    .payment-card-head h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .payment-card:nth-child(2) .payment-card-head { background: var(--amber-soft); }
+    .payment-card:nth-child(3) .payment-card-head { background: #f1f3f3; }
+
+    .payment-special-card { grid-template-rows: auto auto auto; }
+
+    .payment-content {
+      padding: 6px 7px 7px;
+    }
+
+    .payment-line {
+      min-height: 30px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 5px;
+      border-left: 3px solid transparent;
+      border-radius: 6px;
+      line-height: 1.5;
+    }
+
+    .payment-line + .payment-line { margin-top: 2px; }
+
+    .payment-line-main {
+      min-width: 0;
+      flex: 1;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .payment-line.companion-highlight {
+      border-left-color: #d98a12;
+      background: #fff4dc;
+      font-weight: 700;
+    }
+
+    .payment-line.female-cap-highlight {
+      border-left-color: #df5b8a;
+      background: #fff0f5;
+      font-weight: 700;
+    }
+
+    .payment-line-badges {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .payment-line-badge {
+      border: 1px solid currentColor;
+      border-radius: 4px;
+      padding: 1px 4px;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .payment-line-badge.companion { color: #9a5b00; }
+    .payment-line-badge.female-cap { color: #b4235a; }
+
+    .payment-total-line {
+      margin-top: 5px;
+      padding: 6px 7px 1px;
+      border-top: 1px dashed var(--line-strong);
+      font-weight: 700;
+    }
+
+    .payment-cost-summary {
+      display: grid;
+      gap: 0;
+      margin: 0 12px 7px;
+      padding: 6px 0 0;
+      border-top: 1px dashed var(--line-strong);
+    }
+
+    .payment-cost-item {
+      min-width: 0;
+      min-height: 20px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .payment-cost-item span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    .payment-cost-item strong {
+      overflow: hidden;
+      color: var(--text);
+      font-size: 13px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .payment-settings-dialog { width: min(760px, 100%); }
+
+    .payment-settings-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-bottom: 16px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .payment-settings-tab {
+      min-height: 38px;
+      border: 0;
+      border-radius: 0;
+      background: #fff;
+      color: var(--muted);
+    }
+
+    .payment-settings-tab + .payment-settings-tab {
+      border-left: 1px solid var(--line-strong);
+    }
+
+    .payment-settings-tab.active {
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      font-weight: 700;
+    }
+
+    .payment-settings-panel[hidden] { display: none; }
+
+    .order-list {
+      display: grid;
+      gap: 8px;
+      max-height: min(62vh, 620px);
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .order-row {
+      display: grid;
+      grid-template-columns: 26px minmax(0, 1fr) auto auto;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: #fff;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+    }
+
+    .order-row:hover { border-color: #b7d5cf; background: #fbfefd; }
+
+    .order-row.dragging { opacity: 0.45; }
+
+    .order-row.drop-target {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(20, 132, 124, 0.12);
+    }
+
+    .drag-handle {
+      cursor: grab;
+      color: #64748b;
+      text-align: center;
+      user-select: none;
+    }
+
+    .order-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .order-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .order-index {
+      min-width: 42px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .special-settings-list {
+      display: grid;
+      gap: 8px;
+      max-height: min(62vh, 620px);
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .special-setting-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 10px;
+      background: #fff;
+      transition: border-color 0.16s ease, background-color 0.16s ease;
+    }
+
+    .special-setting-row:hover { border-color: #b7d5cf; background: #fbfefd; }
+
+    .special-setting-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .special-setting-choice {
+      display: grid;
+      grid-template-columns: repeat(2, 88px);
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .special-setting-choice button {
+      min-height: 32px;
+      border: 0;
+      border-radius: 0;
+      padding: 4px 8px;
+      background: #fff;
+      color: var(--muted);
+    }
+
+    .special-setting-choice button + button {
+      border-left: 1px solid var(--line-strong);
+    }
+
+    .special-setting-choice button.active {
+      background: #e1f5f1;
+      color: #0c5f59;
+      font-weight: 700;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      max-width: min(460px, calc(100vw - 36px));
+      background: #17332e;
+      color: #fff;
+      border-radius: 8px;
+      padding: 11px 14px;
+      box-shadow: var(--shadow);
+      transform: translateY(18px);
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.18s ease;
+      z-index: 80;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      .topbar, .filterbar { grid-template-columns: 1fr; display: grid; align-items: stretch; }
+      .toolbar { justify-content: start; }
+      .count-pill { justify-self: start; }
+      .chain-grid, .payment-grid { grid-template-columns: 1fr; }
+      .chain-dialog {
+        width: min(980px, calc(100vw - 20px));
+        height: auto;
+        max-height: calc(100vh - 20px);
+      }
+      .chain-dialog .modal-body { overflow: auto; }
+      .chain-grid { height: auto; min-height: auto; }
+      .chain-panel { min-height: 330px; }
+      .fee-grid { grid-template-columns: 1fr; }
+      .app-shell { height: auto; min-height: 100vh; }
+      .table-wrap { min-height: 58vh; }
+      .table-tools { justify-content: space-between; }
+    }
+
+    @media (max-width: 560px) {
+      .app-shell { padding: 10px; gap: 10px; }
+      .topbar { padding: 12px; }
+      .toolbar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .toolbar button { width: 100%; padding-inline: 8px; }
+      .column-visibility-menu { right: auto; left: 0; }
+      .modal-backdrop { padding: 0; }
+      .modal, .modal.medium, .modal.wide, .modal.guide-dialog {
+        width: 100%;
+        height: 100%;
+        max-height: 100%;
+        border-radius: 0;
+        border: 0;
+      }
+      .modal.payment-dialog {
+        width: 100%;
+        height: auto;
+        max-height: 100%;
+      }
+      .modal-body { padding: 12px; }
+      .payment-dialog .modal-body { padding: 0; }
+      .chain-head { align-items: flex-start; flex-direction: column; }
+      .chain-head-actions { width: 100%; flex-wrap: wrap; }
+      .chain-head-actions button { flex: 1; }
+      .payment-settings-tabs { grid-template-columns: 1fr; }
+      .payment-settings-tab + .payment-settings-tab { border-left: 0; border-top: 1px solid var(--line-strong); }
+      .chain-output-row { grid-template-columns: 1fr; gap: 4px; padding-block: 7px; }
+      .inline-plus-controls { justify-content: flex-start; }
+      .inline-level-select { flex: 1; width: auto; min-width: 0; }
+      .special-setting-row { grid-template-columns: 1fr; }
+      .special-setting-name {
+        overflow: visible;
+        white-space: normal;
+        word-break: break-word;
+      }
+      .special-setting-choice {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">羽</div>
+        <div>
+          <h1>中羽等级</h1>
+          <div id="syncState" class="sync-state">连接中</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button id="chainBtn" class="primary-btn"><span class="icon-text">▣ 接龙助手</span></button>
+        <button id="paymentSettingsBtn" disabled><span class="icon-text">⚙ 群收款设置</span></button>
+        <button id="guideBtn"><span class="icon-text">☷ 等级介绍</span></button>
+        <button id="exportBtn"><span class="icon-text">⇩ 导出表格</span></button>
+      </div>
+    </header>
+
+    <section class="panel filterbar">
+      <input id="globalSearch" class="search-input" placeholder="搜索名称、等级或所属（多人用逗号分隔）" autocomplete="off">
+      <div></div>
+      <div class="table-tools">
+        <div class="column-menu-wrap">
+          <button id="columnVisibilityBtn" class="column-visibility-btn" type="button" aria-haspopup="true" aria-expanded="false">☷ 显示列</button>
+          <div id="columnVisibilityMenu" class="column-visibility-menu" role="menu" hidden></div>
+        </div>
+        <div id="rowCount" class="count-pill">0人</div>
+      </div>
+    </section>
+
+    <section class="table-wrap" aria-label="中羽等级表格">
+      <table id="playerTable">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <div id="guideModal" class="modal-backdrop">
+    <div class="modal wide guide-dialog" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+      <div class="modal-header">
+        <h2 id="guideTitle" class="modal-title">等级介绍</h2>
+        <button class="modal-close-btn" data-close="guideModal" aria-label="关闭" title="关闭">×</button>
+      </div>
+      <div class="modal-body guide-body">
+        <textarea id="guideEditor" class="guide-editor"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button data-close="guideModal">取消</button>
+        <button id="saveGuideBtn" class="primary-btn">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="exportModal" class="modal-backdrop">
+    <div class="modal medium" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+      <div class="modal-header">
+        <h2 id="exportTitle" class="modal-title">导出表格</h2>
+        <button class="modal-close-btn" data-close="exportModal" aria-label="关闭" title="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="exportOptions" class="export-grid"></div>
+      </div>
+      <div class="modal-footer">
+        <button data-close="exportModal">取消</button>
+        <button id="confirmExportBtn" class="primary-btn">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="chainModal" class="modal-backdrop">
+    <div class="modal wide chain-dialog" role="dialog" aria-modal="true" aria-labelledby="chainTitle">
+      <div class="modal-header">
+        <h2 id="chainTitle" class="modal-title">接龙助手</h2>
+        <button class="modal-close-btn" data-close="chainModal" aria-label="关闭" title="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="chain-grid">
+          <section class="chain-panel">
+            <div class="chain-head">
+              <span>接龙人员</span>
+              <button id="pasteInputBtn"><span class="icon-text">▤ 一键粘贴</span></button>
+            </div>
+            <textarea id="chainInput" class="chain-textarea" placeholder=""></textarea>
+          </section>
+          <section class="chain-panel">
+            <div class="chain-head">
+              <span>接龙人员</span>
+              <div class="chain-head-actions">
+                <button id="levelDisplayModeBtn" class="chain-mode-btn" type="button" title="切换等级显示方式" aria-pressed="false">⇄ 等级</button>
+                <button id="copyOutputBtn" title="复制显示内容"><span class="icon-text">▤ 一键复制</span></button>
+              </div>
+            </div>
+            <div id="chainOutput" class="chain-output-list" role="list" aria-label="整理后的接龙人员"></div>
+          </section>
+          <aside class="side-stack">
+            <section class="summary-panel">
+              <div class="summary-head">人数统计</div>
+              <div id="chainStats" class="stats-box"></div>
+            </section>
+            <div class="fee-box">
+              <div class="fee-title">费用计算</div>
+              <div class="fee-grid">
+                <div class="field">
+                  <label for="courtFeeInput">场地费</label>
+                  <input id="courtFeeInput" inputmode="decimal" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="shuttlePriceInput">球单价</label>
+                  <input id="shuttlePriceInput" inputmode="decimal" value="11.3" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="shuttleCountInput">球个数</label>
+                  <input id="shuttleCountInput" inputmode="decimal" autocomplete="off">
+                </div>
+              </div>
+              <button id="paymentBtn" class="primary-btn" disabled>群收款</button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="paymentModal" class="modal-backdrop">
+    <div id="paymentDialog" class="modal payment-dialog" role="dialog" aria-modal="true" aria-labelledby="paymentTitle">
+      <div class="modal-header">
+        <h2 id="paymentTitle" class="modal-title">群收款</h2>
+        <div class="payment-header-actions">
+          <button id="paymentCaptureBtn" class="payment-capture-btn" type="button" title="复制群收款截图">📷 截图并复制</button>
+          <button class="modal-close-btn" data-close="paymentModal" aria-label="关闭" title="关闭">×</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div id="paymentReport" class="payment-grid">
+          <section id="paymentFriendsCard" class="payment-card">
+            <div class="payment-card-head">
+              <h3>球友</h3>
+            </div>
+            <div id="paymentFriends" class="payment-content"></div>
+          </section>
+          <section id="paymentHeinekenCard" class="payment-card">
+            <div class="payment-card-head">
+              <h3>海尼克</h3>
+            </div>
+            <div id="paymentHeineken" class="payment-content"></div>
+          </section>
+          <section class="payment-card payment-special-card">
+            <div class="payment-card-head">
+              <h3>特殊</h3>
+            </div>
+            <div id="paymentSpecial" class="payment-content"></div>
+            <div class="payment-cost-summary" aria-label="费用信息">
+              <div class="payment-cost-item">
+                <span>场地费</span>
+                <strong id="paymentCourtFee">0</strong>
+              </div>
+              <div class="payment-cost-item">
+                <span>球单价</span>
+                <strong id="paymentShuttlePrice">0</strong>
+              </div>
+              <div class="payment-cost-item">
+                <span>球个数</span>
+                <strong id="paymentShuttleCount">0</strong>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button data-close="paymentModal" class="primary-btn">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="paymentSettingsModal" class="modal-backdrop">
+    <div class="modal medium payment-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="paymentSettingsTitle">
+      <div class="modal-header">
+        <h2 id="paymentSettingsTitle" class="modal-title">群收款设置</h2>
+        <button class="modal-close-btn" data-close="paymentSettingsModal" aria-label="关闭" title="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="payment-settings-tabs" role="tablist" aria-label="群收款设置分类">
+          <button class="payment-settings-tab active" type="button" role="tab" aria-selected="true" data-payment-settings-tab="球友">球友顺序</button>
+          <button class="payment-settings-tab" type="button" role="tab" aria-selected="false" data-payment-settings-tab="海尼克">海尼克顺序</button>
+          <button class="payment-settings-tab" type="button" role="tab" aria-selected="false" data-payment-settings-tab="特殊">特殊成员</button>
+        </div>
+        <div id="paymentSettingsOrderPanel" class="payment-settings-panel" role="tabpanel">
+          <div id="paymentSettingsOrderList" class="order-list"></div>
+        </div>
+        <div id="paymentSettingsSpecialPanel" class="payment-settings-panel" role="tabpanel" hidden>
+          <div id="paymentSettingsSpecialList" class="special-settings-list"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button data-close="paymentSettingsModal">取消</button>
+        <button id="savePaymentSettingsBtn" class="primary-btn">保存全部</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="/html2canvas.min.js"></script>
+  <script>
+    const LEVELS = ["不详", "0.5级", "1级", "1.5级", "2级", "2.5级", "3级", "3.5级", "4级", "4.5级", "5级", "6级", "7级", "8级", "9级"];
+    const GENDERS = ["男", "女"];
+    const AFFILIATIONS = ["球友", "海尼克", "球友+海尼克", "特殊"];
+    const CHAIN_NUMBER_PREFIX = /^\s*\d+\s*[\.、\):：-]\s*/;
+    const PLUS_LEVEL_LABELS = [["比赛级高手", "5级"], ["新手", "2级"], ["中手", "3级"], ["高手", "4级"]];
+    const PLUS_LEVEL_OPTIONS = [
+      { label: "不详", level: "不详", text: "不详" },
+      { label: "新手", level: "2级", text: "新手（2级）" },
+      { label: "中手", level: "3级", text: "中手（3级）" },
+      { label: "高手", level: "4级", text: "高手（4级）" },
+      { label: "比赛级高手", level: "5级", text: "比赛级高手（5级）" },
+    ];
+    const FEMALE_PAYMENT_CAP = 25;
+    const PAYMENT_GROUPS = { friends: "球友", heineken: "海尼克" };
+    const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
+
+    const COLUMNS = [
+      { key: "name", label: "名称", width: "26%", filter: "text", sortable: true },
+      { key: "gender", label: "性别", width: "9%", filter: "enum", options: GENDERS, sortable: true, cycle: GENDERS },
+      { key: "level", label: "中羽等级", width: "13%", filter: "multi-enum", options: LEVELS, sortable: true },
+      { key: "description", label: "该等级的介绍", width: "40%", sortable: false },
+      { key: "affiliation", label: "所属", width: "12%", filter: "enum", options: AFFILIATIONS, sortable: true, cycle: AFFILIATIONS },
+    ];
+
+    const DEFAULT_DRAFT = Object.freeze({
+      id: null,
+      name: "",
+      gender: "男",
+      level: "不详",
+      affiliation: "球友",
+    });
+
+    const collator = new Intl.Collator("zh-Hans-CN-u-co-pinyin", { numeric: true, sensitivity: "base" });
+    const state = {
+      players: [],
+      draft: { ...DEFAULT_DRAFT },
+      levelDescriptions: {},
+      levelGuideRaw: "",
+      paymentOrders: { "球友": [], "海尼克": [] },
+      filters: {},
+      hiddenColumns: new Set(),
+      sort: { key: "name", dir: "asc" },
+      selected: { rowKey: "draft", col: 0 },
+      editing: null,
+      chainEntries: [],
+      chainOutputText: "",
+      chainLevelMode: "exact",
+      plusOverrides: {},
+      paymentSettingsEditor: {
+        activeTab: "球友",
+        orders: { "球友": [], "海尼克": [] },
+        special: {},
+        draggingId: null,
+      },
+    };
+
+    const els = {
+      syncState: document.getElementById("syncState"),
+      rowCount: document.getElementById("rowCount"),
+      playerTable: document.getElementById("playerTable"),
+      tableHead: document.getElementById("tableHead"),
+      tableBody: document.getElementById("tableBody"),
+      globalSearch: document.getElementById("globalSearch"),
+      columnVisibilityBtn: document.getElementById("columnVisibilityBtn"),
+      columnVisibilityMenu: document.getElementById("columnVisibilityMenu"),
+      guideBtn: document.getElementById("guideBtn"),
+      guideModal: document.getElementById("guideModal"),
+      guideEditor: document.getElementById("guideEditor"),
+      saveGuideBtn: document.getElementById("saveGuideBtn"),
+      exportBtn: document.getElementById("exportBtn"),
+      exportModal: document.getElementById("exportModal"),
+      exportOptions: document.getElementById("exportOptions"),
+      confirmExportBtn: document.getElementById("confirmExportBtn"),
+      chainBtn: document.getElementById("chainBtn"),
+      paymentSettingsBtn: document.getElementById("paymentSettingsBtn"),
+      chainModal: document.getElementById("chainModal"),
+      chainInput: document.getElementById("chainInput"),
+      chainOutput: document.getElementById("chainOutput"),
+      chainStats: document.getElementById("chainStats"),
+      pasteInputBtn: document.getElementById("pasteInputBtn"),
+      copyOutputBtn: document.getElementById("copyOutputBtn"),
+      levelDisplayModeBtn: document.getElementById("levelDisplayModeBtn"),
+      courtFeeInput: document.getElementById("courtFeeInput"),
+      shuttlePriceInput: document.getElementById("shuttlePriceInput"),
+      shuttleCountInput: document.getElementById("shuttleCountInput"),
+      paymentBtn: document.getElementById("paymentBtn"),
+      paymentModal: document.getElementById("paymentModal"),
+      paymentDialog: document.getElementById("paymentDialog"),
+      paymentCaptureBtn: document.getElementById("paymentCaptureBtn"),
+      paymentReport: document.getElementById("paymentReport"),
+      paymentFriendsCard: document.getElementById("paymentFriendsCard"),
+      paymentHeinekenCard: document.getElementById("paymentHeinekenCard"),
+      paymentFriends: document.getElementById("paymentFriends"),
+      paymentHeineken: document.getElementById("paymentHeineken"),
+      paymentSpecial: document.getElementById("paymentSpecial"),
+      paymentCourtFee: document.getElementById("paymentCourtFee"),
+      paymentShuttlePrice: document.getElementById("paymentShuttlePrice"),
+      paymentShuttleCount: document.getElementById("paymentShuttleCount"),
+      paymentSettingsModal: document.getElementById("paymentSettingsModal"),
+      paymentSettingsTabs: [...document.querySelectorAll("[data-payment-settings-tab]")],
+      paymentSettingsOrderPanel: document.getElementById("paymentSettingsOrderPanel"),
+      paymentSettingsOrderList: document.getElementById("paymentSettingsOrderList"),
+      paymentSettingsSpecialPanel: document.getElementById("paymentSettingsSpecialPanel"),
+      paymentSettingsSpecialList: document.getElementById("paymentSettingsSpecialList"),
+      savePaymentSettingsBtn: document.getElementById("savePaymentSettingsBtn"),
+      toast: document.getElementById("toast"),
+    };
+
+    function init() {
+      if (shouldOpenRemoteApp) {
+        setSync("正在打开联网版");
+        location.replace(`${REMOTE_API_BASE}/`);
+        return;
+      }
+      renderHeader();
+      renderColumnVisibilityMenu();
+      wireEvents();
+      loadBootstrap();
+    }
+
+    async function loadBootstrap() {
+      setSync("连接中");
+      try {
+        const data = await api("/api/bootstrap");
+        state.players = data.players || [];
+        state.levelDescriptions = data.levelDescriptions || {};
+        state.levelGuideRaw = data.levelGuideRaw || "";
+        state.paymentOrders = normalizePaymentOrders(data.paymentOrders);
+        els.paymentSettingsBtn.disabled = false;
+        setSync("已连接");
+        renderTable();
+      } catch (error) {
+        els.paymentSettingsBtn.disabled = true;
+        setSync("连接失败");
+        toast(`无法连接数据库：${error.message}`);
+        renderTable();
+      }
+    }
+
+    function wireEvents() {
+      els.globalSearch.addEventListener("input", () => renderTable());
+      els.columnVisibilityBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        toggleColumnVisibilityMenu();
+      });
+      els.guideBtn.addEventListener("click", openGuideModal);
+      els.saveGuideBtn.addEventListener("click", saveGuide);
+      els.exportBtn.addEventListener("click", openExportModal);
+      els.confirmExportBtn.addEventListener("click", exportXlsx);
+      els.paymentSettingsBtn.addEventListener("click", openPaymentSettingsModal);
+      els.chainBtn.addEventListener("click", () => {
+        openModal("chainModal");
+        processChain();
+        setTimeout(() => els.chainInput.focus(), 0);
+      });
+      els.chainInput.addEventListener("input", processChain);
+      [els.courtFeeInput, els.shuttlePriceInput, els.shuttleCountInput].forEach((input) => {
+        input.addEventListener("input", updatePaymentButton);
+      });
+      els.paymentBtn.addEventListener("click", openPaymentModal);
+      els.paymentCaptureBtn.addEventListener("click", copyPaymentScreenshot);
+      els.paymentSettingsTabs.forEach((tab) => {
+        tab.addEventListener("click", () => switchPaymentSettingsTab(tab.dataset.paymentSettingsTab));
+      });
+      els.savePaymentSettingsBtn.addEventListener("click", savePaymentSettings);
+      els.pasteInputBtn.addEventListener("click", pasteChainInput);
+      els.copyOutputBtn.addEventListener("click", copyChainOutput);
+      els.levelDisplayModeBtn.addEventListener("click", toggleChainLevelMode);
+
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".column-menu-wrap")) closeColumnVisibilityMenu();
+        if (!event.target.closest(".filter-menu-wrap")) closeMultiFilterMenus();
+        const closeId = event.target.closest("[data-close]")?.dataset.close;
+        if (closeId) closeModal(closeId);
+        if (event.target.classList.contains("modal-backdrop")) closeModal(event.target.id);
+      });
+
+      document.addEventListener("keydown", handleGlobalKeydown);
+    }
+
+    const REMOTE_API_BASE = "https://badminton-level.choi975.workers.dev";
+    const shouldOpenRemoteApp = location.protocol === "file:" && !new URLSearchParams(location.search).has("local");
+
+    function getApiUrl(path) {
+      const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+      return location.protocol === "file:" ? `${REMOTE_API_BASE}${normalizedPath}` : normalizedPath;
+    }
+
+    async function api(path, options = {}) {
+      const headers = { ...(options.headers || {}) };
+      const hasBody = options.body !== undefined && options.body !== null;
+      const hasContentType = Object.keys(headers).some((key) => key.toLowerCase() === "content-type");
+      if (hasBody && !hasContentType) headers["content-type"] = "text/plain; charset=utf-8";
+
+      const response = await fetch(getApiUrl(path), {
+        ...options,
+        headers,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      return data;
+    }
+
+    function setSync(text) {
+      els.syncState.textContent = text;
+      els.syncState.dataset.state = text.includes("失败")
+        ? "error"
+        : (text.includes("中") || text.includes("正在") || text.includes("打开") ? "working" : "success");
+    }
+
+    function getVisibleColumns() {
+      return COLUMNS
+        .map((column, index) => ({ column, index }))
+        .filter(({ column }) => !state.hiddenColumns.has(column.key));
+    }
+
+    function renderColumnVisibilityMenu() {
+      const visibleCount = COLUMNS.length - state.hiddenColumns.size;
+      const options = COLUMNS.map((column) => {
+        const label = document.createElement("label");
+        label.className = "column-visibility-option";
+        label.setAttribute("role", "menuitemcheckbox");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = !state.hiddenColumns.has(column.key);
+        checkbox.disabled = checkbox.checked && visibleCount === 1;
+        checkbox.addEventListener("change", () => setColumnVisibility(column.key, checkbox.checked));
+
+        const text = document.createElement("span");
+        text.textContent = column.label;
+        label.setAttribute("aria-checked", String(checkbox.checked));
+        label.append(checkbox, text);
+        return label;
+      });
+      els.columnVisibilityMenu.replaceChildren(...options);
+    }
+
+    function toggleColumnVisibilityMenu() {
+      const opening = els.columnVisibilityMenu.hidden;
+      els.columnVisibilityMenu.hidden = !opening;
+      els.columnVisibilityBtn.setAttribute("aria-expanded", String(opening));
+    }
+
+    function closeColumnVisibilityMenu() {
+      els.columnVisibilityMenu.hidden = true;
+      els.columnVisibilityBtn.setAttribute("aria-expanded", "false");
+    }
+
+    function setColumnVisibility(key, visible) {
+      if (visible) state.hiddenColumns.delete(key);
+      else if (COLUMNS.length - state.hiddenColumns.size > 1) state.hiddenColumns.add(key);
+
+      ensureSelectedColumnVisible();
+      renderColumnVisibilityMenu();
+      renderHeader();
+      renderTable();
+    }
+
+    function ensureSelectedColumnVisible() {
+      if (!state.hiddenColumns.has(COLUMNS[state.selected.col]?.key)) return;
+      const visibleIndices = getVisibleColumns().map(({ index }) => index);
+      state.selected.col = visibleIndices.reduce((closest, index) => (
+        Math.abs(index - state.selected.col) < Math.abs(closest - state.selected.col) ? index : closest
+      ), visibleIndices[0]);
+    }
+
+    function renderHeader() {
+      const tr = document.createElement("tr");
+      const visibleColumns = getVisibleColumns();
+      const totalWidth = visibleColumns.reduce((sum, { column }) => sum + Number.parseFloat(column.width), 0);
+      const tableWidth = visibleColumns.reduce((sum, { column }) => sum + (Number.parseFloat(column.width) / 100 * 1180), 0);
+      els.playerTable.style.minWidth = `${Math.max(360, Math.round(tableWidth))}px`;
+
+      visibleColumns.forEach(({ column }) => {
+        const th = document.createElement("th");
+        th.style.width = `${Number.parseFloat(column.width) / totalWidth * 100}%`;
+        const headerLine = document.createElement("div");
+        headerLine.className = "header-line";
+        const label = document.createElement("span");
+        label.textContent = column.label;
+        headerLine.append(label);
+
+        if (column.sortable) {
+          const button = document.createElement("button");
+          button.className = `sort-btn ${state.sort.key === column.key ? "active" : ""}`;
+          button.title = "排序";
+          button.textContent = getSortMark(column.key);
+          button.addEventListener("click", () => cycleSort(column.key));
+          headerLine.append(button);
+        }
+
+        th.append(headerLine);
+
+        if (column.filter) {
+          const filterRow = document.createElement("div");
+          filterRow.className = "filter-row";
+          if (column.filter === "text") {
+            const input = document.createElement("input");
+            input.className = "filter-input";
+            input.placeholder = column.key === "name" ? "筛选（逗号分隔）" : "筛选";
+            input.value = state.filters[column.key] || "";
+            input.addEventListener("input", () => {
+              state.filters[column.key] = input.value;
+              renderTable();
+            });
+            filterRow.append(input);
+          } else if (column.filter === "multi-enum") {
+            filterRow.append(createMultiEnumFilter(column));
+          } else {
+            const select = document.createElement("select");
+            select.className = "filter-select";
+            select.innerHTML = `<option value="">全部</option>${column.options.map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`).join("")}`;
+            select.value = state.filters[column.key] || "";
+            select.addEventListener("change", () => {
+              state.filters[column.key] = select.value;
+              renderTable();
+            });
+            filterRow.append(select);
+          }
+          th.append(filterRow);
+        }
+
+        tr.append(th);
+      });
+      els.tableHead.replaceChildren(tr);
+    }
+
+    function createMultiEnumFilter(column) {
+      const selected = new Set(Array.isArray(state.filters[column.key])
+        ? state.filters[column.key]
+        : (state.filters[column.key] ? [state.filters[column.key]] : []));
+      const wrap = document.createElement("div");
+      wrap.className = "filter-menu-wrap";
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `multi-filter-btn ${selected.size ? "active" : ""}`;
+      button.textContent = getMultiFilterLabel(selected);
+      button.title = "筛选中羽等级";
+      button.setAttribute("aria-haspopup", "true");
+      button.setAttribute("aria-expanded", "false");
+
+      const menu = document.createElement("div");
+      menu.className = "multi-filter-menu";
+      menu.setAttribute("role", "menu");
+      menu.hidden = true;
+
+      const updateFilter = () => {
+        if (selected.size) state.filters[column.key] = [...selected];
+        else delete state.filters[column.key];
+        button.textContent = getMultiFilterLabel(selected);
+        button.classList.toggle("active", selected.size > 0);
+        renderTable();
+      };
+
+      const clear = document.createElement("button");
+      clear.type = "button";
+      clear.className = "multi-filter-clear";
+      clear.textContent = "全部等级";
+      clear.addEventListener("click", () => {
+        selected.clear();
+        menu.querySelectorAll("input").forEach((input) => { input.checked = false; });
+        updateFilter();
+      });
+      menu.append(clear);
+
+      column.options.forEach((option) => {
+        const label = document.createElement("label");
+        label.className = "multi-filter-option";
+        label.setAttribute("role", "menuitemcheckbox");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = option;
+        checkbox.checked = selected.has(option);
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) selected.add(option);
+          else selected.delete(option);
+          label.setAttribute("aria-checked", String(checkbox.checked));
+          updateFilter();
+        });
+        const text = document.createElement("span");
+        text.textContent = option;
+        label.setAttribute("aria-checked", String(checkbox.checked));
+        label.append(checkbox, text);
+        menu.append(label);
+      });
+
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const opening = menu.hidden;
+        closeMultiFilterMenus();
+        menu.hidden = !opening;
+        button.setAttribute("aria-expanded", String(opening));
+      });
+      wrap.append(button, menu);
+      return wrap;
+    }
+
+    function getMultiFilterLabel(selected) {
+      if (!selected.size) return "全部";
+      const values = [...selected];
+      return values.length <= 2 ? values.join("、") : `${values.slice(0, 2).join("、")}等${values.length}项`;
+    }
+
+    function closeMultiFilterMenus() {
+      document.querySelectorAll(".multi-filter-menu").forEach((menu) => { menu.hidden = true; });
+      document.querySelectorAll(".multi-filter-btn").forEach((button) => button.setAttribute("aria-expanded", "false"));
+    }
+
+    function getSortMark(key) {
+      if (state.sort.key !== key) return "↕";
+      return state.sort.dir === "asc" ? "↑" : "↓";
+    }
+
+    function cycleSort(key) {
+      if (state.sort.key !== key) state.sort = { key, dir: "asc" };
+      else if (state.sort.dir === "asc") state.sort = { key, dir: "desc" };
+      else state.sort = { key: null, dir: "asc" };
+      renderHeader();
+      renderTable();
+    }
+
+    function renderTable() {
+      ensureSelectedColumnVisible();
+      const rows = getDisplayRows(true);
+      if (!rows.some((row) => row.key === state.selected.rowKey)) {
+        state.selected = { rowKey: rows[0]?.key || "draft", col: 0 };
+      }
+
+      const fragment = document.createDocumentFragment();
+      rows.forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.dataset.rowKey = row.key;
+        getVisibleColumns().forEach(({ column, index: colIndex }) => {
+          const td = document.createElement("td");
+          td.dataset.rowKey = row.key;
+          td.dataset.col = String(colIndex);
+          if (column.key === "description") td.classList.add("description-cell");
+          if (state.selected.rowKey === row.key && state.selected.col === colIndex) td.classList.add("selected");
+
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          cell.tabIndex = td.classList.contains("selected") ? 0 : -1;
+          cell.append(renderCellContent(row.player, column, row.draft));
+          td.append(cell);
+
+          td.addEventListener("click", () => selectCell(row.key, colIndex));
+          td.addEventListener("dblclick", () => handleCellDoubleClick(row.key, colIndex));
+          tr.append(td);
+        });
+        fragment.append(tr);
+      });
+
+      els.tableBody.replaceChildren(fragment);
+      const filteredCount = getDisplayRows(false).length;
+      els.rowCount.textContent = `${filteredCount} / ${state.players.length}人`;
+      focusSelectedCell();
+    }
+
+    function renderCellContent(player, column, isDraft) {
+      const wrapper = document.createDocumentFragment();
+      const value = getCellValue(player, column.key);
+
+      if (column.key === "level") {
+        const rowKey = isDraft ? "draft" : String(player.id);
+        const box = document.createElement("div");
+        box.className = "level-cell-content";
+        const select = document.createElement("select");
+        select.className = "level-select";
+        select.title = "选择中羽等级";
+        for (const level of LEVELS) {
+          const option = document.createElement("option");
+          option.value = level;
+          option.textContent = level;
+          select.append(option);
+        }
+        select.value = player.level || "不详";
+        select.addEventListener("click", (event) => {
+          event.stopPropagation();
+          state.selected = { rowKey, col: 2 };
+        });
+        select.addEventListener("focus", () => {
+          state.selected = { rowKey, col: 2 };
+        });
+        select.addEventListener("change", async (event) => {
+          event.stopPropagation();
+          state.selected = { rowKey, col: 2 };
+          await saveCell(rowKey, "level", select.value);
+        });
+        box.append(select);
+
+        const buttons = document.createElement("div");
+        buttons.className = "level-buttons";
+        const up = document.createElement("button");
+        up.className = "mini-btn";
+        up.title = "提高等级";
+        up.textContent = "▲";
+        up.addEventListener("click", (event) => {
+          event.stopPropagation();
+          selectCell(rowKey, 2);
+          adjustLevel(rowKey, 1);
+        });
+        const down = document.createElement("button");
+        down.className = "mini-btn";
+        down.title = "降低等级";
+        down.textContent = "▼";
+        down.addEventListener("click", (event) => {
+          event.stopPropagation();
+          selectCell(rowKey, 2);
+          adjustLevel(rowKey, -1);
+        });
+        buttons.append(up, down);
+        box.append(buttons);
+        wrapper.append(box);
+        return wrapper;
+      }
+
+      if (column.key === "affiliation") {
+        const rowKey = isDraft ? "draft" : String(player.id);
+        const select = document.createElement("select");
+        select.className = "affiliation-select";
+        select.title = "选择所属群组";
+        AFFILIATIONS.forEach((affiliation) => {
+          const option = document.createElement("option");
+          option.value = affiliation;
+          option.textContent = affiliation;
+          select.append(option);
+        });
+        select.value = player.affiliation || "球友";
+        select.addEventListener("click", (event) => {
+          event.stopPropagation();
+          state.selected = { rowKey, col: COLUMNS.findIndex((item) => item.key === "affiliation") };
+        });
+        select.addEventListener("focus", () => {
+          state.selected = { rowKey, col: COLUMNS.findIndex((item) => item.key === "affiliation") };
+        });
+        select.addEventListener("change", async (event) => {
+          event.stopPropagation();
+          state.selected = { rowKey, col: COLUMNS.findIndex((item) => item.key === "affiliation") };
+          await saveCell(rowKey, "affiliation", select.value);
+        });
+        wrapper.append(select);
+        return wrapper;
+      }
+
+      if (column.key === "name") {
+        const box = document.createElement("div");
+        box.className = "name-cell-content";
+        const span = document.createElement("span");
+        if (!value) {
+          span.className = "empty-hint";
+          span.textContent = isDraft ? "新建人物" : "未命名";
+        } else {
+          span.textContent = value;
+        }
+        box.append(span);
+
+        if (!isDraft) {
+          const button = document.createElement("button");
+          button.className = "delete-member-btn";
+          button.type = "button";
+          button.title = "删除成员";
+          button.setAttribute("aria-label", `删除${firstName(player.name) || "成员"}`);
+          button.textContent = "×";
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            deletePlayer(String(player.id));
+          });
+          box.append(button);
+        }
+
+        wrapper.append(box);
+        return wrapper;
+      }
+
+      const span = document.createElement("span");
+      span.textContent = value;
+      wrapper.append(span);
+      return wrapper;
+    }
+
+    function getCellValue(player, key) {
+      if (key === "description") return player.level === "不详" ? "" : (state.levelDescriptions[player.level] || "");
+      return player[key] || "";
+    }
+
+    function getPlayerAffiliations(playerOrValue) {
+      const value = typeof playerOrValue === "string" ? playerOrValue : playerOrValue?.affiliation;
+      return String(value || "球友").split(/[+、,，]/).map((item) => item.trim()).filter(Boolean);
+    }
+
+    function hasPlayerAffiliation(playerOrValue, affiliation) {
+      return getPlayerAffiliations(playerOrValue).includes(affiliation);
+    }
+
+    function isSpecialPlayer(player) {
+      return player?.affiliation === "特殊";
+    }
+
+    function getDisplayRows(includeDraft) {
+      const searchTerms = splitSearchTerms(els.globalSearch.value);
+      let rows = state.players
+        .map((player) => ({ key: String(player.id), player, draft: false }))
+        .filter((row) => passesSearch(row.player, searchTerms) && passesFilters(row.player));
+
+      if (state.sort.key) rows = rows.sort((a, b) => compareRows(a.player, b.player, state.sort.key, state.sort.dir));
+      if (includeDraft) rows.push({ key: "draft", player: state.draft, draft: true });
+      return rows;
+    }
+
+    function splitSearchTerms(value) {
+      return String(value || "")
+        .split(/[,，]/)
+        .map((part) => normalizeSearch(part))
+        .filter(Boolean);
+    }
+
+    function passesSearch(player, searchTerms) {
+      if (!searchTerms.length) return true;
+      const values = COLUMNS.map((column) => getCellValue(player, column.key));
+      const searchable = normalizeSearch(values.join("\n"));
+      return searchTerms.some((term) => searchable.includes(term));
+    }
+
+    function passesFilters(player) {
+      return COLUMNS.every((column) => {
+        const filter = state.filters[column.key];
+        if (!filter || !column.filter) return true;
+        const value = getCellValue(player, column.key);
+        if (column.filter === "enum") {
+          if (column.key === "affiliation" && ["球友", "海尼克"].includes(filter)) {
+            return hasPlayerAffiliation(value, filter);
+          }
+          return value === filter;
+        }
+        if (column.filter === "multi-enum") {
+          const selected = Array.isArray(filter) ? filter : [filter];
+          return !selected.length || selected.includes(value);
+        }
+        const filterTerms = splitSearchTerms(filter);
+        const searchable = normalizeSearch(value);
+        return !filterTerms.length || filterTerms.some((term) => searchable.includes(term));
+      });
+    }
+
+    function compareRows(a, b, key, dir) {
+      let result;
+      if (key === "level") result = levelRank(a.level) - levelRank(b.level);
+      else if (key === "name") result = collator.compare(firstName(a.name), firstName(b.name));
+      else result = collator.compare(String(getCellValue(a, key)), String(getCellValue(b, key)));
+      return dir === "asc" ? result : -result;
+    }
+
+    function selectCell(rowKey, col) {
+      state.selected = { rowKey, col: clamp(col, 0, COLUMNS.length - 1) };
+      renderTable();
+    }
+
+    function focusSelectedCell() {
+      requestAnimationFrame(() => {
+        const cell = els.tableBody.querySelector("td.selected .cell");
+        if (cell && !state.editing && !isTextControl(document.activeElement)) cell.focus({ preventScroll: true });
+      });
+    }
+
+    function handleCellDoubleClick(rowKey, colIndex) {
+      const key = COLUMNS[colIndex].key;
+      if (key === "name") startNameEdit(rowKey, "append");
+      if (["gender", "affiliation"].includes(key)) cycleCellValue(rowKey, key);
+      if (key === "level") adjustLevel(rowKey, 1);
+    }
+
+    function handleGlobalKeydown(event) {
+      if (event.key === "Escape") {
+        if (document.querySelector(".multi-filter-menu:not([hidden])")) {
+          closeMultiFilterMenus();
+          return;
+        }
+        if (!els.columnVisibilityMenu.hidden) {
+          closeColumnVisibilityMenu();
+          return;
+        }
+        closeTopModal();
+        return;
+      }
+      if (event.altKey && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        els.globalSearch.focus();
+        els.globalSearch.select();
+        return;
+      }
+      if (isAnyModalOpen() || state.editing || isTextControl(document.activeElement)) return;
+
+      if (event.altKey && event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        if (state.hiddenColumns.delete("name")) {
+          renderColumnVisibilityMenu();
+          renderHeader();
+        }
+        state.selected = { rowKey: "draft", col: 0 };
+        renderTable();
+        startNameEdit("draft", "replace");
+        return;
+      }
+
+      const { rowKey, col } = state.selected;
+      const column = COLUMNS[col];
+      if (!column) return;
+
+      if (column.key === "name" && event.altKey && event.key === "ArrowRight") {
+        event.preventDefault();
+        startNameEdit(rowKey, "append");
+        return;
+      }
+      if (column.key === "level" && event.altKey && ["ArrowUp", "ArrowDown"].includes(event.key)) {
+        event.preventDefault();
+        adjustLevel(rowKey, event.key === "ArrowUp" ? 1 : -1);
+        return;
+      }
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key) && !event.altKey) {
+        event.preventDefault();
+        moveSelection(event.key);
+        return;
+      }
+      if (event.key === "Tab" && column.cycle) {
+        event.preventDefault();
+        cycleCellValue(rowKey, column.key);
+        return;
+      }
+      if (column.key === "name" && (event.key === "Enter" || event.key === "F2")) {
+        event.preventDefault();
+        startNameEdit(rowKey, "append");
+        return;
+      }
+      if (column.key === "name" && event.key === "Delete") {
+        event.preventDefault();
+        if (rowKey === "draft") saveCell(rowKey, "name", "");
+        else deletePlayer(rowKey);
+        return;
+      }
+      if (column.key === "name" && isPrintableKey(event)) {
+        event.preventDefault();
+        startNameEdit(rowKey, "replace", event.key);
+      }
+    }
+
+    function moveSelection(key) {
+      const rows = getDisplayRows(true);
+      let rowIndex = rows.findIndex((row) => row.key === state.selected.rowKey);
+      if (rowIndex < 0) rowIndex = 0;
+      const visibleIndices = getVisibleColumns().map(({ index }) => index);
+      let columnPosition = Math.max(0, visibleIndices.indexOf(state.selected.col));
+      if (key === "ArrowUp") rowIndex = Math.max(0, rowIndex - 1);
+      if (key === "ArrowDown") rowIndex = Math.min(rows.length - 1, rowIndex + 1);
+      if (key === "ArrowLeft") columnPosition = Math.max(0, columnPosition - 1);
+      if (key === "ArrowRight") columnPosition = Math.min(visibleIndices.length - 1, columnPosition + 1);
+      state.selected = { rowKey: rows[rowIndex].key, col: visibleIndices[columnPosition] };
+      renderTable();
+    }
+
+    function startNameEdit(rowKey, mode, initialText = "") {
+      const player = getPlayerByKey(rowKey);
+      const td = els.tableBody.querySelector(`td[data-row-key="${cssEscape(rowKey)}"][data-col="0"]`);
+      if (!td || !player) return;
+      state.editing = { rowKey, col: 0 };
+
+      const input = document.createElement("input");
+      input.className = "edit-input";
+      input.value = mode === "replace" ? initialText : (player.name || "");
+      td.replaceChildren(input);
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+
+      let done = false;
+      const commit = async () => {
+        if (done) return;
+        done = true;
+        state.editing = null;
+        await saveCell(rowKey, "name", input.value.trim());
+      };
+      const cancel = () => {
+        if (done) return;
+        done = true;
+        state.editing = null;
+        renderTable();
+      };
+
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          commit();
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          cancel();
+        }
+      });
+      input.addEventListener("blur", commit);
+    }
+
+    async function cycleCellValue(rowKey, key) {
+      const column = COLUMNS.find((item) => item.key === key);
+      const player = getPlayerByKey(rowKey);
+      if (!column?.cycle || !player) return;
+      const currentIndex = column.cycle.indexOf(player[key]);
+      const next = column.cycle[(currentIndex + 1) % column.cycle.length];
+      await saveCell(rowKey, key, next);
+    }
+
+    async function adjustLevel(rowKey, delta) {
+      const player = getPlayerByKey(rowKey);
+      if (!player) return;
+      const index = Math.max(0, LEVELS.indexOf(player.level));
+      const nextIndex = clamp(index + delta, 0, LEVELS.length - 1);
+      if (nextIndex === index) return;
+      await saveCell(rowKey, "level", LEVELS[nextIndex]);
+    }
+
+    async function saveCell(rowKey, key, value) {
+      const player = getPlayerByKey(rowKey);
+      if (!player) return;
+
+      if (rowKey === "draft") {
+        state.draft = { ...state.draft, [key]: value };
+        if (!state.draft.name.trim()) {
+          renderTable();
+          return;
+        }
+        await createPlayerFromDraft();
+        return;
+      }
+
+      if (player[key] === value) {
+        renderTable();
+        return;
+      }
+
+      const previous = { ...player };
+      Object.assign(player, { [key]: value });
+      renderTable();
+      setSync("正在保存");
+      try {
+        const data = await api(`/api/players/${player.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ [key]: value }),
+        });
+        if (key === "affiliation" && previous.affiliation !== data.player.affiliation) {
+          removePlayerFromPaymentOrders(data.player.id);
+        }
+        replacePlayer(data.player);
+        setSync("已保存");
+      } catch (error) {
+        replacePlayer(previous);
+        setSync("保存失败");
+        toast(`保存失败：${error.message}`);
+      }
+      renderTable();
+    }
+
+    async function createPlayerFromDraft() {
+      const draft = { ...state.draft, name: state.draft.name.trim() };
+      state.draft = { ...DEFAULT_DRAFT };
+      renderTable();
+      setSync("正在新建");
+      try {
+        const data = await api("/api/players", {
+          method: "POST",
+          body: JSON.stringify(draft),
+        });
+        state.players.push(data.player);
+        state.selected = { rowKey: String(data.player.id), col: 0 };
+        setSync("已保存");
+      } catch (error) {
+        state.draft = draft;
+        state.selected = { rowKey: "draft", col: 0 };
+        setSync("新建失败");
+        toast(`新建失败：${error.message}`);
+      }
+      renderTable();
+    }
+
+    async function deletePlayer(rowKey) {
+      const player = getPlayerByKey(rowKey);
+      if (!player || rowKey === "draft") return;
+
+      const label = firstName(player.name) || player.name || "这个成员";
+      if (!window.confirm(`确定删除“${label}”吗？`)) return;
+
+      const previousPlayers = [...state.players];
+      state.players = state.players.filter((item) => String(item.id) !== String(player.id));
+      state.selected = { rowKey: "draft", col: 0 };
+      renderTable();
+      setSync("正在删除");
+
+      try {
+        await api(`/api/players/${player.id}`, { method: "DELETE" });
+        removePlayerFromPaymentOrders(player.id);
+        setSync("已删除");
+        toast(`已删除：${label}`);
+        if (els.chainModal.classList.contains("open")) processChain();
+      } catch (error) {
+        state.players = previousPlayers;
+        state.selected = { rowKey: String(player.id), col: 0 };
+        setSync("删除失败");
+        toast(`删除失败：${error.message}`);
+      }
+
+      renderTable();
+    }
+
+    function replacePlayer(player) {
+      const index = state.players.findIndex((item) => item.id === player.id);
+      if (index >= 0) state.players.splice(index, 1, player);
+    }
+
+    function getPlayerByKey(rowKey) {
+      if (rowKey === "draft") return state.draft;
+      return state.players.find((player) => String(player.id) === String(rowKey));
+    }
+
+    function normalizePaymentOrders(rawOrders = {}) {
+      const normalized = { "球友": [], "海尼克": [] };
+      for (const affiliation of PAYMENT_ORDER_AFFILIATIONS) {
+        const ids = Array.isArray(rawOrders?.[affiliation]) ? rawOrders[affiliation] : [];
+        normalized[affiliation] = [...new Set(ids.map(Number).filter((id) => Number.isInteger(id) && id > 0))];
+      }
+      return normalized;
+    }
+
+    function removePlayerFromPaymentOrders(playerId) {
+      const id = Number(playerId);
+      for (const affiliation of PAYMENT_ORDER_AFFILIATIONS) {
+        state.paymentOrders[affiliation] = (state.paymentOrders[affiliation] || []).filter((item) => Number(item) !== id);
+      }
+    }
+
+    function openGuideModal() {
+      els.guideEditor.value = state.levelGuideRaw || "";
+      openModal("guideModal");
+      setTimeout(() => els.guideEditor.focus(), 0);
+    }
+
+    async function saveGuide() {
+      const raw = els.guideEditor.value.trim();
+      if (!raw) {
+        toast("等级介绍不能为空");
+        return;
+      }
+      setSync("正在保存等级介绍");
+      els.saveGuideBtn.disabled = true;
+      try {
+        const data = await api("/api/level-guide", {
+          method: "PUT",
+          body: JSON.stringify({ raw }),
+        });
+        state.levelGuideRaw = data.levelGuideRaw || raw;
+        state.levelDescriptions = data.levelDescriptions || {};
+        setSync("已保存");
+        closeModal("guideModal");
+        renderTable();
+      } catch (error) {
+        setSync("保存失败");
+        toast(`保存等级介绍失败：${error.message}`);
+      } finally {
+        els.saveGuideBtn.disabled = false;
+      }
+    }
+
+    function openExportModal() {
+      els.exportOptions.replaceChildren(...COLUMNS.map((column) => {
+        const label = document.createElement("label");
+        label.className = "check-item";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = column.key;
+        checkbox.checked = true;
+        const span = document.createElement("span");
+        span.textContent = column.label;
+        label.append(checkbox, span);
+        return label;
+      }));
+      openModal("exportModal");
+    }
+
+    function exportXlsx() {
+      const selectedKeys = [...els.exportOptions.querySelectorAll("input:checked")].map((input) => input.value);
+      if (!selectedKeys.length) {
+        toast("至少选择一列");
+        return;
+      }
+      const selectedColumns = COLUMNS.filter((column) => selectedKeys.includes(column.key));
+      const rows = [selectedColumns.map((column) => column.label)];
+      for (const row of getDisplayRows(false)) rows.push(selectedColumns.map((column) => getCellValue(row.player, column.key)));
+      const blob = new Blob([createXlsx(rows)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `中羽等级-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+      closeModal("exportModal");
+    }
+
+    function createXlsx(rows) {
+      const sheetRows = rows.map((row, rowIndex) => {
+        const cells = row.map((value, colIndex) => {
+          const ref = `${columnLetter(colIndex + 1)}${rowIndex + 1}`;
+          return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(String(value ?? ""))}</t></is></c>`;
+        }).join("");
+        return `<row r="${rowIndex + 1}">${cells}</row>`;
+      }).join("");
+      const colCount = Math.max(1, rows[0]?.length || 1);
+      const rowCount = Math.max(1, rows.length);
+      const dimension = `A1:${columnLetter(colCount)}${rowCount}`;
+      const worksheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="${dimension}"/><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="18"/><sheetData>${sheetRows}</sheetData></worksheet>`;
+
+      const files = [
+        { name: "[Content_Types].xml", content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>` },
+        { name: "_rels/.rels", content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
+        { name: "xl/workbook.xml", content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="中羽等级" sheetId="1" r:id="rId1"/></sheets></workbook>` },
+        { name: "xl/_rels/workbook.xml.rels", content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>` },
+        { name: "xl/worksheets/sheet1.xml", content: worksheet },
+      ];
+      return zipStore(files);
+    }
+
+    function zipStore(files) {
+      const encoder = new TextEncoder();
+      const localParts = [];
+      const centralParts = [];
+      let offset = 0;
+      const { dosTime, dosDate } = getDosTimeDate(new Date());
+
+      for (const file of files) {
+        const nameBytes = encoder.encode(file.name);
+        const data = encoder.encode(file.content);
+        const crc = crc32(data);
+        const local = new Uint8Array(30 + nameBytes.length);
+        const localView = new DataView(local.buffer);
+        localView.setUint32(0, 0x04034b50, true);
+        localView.setUint16(4, 20, true);
+        localView.setUint16(6, 0x0800, true);
+        localView.setUint16(8, 0, true);
+        localView.setUint16(10, dosTime, true);
+        localView.setUint16(12, dosDate, true);
+        localView.setUint32(14, crc, true);
+        localView.setUint32(18, data.length, true);
+        localView.setUint32(22, data.length, true);
+        localView.setUint16(26, nameBytes.length, true);
+        local.set(nameBytes, 30);
+        localParts.push(local, data);
+
+        const central = new Uint8Array(46 + nameBytes.length);
+        const centralView = new DataView(central.buffer);
+        centralView.setUint32(0, 0x02014b50, true);
+        centralView.setUint16(4, 20, true);
+        centralView.setUint16(6, 20, true);
+        centralView.setUint16(8, 0x0800, true);
+        centralView.setUint16(10, 0, true);
+        centralView.setUint16(12, dosTime, true);
+        centralView.setUint16(14, dosDate, true);
+        centralView.setUint32(16, crc, true);
+        centralView.setUint32(20, data.length, true);
+        centralView.setUint32(24, data.length, true);
+        centralView.setUint16(28, nameBytes.length, true);
+        centralView.setUint32(42, offset, true);
+        central.set(nameBytes, 46);
+        centralParts.push(central);
+        offset += local.length + data.length;
+      }
+
+      const centralOffset = offset;
+      const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+      const end = new Uint8Array(22);
+      const endView = new DataView(end.buffer);
+      endView.setUint32(0, 0x06054b50, true);
+      endView.setUint16(8, files.length, true);
+      endView.setUint16(10, files.length, true);
+      endView.setUint32(12, centralSize, true);
+      endView.setUint32(16, centralOffset, true);
+      return concatUint8([...localParts, ...centralParts, end]);
+    }
+
+    function processChain() {
+      const aliasIndex = buildAliasIndex();
+      const identityCounts = new Map();
+      const entries = getChainInputLines(els.chainInput.value)
+        .map((line, index) => {
+          const identity = normalizeAlias(cleanChainLine(line));
+          const occurrence = identityCounts.get(identity) || 0;
+          identityCounts.set(identity, occurrence + 1);
+          const overrideKey = `${identity}::${occurrence}`;
+          return parseChainLine(line, index, aliasIndex, overrideKey, state.plusOverrides[overrideKey]);
+        })
+        .filter((entry) => entry.clean);
+      const activePlusKeys = new Set(entries.filter((entry) => entry.plusEntry).map((entry) => entry.overrideKey));
+      Object.keys(state.plusOverrides).forEach((key) => {
+        if (!activePlusKeys.has(key)) delete state.plusOverrides[key];
+      });
+      const sorted = [...entries].sort((a, b) => (b.sortRank - a.sortRank) || (a.index - b.index));
+      state.chainOutputText = sorted.map((entry, index) => formatChainOutputLine(entry, index)).join("\n");
+      renderChainOutput(sorted);
+      renderChainStats(sorted);
+      state.chainEntries = entries;
+      updatePaymentButton();
+    }
+
+    function toggleChainLevelMode() {
+      state.chainLevelMode = state.chainLevelMode === "exact" ? "group" : "exact";
+      renderChainLevelModeButton();
+      processChain();
+    }
+
+    function renderChainLevelModeButton() {
+      const grouped = state.chainLevelMode === "group";
+      els.levelDisplayModeBtn.textContent = grouped ? "⇄ 分组" : "⇄ 等级";
+      els.levelDisplayModeBtn.classList.toggle("active", grouped);
+      els.levelDisplayModeBtn.setAttribute("aria-pressed", String(grouped));
+      els.levelDisplayModeBtn.title = grouped
+        ? "当前为分组显示，点击切换为精确等级"
+        : "当前为精确等级，点击切换为分组显示";
+    }
+
+    function getChainLevelDisplay(entry) {
+      return state.chainLevelMode === "group"
+        ? (entry.levelGroupLabel || getLevelGroupLabel(entry.levelText))
+        : entry.levelText;
+    }
+
+    function getLevelGroupLabel(level) {
+      if (!level || level === "不详" || level === "等级不详") return "不详";
+      const rank = levelRank(level);
+      if (rank >= 0.5 && rank <= 2) return "新手";
+      if (rank >= 2.5 && rank <= 3.5) return "中手";
+      if (rank >= 4 && rank <= 5) return "高手";
+      if (rank >= 6 && rank <= 9) return "比赛级高手";
+      return "不详";
+    }
+
+    function parseChainLine(line, index, aliasIndex, overrideKey = "", override = null) {
+      const plusMetadata = parsePlusEntryMetadata(cleanChainLine(line));
+      const clean = plusMetadata.displayName;
+      const player = findPlayerForLine(clean, aliasIndex);
+      const knownLevel = player?.level || "不详";
+      const detectedLevelText = plusMetadata.plusEntry ? plusMetadata.levelText : knownLevel;
+      const detectedIsFemale = plusMetadata.plusEntry ? plusMetadata.isFemale : player?.gender === "女";
+      const levelText = plusMetadata.plusEntry && override?.levelText ? override.levelText : detectedLevelText;
+      const detectedLevelGroupLabel = plusMetadata.plusEntry ? plusMetadata.levelGroupLabel : null;
+      const levelGroupLabel = plusMetadata.plusEntry && override?.levelGroupLabel
+        ? override.levelGroupLabel
+        : detectedLevelGroupLabel;
+      const isFemale = plusMetadata.plusEntry && typeof override?.isFemale === "boolean" ? override.isFemale : detectedIsFemale;
+      return {
+        index,
+        raw: line,
+        clean,
+        player,
+        plusEntry: plusMetadata.plusEntry,
+        overrideKey,
+        detectedLevelText,
+        detectedLevelGroupLabel,
+        detectedIsFemale,
+        levelText,
+        levelGroupLabel,
+        isFemale,
+        sortRank: levelRank(levelText),
+      };
+    }
+
+    function getChainEntryBaseName(entry) {
+      const name = String(entry?.clean || "");
+      return entry?.plusEntry ? name.replace(/🌸/g, " ").replace(/\s+/g, " ").trim() : name;
+    }
+
+    function getChainEntryDisplayName(entry) {
+      const name = getChainEntryBaseName(entry);
+      if (!entry?.isFemale || name.includes("🌸")) return name;
+      return `${name}🌸`;
+    }
+
+    function formatChainOutputLine(entry, index) {
+      return `${index + 1}. ${getChainEntryDisplayName(entry)}（${getChainLevelDisplay(entry)}）`;
+    }
+
+    function renderChainOutput(entries) {
+      els.chainOutput.replaceChildren(...entries.map((entry, index) => {
+        const row = document.createElement("div");
+        row.className = "chain-output-row";
+        row.setAttribute("role", "listitem");
+
+        const text = document.createElement("span");
+        text.className = "chain-output-text";
+        text.textContent = formatChainOutputLine(entry, index);
+        row.append(text);
+
+        if (entry.plusEntry) row.append(createInlinePlusControls(entry));
+        return row;
+      }));
+    }
+
+    function createInlinePlusControls(entry) {
+      const controls = document.createElement("div");
+      controls.className = "inline-plus-controls";
+
+      const genderChoice = document.createElement("div");
+      genderChoice.className = "inline-gender-choice";
+      genderChoice.setAttribute("role", "group");
+      genderChoice.setAttribute("aria-label", `${getChainEntryBaseName(entry)}的性别`);
+
+      const maleButton = document.createElement("button");
+      maleButton.type = "button";
+      maleButton.textContent = "男";
+      maleButton.classList.toggle("active", !entry.isFemale);
+      maleButton.setAttribute("aria-pressed", String(!entry.isFemale));
+      maleButton.addEventListener("click", () => setInlinePlusGender(entry.overrideKey, false));
+
+      const femaleButton = document.createElement("button");
+      femaleButton.type = "button";
+      femaleButton.textContent = "女🌸";
+      femaleButton.classList.toggle("active", entry.isFemale);
+      femaleButton.setAttribute("aria-pressed", String(entry.isFemale));
+      femaleButton.addEventListener("click", () => setInlinePlusGender(entry.overrideKey, true));
+      genderChoice.append(maleButton, femaleButton);
+
+      const levelSelect = document.createElement("select");
+      levelSelect.className = "inline-level-select";
+      levelSelect.setAttribute("aria-label", `${getChainEntryBaseName(entry)}的水平`);
+      levelSelect.replaceChildren(...PLUS_LEVEL_OPTIONS.map((option) => {
+        const element = document.createElement("option");
+        element.value = option.label;
+        element.textContent = option.text;
+        return element;
+      }));
+      levelSelect.value = getInlinePlusLevelLabel(entry);
+      levelSelect.addEventListener("change", () => setInlinePlusLevel(entry.overrideKey, levelSelect.value));
+
+      controls.append(genderChoice, levelSelect);
+      return controls;
+    }
+
+    function getInlinePlusLevelLabel(entry) {
+      if (entry.levelGroupLabel && PLUS_LEVEL_OPTIONS.some((option) => option.label === entry.levelGroupLabel)) {
+        return entry.levelGroupLabel;
+      }
+      const exactMatch = PLUS_LEVEL_OPTIONS.find((option) => option.level === entry.levelText);
+      return exactMatch?.label || getLevelGroupLabel(entry.levelText);
+    }
+
+    function setInlinePlusGender(overrideKey, isFemale) {
+      const entry = state.chainEntries.find((item) => item.overrideKey === overrideKey);
+      if (!entry) return;
+      state.plusOverrides[overrideKey] = {
+        levelText: entry.levelText,
+        levelGroupLabel: entry.levelGroupLabel,
+        isFemale,
+      };
+      processChain();
+    }
+
+    function setInlinePlusLevel(overrideKey, label) {
+      const entry = state.chainEntries.find((item) => item.overrideKey === overrideKey);
+      const option = PLUS_LEVEL_OPTIONS.find((item) => item.label === label);
+      if (!entry || !option) return;
+      state.plusOverrides[overrideKey] = {
+        levelText: option.level,
+        levelGroupLabel: option.label,
+        isFemale: entry.isFemale,
+      };
+      processChain();
+    }
+
+    function parsePlusEntryMetadata(value) {
+      const displayName = String(value || "");
+      const plusMatch = displayName.match(/[+＋➕]\s*\d+/);
+      if (!plusMatch) return { plusEntry: false, displayName, levelText: null, isFemale: false };
+
+      const suffixStart = (plusMatch.index || 0) + plusMatch[0].length;
+      const suffix = displayName.slice(suffixStart);
+      const levelMapping = PLUS_LEVEL_LABELS.find(([label]) => suffix.includes(label));
+      let cleanedDisplayName = displayName;
+
+      if (levelMapping) {
+        const labelIndex = suffix.indexOf(levelMapping[0]);
+        const absoluteIndex = suffixStart + labelIndex;
+        cleanedDisplayName = `${displayName.slice(0, absoluteIndex)}${displayName.slice(absoluteIndex + levelMapping[0].length)}`.trim();
+      }
+
+      return {
+        plusEntry: true,
+        displayName: cleanedDisplayName,
+        levelText: levelMapping?.[1] || "不详",
+        levelGroupLabel: levelMapping?.[0] || "不详",
+        isFemale: suffix.includes("🌸"),
+      };
+    }
+
+    function renderChainStats(entries) {
+      if (!entries.length) {
+        els.chainStats.replaceChildren();
+        return;
+      }
+
+      const levelLines = state.chainLevelMode === "group"
+        ? buildGroupedLevelStats(entries)
+        : buildExactLevelStats(entries);
+      const femaleCount = entries.filter((entry) => entry.isFemale).length;
+
+      const levelStats = document.createElement("div");
+      levelStats.textContent = levelLines.join("\n");
+
+      const divider = document.createElement("div");
+      divider.className = "stats-divider";
+      divider.setAttribute("role", "separator");
+
+      const genderStats = document.createElement("div");
+      genderStats.textContent = `女生：${femaleCount}人`;
+
+      els.chainStats.replaceChildren(levelStats, divider, genderStats);
+    }
+
+    function buildExactLevelStats(entries) {
+      const counts = new Map();
+      for (const entry of entries) counts.set(entry.levelText, (counts.get(entry.levelText) || 0) + 1);
+      return [...counts.entries()]
+        .sort((a, b) => (levelRank(b[0]) - levelRank(a[0])) || collator.compare(a[0], b[0]))
+        .map(([level, count]) => `${level === "不详" ? "等级不详" : level}：${count}人`);
+    }
+
+    function buildGroupedLevelStats(entries) {
+      const counts = new Map();
+      for (const entry of entries) {
+        const group = entry.levelGroupLabel || getLevelGroupLabel(entry.levelText);
+        counts.set(group, (counts.get(group) || 0) + 1);
+      }
+      return ["比赛级高手", "高手", "中手", "新手", "不详"]
+        .filter((group) => counts.has(group))
+        .map((group) => `${group}：${counts.get(group)}人`);
+    }
+
+    function updatePaymentButton() {
+      const ready = Boolean(
+        els.chainInput.value.trim() &&
+        els.courtFeeInput.value.trim() &&
+        els.shuttlePriceInput.value.trim() &&
+        els.shuttleCountInput.value.trim()
+      );
+      els.paymentBtn.disabled = !ready;
+    }
+
+    function openPaymentModal() {
+      processChain();
+      const courtFee = Number(els.courtFeeInput.value);
+      const shuttlePrice = Number(els.shuttlePriceInput.value);
+      const shuttleCount = Number(els.shuttleCountInput.value);
+      if (![courtFee, shuttlePrice, shuttleCount].every(Number.isFinite)) {
+        toast("费用和球数需要填写数字");
+        return;
+      }
+      const result = calculatePayment(state.chainEntries, courtFee, shuttlePrice, shuttleCount);
+      renderPaymentGroup(els.paymentFriends, result.groups.friends, {
+        showTotal: true,
+        femaleCapApplied: result.femaleCapApplied,
+      });
+      renderPaymentGroup(els.paymentHeineken, result.groups.heineken, {
+        showTotal: true,
+        femaleCapApplied: result.femaleCapApplied,
+      });
+      renderPaymentGroup(els.paymentSpecial, result.groups.special, {
+        showTotal: false,
+        femaleCapApplied: result.femaleCapApplied,
+      });
+      els.paymentFriendsCard.hidden = result.groups.friends.length === 0;
+      els.paymentHeinekenCard.hidden = result.groups.heineken.length === 0;
+      const visibleGroupCount = 1 + Number(!els.paymentFriendsCard.hidden) + Number(!els.paymentHeinekenCard.hidden);
+      els.paymentDialog.dataset.groupCount = String(visibleGroupCount);
+      els.paymentReport.dataset.groupCount = String(visibleGroupCount);
+      els.paymentCourtFee.textContent = formatCompactNumber(courtFee);
+      els.paymentShuttlePrice.textContent = formatCompactNumber(shuttlePrice);
+      els.paymentShuttleCount.textContent = formatCompactNumber(shuttleCount);
+      openModal("paymentModal");
+    }
+
+    async function copyPaymentScreenshot() {
+      if (typeof window.html2canvas !== "function") {
+        toast("截图组件加载失败，请刷新页面后重试");
+        return;
+      }
+
+      const originalText = els.paymentCaptureBtn.textContent;
+      els.paymentCaptureBtn.disabled = true;
+      els.paymentCaptureBtn.textContent = "正在截图";
+
+      try {
+        if (document.fonts?.ready) await document.fonts.ready;
+        const blobPromise = window.html2canvas(els.paymentReport, {
+          backgroundColor: "#f7faf9",
+          logging: false,
+          scale: Math.max(2, Math.min(3, window.devicePixelRatio || 1)),
+          useCORS: true,
+        }).then((canvas) => new Promise((resolve, reject) => {
+          canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("生成图片失败")), "image/png");
+        }));
+
+        if (navigator.clipboard?.write && window.ClipboardItem) {
+          await navigator.clipboard.write([new ClipboardItem({ "image/png": blobPromise })]);
+          toast("群收款截图已复制");
+        } else {
+          downloadPaymentScreenshot(await blobPromise);
+          toast("浏览器不支持复制图片，已改为下载");
+        }
+      } catch (error) {
+        toast(`复制截图失败：${error.message}`);
+      } finally {
+        els.paymentCaptureBtn.disabled = false;
+        els.paymentCaptureBtn.textContent = originalText;
+      }
+    }
+
+    function downloadPaymentScreenshot(blob) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `群收款-${new Date().toISOString().slice(0, 10)}.png`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function openPaymentSettingsModal() {
+      state.paymentSettingsEditor = {
+        activeTab: "球友",
+        orders: Object.fromEntries(PAYMENT_ORDER_AFFILIATIONS.map((affiliation) => [
+          affiliation,
+          getPlayersForOrder(affiliation).map((player) => Number(player.id)),
+        ])),
+        special: Object.fromEntries(
+          state.players
+            .filter(isSpecialPlayer)
+            .map((player) => [String(player.id), player.participatesPayment !== false])
+        ),
+        draggingId: null,
+      };
+      renderPaymentSettings();
+      openModal("paymentSettingsModal");
+    }
+
+    function switchPaymentSettingsTab(tab) {
+      if (![...PAYMENT_ORDER_AFFILIATIONS, "特殊"].includes(tab)) return;
+      state.paymentSettingsEditor.activeTab = tab;
+      state.paymentSettingsEditor.draggingId = null;
+      renderPaymentSettings();
+    }
+
+    function renderPaymentSettings() {
+      const activeTab = state.paymentSettingsEditor.activeTab;
+      const isSpecial = activeTab === "特殊";
+      els.paymentSettingsTabs.forEach((tab) => {
+        const active = tab.dataset.paymentSettingsTab === activeTab;
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-selected", String(active));
+        tab.tabIndex = active ? 0 : -1;
+      });
+      els.paymentSettingsOrderPanel.hidden = isSpecial;
+      els.paymentSettingsSpecialPanel.hidden = !isSpecial;
+      if (isSpecial) renderSpecialSettingsList();
+      else renderOrderList();
+    }
+
+    function getPlayersForOrder(affiliation) {
+      const members = state.players.filter((player) => hasPlayerAffiliation(player, affiliation));
+      const byId = new Map(members.map((player) => [Number(player.id), player]));
+      const savedIds = (state.paymentOrders[affiliation] || []).map(Number);
+      const ordered = savedIds.map((id) => byId.get(id)).filter(Boolean);
+      const orderedIds = new Set(ordered.map((player) => Number(player.id)));
+      const missing = members
+        .filter((player) => !orderedIds.has(Number(player.id)))
+        .sort((a, b) => collator.compare(firstName(a.name), firstName(b.name)) || (Number(a.id) - Number(b.id)));
+      return [...ordered, ...missing];
+    }
+
+    function renderOrderList() {
+      const affiliation = state.paymentSettingsEditor.activeTab;
+      if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation)) return;
+      const playersById = new Map(state.players.map((player) => [Number(player.id), player]));
+      const rows = state.paymentSettingsEditor.orders[affiliation]
+        .map((id) => playersById.get(Number(id)))
+        .filter((player) => player && hasPlayerAffiliation(player, affiliation));
+      state.paymentSettingsEditor.orders[affiliation] = rows.map((player) => Number(player.id));
+
+      if (!rows.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-hint";
+        empty.textContent = "暂无成员";
+        els.paymentSettingsOrderList.replaceChildren(empty);
+        return;
+      }
+
+      els.paymentSettingsOrderList.replaceChildren(...rows.map((player, index) => createOrderRow(player, index, rows.length)));
+    }
+
+    function createOrderRow(player, index, total) {
+      const row = document.createElement("div");
+      row.className = "order-row";
+      row.draggable = true;
+      row.dataset.playerId = String(player.id);
+
+      const handle = document.createElement("span");
+      handle.className = "drag-handle";
+      handle.textContent = "☰";
+
+      const name = document.createElement("span");
+      name.className = "order-name";
+      name.textContent = firstName(player.name) || player.name || "未命名";
+      name.title = player.name || "";
+
+      const actions = document.createElement("div");
+      actions.className = "order-actions";
+      const up = document.createElement("button");
+      up.type = "button";
+      up.className = "mini-btn";
+      up.title = "上移";
+      up.textContent = "↑";
+      up.disabled = index === 0;
+      up.addEventListener("click", () => moveOrderIndex(index, -1));
+      const down = document.createElement("button");
+      down.type = "button";
+      down.className = "mini-btn";
+      down.title = "下移";
+      down.textContent = "↓";
+      down.disabled = index === total - 1;
+      down.addEventListener("click", () => moveOrderIndex(index, 1));
+      actions.append(up, down);
+
+      const orderIndex = document.createElement("span");
+      orderIndex.className = "order-index";
+      orderIndex.textContent = `第${index + 1}`;
+
+      row.addEventListener("dragstart", (event) => {
+        state.paymentSettingsEditor.draggingId = Number(player.id);
+        row.classList.add("dragging");
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", String(player.id));
+      });
+      row.addEventListener("dragend", () => {
+        state.paymentSettingsEditor.draggingId = null;
+        row.classList.remove("dragging");
+        els.paymentSettingsOrderList.querySelectorAll(".drop-target").forEach((item) => item.classList.remove("drop-target"));
+      });
+      row.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        row.classList.add("drop-target");
+      });
+      row.addEventListener("dragleave", () => row.classList.remove("drop-target"));
+      row.addEventListener("drop", (event) => {
+        event.preventDefault();
+        row.classList.remove("drop-target");
+        const draggedId = Number(event.dataTransfer.getData("text/plain") || state.paymentSettingsEditor.draggingId);
+        moveOrderPlayerBefore(draggedId, Number(player.id));
+      });
+
+      row.append(handle, name, actions, orderIndex);
+      return row;
+    }
+
+    function moveOrderIndex(index, delta) {
+      const affiliation = state.paymentSettingsEditor.activeTab;
+      if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation)) return;
+      const currentIds = state.paymentSettingsEditor.orders[affiliation];
+      const nextIndex = index + delta;
+      if (nextIndex < 0 || nextIndex >= currentIds.length) return;
+      const ids = [...currentIds];
+      [ids[index], ids[nextIndex]] = [ids[nextIndex], ids[index]];
+      state.paymentSettingsEditor.orders[affiliation] = ids;
+      renderOrderList();
+    }
+
+    function moveOrderPlayerBefore(playerId, targetId) {
+      if (!playerId || !targetId || playerId === targetId) return;
+      const affiliation = state.paymentSettingsEditor.activeTab;
+      if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation)) return;
+      const ids = [...state.paymentSettingsEditor.orders[affiliation]];
+      const fromIndex = ids.indexOf(playerId);
+      let toIndex = ids.indexOf(targetId);
+      if (fromIndex < 0 || toIndex < 0) return;
+      const [moved] = ids.splice(fromIndex, 1);
+      if (fromIndex < toIndex) toIndex -= 1;
+      ids.splice(toIndex, 0, moved);
+      state.paymentSettingsEditor.orders[affiliation] = ids;
+      renderOrderList();
+    }
+
+    function renderSpecialSettingsList() {
+      const members = state.players
+        .filter(isSpecialPlayer)
+        .sort((a, b) => collator.compare(firstName(a.name), firstName(b.name)) || Number(a.id) - Number(b.id));
+
+      if (!members.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-hint";
+        empty.textContent = "暂无特殊成员";
+        els.paymentSettingsSpecialList.replaceChildren(empty);
+        return;
+      }
+
+      els.paymentSettingsSpecialList.replaceChildren(...members.map((player) => {
+        const row = document.createElement("div");
+        row.className = "special-setting-row";
+
+        const name = document.createElement("span");
+        name.className = "special-setting-name";
+        name.textContent = firstName(player.name) || player.name || "未命名";
+        name.title = player.name || "";
+
+        const choice = document.createElement("div");
+        choice.className = "special-setting-choice";
+        choice.setAttribute("role", "group");
+        choice.setAttribute("aria-label", `${name.textContent}的群收款设置`);
+        const participates = state.paymentSettingsEditor.special[String(player.id)] !== false;
+
+        const yesButton = document.createElement("button");
+        yesButton.type = "button";
+        yesButton.textContent = "参与A钱";
+        yesButton.classList.toggle("active", participates);
+        yesButton.setAttribute("aria-pressed", String(participates));
+        yesButton.addEventListener("click", () => setSpecialPaymentChoice(player.id, true));
+
+        const noButton = document.createElement("button");
+        noButton.type = "button";
+        noButton.textContent = "不A钱";
+        noButton.classList.toggle("active", !participates);
+        noButton.setAttribute("aria-pressed", String(!participates));
+        noButton.addEventListener("click", () => setSpecialPaymentChoice(player.id, false));
+
+        choice.append(yesButton, noButton);
+        row.append(name, choice);
+        return row;
+      }));
+    }
+
+    function setSpecialPaymentChoice(playerId, participatesPayment) {
+      state.paymentSettingsEditor.special[String(playerId)] = participatesPayment;
+      renderSpecialSettingsList();
+    }
+
+    async function savePaymentSettings() {
+      const specialSettings = state.players
+        .filter(isSpecialPlayer)
+        .map((player) => ({
+          playerId: Number(player.id),
+          participatesPayment: state.paymentSettingsEditor.special[String(player.id)] !== false,
+        }));
+
+      els.savePaymentSettingsBtn.disabled = true;
+      setSync("正在保存群收款设置");
+      try {
+        const data = await api("/api/payment-settings", {
+          method: "PUT",
+          body: JSON.stringify({
+            orders: Object.fromEntries(PAYMENT_ORDER_AFFILIATIONS.map((affiliation) => [
+              affiliation,
+              state.paymentSettingsEditor.orders[affiliation],
+            ])),
+            specialSettings,
+          }),
+        });
+        state.players = data.players || state.players;
+        state.paymentOrders = normalizePaymentOrders(data.paymentOrders);
+        setSync("已保存");
+        toast("群收款设置已保存");
+        closeModal("paymentSettingsModal");
+        renderTable();
+        if (els.paymentModal.classList.contains("open")) openPaymentModal();
+      } catch (error) {
+        setSync("保存失败");
+        toast(`保存群收款设置失败：${error.message}`);
+      } finally {
+        els.savePaymentSettingsBtn.disabled = false;
+      }
+    }
+
+    function calculatePayment(entries, courtFee, shuttlePrice, shuttleCount) {
+      const payingEntries = entries.filter(shouldCountForPayment);
+      const payerCount = payingEntries.length;
+      const femaleCount = payingEntries.filter((entry) => entry.isFemale).length;
+      const maleCount = payerCount - femaleCount;
+      const totalCost = courtFee + shuttlePrice * shuttleCount;
+      const perPerson = ceilOneDecimal(totalCost / Math.max(1, payerCount));
+      const femaleCapApplied = femaleCount > 0 && maleCount > 0 && perPerson > FEMALE_PAYMENT_CAP;
+      const femalePerPerson = femaleCapApplied ? FEMALE_PAYMENT_CAP : perPerson;
+      const malePerPerson = femaleCapApplied
+        ? ceilOneDecimal((totalCost - femalePerPerson * femaleCount) / maleCount)
+        : perPerson;
+      const groups = { friends: new Map(), heineken: new Map(), special: new Map() };
+      const sharedPaymentGroup = getSharedPaymentGroup(entries);
+      let sequence = 0;
+
+      for (const entry of entries) {
+        const player = entry.player;
+        const canonicalName = player ? paymentDisplayName(player) : getChainEntryBaseName(entry);
+        if (!entry.clean) continue;
+
+        if (isSpecialPlayer(player) && player.participatesPayment === false) {
+          addPaymentLine(groups.special, canonicalName, 0, "不参与A钱", 0, player.id, sequence++, entry.isFemale);
+          continue;
+        }
+        if (!shouldCountForPayment(entry)) continue;
+
+        const groupName = getPaymentGroup(player, sharedPaymentGroup);
+        const entryAmount = entry.isFemale ? femalePerPerson : malePerPerson;
+        addPaymentLine(groups[groupName], canonicalName, entryAmount, null, 1, player?.id || null, sequence++, entry.isFemale);
+      }
+
+      return {
+        payerCount,
+        perPerson,
+        femaleCount,
+        maleCount,
+        femalePerPerson,
+        malePerPerson,
+        femaleCapApplied,
+        groups: {
+          friends: mapToPaymentRows(groups.friends, PAYMENT_GROUPS.friends),
+          heineken: mapToPaymentRows(groups.heineken, PAYMENT_GROUPS.heineken),
+          special: mapToPaymentRows(groups.special),
+        },
+      };
+    }
+
+    function shouldCountForPayment(entry) {
+      if (!entry.clean) return false;
+      if (isSpecialPlayer(entry.player) && entry.player.participatesPayment === false) return false;
+      return true;
+    }
+
+    function getSharedPaymentGroup(entries) {
+      const groupableEntries = entries.filter((entry) => shouldCountForPayment(entry) && !isSpecialPlayer(entry.player));
+      if (!groupableEntries.length) return null;
+      if (groupableEntries.every((entry) => canEntryUsePaymentGroup(entry, "heineken"))) return "heineken";
+      if (groupableEntries.every((entry) => canEntryUsePaymentGroup(entry, "friends"))) return "friends";
+      return null;
+    }
+
+    function canEntryUsePaymentGroup(entry, groupName) {
+      if (!entry.player) return groupName === "friends";
+      return hasPlayerAffiliation(entry.player, PAYMENT_GROUPS[groupName]);
+    }
+
+    function getPaymentGroup(player, sharedPaymentGroup) {
+      if (isSpecialPlayer(player)) return "special";
+      if (sharedPaymentGroup) return sharedPaymentGroup;
+      if (hasPlayerAffiliation(player, "海尼克") && !hasPlayerAffiliation(player, "球友")) return "heineken";
+      return "friends";
+    }
+
+    function addPaymentLine(map, name, amount, note, slots, playerId, sequence, isFemale = false) {
+      const key = playerId ? `player:${playerId}` : `name:${name}`;
+      const current = map.get(key) || {
+        name,
+        amount: 0,
+        note: null,
+        slots: 0,
+        playerId: playerId || null,
+        sequence,
+        hasFemale: false,
+        hasMale: false,
+        femaleSlots: 0,
+        maleSlots: 0,
+      };
+      current.amount += amount;
+      current.slots += slots;
+      current.hasFemale = current.hasFemale || isFemale;
+      current.hasMale = current.hasMale || !isFemale;
+      current.femaleSlots += isFemale ? slots : 0;
+      current.maleSlots += isFemale ? 0 : slots;
+      if (note) current.note = note;
+      if (playerId && !current.playerId) current.playerId = playerId;
+      current.sequence = Math.min(current.sequence, sequence);
+      map.set(key, current);
+    }
+
+    function mapToPaymentRows(map, affiliation) {
+      const rows = [...map.values()];
+      if (!affiliation) return rows.sort((a, b) => collator.compare(a.name, b.name));
+
+      const orderMap = new Map((state.paymentOrders[affiliation] || []).map((id, index) => [Number(id), index]));
+      return rows.sort((a, b) => {
+        const aOrder = a.playerId && orderMap.has(Number(a.playerId)) ? orderMap.get(Number(a.playerId)) : Number.MAX_SAFE_INTEGER;
+        const bOrder = b.playerId && orderMap.has(Number(b.playerId)) ? orderMap.get(Number(b.playerId)) : Number.MAX_SAFE_INTEGER;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return (a.sequence - b.sequence) || collator.compare(a.name, b.name);
+      });
+    }
+
+    function formatPaymentGroup(rows, showTotal) {
+      if (!rows.length) return "";
+      const lines = rows.map((row) => `${paymentRowDisplayName(row)}：${formatMoney(row.amount)}`);
+      if (showTotal) lines.push(`总计：${formatMoney(rows.reduce((sum, row) => sum + row.amount, 0))}`);
+      return lines.join("\n");
+    }
+
+    function formatSpecialGroup(rows) {
+      if (!rows.length) return "";
+      return rows.map((row) => row.note
+        ? `${paymentRowDisplayName(row)}：${row.note}`
+        : `${paymentRowDisplayName(row)}：${formatMoney(row.amount)}`).join("\n");
+    }
+
+    function renderPaymentGroup(container, rows, { showTotal, femaleCapApplied }) {
+      const elements = rows.map((row) => {
+        const highlights = getPaymentRowHighlights(row, femaleCapApplied);
+        const line = document.createElement("div");
+        line.className = "payment-line";
+        line.classList.toggle("companion-highlight", highlights.companion);
+        line.classList.toggle("female-cap-highlight", highlights.femaleCap);
+
+        const main = document.createElement("span");
+        main.className = "payment-line-main";
+        main.textContent = row.note
+          ? `${paymentRowDisplayName(row)}：${row.note}`
+          : `${paymentRowDisplayName(row)}：${formatMoney(row.amount)}`;
+        line.append(main);
+
+        if (highlights.companion || highlights.femaleCap) {
+          const badges = document.createElement("span");
+          badges.className = "payment-line-badges";
+          if (highlights.companion) badges.append(createPaymentBadge(formatPaymentComposition(row), "companion"));
+          if (highlights.femaleCap) badges.append(createPaymentBadge("25封顶", "female-cap"));
+          line.append(badges);
+        }
+        return line;
+      });
+
+      if (showTotal && rows.length) {
+        const total = document.createElement("div");
+        total.className = "payment-total-line";
+        total.textContent = `总计：${formatMoney(rows.reduce((sum, row) => sum + row.amount, 0))}`;
+        elements.push(total);
+      }
+      container.replaceChildren(...elements);
+    }
+
+    function createPaymentBadge(text, type) {
+      const badge = document.createElement("span");
+      badge.className = `payment-line-badge ${type}`;
+      badge.textContent = text;
+      return badge;
+    }
+
+    function getPaymentRowHighlights(row, femaleCapApplied) {
+      return {
+        companion: Number(row?.slots) > 1,
+        femaleCap: Boolean(femaleCapApplied && row?.slots > 0 && row?.hasFemale && !row?.hasMale),
+      };
+    }
+
+    function formatPaymentComposition(row) {
+      const maleSlots = Number(row?.maleSlots) || 0;
+      const femaleSlots = Number(row?.femaleSlots) || 0;
+      return [
+        maleSlots > 0 ? `🍀x${maleSlots}` : "",
+        femaleSlots > 0 ? `🌸x${femaleSlots}` : "",
+      ].filter(Boolean).join("，");
+    }
+
+    function paymentRowDisplayName(row) {
+      const name = String(row?.name || "");
+      if (!row?.hasFemale || row?.hasMale || name.includes("🌸")) return name;
+      return `${name}🌸`;
+    }
+
+    function buildAliasIndex() {
+      return state.players.flatMap((player) => splitAliases(player.name).map((alias) => ({
+        alias,
+        normalized: normalizeAlias(alias),
+        player,
+      }))).filter((item) => item.normalized).sort((a, b) => b.normalized.length - a.normalized.length);
+    }
+
+    function findPlayerForLine(line, aliasIndex) {
+      const normalized = normalizeAlias(removeChainAnnotations(line));
+      const match = aliasIndex.find((item) => normalized.includes(item.normalized));
+      return match?.player || null;
+    }
+
+    function removeChainAnnotations(value) {
+      return String(value || "").replace(/\([^)]*\)|（[^）]*）/g, " ");
+    }
+
+    function splitAliases(name) {
+      return String(name || "").split(/[,，]/).map((part) => part.trim()).filter(Boolean);
+    }
+
+    function firstName(name) {
+      return splitAliases(name)[0] || "";
+    }
+
+    function paymentDisplayName(player) {
+      return firstName(player.name);
+    }
+
+    async function pasteChainInput() {
+      try {
+        els.chainInput.value = await navigator.clipboard.readText();
+        processChain();
+        toast("已粘贴");
+      } catch (error) {
+        toast("浏览器没有允许读取剪贴板");
+      }
+    }
+
+    async function copyChainOutput() {
+      try {
+        await navigator.clipboard.writeText(state.chainOutputText);
+        toast("已复制");
+      } catch (error) {
+        toast("浏览器没有允许写入剪贴板");
+      }
+    }
+
+    function openModal(id) {
+      document.getElementById(id)?.classList.add("open");
+    }
+
+    function closeModal(id) {
+      document.getElementById(id)?.classList.remove("open");
+    }
+
+    function closeTopModal() {
+      const open = [...document.querySelectorAll(".modal-backdrop.open")].at(-1);
+      if (open) closeModal(open.id);
+    }
+
+    function isAnyModalOpen() {
+      return Boolean(document.querySelector(".modal-backdrop.open"));
+    }
+
+    function toast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => els.toast.classList.remove("show"), 2600);
+    }
+
+    function cleanChainLine(line) {
+      return String(line || "").replace(CHAIN_NUMBER_PREFIX, "").trim();
+    }
+
+    function getChainInputLines(rawInput) {
+      const lines = String(rawInput || "").split(/\r?\n/);
+      const numberedLines = lines.filter((line) => CHAIN_NUMBER_PREFIX.test(line));
+      return numberedLines.length ? numberedLines : lines;
+    }
+
+    function normalizeAlias(value) {
+      return String(value || "").normalize("NFKC").toLowerCase().replace(/\s+/g, "");
+    }
+
+    function normalizeSearch(value) {
+      return String(value || "").normalize("NFKC").toLowerCase();
+    }
+
+    function levelRank(level) {
+      if (!level || level === "不详" || level === "等级不详") return -1;
+      const number = Number.parseFloat(String(level).replace("级", ""));
+      return Number.isFinite(number) ? number : -1;
+    }
+
+    function ceilOneDecimal(value) {
+      return Math.ceil((value + Number.EPSILON) * 10) / 10;
+    }
+
+    function formatMoney(value) {
+      return (Math.round(value * 10) / 10).toFixed(1);
+    }
+
+    function formatCompactNumber(value) {
+      return String(Math.round((value + Number.EPSILON) * 100) / 100);
+    }
+
+    function isPrintableKey(event) {
+      return event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
+    }
+
+    function isTextControl(element) {
+      if (!element) return false;
+      const tag = element.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || element.isContentEditable;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
+    }
+
+    function escapeXml(value) {
+      return String(value).replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
+    }
+
+    function cssEscape(value) {
+      return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    }
+
+    function columnLetter(index) {
+      let letter = "";
+      while (index > 0) {
+        const mod = (index - 1) % 26;
+        letter = String.fromCharCode(65 + mod) + letter;
+        index = Math.floor((index - mod) / 26);
+      }
+      return letter;
+    }
+
+    function getDosTimeDate(date) {
+      const dosTime = (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
+      const dosDate = ((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+      return { dosTime, dosDate };
+    }
+
+    function concatUint8(parts) {
+      const total = parts.reduce((sum, part) => sum + part.length, 0);
+      const output = new Uint8Array(total);
+      let offset = 0;
+      for (const part of parts) {
+        output.set(part, offset);
+        offset += part.length;
+      }
+      return output;
+    }
+
+    let crcTable;
+    function crc32(data) {
+      if (!crcTable) {
+        crcTable = new Uint32Array(256);
+        for (let i = 0; i < 256; i++) {
+          let c = i;
+          for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+          crcTable[i] = c >>> 0;
+        }
+      }
+      let crc = 0xffffffff;
+      for (const byte of data) crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+      return (crc ^ 0xffffffff) >>> 0;
+    }
+
+    init();
+  </script>
+</body>
+</html>
