@@ -1,10 +1,13 @@
 # 中羽等级
 
-这是一个用于组织羽毛球局的单页应用。前端入口是 `index.html`，线上由 Cloudflare Worker 托管，数据保存在 Cloudflare D1。
+这是一个用于组织羽毛球局的单页应用。前端入口是 `index.html`，数据保存在 Cloudflare D1，并提供 GitHub Pages 只读备用入口。
 
 ## 线上地址
 
-https://badminton-level.choi975.workers.dev
+- 管理版：https://badminton-level.choi975.workers.dev
+- 备用版：https://choi975.github.io/badminton-level/
+
+管理版优先读取 D1，断网时自动降级到浏览器缓存或随代码发布的数据快照并进入只读状态。备用版始终只读，默认打开接龙助手并隐藏数据库。
 
 ## Cloudflare 资源
 
@@ -18,6 +21,8 @@ https://badminton-level.choi975.workers.dev
 
 ```bash
 npm run build
+npm run snapshot
+npm run build:fresh
 npm run dev
 npm run d1:migrate:local
 npm run d1:migrate:remote
@@ -28,5 +33,7 @@ npm run deploy
 
 - `index.html`: 主界面和所有前端交互。
 - `src/worker.js`: Worker API，负责连接 D1。
+- `data/bootstrap-snapshot.json`: 随版本发布的 D1 数据快照。
+- `scripts/generate-snapshot.js`: 从远程 D1 生成最新快照。
 - `migrations/0001_initial.sql`: D1 表结构。
 - `scripts/verify-chain.js`: 使用需求里的示例验证接龙和群收款规则。

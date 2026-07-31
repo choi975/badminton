@@ -1,0 +1,1171 @@
+{
+  "generatedAt": "2026-07-31T08:04:53.767Z",
+  "source": "Cloudflare D1: Badminton-level",
+  "data": {
+    "players": [
+      {
+        "id": 1,
+        "name": "达哥，刘赵达，阿达",
+        "gender": "男",
+        "level": "4级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友+Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 11:31:03",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 2,
+        "name": "Benny",
+        "gender": "男",
+        "level": "4级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 11:33:05",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 4,
+        "name": "何兴康，7点",
+        "gender": "男",
+        "level": "3.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友+Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:07:19",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 5,
+        "name": "杰哥，李杰，无",
+        "gender": "男",
+        "level": "4级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友+Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:07:32",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 6,
+        "name": "冯丽美，F+",
+        "gender": "女",
+        "level": "3级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:07:53",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 7,
+        "name": "huangjie21，黄成杰",
+        "gender": "男",
+        "level": "2.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:08:05",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 8,
+        "name": "阿恒，恒教",
+        "gender": "男",
+        "level": "4.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:08:12",
+        "updatedAt": "2026-07-10 07:35:08"
+      },
+      {
+        "id": 9,
+        "name": "柚子🍀，柚子",
+        "gender": "女",
+        "level": "3级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:08:17",
+        "updatedAt": "2026-07-11 17:30:29"
+      },
+      {
+        "id": 10,
+        "name": "🌹，霖",
+        "gender": "女",
+        "level": "3.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:08:30",
+        "updatedAt": "2026-07-22 00:53:21"
+      },
+      {
+        "id": 11,
+        "name": "老洪，洪学华，henry，今晚跑不动",
+        "gender": "男",
+        "level": "4级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友+Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:08:36",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 12,
+        "name": "刘俊杰，MI",
+        "gender": "男",
+        "level": "3.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友+Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:09:18",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 13,
+        "name": "甲乙丙，🍭 甲乙丙",
+        "gender": "女",
+        "level": "3.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:09:22",
+        "updatedAt": "2026-07-21 06:47:00"
+      },
+      {
+        "id": 14,
+        "name": "小零",
+        "gender": "女",
+        "level": "2级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:09:25",
+        "updatedAt": "2026-07-30 02:57:04"
+      },
+      {
+        "id": 15,
+        "name": "江涛",
+        "gender": "女",
+        "level": "3.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:09:28",
+        "updatedAt": "2026-07-21 06:50:50"
+      },
+      {
+        "id": 16,
+        "name": "ben，孙总，孙锋，达哥的领导",
+        "gender": "男",
+        "level": "4级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": false,
+        "createdAt": "2026-07-09 12:09:39",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 17,
+        "name": "Baymax，徐攀，三爷",
+        "gender": "男",
+        "level": "2.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:09:54",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 18,
+        "name": "小施",
+        "gender": "女",
+        "level": "3.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:10:00",
+        "updatedAt": "2026-07-10 01:11:11"
+      },
+      {
+        "id": 19,
+        "name": "FENG",
+        "gender": "男",
+        "level": "2.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:10:07",
+        "updatedAt": "2026-07-11 17:31:52"
+      },
+      {
+        "id": 20,
+        "name": "0.o，零点",
+        "gender": "男",
+        "level": "3.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:10:13",
+        "updatedAt": "2026-07-11 17:32:06"
+      },
+      {
+        "id": 21,
+        "name": "黎喜燕，燕儿",
+        "gender": "女",
+        "level": "1.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:10:18",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 22,
+        "name": "黄渲鹏",
+        "gender": "男",
+        "level": "2级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:10:36",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 23,
+        "name": "L",
+        "gender": "男",
+        "level": "4级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:10:58",
+        "updatedAt": "2026-07-09 12:13:24"
+      },
+      {
+        "id": 24,
+        "name": "Hx7",
+        "gender": "男",
+        "level": "4.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-09 12:11:03",
+        "updatedAt": "2026-07-09 12:13:18"
+      },
+      {
+        "id": 25,
+        "name": "星爷，刘智星，黎明沉思",
+        "gender": "男",
+        "level": "3.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友+Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:39:07",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 26,
+        "name": "威朱，朱工，朱剑威",
+        "gender": "男",
+        "level": "6级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:40:10",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 27,
+        "name": "孙子城，。sun 。",
+        "gender": "男",
+        "level": "2.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:40:48",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 28,
+        "name": "周浩东，唯心不落、、",
+        "gender": "男",
+        "level": "2.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:42:19",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 29,
+        "name": "listen，黄立臣",
+        "gender": "男",
+        "level": "2.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:42:44",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 30,
+        "name": "wzb，温振斌",
+        "gender": "男",
+        "level": "3级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:43:31",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 31,
+        "name": "April，管晓丹",
+        "gender": "女",
+        "level": "3级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:43:57",
+        "updatedAt": "2026-07-31 06:48:17"
+      },
+      {
+        "id": 32,
+        "name": "梁豪杰",
+        "gender": "男",
+        "level": "2.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:44:36",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 33,
+        "name": "朱薛陈，猪猪🐷朱圆玉润",
+        "gender": "男",
+        "level": "2.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友+Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:45:27",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 35,
+        "name": "Ni 姐姐",
+        "gender": "女",
+        "level": "2级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:46:28",
+        "updatedAt": "2026-07-10 01:51:46"
+      },
+      {
+        "id": 36,
+        "name": "小精灵",
+        "gender": "女",
+        "level": "2.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:46:47",
+        "updatedAt": "2026-07-10 01:51:39"
+      },
+      {
+        "id": 37,
+        "name": "🎀 ～TomCat，景清",
+        "gender": "男",
+        "level": "3.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:46:55",
+        "updatedAt": "2026-07-10 01:51:35"
+      },
+      {
+        "id": 38,
+        "name": "吴悠",
+        "gender": "女",
+        "level": "2.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:47:14",
+        "updatedAt": "2026-07-10 08:32:04"
+      },
+      {
+        "id": 39,
+        "name": "1fan",
+        "gender": "男",
+        "level": "4级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:47:55",
+        "updatedAt": "2026-07-11 17:33:12"
+      },
+      {
+        "id": 40,
+        "name": "小孩哥，重生",
+        "gender": "男",
+        "level": "3.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:48:03",
+        "updatedAt": "2026-07-11 17:33:18"
+      },
+      {
+        "id": 41,
+        "name": "清。",
+        "gender": "男",
+        "level": "3.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:48:11",
+        "updatedAt": "2026-07-10 01:51:21"
+      },
+      {
+        "id": 42,
+        "name": "珠珠",
+        "gender": "女",
+        "level": "2级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:48:47",
+        "updatedAt": "2026-07-10 08:32:07"
+      },
+      {
+        "id": 43,
+        "name": "A 明🐴到成功",
+        "gender": "男",
+        "level": "4级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:48:56",
+        "updatedAt": "2026-07-10 01:51:04"
+      },
+      {
+        "id": 44,
+        "name": "黃安鋒",
+        "gender": "男",
+        "level": "4.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:49:14",
+        "updatedAt": "2026-07-10 01:51:01"
+      },
+      {
+        "id": 45,
+        "name": "吕教，吕小困，小吕，了鱼吕",
+        "gender": "男",
+        "level": "4.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:49:26",
+        "updatedAt": "2026-07-15 09:47:54"
+      },
+      {
+        "id": 46,
+        "name": "政",
+        "gender": "女",
+        "level": "3级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:49:34",
+        "updatedAt": "2026-07-10 07:34:47"
+      },
+      {
+        "id": 47,
+        "name": "狗屁熊",
+        "gender": "女",
+        "level": "3.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:49:43",
+        "updatedAt": "2026-07-11 17:33:34"
+      },
+      {
+        "id": 48,
+        "name": "あ小新",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:50:12",
+        "updatedAt": "2026-07-10 01:50:12"
+      },
+      {
+        "id": 49,
+        "name": "Maiko",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:50:38",
+        "updatedAt": "2026-07-10 01:50:38"
+      },
+      {
+        "id": 50,
+        "name": "好多鱼，春生野",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 01:50:46",
+        "updatedAt": "2026-07-11 17:33:39"
+      },
+      {
+        "id": 51,
+        "name": "choi",
+        "gender": "男",
+        "level": "3级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "特殊",
+        "participatesPayment": true,
+        "createdAt": "2026-07-10 06:36:43",
+        "updatedAt": "2026-07-31 06:48:37"
+      },
+      {
+        "id": 52,
+        "name": "Squidward",
+        "gender": "女",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-15 09:47:20",
+        "updatedAt": "2026-07-15 09:47:24"
+      },
+      {
+        "id": 53,
+        "name": "oi",
+        "gender": "男",
+        "level": "5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-15 09:47:37",
+        "updatedAt": "2026-07-17 12:08:03"
+      },
+      {
+        "id": 54,
+        "name": "游，谢福全，谢工",
+        "gender": "男",
+        "level": "2.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "Hytronik",
+        "participatesPayment": true,
+        "createdAt": "2026-07-21 09:56:47",
+        "updatedAt": "2026-07-28 03:40:17"
+      },
+      {
+        "id": 55,
+        "name": "刘嘉欣",
+        "gender": "女",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 02:42:21",
+        "updatedAt": "2026-07-28 03:28:44"
+      },
+      {
+        "id": 56,
+        "name": "陈德元",
+        "gender": "女",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 02:42:33",
+        "updatedAt": "2026-07-28 02:42:33"
+      },
+      {
+        "id": 57,
+        "name": "Debra，王文娟",
+        "gender": "女",
+        "level": "2级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 02:42:51",
+        "updatedAt": "2026-07-28 02:43:05"
+      },
+      {
+        "id": 58,
+        "name": "周君秋",
+        "gender": "女",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 02:43:21",
+        "updatedAt": "2026-07-28 02:43:27"
+      },
+      {
+        "id": 59,
+        "name": "俊",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 02:43:57",
+        "updatedAt": "2026-07-28 02:44:01"
+      },
+      {
+        "id": 60,
+        "name": "Pony boy",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 02:44:09",
+        "updatedAt": "2026-07-28 02:44:09"
+      },
+      {
+        "id": 61,
+        "name": "LEE Z J",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 02:44:16",
+        "updatedAt": "2026-07-28 02:44:16"
+      },
+      {
+        "id": 62,
+        "name": "哟呵呵",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 02:49:17",
+        "updatedAt": "2026-07-28 02:49:17"
+      },
+      {
+        "id": 63,
+        "name": "阿汤",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 02:49:26",
+        "updatedAt": "2026-07-28 02:49:26"
+      },
+      {
+        "id": 64,
+        "name": "🥯",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 02:49:35",
+        "updatedAt": "2026-07-28 02:49:35"
+      },
+      {
+        "id": 65,
+        "name": "momoko",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 04:19:48",
+        "updatedAt": "2026-07-28 04:19:48"
+      },
+      {
+        "id": 66,
+        "name": "盛夏🐠",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 04:20:28",
+        "updatedAt": "2026-07-28 04:20:28"
+      },
+      {
+        "id": 67,
+        "name": "🤔zZso",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 04:21:06",
+        "updatedAt": "2026-07-28 04:21:06"
+      },
+      {
+        "id": 68,
+        "name": "Double莉",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 04:22:24",
+        "updatedAt": "2026-07-28 04:22:24"
+      },
+      {
+        "id": 69,
+        "name": "泥沼",
+        "gender": "男",
+        "level": "3.5级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 04:22:48",
+        "updatedAt": "2026-07-30 02:57:20"
+      },
+      {
+        "id": 70,
+        "name": "菲菲",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 04:23:11",
+        "updatedAt": "2026-07-28 04:23:11"
+      },
+      {
+        "id": 71,
+        "name": "A.",
+        "gender": "男",
+        "level": "不详",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "participatesPayment": true,
+        "createdAt": "2026-07-28 04:23:34",
+        "updatedAt": "2026-07-28 04:23:34"
+      }
+    ],
+    "levelDescriptions": {
+      "0.5级": "•  刚开始打球，连握拍都不会",
+      "1级": "•  会正手和反手握拍，但不会灵活切换\n•  会正手发球和反手发球，但发球经常下网或者出界\n•  不会侧身和架拍\n•  打球基本原地不动\n•  挥拍经常挥空",
+      "1.5级": "•  反手发球基本及格，正手发球还不熟练\n•  偶尔会记得侧身和架拍\n•  开始会移动了，但移动较慢，动作僵硬\n•  正手高远球经常只能打到中场\n•  不会处理网前球",
+      "2级": "•  正手高远球基本能到底线\n•  接发球经常是随意将球回到中场，遇到高手会被直接杀球\n•  不会接对面偷后场的发球\n•  挥拍经常打杆\n•  对网前球会下压和放网，但失误率高",
+      "2.5级": "•  接发球开始会挑后场了\n•  能接对面偷后场的发球，但回球经常是只能回到网前。\n•  大多是平抽，还不太会杀球、吊球等技术\n•  回球质量不高，常被对手连续进攻",
+      "3级": "•  接发球不再只是挑后场，偶尔会平推或放网\n•  面对对面偷后场的发球，回球能够回高远球甚至杀球。\n•  移动开始变得灵活\n•  掌握吊球，杀球，搓球，放网等常用的技术\n•  回球开始会找空档，但还不会主动规划线路，转守为攻。\n•  正手回球能回到底线，正反手也能完成一些过渡\n•  能接一些威胁不大的杀球。",
+      "3.5级": "•  掌握踮步、并步、弓箭步、交叉步等常见步伐，启动和移动速度达到中等水平\n•  反手高远球也能够打到后场，正反手过渡直线斜线相对稳定\n•  进攻有威胁，防守会做出一些球路变化，不让对手连续进攻",
+      "4级": "•  发接发质量高，失误少，网前放网、搓球等质量高\n•  前场封网速度快，后场能够连续进攻\n•  掌握各种杀球(重杀，劈杀，点杀)和吊球(滑吊，劈吊)技术\n•  能够较好的完成对抗练习，有控制对手的意识，发现其弱点\n•  场上失误较少，回球质量较高",
+      "4.5级": "•  步伐标准，没有多余的动作\n•  后场能够连续进攻，甚至会双脚起跳杀球\n•  防守能做出球路变化，转守为攻\n•  会一些假动作且动作一致性较强",
+      "5级": "•  各项技术运用自如，并且有一两项突出的技术(比如杀球快)\n•  每一拍衔接的较快，几乎没有失误\n•  会反手杀球、鱼跃接球、身后接球之类的高难度动作\n•  力量和速度达到高等水平，进攻威胁较强，防守也较牢固",
+      "6级": "•  能看到专业选手的技术特点，有意识和战术分析能力\n•  参加业余比赛并取得过较好成绩",
+      "7级": "•  在省市级业余比赛获得较好名次",
+      "8级": "•  在全国性比赛获得较好名次",
+      "9级": "•  在全国性比赛获得冠军"
+    },
+    "levelGuideRaw": "中羽等级表格\n0.5级\n•  刚开始打球，连握拍都不会\n1级\n•  会正手和反手握拍，但不会灵活切换\n•  会正手发球和反手发球，但发球经常下网或者出界\n•  不会侧身和架拍\n•  打球基本原地不动\n•  挥拍经常挥空\n1.5级\n•  反手发球基本及格，正手发球还不熟练\n•  偶尔会记得侧身和架拍\n•  开始会移动了，但移动较慢，动作僵硬\n•  正手高远球经常只能打到中场\n•  不会处理网前球\n2级\n•  正手高远球基本能到底线\n•  接发球经常是随意将球回到中场，遇到高手会被直接杀球\n•  不会接对面偷后场的发球\n•  挥拍经常打杆\n•  对网前球会下压和放网，但失误率高\n2.5级\n•  接发球开始会挑后场了\n•  能接对面偷后场的发球，但回球经常是只能回到网前。\n•  大多是平抽，还不太会杀球、吊球等技术\n•  回球质量不高，常被对手连续进攻\n3级\n•  接发球不再只是挑后场，偶尔会平推或放网\n•  面对对面偷后场的发球，回球能够回高远球甚至杀球。\n•  移动开始变得灵活\n•  掌握吊球，杀球，搓球，放网等常用的技术\n•  回球开始会找空档，但还不会主动规划线路，转守为攻。\n•  正手回球能回到底线，正反手也能完成一些过渡\n•  能接一些威胁不大的杀球。\n3.5级\n•  掌握踮步、并步、弓箭步、交叉步等常见步伐，启动和移动速度达到中等水平\n•  反手高远球也能够打到后场，正反手过渡直线斜线相对稳定\n•  进攻有威胁，防守会做出一些球路变化，不让对手连续进攻\n4级\n•  发接发质量高，失误少，网前放网、搓球等质量高\n•  前场封网速度快，后场能够连续进攻\n•  掌握各种杀球(重杀，劈杀，点杀)和吊球(滑吊，劈吊)技术\n•  能够较好的完成对抗练习，有控制对手的意识，发现其弱点\n•  场上失误较少，回球质量较高\n4.5级\n•  步伐标准，没有多余的动作\n•  后场能够连续进攻，甚至会双脚起跳杀球\n•  防守能做出球路变化，转守为攻\n•  会一些假动作且动作一致性较强\n5级\n•  各项技术运用自如，并且有一两项突出的技术(比如杀球快)\n•  每一拍衔接的较快，几乎没有失误\n•  会反手杀球、鱼跃接球、身后接球之类的高难度动作\n•  力量和速度达到高等水平，进攻威胁较强，防守也较牢固\n6级\n•  能看到专业选手的技术特点，有意识和战术分析能力\n•  参加业余比赛并取得过较好成绩\n7级\n•  在省市级业余比赛获得较好名次\n8级\n•  在全国性比赛获得较好名次\n9级\n•  在全国性比赛获得冠军",
+    "groupJoinNumbers": {
+      "球友": [
+        {
+          "playerId": 55,
+          "joinNumber": 1
+        },
+        {
+          "playerId": 56,
+          "joinNumber": 2
+        },
+        {
+          "playerId": 57,
+          "joinNumber": 3
+        },
+        {
+          "playerId": 58,
+          "joinNumber": 5
+        },
+        {
+          "playerId": 15,
+          "joinNumber": 6
+        },
+        {
+          "playerId": 35,
+          "joinNumber": 7
+        },
+        {
+          "playerId": 36,
+          "joinNumber": 8
+        },
+        {
+          "playerId": 37,
+          "joinNumber": 9
+        },
+        {
+          "playerId": 65,
+          "joinNumber": 10
+        },
+        {
+          "playerId": 38,
+          "joinNumber": 11
+        },
+        {
+          "playerId": 66,
+          "joinNumber": 12
+        },
+        {
+          "playerId": 13,
+          "joinNumber": 13
+        },
+        {
+          "playerId": 39,
+          "joinNumber": 14
+        },
+        {
+          "playerId": 40,
+          "joinNumber": 15
+        },
+        {
+          "playerId": 41,
+          "joinNumber": 16
+        },
+        {
+          "playerId": 67,
+          "joinNumber": 17
+        },
+        {
+          "playerId": 25,
+          "joinNumber": 18
+        },
+        {
+          "playerId": 9,
+          "joinNumber": 19
+        },
+        {
+          "playerId": 42,
+          "joinNumber": 20
+        },
+        {
+          "playerId": 43,
+          "joinNumber": 21
+        },
+        {
+          "playerId": 8,
+          "joinNumber": 22
+        },
+        {
+          "playerId": 1,
+          "joinNumber": 23
+        },
+        {
+          "playerId": 5,
+          "joinNumber": 24
+        },
+        {
+          "playerId": 11,
+          "joinNumber": 25
+        },
+        {
+          "playerId": 20,
+          "joinNumber": 26
+        },
+        {
+          "playerId": 23,
+          "joinNumber": 27
+        },
+        {
+          "playerId": 44,
+          "joinNumber": 28
+        },
+        {
+          "playerId": 68,
+          "joinNumber": 29
+        },
+        {
+          "playerId": 18,
+          "joinNumber": 30
+        },
+        {
+          "playerId": 69,
+          "joinNumber": 31
+        },
+        {
+          "playerId": 19,
+          "joinNumber": 32
+        },
+        {
+          "playerId": 70,
+          "joinNumber": 33
+        },
+        {
+          "playerId": 45,
+          "joinNumber": 34
+        },
+        {
+          "playerId": 46,
+          "joinNumber": 35
+        },
+        {
+          "playerId": 47,
+          "joinNumber": 36
+        },
+        {
+          "playerId": 10,
+          "joinNumber": 37
+        },
+        {
+          "playerId": 71,
+          "joinNumber": 38
+        },
+        {
+          "playerId": 12,
+          "joinNumber": 39
+        },
+        {
+          "playerId": 4,
+          "joinNumber": 40
+        },
+        {
+          "playerId": 64,
+          "joinNumber": 41
+        },
+        {
+          "playerId": 63,
+          "joinNumber": 42
+        },
+        {
+          "playerId": 62,
+          "joinNumber": 43
+        },
+        {
+          "playerId": 24,
+          "joinNumber": 44
+        },
+        {
+          "playerId": 14,
+          "joinNumber": 45
+        },
+        {
+          "playerId": 33,
+          "joinNumber": 46
+        },
+        {
+          "playerId": 48,
+          "joinNumber": 47
+        },
+        {
+          "playerId": 49,
+          "joinNumber": 48
+        },
+        {
+          "playerId": 50,
+          "joinNumber": 49
+        },
+        {
+          "playerId": 52,
+          "joinNumber": 50
+        },
+        {
+          "playerId": 53,
+          "joinNumber": 51
+        },
+        {
+          "playerId": 61,
+          "joinNumber": 52
+        },
+        {
+          "playerId": 60,
+          "joinNumber": 53
+        },
+        {
+          "playerId": 59,
+          "joinNumber": 54
+        }
+      ],
+      "Hytronik": [
+        {
+          "playerId": 11,
+          "joinNumber": 1
+        },
+        {
+          "playerId": 25,
+          "joinNumber": 2
+        },
+        {
+          "playerId": 26,
+          "joinNumber": 5
+        },
+        {
+          "playerId": 1,
+          "joinNumber": 6
+        },
+        {
+          "playerId": 5,
+          "joinNumber": 7
+        },
+        {
+          "playerId": 27,
+          "joinNumber": 13
+        },
+        {
+          "playerId": 6,
+          "joinNumber": 16
+        },
+        {
+          "playerId": 12,
+          "joinNumber": 17
+        },
+        {
+          "playerId": 4,
+          "joinNumber": 18
+        },
+        {
+          "playerId": 28,
+          "joinNumber": 19
+        },
+        {
+          "playerId": 29,
+          "joinNumber": 20
+        },
+        {
+          "playerId": 30,
+          "joinNumber": 28
+        },
+        {
+          "playerId": 31,
+          "joinNumber": 29
+        },
+        {
+          "playerId": 32,
+          "joinNumber": 31
+        },
+        {
+          "playerId": 21,
+          "joinNumber": 34
+        },
+        {
+          "playerId": 33,
+          "joinNumber": 36
+        },
+        {
+          "playerId": 7,
+          "joinNumber": 39
+        },
+        {
+          "playerId": 2,
+          "joinNumber": 40
+        },
+        {
+          "playerId": 22,
+          "joinNumber": 41
+        },
+        {
+          "playerId": 16,
+          "joinNumber": 42
+        },
+        {
+          "playerId": 17,
+          "joinNumber": 43
+        },
+        {
+          "playerId": 54,
+          "joinNumber": 44
+        }
+      ]
+    },
+    "paymentOrders": {
+      "球友": [
+        55,
+        56,
+        57,
+        58,
+        15,
+        35,
+        36,
+        37,
+        65,
+        38,
+        66,
+        13,
+        39,
+        40,
+        41,
+        67,
+        25,
+        9,
+        42,
+        43,
+        8,
+        1,
+        5,
+        11,
+        20,
+        23,
+        44,
+        68,
+        18,
+        69,
+        19,
+        70,
+        45,
+        46,
+        47,
+        10,
+        71,
+        12,
+        4,
+        64,
+        63,
+        62,
+        24,
+        14,
+        33,
+        48,
+        49,
+        50,
+        52,
+        53,
+        61,
+        60,
+        59
+      ],
+      "Hytronik": [
+        11,
+        25,
+        26,
+        1,
+        5,
+        27,
+        6,
+        12,
+        4,
+        28,
+        29,
+        30,
+        31,
+        32,
+        21,
+        33,
+        7,
+        2,
+        22,
+        16,
+        17,
+        54
+      ]
+    }
+  }
+}

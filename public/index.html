@@ -73,8 +73,19 @@
       margin: 0 auto;
       padding: 18px;
       display: grid;
-      grid-template-rows: auto auto 1fr;
+      grid-template-rows: auto minmax(0, 1fr);
       gap: 14px;
+    }
+
+    .database-area {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .database-area[hidden], .read-only-banner[hidden], .retry-connection-btn[hidden] {
+      display: none;
     }
 
     .topbar {
@@ -117,7 +128,6 @@
     }
 
     .sync-state {
-      margin-top: 4px;
       color: var(--muted);
       font-size: 12px;
       min-height: 16px;
@@ -125,6 +135,25 @@
       display: flex;
       align-items: center;
       gap: 6px;
+    }
+
+    .data-status-row {
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .retry-connection-btn {
+      width: 24px;
+      min-width: 24px;
+      min-height: 22px;
+      padding: 0;
+      border-color: transparent;
+      background: transparent;
+      color: var(--accent-dark);
+      font-size: 15px;
+      line-height: 1;
     }
 
     .sync-state::before {
@@ -154,6 +183,15 @@
     .sync-state[data-state="error"]::before {
       background: #d43b31;
       box-shadow: 0 0 0 3px rgba(212, 59, 49, 0.13);
+    }
+
+    .sync-state[data-state="readonly"] {
+      color: var(--amber);
+    }
+
+    .sync-state[data-state="readonly"]::before {
+      background: #cc7a12;
+      box-shadow: 0 0 0 3px rgba(204, 122, 18, 0.13);
     }
 
     .toolbar {
@@ -190,6 +228,21 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       box-shadow: var(--shadow-soft);
+    }
+
+    .read-only-banner {
+      border: 1px solid #e8c58d;
+      border-radius: 7px;
+      padding: 9px 12px;
+      background: #fff8e8;
+      color: #744500;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .read-only-value {
+      color: var(--text);
+      font-weight: 600;
     }
 
     .filterbar {
@@ -548,6 +601,30 @@
     .level-select:focus, .affiliation-select:focus {
       outline: 2px solid rgba(20, 132, 124, 0.24);
       border-color: var(--accent);
+    }
+
+    .join-number-cell-input {
+      width: 100%;
+      min-width: 0;
+      height: 32px;
+      padding: 0 6px;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      text-align: center;
+    }
+
+    .join-number-cell-input:hover {
+      border-color: var(--line-strong);
+      background: #fff;
+    }
+
+    .join-number-cell-input:focus {
+      outline: 2px solid rgba(20, 132, 124, 0.24);
+      border-color: var(--accent);
+      background: #fff;
     }
 
     .level-buttons {
@@ -1074,6 +1151,27 @@
       white-space: nowrap;
     }
 
+    .payment-ledger-summary {
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 4px 7px 7px;
+      padding: 7px 10px;
+      border: 1px solid #a9d5cc;
+      border-radius: 6px;
+      background: #edf9f6;
+      color: #0d635d;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .payment-ledger-summary strong {
+      color: var(--text);
+      font-size: 15px;
+    }
+
     .payment-settings-dialog { width: min(760px, 100%); }
 
     .payment-settings-tabs {
@@ -1105,6 +1203,35 @@
 
     .payment-settings-panel[hidden] { display: none; }
 
+    .payment-settings-order-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .payment-settings-order-count {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .unrecorded-exit-btn {
+      min-height: 34px;
+      padding: 0 10px;
+      color: var(--danger);
+      border-color: #e6aaa5;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    .unrecorded-exit-btn:hover {
+      color: #8f1d15;
+      border-color: var(--danger);
+      background: #fff4f3;
+    }
+
     .order-list {
       display: grid;
       gap: 8px;
@@ -1115,9 +1242,9 @@
 
     .order-row {
       display: grid;
-      grid-template-columns: 26px minmax(0, 1fr) auto auto;
+      grid-template-columns: minmax(0, 1fr) 126px;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 8px;
@@ -1127,20 +1254,6 @@
 
     .order-row:hover { border-color: #b7d5cf; background: #fbfefd; }
 
-    .order-row.dragging { opacity: 0.45; }
-
-    .order-row.drop-target {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(20, 132, 124, 0.12);
-    }
-
-    .drag-handle {
-      cursor: grab;
-      color: #64748b;
-      text-align: center;
-      user-select: none;
-    }
-
     .order-name {
       min-width: 0;
       overflow: hidden;
@@ -1148,17 +1261,35 @@
       white-space: nowrap;
     }
 
-    .order-actions {
-      display: flex;
-      gap: 4px;
-    }
-
-    .order-index {
-      min-width: 42px;
+    .join-number-field {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 7px;
       color: var(--muted);
       font-size: 13px;
-      text-align: right;
+      font-weight: 600;
     }
+
+    .join-number-input {
+      width: 100%;
+      min-width: 0;
+      height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      padding: 0 8px;
+      background: #fff;
+      color: var(--text);
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .join-number-input:focus {
+      outline: 3px solid var(--focus);
+      border-color: var(--accent);
+    }
+
+    .unrecorded-exit-dialog { width: min(430px, 100%); }
 
     .special-settings-list {
       display: grid;
@@ -1306,35 +1437,42 @@
         <div class="brand-mark">羽</div>
         <div>
           <h1>中羽等级</h1>
-          <div id="syncState" class="sync-state">连接中</div>
+          <div class="data-status-row">
+            <div id="syncState" class="sync-state">连接中</div>
+            <button id="retryConnectionBtn" class="retry-connection-btn" type="button" title="重试连接云端" aria-label="重试连接云端" hidden>↻</button>
+          </div>
         </div>
       </div>
       <div class="toolbar">
         <button id="chainBtn" class="primary-btn"><span class="icon-text">▣ 接龙助手</span></button>
+        <button id="databaseToggleBtn" type="button" hidden><span class="icon-text">▦ 显示数据库</span></button>
         <button id="paymentSettingsBtn" disabled><span class="icon-text">⚙ 群收款设置</span></button>
         <button id="guideBtn"><span class="icon-text">☷ 等级介绍</span></button>
         <button id="exportBtn"><span class="icon-text">⇩ 导出表格</span></button>
       </div>
     </header>
 
-    <section class="panel filterbar">
-      <input id="globalSearch" class="search-input" placeholder="搜索名称、等级或所属（多人用逗号分隔）" autocomplete="off">
-      <div></div>
-      <div class="table-tools">
-        <div class="column-menu-wrap">
-          <button id="columnVisibilityBtn" class="column-visibility-btn" type="button" aria-haspopup="true" aria-expanded="false">☷ 显示列</button>
-          <div id="columnVisibilityMenu" class="column-visibility-menu" role="menu" hidden></div>
+    <div id="databaseArea" class="database-area">
+      <div id="readOnlyBanner" class="read-only-banner" hidden></div>
+      <section class="panel filterbar">
+        <input id="globalSearch" class="search-input" placeholder="搜索名称、等级或所属（多人用逗号分隔）" autocomplete="off">
+        <div></div>
+        <div class="table-tools">
+          <div class="column-menu-wrap">
+            <button id="columnVisibilityBtn" class="column-visibility-btn" type="button" aria-haspopup="true" aria-expanded="false">☷ 显示列</button>
+            <div id="columnVisibilityMenu" class="column-visibility-menu" role="menu" hidden></div>
+          </div>
+          <div id="rowCount" class="count-pill">0人</div>
         </div>
-        <div id="rowCount" class="count-pill">0人</div>
-      </div>
-    </section>
+      </section>
 
-    <section class="table-wrap" aria-label="中羽等级表格">
-      <table id="playerTable">
-        <thead id="tableHead"></thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </section>
+      <section class="table-wrap" aria-label="中羽等级表格">
+        <table id="playerTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </section>
+    </div>
   </main>
 
   <div id="guideModal" class="modal-backdrop">
@@ -1404,15 +1542,15 @@
               <div class="fee-grid">
                 <div class="field">
                   <label for="courtFeeInput">场地费</label>
-                  <input id="courtFeeInput" inputmode="decimal" autocomplete="off">
+                  <input id="courtFeeInput" inputmode="decimal" value="70" data-default-value="70" autocomplete="off">
                 </div>
                 <div class="field">
                   <label for="shuttlePriceInput">球单价</label>
-                  <input id="shuttlePriceInput" inputmode="decimal" value="11.3" autocomplete="off">
+                  <input id="shuttlePriceInput" inputmode="decimal" value="11.3" data-default-value="11.3" autocomplete="off">
                 </div>
                 <div class="field">
                   <label for="shuttleCountInput">球个数</label>
-                  <input id="shuttleCountInput" inputmode="decimal" autocomplete="off">
+                  <input id="shuttleCountInput" inputmode="decimal" value="5" data-default-value="5" autocomplete="off">
                 </div>
               </div>
               <button id="paymentBtn" class="primary-btn" disabled>群收款</button>
@@ -1442,7 +1580,7 @@
           </section>
           <section id="paymentHeinekenCard" class="payment-card">
             <div class="payment-card-head">
-              <h3>海尼克</h3>
+              <h3>Hytronik</h3>
             </div>
             <div id="paymentHeineken" class="payment-content"></div>
           </section>
@@ -1465,6 +1603,10 @@
                 <strong id="paymentShuttleCount">0</strong>
               </div>
             </div>
+            <div class="payment-ledger-summary" data-html2canvas-ignore="true" aria-label="私人记账金额">
+              <span>记账</span>
+              <strong id="paymentLedgerAmount">0.0</strong>
+            </div>
           </section>
         </div>
       </div>
@@ -1482,11 +1624,15 @@
       </div>
       <div class="modal-body">
         <div class="payment-settings-tabs" role="tablist" aria-label="群收款设置分类">
-          <button class="payment-settings-tab active" type="button" role="tab" aria-selected="true" data-payment-settings-tab="球友">球友顺序</button>
-          <button class="payment-settings-tab" type="button" role="tab" aria-selected="false" data-payment-settings-tab="海尼克">海尼克顺序</button>
+          <button class="payment-settings-tab active" type="button" role="tab" aria-selected="true" data-payment-settings-tab="球友">球友入群序号</button>
+          <button class="payment-settings-tab" type="button" role="tab" aria-selected="false" data-payment-settings-tab="Hytronik">Hytronik入群序号</button>
           <button class="payment-settings-tab" type="button" role="tab" aria-selected="false" data-payment-settings-tab="特殊">特殊成员</button>
         </div>
         <div id="paymentSettingsOrderPanel" class="payment-settings-panel" role="tabpanel">
+          <div class="payment-settings-order-toolbar">
+            <span id="paymentSettingsOrderCount" class="payment-settings-order-count"></span>
+            <button id="unrecordedExitBtn" class="unrecorded-exit-btn" type="button">↘ 未录入成员退群</button>
+          </div>
           <div id="paymentSettingsOrderList" class="order-list"></div>
         </div>
         <div id="paymentSettingsSpecialPanel" class="payment-settings-panel" role="tabpanel" hidden>
@@ -1500,13 +1646,32 @@
     </div>
   </div>
 
+  <div id="unrecordedExitModal" class="modal-backdrop">
+    <div class="modal unrecorded-exit-dialog" role="dialog" aria-modal="true" aria-labelledby="unrecordedExitTitle">
+      <div class="modal-header">
+        <h2 id="unrecordedExitTitle" class="modal-title">未录入成员退群</h2>
+        <button class="modal-close-btn" data-close="unrecordedExitModal" aria-label="关闭" title="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label id="unrecordedExitLabel" for="unrecordedExitNumber">退群前序号</label>
+          <input id="unrecordedExitNumber" type="number" min="1" step="1" inputmode="numeric" autocomplete="off">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button data-close="unrecordedExitModal">取消</button>
+        <button id="confirmUnrecordedExitBtn" class="primary-btn">确认退群</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
-  <script src="/html2canvas.min.js"></script>
+  <script src="./html2canvas.min.js"></script>
   <script>
     const LEVELS = ["不详", "0.5级", "1级", "1.5级", "2级", "2.5级", "3级", "3.5级", "4级", "4.5级", "5级", "6级", "7级", "8级", "9级"];
     const GENDERS = ["男", "女"];
-    const AFFILIATIONS = ["球友", "海尼克", "球友+海尼克", "特殊"];
+    const AFFILIATIONS = ["球友", "Hytronik", "球友+Hytronik", "特殊"];
     const CHAIN_NUMBER_PREFIX = /^\s*\d+\s*[\.、\):：-]\s*/;
     const PLUS_LEVEL_LABELS = [["比赛级高手", "5级"], ["新手", "2级"], ["中手", "3级"], ["高手", "4级"]];
     const PLUS_LEVEL_OPTIONS = [
@@ -1517,15 +1682,23 @@
       { label: "比赛级高手", level: "5级", text: "比赛级高手（5级）" },
     ];
     const FEMALE_PAYMENT_CAP = 25;
-    const PAYMENT_GROUPS = { friends: "球友", heineken: "海尼克" };
+    const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
+    const REMOTE_API_BASE = "https://badminton-level.choi975.workers.dev";
+    const IS_GITHUB_PAGES = location.hostname === "choi975.github.io" && location.pathname.startsWith("/badminton-level");
+    const IS_WORKER_APP = location.hostname === "badminton-level.choi975.workers.dev";
+    const BOOTSTRAP_CACHE_KEY = "badminton-level-bootstrap-cache-v1";
+    const SNAPSHOT_URL = new URL("./bootstrap-snapshot.json", location.href).href;
+    const shouldOpenRemoteApp = location.protocol === "file:" && !new URLSearchParams(location.search).has("local");
 
     const COLUMNS = [
-      { key: "name", label: "名称", width: "26%", filter: "text", sortable: true },
-      { key: "gender", label: "性别", width: "9%", filter: "enum", options: GENDERS, sortable: true, cycle: GENDERS },
-      { key: "level", label: "中羽等级", width: "13%", filter: "multi-enum", options: LEVELS, sortable: true },
-      { key: "description", label: "该等级的介绍", width: "40%", sortable: false },
-      { key: "affiliation", label: "所属", width: "12%", filter: "enum", options: AFFILIATIONS, sortable: true, cycle: AFFILIATIONS },
+      { key: "name", label: "名称", width: "22%", filter: "text", sortable: true },
+      { key: "gender", label: "性别", width: "8%", filter: "enum", options: GENDERS, sortable: true, cycle: GENDERS },
+      { key: "level", label: "中羽等级", width: "12%", filter: "multi-enum", options: LEVELS, sortable: true },
+      { key: "description", label: "该等级的介绍", width: "28%", sortable: false },
+      { key: "affiliation", label: "所属", width: "14%", filter: "enum", options: AFFILIATIONS, sortable: true, cycle: AFFILIATIONS },
+      { key: "friendsJoinNumber", label: "球友群序号", width: "8%", sortable: true },
+      { key: "hytronikJoinNumber", label: "Hytronik群序号", width: "8%", sortable: true },
     ];
 
     const DEFAULT_DRAFT = Object.freeze({
@@ -1542,10 +1715,14 @@
       draft: { ...DEFAULT_DRAFT },
       levelDescriptions: {},
       levelGuideRaw: "",
-      paymentOrders: { "球友": [], "海尼克": [] },
+      groupJoinNumbers: { "球友": [], "Hytronik": [] },
+      paymentOrders: { "球友": [], "Hytronik": [] },
+      readOnly: IS_GITHUB_PAGES,
+      dataSource: "loading",
+      dataTimestamp: null,
       filters: {},
       hiddenColumns: new Set(),
-      sort: { key: "name", dir: "asc" },
+      sort: { key: "friendsJoinNumber", dir: "asc" },
       selected: { rowKey: "draft", col: 0 },
       editing: null,
       chainEntries: [],
@@ -1554,14 +1731,17 @@
       plusOverrides: {},
       paymentSettingsEditor: {
         activeTab: "球友",
-        orders: { "球友": [], "海尼克": [] },
+        joinNumbers: { "球友": [], "Hytronik": [] },
         special: {},
-        draggingId: null,
       },
     };
 
     const els = {
       syncState: document.getElementById("syncState"),
+      retryConnectionBtn: document.getElementById("retryConnectionBtn"),
+      databaseToggleBtn: document.getElementById("databaseToggleBtn"),
+      databaseArea: document.getElementById("databaseArea"),
+      readOnlyBanner: document.getElementById("readOnlyBanner"),
       rowCount: document.getElementById("rowCount"),
       playerTable: document.getElementById("playerTable"),
       tableHead: document.getElementById("tableHead"),
@@ -1602,13 +1782,21 @@
       paymentCourtFee: document.getElementById("paymentCourtFee"),
       paymentShuttlePrice: document.getElementById("paymentShuttlePrice"),
       paymentShuttleCount: document.getElementById("paymentShuttleCount"),
+      paymentLedgerAmount: document.getElementById("paymentLedgerAmount"),
       paymentSettingsModal: document.getElementById("paymentSettingsModal"),
       paymentSettingsTabs: [...document.querySelectorAll("[data-payment-settings-tab]")],
       paymentSettingsOrderPanel: document.getElementById("paymentSettingsOrderPanel"),
+      paymentSettingsOrderCount: document.getElementById("paymentSettingsOrderCount"),
       paymentSettingsOrderList: document.getElementById("paymentSettingsOrderList"),
       paymentSettingsSpecialPanel: document.getElementById("paymentSettingsSpecialPanel"),
       paymentSettingsSpecialList: document.getElementById("paymentSettingsSpecialList"),
       savePaymentSettingsBtn: document.getElementById("savePaymentSettingsBtn"),
+      unrecordedExitBtn: document.getElementById("unrecordedExitBtn"),
+      unrecordedExitModal: document.getElementById("unrecordedExitModal"),
+      unrecordedExitTitle: document.getElementById("unrecordedExitTitle"),
+      unrecordedExitLabel: document.getElementById("unrecordedExitLabel"),
+      unrecordedExitNumber: document.getElementById("unrecordedExitNumber"),
+      confirmUnrecordedExitBtn: document.getElementById("confirmUnrecordedExitBtn"),
       toast: document.getElementById("toast"),
     };
 
@@ -1618,33 +1806,161 @@
         location.replace(`${REMOTE_API_BASE}/`);
         return;
       }
+      applyHostLayout();
       renderHeader();
       renderColumnVisibilityMenu();
       wireEvents();
-      loadBootstrap();
+      void loadBootstrap();
     }
 
-    async function loadBootstrap() {
-      setSync("连接中");
-      try {
-        const data = await api("/api/bootstrap");
-        state.players = data.players || [];
-        state.levelDescriptions = data.levelDescriptions || {};
-        state.levelGuideRaw = data.levelGuideRaw || "";
-        state.paymentOrders = normalizePaymentOrders(data.paymentOrders);
-        els.paymentSettingsBtn.disabled = false;
-        setSync("已连接");
-        renderTable();
-      } catch (error) {
-        els.paymentSettingsBtn.disabled = true;
-        setSync("连接失败");
-        toast(`无法连接数据库：${error.message}`);
-        renderTable();
+    function applyHostLayout() {
+      els.databaseToggleBtn.hidden = !IS_GITHUB_PAGES;
+      els.databaseArea.hidden = IS_GITHUB_PAGES;
+      updateDatabaseToggleButton();
+      applyReadOnlyUi();
+      if (IS_GITHUB_PAGES) {
+        openModal("chainModal");
+        processChain();
+        setTimeout(() => els.chainInput.focus(), 0);
       }
+    }
+
+    async function loadBootstrap({ retry = false } = {}) {
+      setSync(retry ? "正在重试连接" : "连接中");
+      els.retryConnectionBtn.hidden = true;
+
+      if (!IS_GITHUB_PAGES && !state.players.length) {
+        const fallback = await loadFallbackBootstrap();
+        if (fallback) applyBootstrapData(fallback.data, fallback.source, fallback.generatedAt);
+      }
+
+      if (IS_GITHUB_PAGES) {
+        const fallback = await loadFallbackBootstrap();
+        if (fallback) applyBootstrapData(fallback.data, fallback.source, fallback.generatedAt);
+      }
+
+      try {
+        const data = await fetchCloudBootstrap();
+        cacheBootstrap(data);
+        applyBootstrapData(data, "cloud", new Date().toISOString());
+      } catch (error) {
+        if (!state.players.length) {
+          const fallback = await loadFallbackBootstrap();
+          if (fallback) applyBootstrapData(fallback.data, fallback.source, fallback.generatedAt);
+        }
+        if (!state.players.length) {
+          state.readOnly = true;
+          state.dataSource = "unavailable";
+          setSync("数据加载失败", "error");
+          els.retryConnectionBtn.hidden = false;
+          applyReadOnlyUi();
+          renderTable();
+          toast(`数据加载失败：${error.message}`);
+          return;
+        }
+        els.retryConnectionBtn.hidden = false;
+        if (retry) toast("云端仍不可用，继续使用只读数据");
+      }
+    }
+
+    async function fetchCloudBootstrap() {
+      return api("/api/bootstrap", { method: "GET", timeout: 8000 });
+    }
+
+    async function loadFallbackBootstrap() {
+      const cached = readCachedBootstrap();
+      if (cached) return { data: cached.data, source: "cache", generatedAt: cached.savedAt || cached.generatedAt };
+      try {
+        const response = await fetch(SNAPSHOT_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const snapshot = await response.json();
+        if (!snapshot?.data?.players) throw new Error("快照格式无效");
+        return { data: snapshot.data, source: "snapshot", generatedAt: snapshot.generatedAt };
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function applyBootstrapData(data, source, generatedAt) {
+      state.players = Array.isArray(data.players) ? data.players : [];
+      state.levelDescriptions = data.levelDescriptions || {};
+      state.levelGuideRaw = data.levelGuideRaw || "";
+      applyPaymentOrderState(data);
+      state.dataSource = source;
+      state.dataTimestamp = generatedAt || null;
+      state.readOnly = IS_GITHUB_PAGES || source !== "cloud";
+      applyReadOnlyUi();
+      updateDataStatus();
+      renderTable();
+      if (els.chainModal.classList.contains("open")) processChain();
+    }
+
+    function cacheBootstrap(data) {
+      try {
+        localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify({ data, savedAt: new Date().toISOString() }));
+      } catch (error) {
+        // Storage can be unavailable in privacy modes; the bundled snapshot remains available.
+      }
+    }
+
+    function readCachedBootstrap() {
+      try {
+        const cached = JSON.parse(localStorage.getItem(BOOTSTRAP_CACHE_KEY) || "null");
+        return cached?.data?.players ? cached : null;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function updateDataStatus() {
+      if (state.dataSource === "cloud") {
+        setSync(IS_GITHUB_PAGES ? "云端数据（只读）" : "云端数据", IS_GITHUB_PAGES ? "readonly" : "success");
+        return;
+      }
+      const timestamp = formatDataTimestamp(state.dataTimestamp);
+      if (state.dataSource === "cache") setSync(`本地缓存（只读${timestamp ? `，${timestamp}` : ""}）`, "readonly");
+      else if (state.dataSource === "snapshot") setSync(`内置快照（只读${timestamp ? `，${timestamp}` : ""}）`, "readonly");
+    }
+
+    function formatDataTimestamp(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return new Intl.DateTimeFormat("zh-CN", {
+        year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
+      }).format(date).replace(/\//g, "-");
+    }
+
+    function applyReadOnlyUi() {
+      const readOnly = state.readOnly;
+      els.paymentSettingsBtn.disabled = readOnly || !state.players.length;
+      els.guideEditor.readOnly = readOnly;
+      els.saveGuideBtn.hidden = readOnly;
+      els.readOnlyBanner.hidden = !readOnly || !state.players.length;
+      if (!els.readOnlyBanner.hidden) {
+        els.readOnlyBanner.textContent = IS_GITHUB_PAGES
+          ? "GitHub 备用版为只读。接龙助手、群收款、搜索、筛选、导出和截图均可正常使用；修改数据库请打开 Cloudflare 管理版。"
+          : "当前无法连接云端，正在使用只读备用数据。恢复连接后才可修改数据库。";
+      }
+    }
+
+    function updateDatabaseToggleButton() {
+      if (!IS_GITHUB_PAGES) return;
+      const visible = !els.databaseArea.hidden;
+      els.databaseToggleBtn.querySelector(".icon-text").textContent = visible ? "▦ 隐藏数据库" : "▦ 显示数据库";
+      els.databaseToggleBtn.setAttribute("aria-pressed", String(visible));
+    }
+
+    function toggleDatabaseArea() {
+      els.databaseArea.hidden = !els.databaseArea.hidden;
+      updateDatabaseToggleButton();
+      if (!els.databaseArea.hidden) renderTable();
     }
 
     function wireEvents() {
       els.globalSearch.addEventListener("input", () => renderTable());
+      els.retryConnectionBtn.addEventListener("click", () => loadBootstrap({ retry: true }));
+      els.databaseToggleBtn.addEventListener("click", toggleDatabaseArea);
       els.columnVisibilityBtn.addEventListener("click", (event) => {
         event.stopPropagation();
         toggleColumnVisibilityMenu();
@@ -1661,6 +1977,12 @@
       });
       els.chainInput.addEventListener("input", processChain);
       [els.courtFeeInput, els.shuttlePriceInput, els.shuttleCountInput].forEach((input) => {
+        input.addEventListener("focus", () => {
+          if (input.value === input.dataset.defaultValue) {
+            input.value = "";
+            updatePaymentButton();
+          }
+        });
         input.addEventListener("input", updatePaymentButton);
       });
       els.paymentBtn.addEventListener("click", openPaymentModal);
@@ -1668,7 +1990,12 @@
       els.paymentSettingsTabs.forEach((tab) => {
         tab.addEventListener("click", () => switchPaymentSettingsTab(tab.dataset.paymentSettingsTab));
       });
-      els.savePaymentSettingsBtn.addEventListener("click", savePaymentSettings);
+      els.savePaymentSettingsBtn.addEventListener("click", () => savePaymentSettings());
+      els.unrecordedExitBtn.addEventListener("click", openUnrecordedExitModal);
+      els.confirmUnrecordedExitBtn.addEventListener("click", confirmUnrecordedExit);
+      els.unrecordedExitNumber.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") confirmUnrecordedExit();
+      });
       els.pasteInputBtn.addEventListener("click", pasteChainInput);
       els.copyOutputBtn.addEventListener("click", copyChainOutput);
       els.levelDisplayModeBtn.addEventListener("click", toggleChainLevelMode);
@@ -1684,34 +2011,38 @@
       document.addEventListener("keydown", handleGlobalKeydown);
     }
 
-    const REMOTE_API_BASE = "https://badminton-level.choi975.workers.dev";
-    const shouldOpenRemoteApp = location.protocol === "file:" && !new URLSearchParams(location.search).has("local");
-
     function getApiUrl(path) {
       const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-      return location.protocol === "file:" ? `${REMOTE_API_BASE}${normalizedPath}` : normalizedPath;
+      return IS_WORKER_APP ? normalizedPath : `${REMOTE_API_BASE}${normalizedPath}`;
     }
 
     async function api(path, options = {}) {
+      const method = String(options.method || "GET").toUpperCase();
+      if (state.readOnly && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+        throw new Error("当前为只读模式，不能修改数据库");
+      }
       const headers = { ...(options.headers || {}) };
       const hasBody = options.body !== undefined && options.body !== null;
       const hasContentType = Object.keys(headers).some((key) => key.toLowerCase() === "content-type");
       if (hasBody && !hasContentType) headers["content-type"] = "text/plain; charset=utf-8";
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), options.timeout || 12000);
       const response = await fetch(getApiUrl(path), {
         ...options,
         headers,
-      });
+        signal: options.signal || controller.signal,
+      }).finally(() => clearTimeout(timeoutId));
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
       return data;
     }
 
-    function setSync(text) {
+    function setSync(text, forcedState = "") {
       els.syncState.textContent = text;
-      els.syncState.dataset.state = text.includes("失败")
+      els.syncState.dataset.state = forcedState || (text.includes("失败")
         ? "error"
-        : (text.includes("中") || text.includes("正在") || text.includes("打开") ? "working" : "success");
+        : (text.includes("中") || text.includes("正在") || text.includes("打开") ? "working" : "success"));
     }
 
     function getVisibleColumns() {
@@ -1929,9 +2260,9 @@
 
     function renderTable() {
       ensureSelectedColumnVisible();
-      const rows = getDisplayRows(true);
+      const rows = getDisplayRows(!state.readOnly);
       if (!rows.some((row) => row.key === state.selected.rowKey)) {
-        state.selected = { rowKey: rows[0]?.key || "draft", col: 0 };
+        state.selected = { rowKey: rows[0]?.key || "", col: 0 };
       }
 
       const fragment = document.createDocumentFragment();
@@ -1967,6 +2298,14 @@
     function renderCellContent(player, column, isDraft) {
       const wrapper = document.createDocumentFragment();
       const value = getCellValue(player, column.key);
+
+      if (state.readOnly) {
+        const span = document.createElement("span");
+        span.className = "read-only-value";
+        span.textContent = value;
+        wrapper.append(span);
+        return wrapper;
+      }
 
       if (column.key === "level") {
         const rowKey = isDraft ? "draft" : String(player.id);
@@ -2050,6 +2389,48 @@
         return wrapper;
       }
 
+      if (["friendsJoinNumber", "hytronikJoinNumber"].includes(column.key)) {
+        const affiliation = column.key === "friendsJoinNumber" ? "球友" : "Hytronik";
+        if (isDraft || !hasPlayerAffiliation(player, affiliation)) {
+          wrapper.append(document.createTextNode(""));
+          return wrapper;
+        }
+
+        const rowKey = String(player.id);
+        const columnIndex = COLUMNS.findIndex((item) => item.key === column.key);
+        const input = document.createElement("input");
+        input.className = "join-number-cell-input";
+        input.type = "number";
+        input.min = "1";
+        input.step = "1";
+        input.inputMode = "numeric";
+        input.value = String(value);
+        input.title = `修改${affiliation}入群序号`;
+        input.setAttribute("aria-label", `${firstName(player.name) || "成员"}的${affiliation}入群序号`);
+        input.addEventListener("click", (event) => {
+          event.stopPropagation();
+          state.selected = { rowKey, col: columnIndex };
+          input.select();
+        });
+        input.addEventListener("focus", () => {
+          state.selected = { rowKey, col: columnIndex };
+          input.select();
+        });
+        input.addEventListener("change", () => saveJoinNumberCell(rowKey, affiliation, input.value));
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            input.blur();
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            renderTable();
+          }
+        });
+        wrapper.append(input);
+        return wrapper;
+      }
+
       if (column.key === "name") {
         const box = document.createElement("div");
         box.className = "name-cell-content";
@@ -2088,7 +2469,15 @@
 
     function getCellValue(player, key) {
       if (key === "description") return player.level === "不详" ? "" : (state.levelDescriptions[player.level] || "");
+      if (key === "friendsJoinNumber") return getJoinNumber(player.id, "球友") ?? "";
+      if (key === "hytronikJoinNumber") return getJoinNumber(player.id, "Hytronik") ?? "";
       return player[key] || "";
+    }
+
+    function getJoinNumber(playerId, affiliation) {
+      if (!playerId) return null;
+      const entry = (state.groupJoinNumbers[affiliation] || []).find((item) => Number(item.playerId) === Number(playerId));
+      return Number.isInteger(entry?.joinNumber) ? entry.joinNumber : null;
     }
 
     function getPlayerAffiliations(playerOrValue) {
@@ -2135,7 +2524,7 @@
         if (!filter || !column.filter) return true;
         const value = getCellValue(player, column.key);
         if (column.filter === "enum") {
-          if (column.key === "affiliation" && ["球友", "海尼克"].includes(filter)) {
+          if (column.key === "affiliation" && ["球友", "Hytronik"].includes(filter)) {
             return hasPlayerAffiliation(value, filter);
           }
           return value === filter;
@@ -2154,6 +2543,17 @@
       let result;
       if (key === "level") result = levelRank(a.level) - levelRank(b.level);
       else if (key === "name") result = collator.compare(firstName(a.name), firstName(b.name));
+      else if (["friendsJoinNumber", "hytronikJoinNumber"].includes(key)) {
+        const affiliation = key === "friendsJoinNumber" ? "球友" : "Hytronik";
+        const aNumber = getJoinNumber(a.id, affiliation);
+        const bNumber = getJoinNumber(b.id, affiliation);
+        if (aNumber === null && bNumber === null) return dir === "asc"
+          ? collator.compare(firstName(a.name), firstName(b.name))
+          : collator.compare(firstName(b.name), firstName(a.name));
+        else if (aNumber === null) return 1;
+        else if (bNumber === null) return -1;
+        else result = aNumber - bNumber;
+      }
       else result = collator.compare(String(getCellValue(a, key)), String(getCellValue(b, key)));
       return dir === "asc" ? result : -result;
     }
@@ -2171,6 +2571,7 @@
     }
 
     function handleCellDoubleClick(rowKey, colIndex) {
+      if (state.readOnly) return;
       const key = COLUMNS[colIndex].key;
       if (key === "name") startNameEdit(rowKey, "append");
       if (["gender", "affiliation"].includes(key)) cycleCellValue(rowKey, key);
@@ -2197,6 +2598,14 @@
         return;
       }
       if (isAnyModalOpen() || state.editing || isTextControl(document.activeElement)) return;
+
+      if (state.readOnly) {
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key) && !event.altKey) {
+          event.preventDefault();
+          moveSelection(event.key);
+        }
+        return;
+      }
 
       if (event.altKey && event.key.toLowerCase() === "n") {
         event.preventDefault();
@@ -2252,7 +2661,8 @@
     }
 
     function moveSelection(key) {
-      const rows = getDisplayRows(true);
+      const rows = getDisplayRows(!state.readOnly);
+      if (!rows.length) return;
       let rowIndex = rows.findIndex((row) => row.key === state.selected.rowKey);
       if (rowIndex < 0) rowIndex = 0;
       const visibleIndices = getVisibleColumns().map(({ index }) => index);
@@ -2266,6 +2676,7 @@
     }
 
     function startNameEdit(rowKey, mode, initialText = "") {
+      if (state.readOnly) return;
       const player = getPlayerByKey(rowKey);
       const td = els.tableBody.querySelector(`td[data-row-key="${cssEscape(rowKey)}"][data-col="0"]`);
       if (!td || !player) return;
@@ -2306,6 +2717,7 @@
     }
 
     async function cycleCellValue(rowKey, key) {
+      if (state.readOnly) return;
       const column = COLUMNS.find((item) => item.key === key);
       const player = getPlayerByKey(rowKey);
       if (!column?.cycle || !player) return;
@@ -2315,6 +2727,7 @@
     }
 
     async function adjustLevel(rowKey, delta) {
+      if (state.readOnly) return;
       const player = getPlayerByKey(rowKey);
       if (!player) return;
       const index = Math.max(0, LEVELS.indexOf(player.level));
@@ -2324,6 +2737,10 @@
     }
 
     async function saveCell(rowKey, key, value) {
+      if (state.readOnly) {
+        toast("当前为只读模式，不能修改数据库");
+        return;
+      }
       const player = getPlayerByKey(rowKey);
       if (!player) return;
 
@@ -2351,9 +2768,7 @@
           method: "PATCH",
           body: JSON.stringify({ [key]: value }),
         });
-        if (key === "affiliation" && previous.affiliation !== data.player.affiliation) {
-          removePlayerFromPaymentOrders(data.player.id);
-        }
+        applyPaymentOrderState(data);
         replacePlayer(data.player);
         setSync("已保存");
       } catch (error) {
@@ -2364,7 +2779,43 @@
       renderTable();
     }
 
+    async function saveJoinNumberCell(rowKey, affiliation, rawValue) {
+      if (state.readOnly) {
+        toast("当前为只读模式，不能修改数据库");
+        return;
+      }
+      const player = getPlayerByKey(rowKey);
+      const joinNumber = Number(rawValue);
+      const current = getJoinNumber(player?.id, affiliation);
+      if (!player || !hasPlayerAffiliation(player, affiliation)) return;
+      if (!Number.isInteger(joinNumber) || joinNumber <= 0) {
+        toast("入群序号需要填写大于0的整数");
+        renderTable();
+        return;
+      }
+      if (current === joinNumber) {
+        renderTable();
+        return;
+      }
+
+      setSync("正在保存序号");
+      try {
+        const data = await api(`/api/players/${player.id}/join-numbers`, {
+          method: "PATCH",
+          body: JSON.stringify({ affiliation, joinNumber }),
+        });
+        applyPaymentOrderState(data);
+        setSync("已保存");
+        if (els.paymentModal.classList.contains("open")) openPaymentModal();
+      } catch (error) {
+        setSync("保存失败");
+        toast(`保存入群序号失败：${error.message}`);
+      }
+      renderTable();
+    }
+
     async function createPlayerFromDraft() {
+      if (state.readOnly) return;
       const draft = { ...state.draft, name: state.draft.name.trim() };
       state.draft = { ...DEFAULT_DRAFT };
       renderTable();
@@ -2375,6 +2826,7 @@
           body: JSON.stringify(draft),
         });
         state.players.push(data.player);
+        applyPaymentOrderState(data);
         state.selected = { rowKey: String(data.player.id), col: 0 };
         setSync("已保存");
       } catch (error) {
@@ -2387,6 +2839,10 @@
     }
 
     async function deletePlayer(rowKey) {
+      if (state.readOnly) {
+        toast("当前为只读模式，不能删除成员");
+        return;
+      }
       const player = getPlayerByKey(rowKey);
       if (!player || rowKey === "draft") return;
 
@@ -2400,8 +2856,8 @@
       setSync("正在删除");
 
       try {
-        await api(`/api/players/${player.id}`, { method: "DELETE" });
-        removePlayerFromPaymentOrders(player.id);
+        const data = await api(`/api/players/${player.id}`, { method: "DELETE" });
+        applyPaymentOrderState(data);
         setSync("已删除");
         toast(`已删除：${label}`);
         if (els.chainModal.classList.contains("open")) processChain();
@@ -2425,29 +2881,56 @@
       return state.players.find((player) => String(player.id) === String(rowKey));
     }
 
-    function normalizePaymentOrders(rawOrders = {}) {
-      const normalized = { "球友": [], "海尼克": [] };
+    function normalizeGroupJoinNumbers(rawNumbers = {}, fallbackOrders = {}) {
+      const normalized = { "球友": [], "Hytronik": [] };
       for (const affiliation of PAYMENT_ORDER_AFFILIATIONS) {
-        const ids = Array.isArray(rawOrders?.[affiliation]) ? rawOrders[affiliation] : [];
-        normalized[affiliation] = [...new Set(ids.map(Number).filter((id) => Number.isInteger(id) && id > 0))];
+        const entries = Array.isArray(rawNumbers?.[affiliation]) ? rawNumbers[affiliation] : [];
+        const seenPlayers = new Set();
+        const seenNumbers = new Set();
+        normalized[affiliation] = entries
+          .map((entry) => ({ playerId: Number(entry?.playerId), joinNumber: Number(entry?.joinNumber) }))
+          .filter((entry) => {
+            if (!Number.isInteger(entry.playerId) || entry.playerId <= 0 || !Number.isInteger(entry.joinNumber) || entry.joinNumber <= 0) return false;
+            if (seenPlayers.has(entry.playerId) || seenNumbers.has(entry.joinNumber)) return false;
+            seenPlayers.add(entry.playerId);
+            seenNumbers.add(entry.joinNumber);
+            return true;
+          })
+          .sort(compareJoinNumberEntries);
+
+        if (!normalized[affiliation].length && Array.isArray(fallbackOrders?.[affiliation])) {
+          normalized[affiliation] = [...new Set(fallbackOrders[affiliation].map(Number).filter((id) => Number.isInteger(id) && id > 0))]
+            .map((playerId, index) => ({ playerId, joinNumber: index + 1 }));
+        }
       }
       return normalized;
     }
 
-    function removePlayerFromPaymentOrders(playerId) {
-      const id = Number(playerId);
-      for (const affiliation of PAYMENT_ORDER_AFFILIATIONS) {
-        state.paymentOrders[affiliation] = (state.paymentOrders[affiliation] || []).filter((item) => Number(item) !== id);
-      }
+    function applyPaymentOrderState(data = {}) {
+      state.groupJoinNumbers = normalizeGroupJoinNumbers(data.groupJoinNumbers, data.paymentOrders);
+      state.paymentOrders = Object.fromEntries(PAYMENT_ORDER_AFFILIATIONS.map((affiliation) => [
+        affiliation,
+        state.groupJoinNumbers[affiliation].map((entry) => entry.playerId),
+      ]));
+    }
+
+    function compareJoinNumberEntries(a, b) {
+      return (a.joinNumber - b.joinNumber) || (a.playerId - b.playerId);
     }
 
     function openGuideModal() {
       els.guideEditor.value = state.levelGuideRaw || "";
+      els.guideEditor.readOnly = state.readOnly;
+      els.saveGuideBtn.hidden = state.readOnly;
       openModal("guideModal");
       setTimeout(() => els.guideEditor.focus(), 0);
     }
 
     async function saveGuide() {
+      if (state.readOnly) {
+        toast("当前为只读模式，不能修改等级介绍");
+        return;
+      }
       const raw = els.guideEditor.value.trim();
       if (!raw) {
         toast("等级介绍不能为空");
@@ -2886,6 +3369,7 @@
       els.paymentCourtFee.textContent = formatCompactNumber(courtFee);
       els.paymentShuttlePrice.textContent = formatCompactNumber(shuttlePrice);
       els.paymentShuttleCount.textContent = formatCompactNumber(shuttleCount);
+      els.paymentLedgerAmount.textContent = formatMoney(calculateLedgerAmount(result.groups, courtFee));
       openModal("paymentModal");
     }
 
@@ -2937,18 +3421,21 @@
     }
 
     function openPaymentSettingsModal() {
+      if (state.readOnly) {
+        toast("当前为只读模式，不能修改群收款设置");
+        return;
+      }
       state.paymentSettingsEditor = {
         activeTab: "球友",
-        orders: Object.fromEntries(PAYMENT_ORDER_AFFILIATIONS.map((affiliation) => [
+        joinNumbers: Object.fromEntries(PAYMENT_ORDER_AFFILIATIONS.map((affiliation) => [
           affiliation,
-          getPlayersForOrder(affiliation).map((player) => Number(player.id)),
+          getJoinNumbersForEditor(affiliation),
         ])),
         special: Object.fromEntries(
           state.players
             .filter(isSpecialPlayer)
             .map((player) => [String(player.id), player.participatesPayment !== false])
         ),
-        draggingId: null,
       };
       renderPaymentSettings();
       openModal("paymentSettingsModal");
@@ -2957,7 +3444,6 @@
     function switchPaymentSettingsTab(tab) {
       if (![...PAYMENT_ORDER_AFFILIATIONS, "特殊"].includes(tab)) return;
       state.paymentSettingsEditor.activeTab = tab;
-      state.paymentSettingsEditor.draggingId = null;
       renderPaymentSettings();
     }
 
@@ -2976,28 +3462,36 @@
       else renderOrderList();
     }
 
-    function getPlayersForOrder(affiliation) {
+    function getJoinNumbersForEditor(affiliation) {
       const members = state.players.filter((player) => hasPlayerAffiliation(player, affiliation));
-      const byId = new Map(members.map((player) => [Number(player.id), player]));
-      const savedIds = (state.paymentOrders[affiliation] || []).map(Number);
-      const ordered = savedIds.map((id) => byId.get(id)).filter(Boolean);
-      const orderedIds = new Set(ordered.map((player) => Number(player.id)));
-      const missing = members
-        .filter((player) => !orderedIds.has(Number(player.id)))
-        .sort((a, b) => collator.compare(firstName(a.name), firstName(b.name)) || (Number(a.id) - Number(b.id)));
-      return [...ordered, ...missing];
+      const memberIds = new Set(members.map((player) => Number(player.id)));
+      const entries = (state.groupJoinNumbers[affiliation] || [])
+        .filter((entry) => memberIds.has(Number(entry.playerId)))
+        .map((entry) => ({ playerId: Number(entry.playerId), joinNumber: Number(entry.joinNumber) }));
+      const assignedIds = new Set(entries.map((entry) => entry.playerId));
+      let nextNumber = entries.reduce((max, entry) => Math.max(max, entry.joinNumber), 0) + 1;
+      for (const player of members) {
+        const playerId = Number(player.id);
+        if (assignedIds.has(playerId)) continue;
+        entries.push({ playerId, joinNumber: nextNumber++ });
+      }
+      return entries.sort(compareJoinNumberEntries);
     }
 
     function renderOrderList() {
       const affiliation = state.paymentSettingsEditor.activeTab;
       if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation)) return;
       const playersById = new Map(state.players.map((player) => [Number(player.id), player]));
-      const rows = state.paymentSettingsEditor.orders[affiliation]
-        .map((id) => playersById.get(Number(id)))
-        .filter((player) => player && hasPlayerAffiliation(player, affiliation));
-      state.paymentSettingsEditor.orders[affiliation] = rows.map((player) => Number(player.id));
+      const entries = state.paymentSettingsEditor.joinNumbers[affiliation]
+        .filter((entry) => {
+          const player = playersById.get(Number(entry.playerId));
+          return player && hasPlayerAffiliation(player, affiliation);
+        })
+        .sort(compareJoinNumberEntries);
+      state.paymentSettingsEditor.joinNumbers[affiliation] = entries;
+      els.paymentSettingsOrderCount.textContent = `${affiliation}成员 ${entries.length}人`;
 
-      if (!rows.length) {
+      if (!entries.length) {
         const empty = document.createElement("div");
         empty.className = "empty-hint";
         empty.textContent = "暂无成员";
@@ -3005,98 +3499,105 @@
         return;
       }
 
-      els.paymentSettingsOrderList.replaceChildren(...rows.map((player, index) => createOrderRow(player, index, rows.length)));
+      els.paymentSettingsOrderList.replaceChildren(...entries.map((entry) => createOrderRow(playersById.get(entry.playerId), entry)));
     }
 
-    function createOrderRow(player, index, total) {
+    function createOrderRow(player, entry) {
       const row = document.createElement("div");
       row.className = "order-row";
-      row.draggable = true;
       row.dataset.playerId = String(player.id);
-
-      const handle = document.createElement("span");
-      handle.className = "drag-handle";
-      handle.textContent = "☰";
 
       const name = document.createElement("span");
       name.className = "order-name";
       name.textContent = firstName(player.name) || player.name || "未命名";
       name.title = player.name || "";
 
-      const actions = document.createElement("div");
-      actions.className = "order-actions";
-      const up = document.createElement("button");
-      up.type = "button";
-      up.className = "mini-btn";
-      up.title = "上移";
-      up.textContent = "↑";
-      up.disabled = index === 0;
-      up.addEventListener("click", () => moveOrderIndex(index, -1));
-      const down = document.createElement("button");
-      down.type = "button";
-      down.className = "mini-btn";
-      down.title = "下移";
-      down.textContent = "↓";
-      down.disabled = index === total - 1;
-      down.addEventListener("click", () => moveOrderIndex(index, 1));
-      actions.append(up, down);
+      const numberField = document.createElement("label");
+      numberField.className = "join-number-field";
+      numberField.append(document.createTextNode("第"));
+      const input = document.createElement("input");
+      input.className = "join-number-input";
+      input.type = "number";
+      input.min = "1";
+      input.step = "1";
+      input.inputMode = "numeric";
+      input.value = String(entry.joinNumber);
+      input.setAttribute("aria-label", `${name.textContent}的入群序号`);
+      input.addEventListener("focus", () => input.select());
+      input.addEventListener("change", () => setJoinNumber(player.id, input.value));
+      numberField.append(input);
 
-      const orderIndex = document.createElement("span");
-      orderIndex.className = "order-index";
-      orderIndex.textContent = `第${index + 1}`;
-
-      row.addEventListener("dragstart", (event) => {
-        state.paymentSettingsEditor.draggingId = Number(player.id);
-        row.classList.add("dragging");
-        event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData("text/plain", String(player.id));
-      });
-      row.addEventListener("dragend", () => {
-        state.paymentSettingsEditor.draggingId = null;
-        row.classList.remove("dragging");
-        els.paymentSettingsOrderList.querySelectorAll(".drop-target").forEach((item) => item.classList.remove("drop-target"));
-      });
-      row.addEventListener("dragover", (event) => {
-        event.preventDefault();
-        row.classList.add("drop-target");
-      });
-      row.addEventListener("dragleave", () => row.classList.remove("drop-target"));
-      row.addEventListener("drop", (event) => {
-        event.preventDefault();
-        row.classList.remove("drop-target");
-        const draggedId = Number(event.dataTransfer.getData("text/plain") || state.paymentSettingsEditor.draggingId);
-        moveOrderPlayerBefore(draggedId, Number(player.id));
-      });
-
-      row.append(handle, name, actions, orderIndex);
+      row.append(name, numberField);
       return row;
     }
 
-    function moveOrderIndex(index, delta) {
+    function setJoinNumber(playerId, rawValue) {
       const affiliation = state.paymentSettingsEditor.activeTab;
       if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation)) return;
-      const currentIds = state.paymentSettingsEditor.orders[affiliation];
-      const nextIndex = index + delta;
-      if (nextIndex < 0 || nextIndex >= currentIds.length) return;
-      const ids = [...currentIds];
-      [ids[index], ids[nextIndex]] = [ids[nextIndex], ids[index]];
-      state.paymentSettingsEditor.orders[affiliation] = ids;
+      const joinNumber = Number(rawValue);
+      const entries = state.paymentSettingsEditor.joinNumbers[affiliation];
+      const current = entries.find((entry) => Number(entry.playerId) === Number(playerId));
+      if (!current || !Number.isInteger(joinNumber) || joinNumber <= 0) {
+        toast("入群序号需要填写大于0的整数");
+        renderOrderList();
+        return;
+      }
+      if (current.joinNumber === joinNumber) return;
+
+      moveJoinNumberWithinEntries(entries, current, joinNumber);
       renderOrderList();
     }
 
-    function moveOrderPlayerBefore(playerId, targetId) {
-      if (!playerId || !targetId || playerId === targetId) return;
+    function moveJoinNumberWithinEntries(entries, current, joinNumber) {
+      const occupied = new Set(entries
+        .filter((entry) => entry !== current)
+        .map((entry) => entry.joinNumber));
+      let firstVacancy = joinNumber;
+      while (occupied.has(firstVacancy)) firstVacancy += 1;
+
+      entries.forEach((entry) => {
+        if (entry !== current && entry.joinNumber >= joinNumber && entry.joinNumber < firstVacancy) {
+          entry.joinNumber += 1;
+        }
+      });
+      current.joinNumber = joinNumber;
+    }
+
+    function openUnrecordedExitModal() {
       const affiliation = state.paymentSettingsEditor.activeTab;
       if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation)) return;
-      const ids = [...state.paymentSettingsEditor.orders[affiliation]];
-      const fromIndex = ids.indexOf(playerId);
-      let toIndex = ids.indexOf(targetId);
-      if (fromIndex < 0 || toIndex < 0) return;
-      const [moved] = ids.splice(fromIndex, 1);
-      if (fromIndex < toIndex) toIndex -= 1;
-      ids.splice(toIndex, 0, moved);
-      state.paymentSettingsEditor.orders[affiliation] = ids;
-      renderOrderList();
+      els.unrecordedExitTitle.textContent = `${affiliation}：未录入成员退群`;
+      els.unrecordedExitLabel.textContent = `${affiliation}退群前序号`;
+      els.unrecordedExitNumber.value = "";
+      openModal("unrecordedExitModal");
+      setTimeout(() => els.unrecordedExitNumber.focus(), 0);
+    }
+
+    async function confirmUnrecordedExit() {
+      if (state.readOnly) return;
+      const affiliation = state.paymentSettingsEditor.activeTab;
+      const joinNumber = Number(els.unrecordedExitNumber.value);
+      if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation) || !Number.isInteger(joinNumber) || joinNumber <= 0) {
+        toast("退群前序号需要填写大于0的整数");
+        return;
+      }
+
+      const ownerEntry = state.paymentSettingsEditor.joinNumbers[affiliation]
+        .find((entry) => entry.joinNumber === joinNumber);
+      if (ownerEntry) {
+        const player = state.players.find((item) => Number(item.id) === Number(ownerEntry.playerId));
+        toast(`第${joinNumber}位属于“${firstName(player?.name) || "数据库成员"}”，请在主表修改所属或删除成员`);
+        return;
+      }
+
+      els.confirmUnrecordedExitBtn.disabled = true;
+      const saved = await savePaymentSettings({
+        closeAfterSave: false,
+        unrecordedExit: { affiliation, joinNumber },
+        successMessage: `${affiliation}第${joinNumber}位退群已处理`,
+      });
+      els.confirmUnrecordedExitBtn.disabled = false;
+      if (saved) closeModal("unrecordedExitModal");
     }
 
     function renderSpecialSettingsList() {
@@ -3148,11 +3649,16 @@
     }
 
     function setSpecialPaymentChoice(playerId, participatesPayment) {
+      if (state.readOnly) return;
       state.paymentSettingsEditor.special[String(playerId)] = participatesPayment;
       renderSpecialSettingsList();
     }
 
-    async function savePaymentSettings() {
+    async function savePaymentSettings({ closeAfterSave = true, unrecordedExit = null, successMessage = "群收款设置已保存" } = {}) {
+      if (state.readOnly) {
+        toast("当前为只读模式，不能修改群收款设置");
+        return false;
+      }
       const specialSettings = state.players
         .filter(isSpecialPlayer)
         .map((player) => ({
@@ -3166,23 +3672,31 @@
         const data = await api("/api/payment-settings", {
           method: "PUT",
           body: JSON.stringify({
-            orders: Object.fromEntries(PAYMENT_ORDER_AFFILIATIONS.map((affiliation) => [
+            joinNumbers: Object.fromEntries(PAYMENT_ORDER_AFFILIATIONS.map((affiliation) => [
               affiliation,
-              state.paymentSettingsEditor.orders[affiliation],
+              state.paymentSettingsEditor.joinNumbers[affiliation],
             ])),
             specialSettings,
+            ...(unrecordedExit ? { unrecordedExit } : {}),
           }),
         });
         state.players = data.players || state.players;
-        state.paymentOrders = normalizePaymentOrders(data.paymentOrders);
+        applyPaymentOrderState(data);
+        state.paymentSettingsEditor.joinNumbers = Object.fromEntries(PAYMENT_ORDER_AFFILIATIONS.map((affiliation) => [
+          affiliation,
+          getJoinNumbersForEditor(affiliation),
+        ]));
         setSync("已保存");
-        toast("群收款设置已保存");
-        closeModal("paymentSettingsModal");
+        toast(successMessage);
+        if (closeAfterSave) closeModal("paymentSettingsModal");
+        else renderPaymentSettings();
         renderTable();
         if (els.paymentModal.classList.contains("open")) openPaymentModal();
+        return true;
       } catch (error) {
         setSync("保存失败");
         toast(`保存群收款设置失败：${error.message}`);
+        return false;
       } finally {
         els.savePaymentSettingsBtn.disabled = false;
       }
@@ -3236,6 +3750,22 @@
       };
     }
 
+    function calculateLedgerAmount(groups, courtFee) {
+      const collectedFromOthers = Object.values(groups)
+        .flat()
+        .filter((row) => !isChoiPaymentRow(row))
+        .reduce((sum, row) => sum + Number(row.amount || 0), 0);
+      return collectedFromOthers - courtFee;
+    }
+
+    function isChoiPaymentRow(row) {
+      const player = row?.playerId
+        ? state.players.find((item) => Number(item.id) === Number(row.playerId))
+        : null;
+      if (player && splitAliases(player.name).some((alias) => normalizeAlias(alias) === "choi")) return true;
+      return normalizeAlias(row?.name) === "choi";
+    }
+
     function shouldCountForPayment(entry) {
       if (!entry.clean) return false;
       if (isSpecialPlayer(entry.player) && entry.player.participatesPayment === false) return false;
@@ -3258,7 +3788,7 @@
     function getPaymentGroup(player, sharedPaymentGroup) {
       if (isSpecialPlayer(player)) return "special";
       if (sharedPaymentGroup) return sharedPaymentGroup;
-      if (hasPlayerAffiliation(player, "海尼克") && !hasPlayerAffiliation(player, "球友")) return "heineken";
+      if (hasPlayerAffiliation(player, "Hytronik")) return "heineken";
       return "friends";
     }
 

@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/sync-public.js",
+    "snapshot": "node scripts/generate-snapshot.js",
+    "build:fresh": "npm run snapshot && npm run build",
     "dev": "npm run build && wrangler dev",
-    "deploy": "npm run build && wrangler deploy",
+    "deploy": "npm run build:fresh && wrangler deploy",
     "d1:create": "wrangler d1 create Badminton-level",
     "d1:migrate:local": "wrangler d1 migrations apply DB --local",
     "d1:migrate:remote": "wrangler d1 migrations apply DB --remote"

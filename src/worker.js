@@ -1,5 +1,6 @@
 import INDEX_HTML from "./index.html";
 import HTML2CANVAS_JS from "./html2canvas.txt";
+import BOOTSTRAP_SNAPSHOT from "./bootstrap-snapshot.txt";
 
 const DEFAULT_LEVEL_GUIDE_RAW = `中羽等级表格
 0.5级
@@ -68,8 +69,8 @@ const DEFAULT_LEVEL_GUIDE_RAW = `中羽等级表格
 const VALID_GENDERS = new Set(["男", "女"]);
 const VALID_LEVELS = new Set(["不详", "0.5级", "1级", "1.5级", "2级", "2.5级", "3级", "3.5级", "4级", "4.5级", "5级", "6级", "7级", "8级", "9级"]);
 const VALID_BOOKING_TIMES = new Set(["19:00~22:00", "19:00~21:00", "20:00~22:00"]);
-const VALID_AFFILIATIONS = new Set(["球友", "海尼克", "球友+海尼克", "特殊"]);
-const PAYMENT_ORDER_AFFILIATIONS = ["球友", "海尼克"];
+const VALID_AFFILIATIONS = new Set(["球友", "Hytronik", "球友+Hytronik", "特殊"]);
+const PAYMENT_ORDER_AFFILIATIONS = ["球友", "Hytronik"];
 const ORDERABLE_AFFILIATIONS = new Set(PAYMENT_ORDER_AFFILIATIONS);
 
 const LEVEL_PATTERN = /^(\d+(?:\.5)?级)$/;
@@ -81,6 +82,9 @@ export default {
     try {
       if (url.pathname.startsWith("/api/")) {
         if (request.method.toUpperCase() === "OPTIONS") return preflight();
+        if (isBlockedGitHubWrite(request)) {
+          return json({ error: "GitHub 备用版为只读，请使用 Cloudflare 管理版修改数据" }, 403);
+        }
         await ensureSeeded(env.DB);
         return await handleApi(request, env, url);
       }
@@ -103,6 +107,15 @@ export default {
         });
       }
 
+      if (url.pathname === "/bootstrap-snapshot.json") {
+        return new Response(BOOTSTRAP_SNAPSHOT, {
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "cache-control": "public, max-age=300",
+          },
+        });
+      }
+
       return new Response("Not found", { status: 404 });
     } catch (error) {
       return json({ error: error.message || "服务器错误" }, 500);
@@ -110,13 +123,19 @@ export default {
   },
 };
 
+function isBlockedGitHubWrite(request) {
+  const method = request.method.toUpperCase();
+  if (["GET", "HEAD", "OPTIONS"].includes(method)) return false;
+  return request.headers.get("origin") === "https://choi975.github.io";
+}
+
 async function handleApi(request, env, url) {
   const { pathname } = url;
   const method = request.method.toUpperCase();
 
   if (pathname === "/api/bootstrap" && method === "GET") {
-    const [players, guide, paymentOrders] = await Promise.all([listPlayers(env.DB), getLevelGuide(env.DB), listPaymentOrders(env.DB)]);
-    return json({ players, ...guide, paymentOrders });
+    const [players, guide, paymentState] = await Promise.all([listPlayers(env.DB), getLevelGuide(env.DB), getPaymentOrderState(env.DB)]);
+    return json({ players, ...guide, ...paymentState });
   }
 
   if (pathname === "/api/players" && method === "GET") {
@@ -130,11 +149,35 @@ async function handleApi(request, env, url) {
       `INSERT INTO players (name, gender, level, booking_time, affiliation, updated_at)
        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
     ).bind(input.name, input.gender, input.level, input.booking_time, input.affiliation).run();
-    const player = await getPlayerById(env.DB, result.meta.last_row_id);
-    return json({ player }, 201);
+    const playerId = Number(result.meta.last_row_id);
+    const joinStatements = groupsForAffiliation(input.affiliation).map((affiliation) => buildJoinAtEndStatement(env.DB, affiliation, playerId));
+    if (joinStatements.length) await env.DB.batch(joinStatements);
+    const [player, paymentState] = await Promise.all([getPlayerById(env.DB, playerId), getPaymentOrderState(env.DB)]);
+    return json({ player, ...paymentState }, 201);
   }
 
   const playerMatch = pathname.match(/^\/api\/players\/(\d+)$/);
+  const playerJoinNumberMatch = pathname.match(/^\/api\/players\/(\d+)\/join-numbers$/);
+  if (playerJoinNumberMatch && method === "PATCH") {
+    const id = Number(playerJoinNumberMatch[1]);
+    const body = await readJson(request);
+    const affiliation = String(body.affiliation || "").trim();
+    const joinNumber = Number(body.joinNumber);
+    if (!ORDERABLE_AFFILIATIONS.has(affiliation) || !Number.isInteger(joinNumber) || joinNumber <= 0) {
+      return json({ error: "入群序号需要填写大于0的整数" }, 400);
+    }
+
+    const player = await env.DB.prepare("SELECT id, affiliation FROM players WHERE id = ?").bind(id).first();
+    if (!player) return json({ error: "找不到这个人物档案" }, 404);
+    if (!groupsForAffiliation(player.affiliation).includes(affiliation)) {
+      return json({ error: "该成员不属于此群，无法设置入群序号" }, 400);
+    }
+
+    const statements = await buildJoinNumberChangeStatements(env.DB, id, affiliation, joinNumber);
+    if (statements.length) await env.DB.batch(statements);
+    return json(await getPaymentOrderState(env.DB));
+  }
+
   if (playerMatch && method === "PATCH") {
     const id = Number(playerMatch[1]);
     const existing = await env.DB.prepare("SELECT * FROM players WHERE id = ?").bind(id).first();
@@ -148,45 +191,55 @@ async function handleApi(request, env, url) {
        WHERE id = ?`
     ).bind(input.name, input.gender, input.level, input.booking_time, input.affiliation, id)];
     if (existing.affiliation !== input.affiliation) {
-      updates.push(env.DB.prepare("DELETE FROM payment_orders WHERE player_id = ?").bind(id));
+      updates.push(...await buildAffiliationChangeStatements(env.DB, id, existing.affiliation, input.affiliation));
     }
     await env.DB.batch(updates);
-    return json({ player: await getPlayerById(env.DB, id) });
+    const [player, paymentState] = await Promise.all([getPlayerById(env.DB, id), getPaymentOrderState(env.DB)]);
+    return json({ player, ...paymentState });
   }
 
   if (playerMatch && method === "DELETE") {
     const id = Number(playerMatch[1]);
-    await env.DB.batch([
-      env.DB.prepare("DELETE FROM payment_orders WHERE player_id = ?").bind(id),
-      env.DB.prepare("DELETE FROM players WHERE id = ?").bind(id),
-    ]);
-    return json({ ok: true });
+    const existing = await env.DB.prepare("SELECT id FROM players WHERE id = ?").bind(id).first();
+    if (!existing) return json({ error: "找不到这个人物档案" }, 404);
+    const statements = await buildPlayerDeletionStatements(env.DB, id);
+    await env.DB.batch(statements);
+    return json({ ok: true, ...await getPaymentOrderState(env.DB) });
   }
 
   if (pathname === "/api/payment-orders" && method === "GET") {
-    return json({ paymentOrders: await listPaymentOrders(env.DB) });
+    return json(await getPaymentOrderState(env.DB));
   }
 
   if (pathname === "/api/payment-settings" && method === "PUT") {
     const body = await readJson(request);
-    if (!body.orders || typeof body.orders !== "object") return json({ error: "付款排序数据无效" }, 400);
-    if (!PAYMENT_ORDER_AFFILIATIONS.every((affiliation) => Array.isArray(body.orders[affiliation]))) {
-      return json({ error: "付款排序数据无效" }, 400);
-    }
+    const joinNumbers = normalizeGroupJoinNumberSettings(body.joinNumbers);
+    if (!joinNumbers) return json({ error: "入群序号数据无效" }, 400);
     if (!Array.isArray(body.specialSettings)) return json({ error: "特殊成员设置无效" }, 400);
 
     const specialSettings = normalizeSpecialPaymentSettings(body.specialSettings);
     if (!specialSettings) return json({ error: "特殊成员设置无效" }, 400);
+    const unrecordedExit = normalizeUnrecordedExit(body.unrecordedExit);
+    if (body.unrecordedExit && !unrecordedExit) return json({ error: "退群序号无效" }, 400);
 
-    const statements = [];
-    for (const affiliation of PAYMENT_ORDER_AFFILIATIONS) {
-      statements.push(...await buildPaymentOrderStatements(env.DB, affiliation, body.orders[affiliation]));
+    if (unrecordedExit) {
+      const entries = joinNumbers[unrecordedExit.affiliation];
+      if (entries.some((entry) => entry.joinNumber === unrecordedExit.joinNumber)) {
+        const owner = entries.find((entry) => entry.joinNumber === unrecordedExit.joinNumber);
+        const player = await env.DB.prepare("SELECT name FROM players WHERE id = ?").bind(owner.playerId).first();
+        return json({ error: `第${unrecordedExit.joinNumber}位属于“${firstPlayerName(player?.name)}”，请在主表修改所属或删除成员` }, 409);
+      }
+      entries.forEach((entry) => {
+        if (entry.joinNumber > unrecordedExit.joinNumber) entry.joinNumber -= 1;
+      });
     }
+
+    const statements = await buildGroupJoinNumberSaveStatements(env.DB, joinNumbers);
     statements.push(...await buildSpecialPaymentSettingStatements(env.DB, specialSettings));
     await env.DB.batch(statements);
 
-    const [players, paymentOrders] = await Promise.all([listPlayers(env.DB), listPaymentOrders(env.DB)]);
-    return json({ players, paymentOrders });
+    const [players, paymentState] = await Promise.all([listPlayers(env.DB), getPaymentOrderState(env.DB)]);
+    return json({ players, ...paymentState });
   }
 
   if (pathname === "/api/payment-orders" && method === "PUT") {
@@ -194,8 +247,8 @@ async function handleApi(request, env, url) {
     const affiliation = String(body.affiliation || "").trim();
     if (!ORDERABLE_AFFILIATIONS.has(affiliation)) return json({ error: "该分组不支持付款排序" }, 400);
     if (!Array.isArray(body.playerIds)) return json({ error: "排序数据无效" }, 400);
-    await savePaymentOrder(env.DB, affiliation, body.playerIds);
-    return json({ paymentOrders: await listPaymentOrders(env.DB) });
+    await saveLegacyPaymentOrder(env.DB, affiliation, body.playerIds);
+    return json(await getPaymentOrderState(env.DB));
   }
 
   if (pathname === "/api/special-payment-settings" && method === "PUT") {
@@ -234,41 +287,201 @@ async function listPlayers(db) {
   return results.map(normalizePlayer);
 }
 
-async function listPaymentOrders(db) {
-  const orders = Object.fromEntries([...ORDERABLE_AFFILIATIONS].map((affiliation) => [affiliation, []]));
+async function getPaymentOrderState(db) {
+  const groupJoinNumbers = Object.fromEntries(PAYMENT_ORDER_AFFILIATIONS.map((affiliation) => [affiliation, []]));
   const { results } = await db.prepare(
-    "SELECT affiliation, player_id FROM payment_orders ORDER BY affiliation ASC, sort_order ASC, player_id ASC"
+    `SELECT affiliation, player_id, join_number
+     FROM group_join_numbers
+     ORDER BY affiliation ASC, join_number ASC, player_id ASC`
   ).all();
+
   for (const row of results) {
-    if (orders[row.affiliation]) orders[row.affiliation].push(row.player_id);
+    if (!groupJoinNumbers[row.affiliation]) continue;
+    groupJoinNumbers[row.affiliation].push({
+      playerId: Number(row.player_id),
+      joinNumber: Number(row.join_number),
+    });
   }
-  return orders;
+
+  const paymentOrders = Object.fromEntries(PAYMENT_ORDER_AFFILIATIONS.map((affiliation) => [
+    affiliation,
+    groupJoinNumbers[affiliation].map((entry) => entry.playerId),
+  ]));
+  return { groupJoinNumbers, paymentOrders };
 }
 
-async function savePaymentOrder(db, affiliation, rawPlayerIds) {
-  await db.batch(await buildPaymentOrderStatements(db, affiliation, rawPlayerIds));
+function normalizeGroupJoinNumberSettings(rawSettings) {
+  if (!rawSettings || typeof rawSettings !== "object") return null;
+  const normalized = {};
+
+  for (const affiliation of PAYMENT_ORDER_AFFILIATIONS) {
+    const rawEntries = rawSettings[affiliation];
+    if (!Array.isArray(rawEntries)) return null;
+    const playerIds = new Set();
+    const joinNumbers = new Set();
+    const entries = [];
+
+    for (const rawEntry of rawEntries) {
+      const playerId = Number(rawEntry?.playerId);
+      const joinNumber = Number(rawEntry?.joinNumber);
+      if (!Number.isInteger(playerId) || playerId <= 0 || !Number.isInteger(joinNumber) || joinNumber <= 0) return null;
+      if (playerIds.has(playerId) || joinNumbers.has(joinNumber)) return null;
+      playerIds.add(playerId);
+      joinNumbers.add(joinNumber);
+      entries.push({ playerId, joinNumber });
+    }
+
+    normalized[affiliation] = entries;
+  }
+
+  return normalized;
 }
 
-async function buildPaymentOrderStatements(db, affiliation, rawPlayerIds) {
-  const candidateIds = [...new Set(rawPlayerIds.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0))];
-  const affiliations = affiliation === "球友"
-    ? ["球友", "球友+海尼克"]
-    : ["海尼克", "球友+海尼克"];
-  const { results } = await db.prepare("SELECT id FROM players WHERE affiliation IN (?, ?)").bind(...affiliations).all();
-  const allowedIds = new Set(results.map((row) => Number(row.id)));
-  const playerIds = candidateIds.filter((id) => allowedIds.has(id));
-  const batch = [db.prepare("DELETE FROM payment_orders WHERE affiliation = ?").bind(affiliation)];
+function normalizeUnrecordedExit(rawExit) {
+  if (!rawExit) return null;
+  const affiliation = String(rawExit.affiliation || "").trim();
+  const joinNumber = Number(rawExit.joinNumber);
+  if (!ORDERABLE_AFFILIATIONS.has(affiliation) || !Number.isInteger(joinNumber) || joinNumber <= 0) return null;
+  return { affiliation, joinNumber };
+}
 
-  playerIds.forEach((id, index) => {
-    batch.push(
-      db.prepare(
-        `INSERT INTO payment_orders (affiliation, player_id, sort_order, updated_at)
+async function buildGroupJoinNumberSaveStatements(db, settings) {
+  const statements = [];
+
+  for (const affiliation of PAYMENT_ORDER_AFFILIATIONS) {
+    const affiliations = affiliation === "球友"
+      ? ["球友", "球友+Hytronik"]
+      : ["Hytronik", "球友+Hytronik"];
+    const { results } = await db.prepare("SELECT id FROM players WHERE affiliation IN (?, ?)").bind(...affiliations).all();
+    const allowedIds = new Set(results.map((row) => Number(row.id)));
+    const entries = settings[affiliation];
+    const submittedIds = new Set(entries.map((entry) => entry.playerId));
+    if (allowedIds.size !== submittedIds.size || [...allowedIds].some((id) => !submittedIds.has(id))) {
+      throw new Error(`${affiliation}成员已发生变化，请关闭设置窗口后重试`);
+    }
+
+    statements.push(db.prepare("DELETE FROM group_join_numbers WHERE affiliation = ?").bind(affiliation));
+    for (const entry of entries) {
+      statements.push(db.prepare(
+        `INSERT INTO group_join_numbers (affiliation, player_id, join_number, updated_at)
          VALUES (?, ?, ?, CURRENT_TIMESTAMP)`
-      ).bind(affiliation, id, index)
-    );
-  });
+      ).bind(affiliation, entry.playerId, entry.joinNumber));
+    }
+  }
 
-  return batch;
+  return statements;
+}
+
+async function saveLegacyPaymentOrder(db, affiliation, rawPlayerIds) {
+  const state = await getPaymentOrderState(db);
+  const playerIds = [...new Set(rawPlayerIds.map(Number).filter((id) => Number.isInteger(id) && id > 0))];
+  state.groupJoinNumbers[affiliation] = playerIds.map((playerId, index) => ({ playerId, joinNumber: index + 1 }));
+  await db.batch(await buildGroupJoinNumberSaveStatements(db, state.groupJoinNumbers));
+}
+
+function groupsForAffiliation(affiliation) {
+  if (affiliation === "球友") return ["球友"];
+  if (affiliation === "Hytronik") return ["Hytronik"];
+  if (affiliation === "球友+Hytronik") return ["球友", "Hytronik"];
+  return [];
+}
+
+function buildJoinAtEndStatement(db, affiliation, playerId) {
+  return db.prepare(
+    `INSERT INTO group_join_numbers (affiliation, player_id, join_number, updated_at)
+     VALUES (?, ?, (SELECT COALESCE(MAX(join_number), 0) + 1 FROM group_join_numbers WHERE affiliation = ?), CURRENT_TIMESTAMP)
+     ON CONFLICT(affiliation, player_id) DO UPDATE SET
+       join_number = excluded.join_number,
+       updated_at = CURRENT_TIMESTAMP`
+  ).bind(affiliation, playerId, affiliation);
+}
+
+async function buildJoinNumberChangeStatements(db, playerId, affiliation, joinNumber) {
+  const { results } = await db.prepare(
+    "SELECT player_id, join_number FROM group_join_numbers WHERE affiliation = ? ORDER BY join_number ASC, player_id ASC"
+  ).bind(affiliation).all();
+  const current = results.find((row) => Number(row.player_id) === playerId);
+  if (!current) throw new Error("该成员缺少入群序号，请先在群收款设置中保存后重试");
+
+  const currentNumber = Number(current.join_number);
+  if (currentNumber === joinNumber) return [];
+
+  const occupied = new Set(results
+    .filter((row) => Number(row.player_id) !== playerId)
+    .map((row) => Number(row.join_number)));
+  let firstVacancy = joinNumber;
+  while (occupied.has(firstVacancy)) firstVacancy += 1;
+
+  const statements = results
+    .filter((row) => Number(row.player_id) !== playerId)
+    .filter((row) => Number(row.join_number) >= joinNumber && Number(row.join_number) < firstVacancy)
+    .map((row) => db.prepare(
+      "UPDATE group_join_numbers SET join_number = join_number + 1, updated_at = CURRENT_TIMESTAMP WHERE affiliation = ? AND player_id = ?"
+    ).bind(affiliation, row.player_id));
+  statements.push(db.prepare(
+    "UPDATE group_join_numbers SET join_number = ?, updated_at = CURRENT_TIMESTAMP WHERE affiliation = ? AND player_id = ?"
+  ).bind(joinNumber, affiliation, playerId));
+  return statements;
+}
+
+async function buildAffiliationChangeStatements(db, playerId, previousAffiliation, nextAffiliation) {
+  const previousGroups = new Set(groupsForAffiliation(previousAffiliation));
+  const nextGroups = new Set(groupsForAffiliation(nextAffiliation));
+  const removedGroups = [...previousGroups].filter((affiliation) => !nextGroups.has(affiliation));
+  const addedGroups = [...nextGroups].filter((affiliation) => !previousGroups.has(affiliation));
+  const { results } = await db.prepare(
+    "SELECT affiliation, join_number FROM group_join_numbers WHERE player_id = ?"
+  ).bind(playerId).all();
+  const numbers = new Map(results.map((row) => [row.affiliation, Number(row.join_number)]));
+  const statements = [];
+
+  for (const affiliation of removedGroups) {
+    const joinNumber = numbers.get(affiliation);
+    statements.push(db.prepare(
+      "DELETE FROM group_join_numbers WHERE affiliation = ? AND player_id = ?"
+    ).bind(affiliation, playerId));
+    if (Number.isInteger(joinNumber)) {
+      statements.push(db.prepare(
+        `UPDATE group_join_numbers
+         SET join_number = join_number - 1, updated_at = CURRENT_TIMESTAMP
+         WHERE affiliation = ? AND join_number > ?`
+      ).bind(affiliation, joinNumber));
+    }
+  }
+
+  for (const affiliation of addedGroups) {
+    statements.push(buildJoinAtEndStatement(db, affiliation, playerId));
+  }
+
+  return statements;
+}
+
+async function buildPlayerDeletionStatements(db, playerId) {
+  const { results } = await db.prepare(
+    "SELECT affiliation, join_number FROM group_join_numbers WHERE player_id = ?"
+  ).bind(playerId).all();
+  const statements = [];
+
+  for (const row of results) {
+    const affiliation = row.affiliation;
+    const joinNumber = Number(row.join_number);
+    statements.push(db.prepare(
+      "DELETE FROM group_join_numbers WHERE affiliation = ? AND player_id = ?"
+    ).bind(affiliation, playerId));
+    statements.push(db.prepare(
+      `UPDATE group_join_numbers
+       SET join_number = join_number - 1, updated_at = CURRENT_TIMESTAMP
+       WHERE affiliation = ? AND join_number > ?`
+    ).bind(affiliation, joinNumber));
+  }
+
+  statements.push(db.prepare("DELETE FROM payment_orders WHERE player_id = ?").bind(playerId));
+  statements.push(db.prepare("DELETE FROM players WHERE id = ?").bind(playerId));
+  return statements;
+}
+
+function firstPlayerName(name) {
+  return String(name || "").split(/[,，]/)[0].trim() || "该成员";
 }
 
 function normalizeSpecialPaymentSettings(rawSettings) {

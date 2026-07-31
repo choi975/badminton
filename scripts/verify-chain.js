@@ -6,12 +6,12 @@ const players = [
   { id: 3, name: "choi", gender: "男", level: "2.5级", affiliation: "特殊", participatesPayment: true },
   { id: 4, name: "达哥的领导，孙总，ben，孙锋", gender: "男", level: "3.5级", affiliation: "特殊", participatesPayment: false },
   { id: 5, name: "海尼克-徐攀，Baymax", gender: "男", level: "2级", affiliation: "特殊", participatesPayment: true },
-  { id: 6, name: "海尼克-刘赵达，阿达，达哥", gender: "男", level: "4级", affiliation: "海尼克" },
+  { id: 6, name: "海尼克-刘赵达，阿达，达哥", gender: "男", level: "4级", affiliation: "Hytronik" },
   { id: 7, name: "sun", gender: "男", level: "3级", affiliation: "球友" },
   { id: 8, name: "7点", gender: "男", level: "3.5级", affiliation: "球友" },
 ];
 
-const paymentOrders = { "球友": [], "海尼克": [] };
+const paymentOrders = { "球友": [], "Hytronik": [] };
 const CHAIN_NUMBER_PREFIX = /^\s*\d+\s*[\.、\):：-]\s*/;
 const PLUS_LEVEL_LABELS = [["比赛级高手", "5级"], ["新手", "2级"], ["中手", "3级"], ["高手", "4级"]];
 const PLUS_LEVEL_OPTIONS = [
@@ -166,7 +166,7 @@ function shouldCountForPayment(entry) {
 
 function getPaymentGroup(player) {
   if (player?.affiliation === "特殊") return "special";
-  if (player?.affiliation === "海尼克") return "heineken";
+  if (player?.affiliation === "Hytronik") return "heineken";
   return "friends";
 }
 
@@ -176,6 +176,13 @@ function ceilOneDecimal(value) {
 
 function formatMoney(value) {
   return (Math.round(value * 10) / 10).toFixed(1);
+}
+
+function calculateLedgerAmount(groups, courtFee) {
+  return Object.values(groups)
+    .flat()
+    .filter((row) => String(row.name || "").trim().toLowerCase() !== "choi")
+    .reduce((sum, row) => sum + Number(row.amount || 0), 0) - courtFee;
 }
 
 function addPaymentLine(map, name, amount, note, slots, playerId, sequence, isFemale = false) {
@@ -259,7 +266,7 @@ function calculatePayment(entries, courtFee, shuttlePrice, shuttleCount) {
     malePerPerson,
     femaleCapApplied,
     friends: mapToPaymentRows(groups.friends, "球友"),
-    heineken: mapToPaymentRows(groups.heineken, "海尼克"),
+    heineken: mapToPaymentRows(groups.heineken, "Hytronik"),
     special: mapToPaymentRows(groups.special),
   };
 }
@@ -312,6 +319,22 @@ if (formatMoney(payment.heineken.find((row) => row.name === "海尼克-刘赵达
 if (payment.heineken.some((row) => row.name === "达哥的领导" || row.name === "海尼克-徐攀")) throw new Error("Expected special members to stay out of heineken group");
 if (!payment.special.some((row) => row.name === "达哥的领导" && row.note === "不参与A钱")) throw new Error("Expected non-paying special row");
 if (formatMoney(payment.special.find((row) => row.name === "海尼克-徐攀")?.amount || 0) !== "18.1") throw new Error("Expected paying special member amount");
+if (formatMoney(calculateLedgerAmount({ friends: payment.friends, heineken: payment.heineken, special: payment.special }, 70)) !== "38.6") {
+  throw new Error("Expected ledger amount to exclude choi and subtract court fee");
+}
+const choiCompanionEntries = ["choi", "choi+1", "甲乙丙"]
+  .map((line, index) => parseChainLine(line, index, aliasIndex))
+  .filter((entry) => entry.clean);
+const choiCompanionPayment = calculatePayment(choiCompanionEntries, 70, 11.3, 5);
+const choiCompanionRow = choiCompanionPayment.special.find((row) => row.name === "choi");
+if (choiCompanionRow?.slots !== 2) throw new Error("Expected choi and companion to share one payment row");
+if (formatMoney(calculateLedgerAmount({
+  friends: choiCompanionPayment.friends,
+  heineken: choiCompanionPayment.heineken,
+  special: choiCompanionPayment.special,
+}, 70)) !== "-45.0") {
+  throw new Error("Expected ledger amount to exclude choi's entire companion row");
+}
 if (formatMoney(payment.special.find((row) => row.name === "choi")?.amount || 0) !== "18.1") throw new Error("Expected choi to follow special payment settings and remain visible");
 if (!output.some((line) => line.includes("甲乙丙🌸（3级）"))) throw new Error("Expected female flower suffix");
 if (!groupedOutput.some((line) => line.includes("甲乙丙🌸（中手）"))) throw new Error("Expected grouped female output");
@@ -435,10 +458,10 @@ if (formatMoney(cappedPayment.friends.reduce((sum, row) => sum + row.amount, 0))
   throw new Error("Expected capped payment rows to cover the full cost");
 }
 
-paymentOrders["海尼克"] = [8, 7];
+paymentOrders["Hytronik"] = [8, 7];
 const orderMap = new Map();
 addPaymentLine(orderMap, "后入群", 1, null, 1, 7, 0);
 addPaymentLine(orderMap, "先入群", 1, null, 1, 8, 1);
 addPaymentLine(orderMap, "陌生人", 1, null, 1, null, 2);
-const orderedNames = mapToPaymentRows(orderMap, "海尼克").map((row) => row.name).join(",");
+const orderedNames = mapToPaymentRows(orderMap, "Hytronik").map((row) => row.name).join(",");
 if (orderedNames !== "先入群,后入群,陌生人") throw new Error(`Expected saved payment order, got ${orderedNames}`);
