@@ -1373,7 +1373,25 @@
       .topbar, .filterbar { grid-template-columns: 1fr; display: grid; align-items: stretch; }
       .toolbar { justify-content: start; }
       .count-pill { justify-self: start; }
-      .chain-grid, .payment-grid { grid-template-columns: 1fr; }
+      .chain-grid { grid-template-columns: 1fr; }
+      .payment-dialog .modal-body {
+        overflow-x: auto;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+      }
+      .payment-grid {
+        width: 840px;
+        min-width: 840px;
+      }
+      .payment-grid[data-group-count="2"] {
+        width: 620px;
+        min-width: 620px;
+      }
+      .payment-grid[data-group-count="1"] {
+        width: 400px;
+        min-width: 400px;
+      }
       .chain-dialog {
         width: min(980px, calc(100vw - 20px));
         height: auto;
