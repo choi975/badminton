@@ -1972,8 +1972,11 @@
     }
 
     function applyHostLayout() {
-      els.databaseToggleBtn.hidden = !IS_GITHUB_PAGES;
+      els.databaseToggleBtn.hidden = true;
       els.databaseArea.hidden = IS_GITHUB_PAGES;
+      els.paymentSettingsBtn.hidden = IS_GITHUB_PAGES;
+      els.guideBtn.hidden = IS_GITHUB_PAGES;
+      els.exportBtn.hidden = IS_GITHUB_PAGES;
       updateDatabaseToggleButton();
       applyReadOnlyUi();
       if (IS_GITHUB_PAGES) {
@@ -2094,7 +2097,7 @@
       els.paymentSettingsBtn.disabled = readOnly || !state.players.length;
       els.guideEditor.readOnly = readOnly;
       els.saveGuideBtn.hidden = readOnly;
-      els.readOnlyBanner.hidden = !readOnly || !state.players.length;
+      els.readOnlyBanner.hidden = IS_GITHUB_PAGES || !readOnly || !state.players.length;
       if (!els.readOnlyBanner.hidden) {
         els.readOnlyBanner.textContent = IS_GITHUB_PAGES
           ? "GitHub 备用版为只读。接龙助手、群收款、搜索、筛选、导出和截图均可正常使用；修改数据库请打开 Cloudflare 管理版。"
