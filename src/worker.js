@@ -72,6 +72,7 @@ const VALID_BOOKING_TIMES = new Set(["19:00~22:00", "19:00~21:00", "20:00~22:00"
 const VALID_AFFILIATIONS = new Set(["球友", "Hytronik", "球友+Hytronik", "特殊"]);
 const PAYMENT_ORDER_AFFILIATIONS = ["球友", "Hytronik"];
 const ORDERABLE_AFFILIATIONS = new Set(PAYMENT_ORDER_AFFILIATIONS);
+const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 
 const LEVEL_PATTERN = /^(\d+(?:\.5)?级)$/;
 
@@ -146,14 +147,78 @@ async function handleApi(request, env, url) {
     const input = sanitizePlayer(await readJson(request));
     if (!input.name) return json({ error: "名称不能为空" }, 400);
     const result = await env.DB.prepare(
-      `INSERT INTO players (name, gender, level, booking_time, affiliation, updated_at)
-       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
-    ).bind(input.name, input.gender, input.level, input.booking_time, input.affiliation).run();
+      `INSERT INTO players (name, gender, level, booking_time, affiliation, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+    ).bind(input.name, input.gender, input.level, input.booking_time, input.affiliation, input.notes).run();
     const playerId = Number(result.meta.last_row_id);
     const joinStatements = groupsForAffiliation(input.affiliation).map((affiliation) => buildJoinAtEndStatement(env.DB, affiliation, playerId));
     if (joinStatements.length) await env.DB.batch(joinStatements);
     const [player, paymentState] = await Promise.all([getPlayerById(env.DB, playerId), getPaymentOrderState(env.DB)]);
     return json({ player, ...paymentState }, 201);
+  }
+
+  const photoMatch = pathname.match(/^\/api\/players\/(\d+)\/photo$/);
+  if (photoMatch && method === "GET") {
+    const id = Number(photoMatch[1]);
+    const player = await env.DB.prepare("SELECT photo_key FROM players WHERE id = ?").bind(id).first();
+    if (!player) return json({ error: "找不到这个人物档案" }, 404);
+    if (!player.photo_key) return json({ error: "该成员还没有照片" }, 404);
+    const object = await env.PHOTOS.get(player.photo_key);
+    if (!object) return json({ error: "照片不存在" }, 404);
+    const contentType = object.httpMetadata?.contentType || "application/octet-stream";
+    const headers = {
+      "content-type": contentType,
+      "cache-control": "public, max-age=31536000, immutable",
+      ...corsHeaders(),
+    };
+    if (url.searchParams.get("download") === "1") {
+      headers["content-disposition"] = `attachment; filename="${photoFilename(contentType)}"`;
+    }
+    return new Response(object.body, { headers });
+  }
+
+  if (photoMatch && method === "PUT") {
+    const id = Number(photoMatch[1]);
+    const player = await env.DB.prepare("SELECT photo_key FROM players WHERE id = ?").bind(id).first();
+    if (!player) return json({ error: "找不到这个人物档案" }, 404);
+    const contentType = String(request.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    if (!contentType.startsWith("image/")) return json({ error: "只支持上传图片文件" }, 400);
+    const bytes = new Uint8Array(await request.arrayBuffer());
+    if (!bytes.byteLength) return json({ error: "照片文件不能为空" }, 400);
+    if (bytes.byteLength > MAX_PHOTO_BYTES) return json({ error: "照片不能超过20MB" }, 413);
+
+    const newKey = `players/${id}/photo-${Date.now()}`;
+    await env.PHOTOS.put(newKey, bytes, {
+      httpMetadata: { contentType, cacheControl: "public, max-age=31536000, immutable" },
+    });
+    await env.DB.prepare(
+      "UPDATE players SET photo_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+    ).bind(newKey, id).run();
+    if (player.photo_key && player.photo_key !== newKey) {
+      try {
+        await env.PHOTOS.delete(player.photo_key);
+      } catch (error) {
+        // 清理旧照片失败不影响本次上传
+      }
+    }
+    return json({ ok: true, player: await getPlayerById(env.DB, id) });
+  }
+
+  if (photoMatch && method === "DELETE") {
+    const id = Number(photoMatch[1]);
+    const player = await env.DB.prepare("SELECT photo_key FROM players WHERE id = ?").bind(id).first();
+    if (!player) return json({ error: "找不到这个人物档案" }, 404);
+    if (player.photo_key) {
+      try {
+        await env.PHOTOS.delete(player.photo_key);
+      } catch (error) {
+        // 清理失败时仍清除数据库里的引用
+      }
+      await env.DB.prepare(
+        "UPDATE players SET photo_key = '', updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+      ).bind(id).run();
+    }
+    return json({ ok: true, player: await getPlayerById(env.DB, id) });
   }
 
   const playerMatch = pathname.match(/^\/api\/players\/(\d+)$/);
@@ -187,9 +252,9 @@ async function handleApi(request, env, url) {
     if (!input.name) return json({ error: "名称不能为空" }, 400);
     const updates = [env.DB.prepare(
       `UPDATE players
-       SET name = ?, gender = ?, level = ?, booking_time = ?, affiliation = ?, updated_at = CURRENT_TIMESTAMP
+       SET name = ?, gender = ?, level = ?, booking_time = ?, affiliation = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`
-    ).bind(input.name, input.gender, input.level, input.booking_time, input.affiliation, id)];
+    ).bind(input.name, input.gender, input.level, input.booking_time, input.affiliation, input.notes, id)];
     if (existing.affiliation !== input.affiliation) {
       updates.push(...await buildAffiliationChangeStatements(env.DB, id, existing.affiliation, input.affiliation));
     }
@@ -200,10 +265,17 @@ async function handleApi(request, env, url) {
 
   if (playerMatch && method === "DELETE") {
     const id = Number(playerMatch[1]);
-    const existing = await env.DB.prepare("SELECT id FROM players WHERE id = ?").bind(id).first();
+    const existing = await env.DB.prepare("SELECT id, photo_key FROM players WHERE id = ?").bind(id).first();
     if (!existing) return json({ error: "找不到这个人物档案" }, 404);
     const statements = await buildPlayerDeletionStatements(env.DB, id);
     await env.DB.batch(statements);
+    if (existing.photo_key) {
+      try {
+        await env.PHOTOS.delete(existing.photo_key);
+      } catch (error) {
+        // 删除成员时照片清理失败不影响主流程
+      }
+    }
     return json({ ok: true, ...await getPaymentOrderState(env.DB) });
   }
 
@@ -586,8 +658,9 @@ function sanitizePlayer(input) {
   const bookingCandidate = input.bookingTime ?? input.booking_time;
   const bookingTime = VALID_BOOKING_TIMES.has(bookingCandidate) ? bookingCandidate : "19:00~22:00";
   const affiliation = VALID_AFFILIATIONS.has(input.affiliation) ? input.affiliation : "球友";
+  const notes = String(input.notes || "").trim();
 
-  return { name, gender, level, booking_time: bookingTime, affiliation };
+  return { name, gender, level, booking_time: bookingTime, affiliation, notes };
 }
 
 function normalizePlayer(row) {
@@ -598,10 +671,24 @@ function normalizePlayer(row) {
     level: row.level || "不详",
     bookingTime: row.booking_time || "19:00~22:00",
     affiliation: row.affiliation || "球友",
+    notes: row.notes || "",
+    photoKey: row.photo_key || "",
     participatesPayment: Number(row.participates_payment) !== 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+function photoFilename(contentType) {
+  const extensionMap = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "image/gif": ".gif",
+    "image/avif": ".avif",
+    "image/svg+xml": ".svg",
+  };
+  return `member-photo${extensionMap[String(contentType || "").split(";")[0].trim().toLowerCase()] || ".img"}`;
 }
 
 async function readJson(request) {

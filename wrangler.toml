@@ -12,3 +12,7 @@ binding = "DB"
 database_name = "Badminton-level"
 database_id = "5715c3ab-3575-473b-ad5e-601d78eaaee1"
 migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "badminton-level-photos"

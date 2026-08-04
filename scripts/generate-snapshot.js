@@ -31,6 +31,8 @@ const players = playerRows.map((row) => ({
   level: row.level || "不详",
   bookingTime: row.booking_time || "19:00~22:00",
   affiliation: row.affiliation || "球友",
+  notes: row.notes || "",
+  photoKey: row.photo_key || "",
   participatesPayment: Number(row.participates_payment) !== 0,
   createdAt: row.created_at,
   updatedAt: row.updated_at,

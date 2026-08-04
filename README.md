@@ -14,6 +14,7 @@
 - Worker: `badminton-level`
 - D1: `Badminton-level`
 - D1 ID: `5715c3ab-3575-473b-ad5e-601d78eaaee1`
+- R2: `badminton-level-photos`（成员照片）
 
 说明：Cloudflare D1 数据库名不允许空格，所以实际创建名为 `Badminton-level`。
 

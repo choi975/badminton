@@ -533,6 +533,84 @@
       align-items: flex-start;
     }
 
+    td.notes-cell .cell {
+      align-items: flex-start;
+      line-height: 1.55;
+      color: #41514d;
+    }
+
+    .notes-cell-content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .notes-cell-content > span {
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-width: 0;
+    }
+
+    .notes-edit-textarea {
+      width: 100%;
+      min-height: 84px;
+      border: 0;
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+      padding: 8px 10px;
+      background: #fff;
+      font: inherit;
+      line-height: 1.5;
+      resize: vertical;
+    }
+
+    .photo-cell-content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: start;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .photo-thumb {
+      width: 46px;
+      height: 46px;
+      object-fit: cover;
+      border-radius: 7px;
+      border: 1px solid var(--line-strong);
+      background: #eef3f1;
+      cursor: zoom-in;
+      display: block;
+    }
+
+    .photo-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .photo-action-btn {
+      min-height: 22px;
+      padding: 0 7px;
+      font-size: 12px;
+      border-radius: 5px;
+      background: #fff;
+      color: var(--accent-dark);
+      border-color: #c8e6df;
+      cursor: pointer;
+    }
+
+    .photo-action-btn:hover {
+      background: var(--accent-soft);
+    }
+
+    .photo-download-link {
+      font-size: 12px;
+      color: var(--accent-dark);
+    }
+
     .empty-hint { color: #98a2b3; }
 
     .name-cell-content {
@@ -673,6 +751,46 @@
 
     .modal.wide { width: min(1360px, 100%); }
     .modal.medium { width: min(760px, 100%); }
+    .modal.photo-dialog {
+      width: min(760px, 100%);
+    }
+
+    a.primary-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      padding: 0 13px;
+      min-height: 38px;
+      font-weight: 600;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+
+    a.primary-btn:hover {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+      color: #fff;
+    }
+
+    .photo-body {
+      display: grid;
+      place-items: center;
+      min-height: 0;
+      padding: 10px;
+      background: #f6faf8;
+    }
+
+    .photo-body img {
+      max-width: 100%;
+      max-height: 72vh;
+      object-fit: contain;
+      border-radius: 6px;
+      box-shadow: 0 4px 18px rgba(18, 38, 33, 0.18);
+    }
+
     .modal.chain-dialog {
       width: min(1680px, calc(100vw - 16px));
       height: calc(100vh - 12px);
@@ -1473,7 +1591,7 @@
     <div id="databaseArea" class="database-area">
       <div id="readOnlyBanner" class="read-only-banner" hidden></div>
       <section class="panel filterbar">
-        <input id="globalSearch" class="search-input" placeholder="搜索名称、等级或所属（多人用逗号分隔）" autocomplete="off">
+        <input id="globalSearch" class="search-input" placeholder="搜索名称、等级、所属、备注（多人用逗号分隔）" autocomplete="off">
         <div></div>
         <div class="table-tools">
           <div class="column-menu-wrap">
@@ -1683,6 +1801,21 @@
     </div>
   </div>
 
+  <div id="photoModal" class="modal-backdrop">
+    <div class="modal photo-dialog" role="dialog" aria-modal="true" aria-labelledby="photoTitle">
+      <div class="modal-header">
+        <h2 id="photoTitle" class="modal-title">成员照片</h2>
+        <button class="modal-close-btn" data-close="photoModal" aria-label="关闭" title="关闭">×</button>
+      </div>
+      <div class="modal-body photo-body">
+        <img id="photoViewer" alt="成员照片">
+      </div>
+      <div class="modal-footer">
+        <a id="photoDownloadBtn" class="primary-btn" href="#">下载原图</a>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
   <script src="./html2canvas.min.js"></script>
@@ -1704,19 +1837,22 @@
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
     const REMOTE_API_BASE = "https://badminton-level.choi975.workers.dev";
     const IS_GITHUB_PAGES = location.hostname === "choi975.github.io" && location.pathname.startsWith("/badminton-level");
-    const IS_WORKER_APP = location.hostname === "badminton-level.choi975.workers.dev";
+    const IS_WORKER_APP = location.hostname === "badminton-level.choi975.workers.dev"
+      || ["127.0.0.1", "localhost"].includes(location.hostname);
     const BOOTSTRAP_CACHE_KEY = "badminton-level-bootstrap-cache-v1";
     const SNAPSHOT_URL = new URL("./bootstrap-snapshot.json", location.href).href;
     const shouldOpenRemoteApp = location.protocol === "file:" && !new URLSearchParams(location.search).has("local");
 
     const COLUMNS = [
       { key: "name", label: "名称", width: "22%", filter: "text", sortable: true },
+      { key: "photo", label: "照片", width: "10%", sortable: false },
       { key: "gender", label: "性别", width: "8%", filter: "enum", options: GENDERS, sortable: true, cycle: GENDERS },
       { key: "level", label: "中羽等级", width: "12%", filter: "multi-enum", options: LEVELS, sortable: true },
       { key: "description", label: "该等级的介绍", width: "28%", sortable: false },
       { key: "affiliation", label: "所属", width: "14%", filter: "enum", options: AFFILIATIONS, sortable: true, cycle: AFFILIATIONS },
       { key: "friendsJoinNumber", label: "球友群序号", width: "8%", sortable: true },
       { key: "hytronikJoinNumber", label: "Hytronik群序号", width: "8%", sortable: true },
+      { key: "notes", label: "备注", width: "18%", filter: "text", sortable: false },
     ];
 
     const DEFAULT_DRAFT = Object.freeze({
@@ -1725,6 +1861,7 @@
       gender: "男",
       level: "不详",
       affiliation: "球友",
+      notes: "",
     });
 
     const collator = new Intl.Collator("zh-Hans-CN-u-co-pinyin", { numeric: true, sensitivity: "base" });
@@ -1739,7 +1876,7 @@
       dataSource: "loading",
       dataTimestamp: null,
       filters: {},
-      hiddenColumns: new Set(),
+      hiddenColumns: new Set(["photo", "notes"]),
       sort: { key: "friendsJoinNumber", dir: "asc" },
       selected: { rowKey: "draft", col: 0 },
       editing: null,
@@ -1815,6 +1952,9 @@
       unrecordedExitLabel: document.getElementById("unrecordedExitLabel"),
       unrecordedExitNumber: document.getElementById("unrecordedExitNumber"),
       confirmUnrecordedExitBtn: document.getElementById("confirmUnrecordedExitBtn"),
+      photoModal: document.getElementById("photoModal"),
+      photoViewer: document.getElementById("photoViewer"),
+      photoDownloadBtn: document.getElementById("photoDownloadBtn"),
       toast: document.getElementById("toast"),
     };
 
@@ -2292,6 +2432,8 @@
           td.dataset.rowKey = row.key;
           td.dataset.col = String(colIndex);
           if (column.key === "description") td.classList.add("description-cell");
+          if (column.key === "photo") td.classList.add("photo-cell");
+          if (column.key === "notes") td.classList.add("notes-cell");
           if (state.selected.rowKey === row.key && state.selected.col === colIndex) td.classList.add("selected");
 
           const cell = document.createElement("div");
@@ -2341,14 +2483,14 @@
         select.value = player.level || "不详";
         select.addEventListener("click", (event) => {
           event.stopPropagation();
-          state.selected = { rowKey, col: 2 };
+          state.selected = { rowKey, col: 3 };
         });
         select.addEventListener("focus", () => {
-          state.selected = { rowKey, col: 2 };
+          state.selected = { rowKey, col: 3 };
         });
         select.addEventListener("change", async (event) => {
           event.stopPropagation();
-          state.selected = { rowKey, col: 2 };
+          state.selected = { rowKey, col: 3 };
           await saveCell(rowKey, "level", select.value);
         });
         box.append(select);
@@ -2479,6 +2621,70 @@
         return wrapper;
       }
 
+      if (column.key === "photo") {
+        const box = document.createElement("div");
+        box.className = "photo-cell-content";
+        if (player.id && player.photoKey) {
+          const img = document.createElement("img");
+          img.className = "photo-thumb";
+          img.src = getPhotoUrl(player);
+          img.alt = `${firstName(player.name) || "成员"}照片`;
+          img.title = "查看大图";
+          img.loading = "lazy";
+          img.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openPlayerPhoto(player);
+          });
+          box.append(img);
+          if (state.readOnly) {
+            const link = document.createElement("a");
+            link.className = "photo-download-link";
+            link.href = getPhotoUrl(player, { download: true });
+            link.textContent = "下载原图";
+            box.append(link);
+          } else {
+            const actions = document.createElement("div");
+            actions.className = "photo-actions";
+            actions.append(
+              createCellActionButton("更换", () => triggerPhotoUpload(String(player.id))),
+              createCellActionButton("下载", () => downloadPlayerPhoto(player)),
+              createCellActionButton("删除", () => deletePlayerPhoto(player)),
+            );
+            box.append(actions);
+          }
+        } else {
+          const hint = document.createElement("span");
+          hint.className = "empty-hint";
+          hint.textContent = isDraft ? "" : "暂无照片";
+          box.append(hint);
+          if (!state.readOnly && !isDraft) {
+            box.append(createCellActionButton("上传照片", () => triggerPhotoUpload(String(player.id))));
+          }
+        }
+        wrapper.append(box);
+        return wrapper;
+      }
+
+      if (column.key === "notes") {
+        const box = document.createElement("div");
+        box.className = "notes-cell-content";
+        if (!value) {
+          const hint = document.createElement("span");
+          hint.className = "empty-hint";
+          hint.textContent = isDraft ? "" : "暂无备注";
+          box.append(hint);
+        } else {
+          const span = document.createElement("span");
+          span.textContent = value;
+          box.append(span);
+        }
+        if (!state.readOnly && !isDraft) {
+          box.append(createCellActionButton("编辑", () => startNotesEdit(rowKeyFor(player))));
+        }
+        wrapper.append(box);
+        return wrapper;
+      }
+
       const span = document.createElement("span");
       span.textContent = value;
       wrapper.append(span);
@@ -2487,9 +2693,14 @@
 
     function getCellValue(player, key) {
       if (key === "description") return player.level === "不详" ? "" : (state.levelDescriptions[player.level] || "");
+      if (key === "photo") return player.photoKey ? getPhotoUrl(player) : "";
       if (key === "friendsJoinNumber") return getJoinNumber(player.id, "球友") ?? "";
       if (key === "hytronikJoinNumber") return getJoinNumber(player.id, "Hytronik") ?? "";
       return player[key] || "";
+    }
+
+    function rowKeyFor(player) {
+      return player.id ? String(player.id) : "draft";
     }
 
     function getJoinNumber(playerId, affiliation) {
@@ -2531,7 +2742,9 @@
 
     function passesSearch(player, searchTerms) {
       if (!searchTerms.length) return true;
-      const values = COLUMNS.map((column) => getCellValue(player, column.key));
+      const values = COLUMNS
+        .filter((column) => column.key !== "photo")
+        .map((column) => getCellValue(player, column.key));
       const searchable = normalizeSearch(values.join("\n"));
       return searchTerms.some((term) => searchable.includes(term));
     }
@@ -2592,8 +2805,13 @@
       if (state.readOnly) return;
       const key = COLUMNS[colIndex].key;
       if (key === "name") startNameEdit(rowKey, "append");
+      if (key === "notes") startNotesEdit(rowKey);
       if (["gender", "affiliation"].includes(key)) cycleCellValue(rowKey, key);
       if (key === "level") adjustLevel(rowKey, 1);
+      if (key === "photo") {
+        const player = getPlayerByKey(rowKey);
+        if (player?.photoKey) openPlayerPhoto(player);
+      }
     }
 
     function handleGlobalKeydown(event) {
@@ -2666,6 +2884,11 @@
         startNameEdit(rowKey, "append");
         return;
       }
+      if (column.key === "notes" && (event.key === "Enter" || event.key === "F2")) {
+        event.preventDefault();
+        startNotesEdit(rowKey);
+        return;
+      }
       if (column.key === "name" && event.key === "Delete") {
         event.preventDefault();
         if (rowKey === "draft") saveCell(rowKey, "name", "");
@@ -2732,6 +2955,156 @@
         }
       });
       input.addEventListener("blur", commit);
+    }
+
+    function startNotesEdit(rowKey) {
+      if (state.readOnly) return;
+      const player = getPlayerByKey(rowKey);
+      const columnIndex = COLUMNS.findIndex((column) => column.key === "notes");
+      const td = els.tableBody.querySelector(`td[data-row-key="${cssEscape(rowKey)}"][data-col="${columnIndex}"]`);
+      if (!td || !player || rowKey === "draft") return;
+      state.editing = { rowKey, col: columnIndex };
+
+      const textarea = document.createElement("textarea");
+      textarea.className = "notes-edit-textarea";
+      textarea.value = player.notes || "";
+      td.replaceChildren(textarea);
+      textarea.focus();
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+      let done = false;
+      const commit = async () => {
+        if (done) return;
+        done = true;
+        state.editing = null;
+        await saveCell(rowKey, "notes", textarea.value.trim());
+      };
+      const cancel = () => {
+        if (done) return;
+        done = true;
+        state.editing = null;
+        renderTable();
+      };
+
+      textarea.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+          event.preventDefault();
+          commit();
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          cancel();
+        }
+      });
+      textarea.addEventListener("blur", commit);
+    }
+
+    function getPhotoUrl(player, { download = false } = {}) {
+      if (!player?.id || !player.photoKey) return "";
+      const path = `/api/players/${player.id}/photo${download ? "?download=1" : ""}`;
+      return getApiUrl(path);
+    }
+
+    function createCellActionButton(label, handler) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "photo-action-btn";
+      button.textContent = label;
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        handler();
+      });
+      return button;
+    }
+
+    function triggerPhotoUpload(playerId) {
+      if (state.readOnly) return;
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.style.display = "none";
+      document.body.append(input);
+      input.addEventListener("change", async () => {
+        const file = input.files?.[0];
+        input.remove();
+        if (!file) return;
+        await uploadPlayerPhoto(playerId, file);
+      });
+      input.click();
+    }
+
+    async function uploadPlayerPhoto(playerId, file) {
+      if (state.readOnly) {
+        toast("当前为只读模式，不能修改照片");
+        return;
+      }
+      if (!file.type.startsWith("image/")) {
+        toast("请选择图片文件");
+        return;
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        toast("照片不能超过20MB");
+        return;
+      }
+      setSync("正在上传照片");
+      try {
+        const data = await api(`/api/players/${playerId}/photo`, {
+          method: "PUT",
+          headers: { "content-type": file.type },
+          body: file,
+          timeout: 60000,
+        });
+        replacePlayer(data.player);
+        setSync("已保存");
+        toast("照片已上传");
+      } catch (error) {
+        setSync("上传失败");
+        toast(`上传照片失败：${error.message}`);
+      }
+      renderTable();
+    }
+
+    async function deletePlayerPhoto(player) {
+      if (state.readOnly) {
+        toast("当前为只读模式，不能修改照片");
+        return;
+      }
+      if (!player?.id || !player.photoKey) return;
+      const label = firstName(player.name) || "该成员";
+      if (!window.confirm(`确定删除“${label}”的照片吗？`)) return;
+
+      const previous = { ...player };
+      player.photoKey = "";
+      renderTable();
+      setSync("正在删除照片");
+      try {
+        const data = await api(`/api/players/${player.id}/photo`, { method: "DELETE" });
+        replacePlayer(data.player);
+        setSync("已保存");
+        toast("照片已删除");
+      } catch (error) {
+        Object.assign(player, previous);
+        setSync("删除失败");
+        toast(`删除照片失败：${error.message}`);
+      }
+      renderTable();
+    }
+
+    function downloadPlayerPhoto(player) {
+      if (!player?.id || !player.photoKey) return;
+      const link = document.createElement("a");
+      link.href = getPhotoUrl(player, { download: true });
+      document.body.append(link);
+      link.click();
+      link.remove();
+    }
+
+    function openPlayerPhoto(player) {
+      if (!player?.id || !player.photoKey) return;
+      els.photoViewer.alt = `${firstName(player.name) || "成员"}照片`;
+      els.photoViewer.src = getPhotoUrl(player);
+      els.photoDownloadBtn.href = getPhotoUrl(player, { download: true });
+      openModal("photoModal");
     }
 
     async function cycleCellValue(rowKey, key) {
