@@ -2019,7 +2019,7 @@
           toast(`数据加载失败：${error.message}`);
           return;
         }
-        els.retryConnectionBtn.hidden = false;
+        els.retryConnectionBtn.hidden = IS_GITHUB_PAGES;
         if (retry) toast("云端仍不可用，继续使用只读数据");
       }
     }
