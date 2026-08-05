@@ -1171,6 +1171,26 @@
       font-size: 14px;
     }
 
+    .payment-sort-btn {
+      min-height: 26px;
+      padding: 0 10px;
+      font-size: 12px;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--accent-dark);
+      border-color: #c8e6df;
+      white-space: nowrap;
+    }
+
+    .payment-sort-btn:hover {
+      background: var(--accent-soft);
+    }
+
+    .payment-sort-btn[aria-pressed="true"] {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+
     .payment-card:nth-child(2) .payment-card-head { background: var(--amber-soft); }
     .payment-card:nth-child(3) .payment-card-head { background: #f1f3f3; }
 
@@ -1711,12 +1731,14 @@
           <section id="paymentFriendsCard" class="payment-card">
             <div class="payment-card-head">
               <h3>球友</h3>
+              <button id="paymentFriendsSortBtn" class="payment-sort-btn" type="button" aria-pressed="false" data-html2canvas-ignore="true">⇅ 入群顺序</button>
             </div>
             <div id="paymentFriends" class="payment-content"></div>
           </section>
           <section id="paymentHeinekenCard" class="payment-card">
             <div class="payment-card-head">
               <h3>Hytronik</h3>
+              <button id="paymentHeinekenSortBtn" class="payment-sort-btn" type="button" aria-pressed="false" data-html2canvas-ignore="true">⇅ 入群顺序</button>
             </div>
             <div id="paymentHeineken" class="payment-content"></div>
           </section>
@@ -1889,6 +1911,7 @@
         joinNumbers: { "球友": [], "Hytronik": [] },
         special: {},
       },
+      paymentSortModes: { "球友": "join", "Hytronik": "join" },
     };
 
     const els = {
@@ -1933,6 +1956,8 @@
       paymentHeinekenCard: document.getElementById("paymentHeinekenCard"),
       paymentFriends: document.getElementById("paymentFriends"),
       paymentHeineken: document.getElementById("paymentHeineken"),
+      paymentFriendsSortBtn: document.getElementById("paymentFriendsSortBtn"),
+      paymentHeinekenSortBtn: document.getElementById("paymentHeinekenSortBtn"),
       paymentSpecial: document.getElementById("paymentSpecial"),
       paymentCourtFee: document.getElementById("paymentCourtFee"),
       paymentShuttlePrice: document.getElementById("paymentShuttlePrice"),
@@ -2148,6 +2173,9 @@
         input.addEventListener("input", updatePaymentButton);
       });
       els.paymentBtn.addEventListener("click", openPaymentModal);
+      els.paymentFriendsSortBtn.addEventListener("click", () => togglePaymentSortMode("球友"));
+      els.paymentHeinekenSortBtn.addEventListener("click", () => togglePaymentSortMode("Hytronik"));
+      renderPaymentSortButtons();
       els.paymentCaptureBtn.addEventListener("click", copyPaymentScreenshot);
       els.paymentSettingsTabs.forEach((tab) => {
         tab.addEventListener("click", () => switchPaymentSettingsTab(tab.dataset.paymentSettingsTab));
@@ -3734,6 +3762,25 @@
       els.paymentBtn.disabled = !ready;
     }
 
+    function togglePaymentSortMode(affiliation) {
+      state.paymentSortModes[affiliation] = state.paymentSortModes[affiliation] === "chain" ? "join" : "chain";
+      renderPaymentSortButtons();
+      if (els.paymentModal.classList.contains("open")) openPaymentModal();
+    }
+
+    function renderPaymentSortButtons() {
+      const render = (button, affiliation) => {
+        const chainMode = state.paymentSortModes[affiliation] === "chain";
+        button.textContent = chainMode ? "⇅ 接龙顺序" : "⇅ 入群顺序";
+        button.title = chainMode
+          ? `当前按接龙顺序排序，点击切换为入群顺序`
+          : `当前按入群顺序排序，点击切换为接龙顺序`;
+        button.setAttribute("aria-pressed", String(chainMode));
+      };
+      render(els.paymentFriendsSortBtn, "球友");
+      render(els.paymentHeinekenSortBtn, "Hytronik");
+    }
+
     function openPaymentModal() {
       processChain();
       const courtFee = Number(els.courtFeeInput.value);
@@ -4218,7 +4265,9 @@
       if (!affiliation) return rows.sort((a, b) => collator.compare(a.name, b.name));
 
       const orderMap = new Map((state.paymentOrders[affiliation] || []).map((id, index) => [Number(id), index]));
+      const chainOrder = state.paymentSortModes[affiliation] === "chain";
       return rows.sort((a, b) => {
+        if (chainOrder && a.sequence !== b.sequence) return a.sequence - b.sequence;
         const aOrder = a.playerId && orderMap.has(Number(a.playerId)) ? orderMap.get(Number(a.playerId)) : Number.MAX_SAFE_INTEGER;
         const bOrder = b.playerId && orderMap.has(Number(b.playerId)) ? orderMap.get(Number(b.playerId)) : Number.MAX_SAFE_INTEGER;
         if (aOrder !== bOrder) return aOrder - bOrder;
