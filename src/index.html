@@ -985,7 +985,7 @@
 
     .inline-gender-choice {
       display: grid;
-      grid-template-columns: 34px 48px 48px;
+      grid-template-columns: 34px 48px;
       overflow: hidden;
       border: 1px solid var(--line-strong);
       border-radius: 6px;
@@ -1855,7 +1855,6 @@
       { label: "比赛级高手", level: "5级", text: "比赛级高手（5级）" },
     ];
     const FEMALE_PAYMENT_CAP = 25;
-    const PAYMENT_CATEGORIES = ["male", "female", "child"];
     const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
     const REMOTE_API_BASE = "https://badminton-level.choi975.workers.dev";
@@ -3559,20 +3558,13 @@
       const player = findPlayerForLine(clean, aliasIndex);
       const knownLevel = player?.level || "不详";
       const detectedLevelText = plusMetadata.plusEntry ? plusMetadata.levelText : knownLevel;
-      const detectedCategory = plusMetadata.plusEntry
-        ? plusMetadata.category
-        : (player?.gender === "女" ? "female" : "male");
+      const detectedIsFemale = plusMetadata.plusEntry ? plusMetadata.isFemale : player?.gender === "女";
       const levelText = plusMetadata.plusEntry && override?.levelText ? override.levelText : detectedLevelText;
       const detectedLevelGroupLabel = plusMetadata.plusEntry ? plusMetadata.levelGroupLabel : null;
       const levelGroupLabel = plusMetadata.plusEntry && override?.levelGroupLabel
         ? override.levelGroupLabel
         : detectedLevelGroupLabel;
-      const legacyOverrideCategory = typeof override?.isFemale === "boolean"
-        ? (override.isFemale ? "female" : "male")
-        : null;
-      const category = plusMetadata.plusEntry && PAYMENT_CATEGORIES.includes(override?.category)
-        ? override.category
-        : (plusMetadata.plusEntry && legacyOverrideCategory ? legacyOverrideCategory : detectedCategory);
+      const isFemale = plusMetadata.plusEntry && typeof override?.isFemale === "boolean" ? override.isFemale : detectedIsFemale;
       return {
         index,
         raw: line,
@@ -3582,26 +3574,23 @@
         overrideKey,
         detectedLevelText,
         detectedLevelGroupLabel,
-        detectedCategory,
+        detectedIsFemale,
         levelText,
         levelGroupLabel,
-        category,
-        isFemale: category === "female",
-        isChild: category === "child",
+        isFemale,
         sortRank: levelRank(levelText),
       };
     }
 
     function getChainEntryBaseName(entry) {
       const name = String(entry?.clean || "");
-      return entry?.plusEntry ? name.replace(/[🌸👶]/gu, " ").replace(/\s+/g, " ").trim() : name;
+      return entry?.plusEntry ? name.replace(/🌸/g, " ").replace(/\s+/g, " ").trim() : name;
     }
 
     function getChainEntryDisplayName(entry) {
       const name = getChainEntryBaseName(entry);
-      if (entry?.isChild) return name.includes("👶") ? name : `${name}👶`;
-      if (entry?.isFemale) return name.includes("🌸") ? name : `${name}🌸`;
-      return name;
+      if (!entry?.isFemale || name.includes("🌸")) return name;
+      return `${name}🌸`;
     }
 
     function formatChainOutputLine(entry, index) {
@@ -3631,29 +3620,22 @@
       const genderChoice = document.createElement("div");
       genderChoice.className = "inline-gender-choice";
       genderChoice.setAttribute("role", "group");
-      genderChoice.setAttribute("aria-label", `${getChainEntryBaseName(entry)}的分类`);
+      genderChoice.setAttribute("aria-label", `${getChainEntryBaseName(entry)}的性别`);
 
       const maleButton = document.createElement("button");
       maleButton.type = "button";
       maleButton.textContent = "男";
-      maleButton.classList.toggle("active", entry.category === "male");
-      maleButton.setAttribute("aria-pressed", String(entry.category === "male"));
-      maleButton.addEventListener("click", () => setInlinePlusCategory(entry.overrideKey, "male"));
+      maleButton.classList.toggle("active", !entry.isFemale);
+      maleButton.setAttribute("aria-pressed", String(!entry.isFemale));
+      maleButton.addEventListener("click", () => setInlinePlusGender(entry.overrideKey, false));
 
       const femaleButton = document.createElement("button");
       femaleButton.type = "button";
       femaleButton.textContent = "女🌸";
-      femaleButton.classList.toggle("active", entry.category === "female");
-      femaleButton.setAttribute("aria-pressed", String(entry.category === "female"));
-      femaleButton.addEventListener("click", () => setInlinePlusCategory(entry.overrideKey, "female"));
-
-      const childButton = document.createElement("button");
-      childButton.type = "button";
-      childButton.textContent = "孩👶";
-      childButton.classList.toggle("active", entry.category === "child");
-      childButton.setAttribute("aria-pressed", String(entry.category === "child"));
-      childButton.addEventListener("click", () => setInlinePlusCategory(entry.overrideKey, "child"));
-      genderChoice.append(maleButton, femaleButton, childButton);
+      femaleButton.classList.toggle("active", entry.isFemale);
+      femaleButton.setAttribute("aria-pressed", String(entry.isFemale));
+      femaleButton.addEventListener("click", () => setInlinePlusGender(entry.overrideKey, true));
+      genderChoice.append(maleButton, femaleButton);
 
       const levelSelect = document.createElement("select");
       levelSelect.className = "inline-level-select";
@@ -3679,13 +3661,13 @@
       return exactMatch?.label || getLevelGroupLabel(entry.levelText);
     }
 
-    function setInlinePlusCategory(overrideKey, category) {
+    function setInlinePlusGender(overrideKey, isFemale) {
       const entry = state.chainEntries.find((item) => item.overrideKey === overrideKey);
-      if (!entry || !PAYMENT_CATEGORIES.includes(category)) return;
+      if (!entry) return;
       state.plusOverrides[overrideKey] = {
         levelText: entry.levelText,
         levelGroupLabel: entry.levelGroupLabel,
-        category,
+        isFemale,
       };
       processChain();
     }
@@ -3697,7 +3679,7 @@
       state.plusOverrides[overrideKey] = {
         levelText: option.level,
         levelGroupLabel: option.label,
-        category: entry.category,
+        isFemale: entry.isFemale,
       };
       processChain();
     }
@@ -3705,7 +3687,7 @@
     function parsePlusEntryMetadata(value) {
       const displayName = String(value || "");
       const plusMatch = displayName.match(/[+＋➕]\s*\d+/);
-      if (!plusMatch) return { plusEntry: false, displayName, levelText: null, category: "male" };
+      if (!plusMatch) return { plusEntry: false, displayName, levelText: null, isFemale: false };
 
       const suffixStart = (plusMatch.index || 0) + plusMatch[0].length;
       const suffix = displayName.slice(suffixStart);
@@ -3723,7 +3705,7 @@
         displayName: cleanedDisplayName,
         levelText: levelMapping?.[1] || "不详",
         levelGroupLabel: levelMapping?.[0] || "不详",
-        category: suffix.includes("👶") ? "child" : (suffix.includes("🌸") ? "female" : "male"),
+        isFemale: suffix.includes("🌸"),
       };
     }
 
@@ -3737,7 +3719,6 @@
         ? buildGroupedLevelStats(entries)
         : buildExactLevelStats(entries);
       const femaleCount = entries.filter((entry) => entry.isFemale).length;
-      const childCount = entries.filter((entry) => entry.isChild).length;
 
       const levelStats = document.createElement("div");
       levelStats.textContent = levelLines.join("\n");
@@ -3747,7 +3728,7 @@
       divider.setAttribute("role", "separator");
 
       const genderStats = document.createElement("div");
-      genderStats.textContent = `女生：${femaleCount}人\n孩子：${childCount}人`;
+      genderStats.textContent = `女生：${femaleCount}人`;
 
       els.chainStats.replaceChildren(levelStats, divider, genderStats);
     }
@@ -4166,40 +4147,33 @@
     function calculatePayment(entries, courtFee, shuttlePrice, shuttleCount) {
       const payingEntries = entries.filter(shouldCountForPayment);
       const payerCount = payingEntries.length;
-      const femaleCount = payingEntries.filter((entry) => getEntryCategory(entry) === "female").length;
-      const childCount = payingEntries.filter((entry) => getEntryCategory(entry) === "child").length;
-      const maleCount = payerCount - femaleCount - childCount;
-      const nonFemaleWeight = maleCount + childCount * 0.5;
-      const totalWeight = femaleCount + nonFemaleWeight;
+      const femaleCount = payingEntries.filter((entry) => entry.isFemale).length;
+      const maleCount = payerCount - femaleCount;
       const totalCost = courtFee + shuttlePrice * shuttleCount;
-      const perPerson = ceilOneDecimal(totalCost / Math.max(0.5, totalWeight));
-      const femaleCapApplied = femaleCount > 0 && nonFemaleWeight > 0 && perPerson > FEMALE_PAYMENT_CAP;
+      const perPerson = ceilOneDecimal(totalCost / Math.max(1, payerCount));
+      const femaleCapApplied = femaleCount > 0 && maleCount > 0 && perPerson > FEMALE_PAYMENT_CAP;
       const femalePerPerson = femaleCapApplied ? FEMALE_PAYMENT_CAP : perPerson;
       const malePerPerson = femaleCapApplied
-        ? ceilOneDecimal((totalCost - femalePerPerson * femaleCount) / nonFemaleWeight)
+        ? ceilOneDecimal((totalCost - femalePerPerson * femaleCount) / maleCount)
         : perPerson;
-      const childPerPerson = ceilOneDecimal(malePerPerson * 0.5);
       const groups = { friends: new Map(), heineken: new Map(), special: new Map() };
       const sharedPaymentGroup = getSharedPaymentGroup(entries);
       let sequence = 0;
 
       for (const entry of entries) {
         const player = entry.player;
-        const entryCategory = getEntryCategory(entry);
         const canonicalName = player ? paymentDisplayName(player) : getChainEntryBaseName(entry);
         if (!entry.clean) continue;
 
         if (isSpecialPlayer(player) && player.participatesPayment === false) {
-          addPaymentLine(groups.special, canonicalName, 0, "不参与A钱", 0, player.id, sequence++, entryCategory);
+          addPaymentLine(groups.special, canonicalName, 0, "不参与A钱", 0, player.id, sequence++, entry.isFemale);
           continue;
         }
         if (!shouldCountForPayment(entry)) continue;
 
         const groupName = getPaymentGroup(player, sharedPaymentGroup);
-        const entryAmount = entryCategory === "child"
-          ? childPerPerson
-          : (entryCategory === "female" ? femalePerPerson : malePerPerson);
-        addPaymentLine(groups[groupName], canonicalName, entryAmount, null, 1, player?.id || null, sequence++, entryCategory);
+        const entryAmount = entry.isFemale ? femalePerPerson : malePerPerson;
+        addPaymentLine(groups[groupName], canonicalName, entryAmount, null, 1, player?.id || null, sequence++, entry.isFemale);
       }
 
       return {
@@ -4207,10 +4181,8 @@
         perPerson,
         femaleCount,
         maleCount,
-        childCount,
         femalePerPerson,
         malePerPerson,
-        childPerPerson,
         femaleCapApplied,
         groups: {
           friends: mapToPaymentRows(groups.friends, PAYMENT_GROUPS.friends),
@@ -4218,13 +4190,6 @@
           special: mapToPaymentRows(groups.special),
         },
       };
-    }
-
-    function getEntryCategory(entry) {
-      if (PAYMENT_CATEGORIES.includes(entry?.category)) return entry.category;
-      if (entry?.isChild) return "child";
-      if (entry?.isFemale) return "female";
-      return "male";
     }
 
     function calculateLedgerAmount(groups, courtFee) {
@@ -4269,9 +4234,7 @@
       return "friends";
     }
 
-    function addPaymentLine(map, name, amount, note, slots, playerId, sequence, category = "male") {
-      if (typeof category === "boolean") category = category ? "female" : "male";
-      if (!PAYMENT_CATEGORIES.includes(category)) category = "male";
+    function addPaymentLine(map, name, amount, note, slots, playerId, sequence, isFemale = false) {
       const key = playerId ? `player:${playerId}` : `name:${name}`;
       const current = map.get(key) || {
         name,
@@ -4282,19 +4245,15 @@
         sequence,
         hasFemale: false,
         hasMale: false,
-        hasChild: false,
         femaleSlots: 0,
         maleSlots: 0,
-        childSlots: 0,
       };
       current.amount += amount;
       current.slots += slots;
-      current.hasFemale = current.hasFemale || category === "female";
-      current.hasMale = current.hasMale || category === "male";
-      current.hasChild = current.hasChild || category === "child";
-      current.femaleSlots += category === "female" ? slots : 0;
-      current.maleSlots += category === "male" ? slots : 0;
-      current.childSlots += category === "child" ? slots : 0;
+      current.hasFemale = current.hasFemale || isFemale;
+      current.hasMale = current.hasMale || !isFemale;
+      current.femaleSlots += isFemale ? slots : 0;
+      current.maleSlots += isFemale ? 0 : slots;
       if (note) current.note = note;
       if (playerId && !current.playerId) current.playerId = playerId;
       current.sequence = Math.min(current.sequence, sequence);
@@ -4374,26 +4333,23 @@
     function getPaymentRowHighlights(row, femaleCapApplied) {
       return {
         companion: Number(row?.slots) > 1,
-        femaleCap: Boolean(femaleCapApplied && row?.slots > 0 && row?.hasFemale && !row?.hasMale && !row?.hasChild),
+        femaleCap: Boolean(femaleCapApplied && row?.slots > 0 && row?.hasFemale && !row?.hasMale),
       };
     }
 
     function formatPaymentComposition(row) {
       const maleSlots = Number(row?.maleSlots) || 0;
       const femaleSlots = Number(row?.femaleSlots) || 0;
-      const childSlots = Number(row?.childSlots) || 0;
       return [
         maleSlots > 0 ? `🍀x${maleSlots}` : "",
         femaleSlots > 0 ? `🌸x${femaleSlots}` : "",
-        childSlots > 0 ? `👶x${childSlots}` : "",
       ].filter(Boolean).join("，");
     }
 
     function paymentRowDisplayName(row) {
       const name = String(row?.name || "");
-      if (row?.hasChild && !row?.hasFemale && !row?.hasMale) return name.includes("👶") ? name : `${name}👶`;
-      if (row?.hasFemale && !row?.hasMale && !row?.hasChild) return name.includes("🌸") ? name : `${name}🌸`;
-      return name;
+      if (!row?.hasFemale || row?.hasMale || name.includes("🌸")) return name;
+      return `${name}🌸`;
     }
 
     function buildAliasIndex() {
