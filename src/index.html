@@ -1882,7 +1882,7 @@
       editing: null,
       chainEntries: [],
       chainOutputText: "",
-      chainLevelMode: "exact",
+      chainLevelMode: IS_GITHUB_PAGES ? "group" : "exact",
       plusOverrides: {},
       paymentSettingsEditor: {
         activeTab: "球友",
@@ -1977,6 +1977,7 @@
       els.paymentSettingsBtn.hidden = IS_GITHUB_PAGES;
       els.guideBtn.hidden = IS_GITHUB_PAGES;
       els.exportBtn.hidden = IS_GITHUB_PAGES;
+      els.levelDisplayModeBtn.hidden = IS_GITHUB_PAGES;
       updateDatabaseToggleButton();
       applyReadOnlyUi();
       if (IS_GITHUB_PAGES) {
@@ -2159,7 +2160,7 @@
       });
       els.pasteInputBtn.addEventListener("click", pasteChainInput);
       els.copyOutputBtn.addEventListener("click", copyChainOutput);
-      els.levelDisplayModeBtn.addEventListener("click", toggleChainLevelMode);
+      if (!IS_GITHUB_PAGES) els.levelDisplayModeBtn.addEventListener("click", toggleChainLevelMode);
 
       document.addEventListener("click", (event) => {
         if (!event.target.closest(".column-menu-wrap")) closeColumnVisibilityMenu();
