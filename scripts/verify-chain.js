@@ -22,6 +22,7 @@ const PLUS_LEVEL_OPTIONS = [
   { label: "比赛级高手", level: "5级" },
 ];
 const FEMALE_PAYMENT_CAP = 25;
+const PAYMENT_CATEGORIES = ["male", "female", "child"];
 
 const input = `1. choi
 2. 达哥
@@ -94,13 +95,20 @@ function parseChainLine(line, index, aliasIndex, overrideKey = "", override = nu
   const player = findPlayerForLine(clean, aliasIndex);
   const knownLevel = player?.level || "不详";
   const detectedLevelText = plusMetadata.plusEntry ? plusMetadata.levelText : knownLevel;
-  const detectedIsFemale = plusMetadata.plusEntry ? plusMetadata.isFemale : player?.gender === "女";
+  const detectedCategory = plusMetadata.plusEntry
+    ? plusMetadata.category
+    : (player?.gender === "女" ? "female" : "male");
   const levelText = plusMetadata.plusEntry && override?.levelText ? override.levelText : detectedLevelText;
   const detectedLevelGroupLabel = plusMetadata.plusEntry ? plusMetadata.levelGroupLabel : null;
   const levelGroupLabel = plusMetadata.plusEntry && override?.levelGroupLabel
     ? override.levelGroupLabel
     : detectedLevelGroupLabel;
-  const isFemale = plusMetadata.plusEntry && typeof override?.isFemale === "boolean" ? override.isFemale : detectedIsFemale;
+  const legacyOverrideCategory = typeof override?.isFemale === "boolean"
+    ? (override.isFemale ? "female" : "male")
+    : null;
+  const category = plusMetadata.plusEntry && PAYMENT_CATEGORIES.includes(override?.category)
+    ? override.category
+    : (plusMetadata.plusEntry && legacyOverrideCategory ? legacyOverrideCategory : detectedCategory);
   return {
     index,
     raw: line,
@@ -110,29 +118,32 @@ function parseChainLine(line, index, aliasIndex, overrideKey = "", override = nu
     overrideKey,
     detectedLevelText,
     detectedLevelGroupLabel,
-    detectedIsFemale,
+    detectedCategory,
     levelText,
     levelGroupLabel,
-    isFemale,
+    category,
+    isFemale: category === "female",
+    isChild: category === "child",
     sortRank: levelRank(levelText),
   };
 }
 
 function getChainEntryBaseName(entry) {
   const name = String(entry?.clean || "");
-  return entry?.plusEntry ? name.replace(/🌸/g, " ").replace(/\s+/g, " ").trim() : name;
+  return entry?.plusEntry ? name.replace(/[🌸👶]/gu, " ").replace(/\s+/g, " ").trim() : name;
 }
 
 function getChainEntryDisplayName(entry) {
   const name = getChainEntryBaseName(entry);
-  if (!entry?.isFemale || name.includes("🌸")) return name;
-  return `${name}🌸`;
+  if (entry?.isChild) return name.includes("👶") ? name : `${name}👶`;
+  if (entry?.isFemale) return name.includes("🌸") ? name : `${name}🌸`;
+  return name;
 }
 
 function parsePlusEntryMetadata(value) {
   const displayName = String(value || "");
   const plusMatch = displayName.match(/[+＋➕]\s*\d+/);
-  if (!plusMatch) return { plusEntry: false, displayName, levelText: null, isFemale: false };
+  if (!plusMatch) return { plusEntry: false, displayName, levelText: null, category: "male" };
 
   const suffixStart = (plusMatch.index || 0) + plusMatch[0].length;
   const suffix = displayName.slice(suffixStart);
@@ -150,7 +161,7 @@ function parsePlusEntryMetadata(value) {
     displayName: cleanedDisplayName,
     levelText: levelMapping?.[1] || "不详",
     levelGroupLabel: levelMapping?.[0] || "不详",
-    isFemale: suffix.includes("🌸"),
+    category: suffix.includes("👶") ? "child" : (suffix.includes("🌸") ? "female" : "male"),
   };
 }
 
@@ -185,7 +196,16 @@ function calculateLedgerAmount(groups, courtFee) {
     .reduce((sum, row) => sum + Number(row.amount || 0), 0) - courtFee;
 }
 
-function addPaymentLine(map, name, amount, note, slots, playerId, sequence, isFemale = false) {
+function getEntryCategory(entry) {
+  if (PAYMENT_CATEGORIES.includes(entry?.category)) return entry.category;
+  if (entry?.isChild) return "child";
+  if (entry?.isFemale) return "female";
+  return "male";
+}
+
+function addPaymentLine(map, name, amount, note, slots, playerId, sequence, category = "male") {
+  if (typeof category === "boolean") category = category ? "female" : "male";
+  if (!PAYMENT_CATEGORIES.includes(category)) category = "male";
   const key = playerId ? `player:${playerId}` : `name:${name}`;
   const current = map.get(key) || {
     name,
@@ -196,15 +216,19 @@ function addPaymentLine(map, name, amount, note, slots, playerId, sequence, isFe
     sequence,
     hasFemale: false,
     hasMale: false,
+    hasChild: false,
     femaleSlots: 0,
     maleSlots: 0,
+    childSlots: 0,
   };
   current.amount += amount;
   current.slots += slots;
-  current.hasFemale = current.hasFemale || isFemale;
-  current.hasMale = current.hasMale || !isFemale;
-  current.femaleSlots += isFemale ? slots : 0;
-  current.maleSlots += isFemale ? 0 : slots;
+  current.hasFemale = current.hasFemale || category === "female";
+  current.hasMale = current.hasMale || category === "male";
+  current.hasChild = current.hasChild || category === "child";
+  current.femaleSlots += category === "female" ? slots : 0;
+  current.maleSlots += category === "male" ? slots : 0;
+  current.childSlots += category === "child" ? slots : 0;
   if (note) current.note = note;
   if (playerId && !current.playerId) current.playerId = playerId;
   current.sequence = Math.min(current.sequence, sequence);
@@ -227,34 +251,39 @@ function mapToPaymentRows(map, affiliation) {
 function calculatePayment(entries, courtFee, shuttlePrice, shuttleCount) {
   const payingEntries = entries.filter(shouldCountForPayment);
   const payerCount = payingEntries.length;
-  const femaleCount = payingEntries.filter((entry) => entry.isFemale).length;
-  const maleCount = payerCount - femaleCount;
+  const femaleCount = payingEntries.filter((entry) => getEntryCategory(entry) === "female").length;
+  const childCount = payingEntries.filter((entry) => getEntryCategory(entry) === "child").length;
+  const maleCount = payerCount - femaleCount - childCount;
+  const nonFemaleWeight = maleCount + childCount * 0.5;
+  const totalWeight = femaleCount + nonFemaleWeight;
   const totalCost = courtFee + shuttlePrice * shuttleCount;
-  const perPerson = ceilOneDecimal(totalCost / Math.max(1, payerCount));
-  const femaleCapApplied = femaleCount > 0 && maleCount > 0 && perPerson > FEMALE_PAYMENT_CAP;
+  const perPerson = ceilOneDecimal(totalCost / Math.max(0.5, totalWeight));
+  const femaleCapApplied = femaleCount > 0 && nonFemaleWeight > 0 && perPerson > FEMALE_PAYMENT_CAP;
   const femalePerPerson = femaleCapApplied ? FEMALE_PAYMENT_CAP : perPerson;
   const malePerPerson = femaleCapApplied
-    ? ceilOneDecimal((totalCost - femalePerPerson * femaleCount) / maleCount)
+    ? ceilOneDecimal((totalCost - femalePerPerson * femaleCount) / nonFemaleWeight)
     : perPerson;
+  const childPerPerson = ceilOneDecimal(malePerPerson * 0.5);
   const groups = { friends: new Map(), heineken: new Map(), special: new Map() };
   let sequence = 0;
   for (const entry of entries) {
     const player = entry.player;
+    const entryCategory = getEntryCategory(entry);
     const canonicalName = player ? paymentDisplayName(player) : getChainEntryBaseName(entry);
     if (player?.affiliation === "特殊" && player.participatesPayment === false) {
-      addPaymentLine(groups.special, canonicalName, 0, "不参与A钱", 0, player.id, sequence++, entry.isFemale);
+      addPaymentLine(groups.special, canonicalName, 0, "不参与A钱", 0, player.id, sequence++, entryCategory);
       continue;
     }
     if (!shouldCountForPayment(entry)) continue;
     addPaymentLine(
       groups[getPaymentGroup(player)],
       canonicalName,
-      entry.isFemale ? femalePerPerson : malePerPerson,
+      entryCategory === "child" ? childPerPerson : (entryCategory === "female" ? femalePerPerson : malePerPerson),
       null,
       1,
       player?.id || null,
       sequence++,
-      entry.isFemale
+      entryCategory
     );
   }
   return {
@@ -262,8 +291,10 @@ function calculatePayment(entries, courtFee, shuttlePrice, shuttleCount) {
     perPerson,
     femaleCount,
     maleCount,
+    childCount,
     femalePerPerson,
     malePerPerson,
+    childPerPerson,
     femaleCapApplied,
     friends: mapToPaymentRows(groups.friends, "球友"),
     heineken: mapToPaymentRows(groups.heineken, "Hytronik"),
@@ -273,23 +304,26 @@ function calculatePayment(entries, courtFee, shuttlePrice, shuttleCount) {
 
 function paymentRowDisplayName(row) {
   const name = String(row?.name || "");
-  if (!row?.hasFemale || row?.hasMale || name.includes("🌸")) return name;
-  return `${name}🌸`;
+  if (row?.hasChild && !row?.hasFemale && !row?.hasMale) return name.includes("👶") ? name : `${name}👶`;
+  if (row?.hasFemale && !row?.hasMale && !row?.hasChild) return name.includes("🌸") ? name : `${name}🌸`;
+  return name;
 }
 
 function getPaymentRowHighlights(row, femaleCapApplied) {
   return {
     companion: Number(row?.slots) > 1,
-    femaleCap: Boolean(femaleCapApplied && row?.slots > 0 && row?.hasFemale && !row?.hasMale),
+    femaleCap: Boolean(femaleCapApplied && row?.slots > 0 && row?.hasFemale && !row?.hasMale && !row?.hasChild),
   };
 }
 
 function formatPaymentComposition(row) {
   const maleSlots = Number(row?.maleSlots) || 0;
   const femaleSlots = Number(row?.femaleSlots) || 0;
+  const childSlots = Number(row?.childSlots) || 0;
   return [
     maleSlots > 0 ? `🍀x${maleSlots}` : "",
     femaleSlots > 0 ? `🌸x${femaleSlots}` : "",
+    childSlots > 0 ? `👶x${childSlots}` : "",
   ].filter(Boolean).join("，");
 }
 
@@ -456,6 +490,37 @@ if (formatPaymentComposition({ maleSlots: 0, femaleSlots: 3 }) !== "🌸x3") {
 }
 if (formatMoney(cappedPayment.friends.reduce((sum, row) => sum + row.amount, 0)) !== "115.0") {
   throw new Error("Expected capped payment rows to cover the full cost");
+}
+
+const childEntry = parseChainLine("阿达+1👶", 0, buildAliasIndex());
+if (!childEntry.isChild || childEntry.category !== "child") throw new Error("Expected baby suffix to detect child category");
+if (getChainEntryDisplayName(childEntry) !== "阿达+1👶") throw new Error("Expected child output to include baby suffix");
+
+const childExampleEntries = [
+  { clean: "成年男性", player: null, category: "male" },
+  { clean: "成年女性", player: null, category: "female" },
+  { clean: "孩子", player: null, category: "child" },
+];
+const childExamplePayment = calculatePayment(childExampleEntries, 100, 0, 0);
+if (!childExamplePayment.femaleCapApplied) throw new Error("Expected female cap in the 100 yuan child example");
+if (childExamplePayment.maleCount !== 1 || childExamplePayment.femaleCount !== 1 || childExamplePayment.childCount !== 1) {
+  throw new Error("Expected one male, one female, and one child payer");
+}
+if (formatMoney(childExamplePayment.malePerPerson) !== "50.0") throw new Error("Expected adult male to pay 50.0");
+if (formatMoney(childExamplePayment.femalePerPerson) !== "25.0") throw new Error("Expected adult female to pay 25.0");
+if (formatMoney(childExamplePayment.childPerPerson) !== "25.0") throw new Error("Expected child to pay half the adult male share");
+const childRow = childExamplePayment.friends.find((row) => row.name === "孩子");
+if (formatMoney(childRow?.amount || 0) !== "25.0") throw new Error("Expected child row amount 25.0");
+if (paymentRowDisplayName(childRow) !== "孩子👶") throw new Error("Expected child payment row to include baby suffix");
+if (formatMoney(childExamplePayment.friends.reduce((sum, row) => sum + row.amount, 0)) !== "100.0") {
+  throw new Error("Expected child example payment rows to cover 100.0");
+}
+
+const childCompositionMap = new Map();
+addPaymentLine(childCompositionMap, "亲子测试", 50, null, 1, 100, 0, "male");
+addPaymentLine(childCompositionMap, "亲子测试", 25, null, 1, 100, 1, "child");
+if (formatPaymentComposition([...childCompositionMap.values()][0]) !== "🍀x1，👶x1") {
+  throw new Error("Expected child companion composition");
 }
 
 paymentOrders["Hytronik"] = [8, 7];
