@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-04T15:23:29.911Z",
+  "generatedAt": "2026-08-06T10:07:03.649Z",
   "source": "Cloudflare D1: Badminton-level",
   "data": {
     "players": [
@@ -1340,6 +1340,7 @@
         17,
         54
       ]
-    }
+    },
+    "sessions": []
   }
 }

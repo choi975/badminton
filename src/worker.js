@@ -73,6 +73,7 @@ const VALID_AFFILIATIONS = new Set(["球友", "Hytronik", "球友+Hytronik", "�
 const PAYMENT_ORDER_AFFILIATIONS = ["球友", "Hytronik"];
 const ORDERABLE_AFFILIATIONS = new Set(PAYMENT_ORDER_AFFILIATIONS);
 const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
+const SESSION_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const LEVEL_PATTERN = /^(\d+(?:\.5)?级)$/;
 
@@ -135,8 +136,13 @@ async function handleApi(request, env, url) {
   const method = request.method.toUpperCase();
 
   if (pathname === "/api/bootstrap" && method === "GET") {
-    const [players, guide, paymentState] = await Promise.all([listPlayers(env.DB), getLevelGuide(env.DB), getPaymentOrderState(env.DB)]);
-    return json({ players, ...guide, ...paymentState });
+    const [players, guide, paymentState, sessions] = await Promise.all([
+      listPlayers(env.DB),
+      getLevelGuide(env.DB),
+      getPaymentOrderState(env.DB),
+      listSessions(env.DB),
+    ]);
+    return json({ players, ...guide, ...paymentState, sessions });
   }
 
   if (pathname === "/api/players" && method === "GET") {
@@ -283,6 +289,39 @@ async function handleApi(request, env, url) {
     return json(await getPaymentOrderState(env.DB));
   }
 
+  if (pathname === "/api/sessions" && method === "GET") {
+    return json({ sessions: await listSessions(env.DB) });
+  }
+
+  if (pathname === "/api/sessions" && method === "POST") {
+    const input = normalizeSessionInput(await readJson(request));
+    if (!input) return json({ error: "订场记录数据无效" }, 400);
+    const session = await createSession(env.DB, input);
+    return json({ session }, 201);
+  }
+
+  const sessionMatch = pathname.match(/^\/api\/sessions\/(\d+)$/);
+  if (sessionMatch && method === "PATCH") {
+    const input = normalizeSessionInput(await readJson(request));
+    if (!input) return json({ error: "订场记录数据无效" }, 400);
+    const id = Number(sessionMatch[1]);
+    const existing = await env.DB.prepare("SELECT id FROM booking_sessions WHERE id = ?").bind(id).first();
+    if (!existing) return json({ error: "找不到这个订场记录" }, 404);
+    const session = await updateSession(env.DB, id, input);
+    return json({ session });
+  }
+
+  if (sessionMatch && method === "DELETE") {
+    const id = Number(sessionMatch[1]);
+    const existing = await env.DB.prepare("SELECT id FROM booking_sessions WHERE id = ?").bind(id).first();
+    if (!existing) return json({ error: "找不到这个订场记录" }, 404);
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM booking_session_players WHERE session_id = ?").bind(id),
+      env.DB.prepare("DELETE FROM booking_sessions WHERE id = ?").bind(id),
+    ]);
+    return json({ ok: true });
+  }
+
   if (pathname === "/api/payment-settings" && method === "PUT") {
     const body = await readJson(request);
     const joinNumbers = normalizeGroupJoinNumberSettings(body.joinNumbers);
@@ -357,6 +396,152 @@ async function ensureSeeded(db) {
 async function listPlayers(db) {
   const { results } = await db.prepare("SELECT * FROM players ORDER BY id ASC").all();
   return results.map(normalizePlayer);
+}
+
+async function listSessions(db) {
+  const { results } = await db.prepare(
+    `SELECT
+       s.id AS session_id, s.date, s.court_count, s.court_fee, s.shuttle_price, s.shuttle_count,
+       s.created_at, s.updated_at,
+       p.player_id, p.player_name, p.slots, p.plus_count, p.amount, p.is_female
+     FROM booking_sessions s
+     LEFT JOIN booking_session_players p ON p.session_id = s.id
+     ORDER BY s.date ASC, s.id ASC, p.id ASC`
+  ).all();
+
+  const sessionsById = new Map();
+  for (const row of results) {
+    let session = sessionsById.get(row.session_id);
+    if (!session) {
+      session = {
+        id: Number(row.session_id),
+        date: row.date,
+        courtCount: Number(row.court_count),
+        courtFee: Number(row.court_fee),
+        shuttlePrice: Number(row.shuttle_price),
+        shuttleCount: Number(row.shuttle_count),
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        players: [],
+      };
+      sessionsById.set(row.session_id, session);
+    }
+    if (row.player_id !== null || row.player_name) {
+      session.players.push({
+        playerId: row.player_id === null ? null : Number(row.player_id),
+        playerName: row.player_name || "",
+        slots: Number(row.slots),
+        plusCount: Number(row.plus_count),
+        amount: Number(row.amount),
+        isFemale: Number(row.is_female) !== 0,
+      });
+    }
+  }
+
+  return [...sessionsById.values()].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+}
+
+async function getSessionById(db, id) {
+  const session = (await listSessions(db)).find((item) => item.id === Number(id));
+  if (!session) throw new Error("保存后读取订场记录失败");
+  return session;
+}
+
+function normalizeSessionInput(body) {
+  const date = String(body?.date || "").trim();
+  if (!SESSION_DATE_PATTERN.test(date)) return null;
+  const [year, month, day] = date.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  const courtCount = Number(body?.courtCount);
+  const courtFee = Number(body?.courtFee);
+  const shuttlePrice = Number(body?.shuttlePrice);
+  const shuttleCount = Number(body?.shuttleCount);
+  if (!Number.isInteger(courtCount) || courtCount <= 0) return null;
+  if (!Number.isFinite(courtFee) || courtFee < 0) return null;
+  if (!Number.isFinite(shuttlePrice) || shuttlePrice < 0) return null;
+  if (!Number.isInteger(shuttleCount) || shuttleCount < 0) return null;
+
+  if (!Array.isArray(body?.players)) return null;
+  const players = [];
+  const seenPlayerIds = new Set();
+  for (const raw of body.players) {
+    const hasPlayerId = raw?.playerId !== null && raw?.playerId !== undefined && raw?.playerId !== "";
+    const playerId = hasPlayerId ? Number(raw.playerId) : null;
+    if (playerId !== null && (!Number.isInteger(playerId) || playerId <= 0)) return null;
+    if (playerId !== null && seenPlayerIds.has(playerId)) return null;
+    const playerName = String(raw?.playerName || "").trim();
+    const slots = Number(raw?.slots);
+    const plusCount = Number(raw?.plusCount);
+    const amount = Number(raw?.amount);
+    if (!Number.isInteger(slots) || slots < 0) return null;
+    if (!Number.isInteger(plusCount) || plusCount < 0 || plusCount > Math.max(0, slots - 1)) return null;
+    if (!Number.isFinite(amount) || amount < 0) return null;
+    if (!playerName) return null;
+    if (playerId !== null) seenPlayerIds.add(playerId);
+    players.push({
+      playerId,
+      playerName,
+      slots,
+      plusCount,
+      amount,
+      isFemale: Boolean(raw?.isFemale),
+    });
+  }
+
+  return { date, courtCount, courtFee, shuttlePrice, shuttleCount, players };
+}
+
+async function createSession(db, input) {
+  const result = await db.prepare(
+    `INSERT INTO booking_sessions (date, court_count, court_fee, shuttle_price, shuttle_count, updated_at)
+     VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+  ).bind(input.date, input.courtCount, input.courtFee, input.shuttlePrice, input.shuttleCount).run();
+  const sessionId = Number(result.meta.last_row_id);
+  await insertSessionPlayers(db, sessionId, input.players);
+  return getSessionById(db, sessionId);
+}
+
+async function updateSession(db, id, input) {
+  const statements = [
+    db.prepare(
+      `UPDATE booking_sessions
+       SET date = ?, court_count = ?, court_fee = ?, shuttle_price = ?, shuttle_count = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`
+    ).bind(input.date, input.courtCount, input.courtFee, input.shuttlePrice, input.shuttleCount, id),
+    db.prepare("DELETE FROM booking_session_players WHERE session_id = ?").bind(id),
+  ];
+  statements.push(...buildSessionPlayerStatements(db, id, input.players));
+  await db.batch(statements);
+  return getSessionById(db, id);
+}
+
+async function insertSessionPlayers(db, sessionId, players) {
+  const statements = buildSessionPlayerStatements(db, sessionId, players);
+  if (statements.length) await db.batch(statements);
+}
+
+function buildSessionPlayerStatements(db, sessionId, players) {
+  return players.map((player) => db.prepare(
+    `INSERT INTO booking_session_players
+       (session_id, player_id, player_name, slots, plus_count, amount, is_female, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+  ).bind(
+    sessionId,
+    player.playerId,
+    player.playerName,
+    player.slots,
+    player.plusCount,
+    player.amount,
+    player.isFemale ? 1 : 0
+  ));
 }
 
 async function getPaymentOrderState(db) {

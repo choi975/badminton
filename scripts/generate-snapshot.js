@@ -10,6 +10,8 @@ SELECT * FROM players ORDER BY id ASC;
 SELECT key, value FROM app_settings ORDER BY key ASC;
 SELECT level, description, sort_order FROM level_guides ORDER BY sort_order ASC;
 SELECT affiliation, player_id, join_number FROM group_join_numbers ORDER BY affiliation ASC, join_number ASC, player_id ASC;
+SELECT id, date, court_count, court_fee, shuttle_price, shuttle_count, created_at, updated_at FROM booking_sessions ORDER BY date ASC, id ASC;
+SELECT id, session_id, player_id, player_name, slots, plus_count, amount, is_female FROM booking_session_players ORDER BY session_id ASC, id ASC;
 `;
 
 const wrangler = resolve("node_modules", "wrangler", "bin", "wrangler.js");
@@ -19,11 +21,11 @@ const { stdout } = await execFileAsync(
   { cwd: resolve("."), maxBuffer: 20 * 1024 * 1024 },
 );
 const resultSets = JSON.parse(stdout);
-if (!Array.isArray(resultSets) || resultSets.length < 4 || resultSets.some((set) => !set.success)) {
+if (!Array.isArray(resultSets) || resultSets.length < 6 || resultSets.some((set) => !set.success)) {
   throw new Error("Could not read all snapshot tables from D1");
 }
 
-const [playerRows, settingRows, levelRows, joinRows] = resultSets.map((set) => set.results || []);
+const [playerRows, settingRows, levelRows, joinRows, sessionRows, sessionPlayerRows] = resultSets.map((set) => set.results || []);
 const players = playerRows.map((row) => ({
   id: Number(row.id),
   name: row.name || "",
@@ -51,11 +53,38 @@ const paymentOrders = Object.fromEntries(Object.entries(groupJoinNumbers).map(([
   affiliation,
   entries.map((entry) => entry.playerId),
 ]));
+const sessionPlayersBySession = new Map();
+for (const row of sessionPlayerRows) {
+  const sessionId = Number(row.session_id);
+  if (!sessionPlayersBySession.has(sessionId)) sessionPlayersBySession.set(sessionId, []);
+  sessionPlayersBySession.get(sessionId).push({
+    playerId: row.player_id === null ? null : Number(row.player_id),
+    playerName: row.player_name || "",
+    slots: Number(row.slots),
+    plusCount: Number(row.plus_count),
+    amount: Number(row.amount),
+    isFemale: Number(row.is_female) !== 0,
+  });
+}
+const sessions = sessionRows.map((row) => {
+  const id = Number(row.id);
+  return {
+    id,
+    date: row.date,
+    courtCount: Number(row.court_count),
+    courtFee: Number(row.court_fee),
+    shuttlePrice: Number(row.shuttle_price),
+    shuttleCount: Number(row.shuttle_count),
+    players: sessionPlayersBySession.get(id) || [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+});
 
 const snapshot = {
   generatedAt: new Date().toISOString(),
   source: "Cloudflare D1: Badminton-level",
-  data: { players, levelDescriptions, levelGuideRaw, groupJoinNumbers, paymentOrders },
+  data: { players, levelDescriptions, levelGuideRaw, groupJoinNumbers, paymentOrders, sessions },
 };
 
 await mkdir(dirname(outputPath), { recursive: true });

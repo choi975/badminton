@@ -1584,6 +1584,279 @@
         width: 100%;
       }
     }
+
+    .record-dialog {
+      width: min(760px, 100%);
+    }
+
+    #recordModal {
+      z-index: 60;
+    }
+
+    .record-form-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .record-members-head {
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .record-members-list {
+      display: grid;
+      gap: 6px;
+      max-height: min(46vh, 420px);
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .record-member-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 118px 86px 128px;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 9px;
+      background: #fff;
+    }
+
+    .record-member-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 600;
+    }
+
+    .record-member-field {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .record-member-field input {
+      min-height: 32px;
+      padding: 4px 7px;
+    }
+
+    .record-member-plus {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .field-hint {
+      margin-top: 4px;
+      color: #9a5b00;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .calendar-dialog {
+      width: min(1100px, 100%);
+    }
+
+    .calendar-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .calendar-toolbar button {
+      min-height: 34px;
+      padding: 0 12px;
+    }
+
+    .calendar-month-label {
+      min-width: 130px;
+      font-size: 17px;
+      text-align: center;
+    }
+
+    .calendar-summary {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 18px;
+      margin-bottom: 10px;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    .calendar-summary strong {
+      color: var(--accent-dark);
+      font-size: 15px;
+    }
+
+    .calendar-weekday-stats {
+      color: var(--muted);
+    }
+
+    .calendar-weekday-row {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .calendar-weekday-row span {
+      padding: 4px 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+
+    .calendar-day {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 64px;
+      padding: 5px 7px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .calendar-day:hover {
+      border-color: #b7d5cf;
+      background: #fbfefd;
+    }
+
+    .calendar-day.empty {
+      visibility: hidden;
+    }
+
+    .calendar-day.today {
+      border-color: var(--accent);
+    }
+
+    .calendar-day.selected {
+      border-color: var(--accent-dark);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 1px var(--accent-dark) inset;
+    }
+
+    .calendar-day-number {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .calendar-day-badge {
+      align-self: end;
+      overflow: hidden;
+      color: var(--accent-dark);
+      font-size: 11px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .calendar-day-panel {
+      padding-top: 12px;
+      border-top: 1px dashed var(--line-strong);
+    }
+
+    .calendar-day-head {
+      margin-bottom: 8px;
+    }
+
+    .calendar-day-head h3 {
+      margin: 0;
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    .calendar-day-records {
+      display: grid;
+      gap: 8px;
+    }
+
+    .calendar-record {
+      padding: 9px 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .calendar-record-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .calendar-record-meta {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    .calendar-record-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .calendar-record-actions button {
+      min-height: 28px;
+      padding: 0 9px;
+      font-size: 12px;
+    }
+
+    .calendar-record-players {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px 14px;
+      font-size: 13px;
+    }
+
+    .calendar-record-player .plus {
+      color: var(--muted);
+    }
+
+    .calendar-record-player .amount {
+      color: var(--accent-dark);
+      font-weight: 700;
+    }
+
+    @media (max-width: 700px) {
+      .record-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .record-member-row {
+        grid-template-columns: 1fr 1fr;
+      }
+      .record-member-plus {
+        text-align: left;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1600,6 +1873,7 @@
         </div>
       </div>
       <div class="toolbar">
+        <button id="bookingCalendarBtn"><span class="icon-text">▦ 订场日历</span></button>
         <button id="chainBtn" class="primary-btn"><span class="icon-text">▣ 接龙助手</span></button>
         <button id="databaseToggleBtn" type="button" hidden><span class="icon-text">▦ 显示数据库</span></button>
         <button id="paymentSettingsBtn" disabled><span class="icon-text">⚙ 群收款设置</span></button>
@@ -1722,6 +1996,7 @@
       <div class="modal-header">
         <h2 id="paymentTitle" class="modal-title">群收款</h2>
         <div class="payment-header-actions">
+          <button id="paymentRecordBtn" class="payment-capture-btn" type="button" title="记录本次订场">✚ 记录本次</button>
           <button id="paymentCaptureBtn" class="payment-capture-btn" type="button" title="复制群收款截图">📷 截图并复制</button>
           <button class="modal-close-btn" data-close="paymentModal" aria-label="关闭" title="关闭">×</button>
         </div>
@@ -1770,6 +2045,78 @@
       </div>
       <div class="modal-footer">
         <button data-close="paymentModal" class="primary-btn">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="recordModal" class="modal-backdrop">
+    <div class="modal record-dialog" role="dialog" aria-modal="true" aria-labelledby="recordTitle">
+      <div class="modal-header">
+        <h2 id="recordTitle" class="modal-title">记录本次订场</h2>
+        <button class="modal-close-btn" data-close="recordModal" aria-label="关闭" title="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="record-form-grid">
+          <div class="field">
+            <label for="recordDateInput">日期</label>
+            <input id="recordDateInput" type="date" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="recordCourtCountInput">订场数量</label>
+            <input id="recordCourtCountInput" type="number" min="1" step="1" inputmode="numeric" autocomplete="off">
+            <div id="recordCourtCountHint" class="field-hint"></div>
+          </div>
+          <div class="field">
+            <label for="recordCourtFeeInput">场地费</label>
+            <input id="recordCourtFeeInput" type="number" min="0" step="any" inputmode="decimal" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="recordShuttlePriceInput">球单价</label>
+            <input id="recordShuttlePriceInput" type="number" min="0" step="any" inputmode="decimal" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="recordShuttleCountInput">球个数</label>
+            <input id="recordShuttleCountInput" type="number" min="0" step="1" inputmode="numeric" autocomplete="off">
+          </div>
+        </div>
+        <div class="record-members-head">打球成员（人数含本人，A钱为本人+所带朋友合计）</div>
+        <div id="recordMembersList" class="record-members-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button data-close="recordModal">取消</button>
+        <button id="saveRecordBtn" class="primary-btn">保存记录</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="calendarModal" class="modal-backdrop">
+    <div class="modal wide calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="calendarTitle">
+      <div class="modal-header">
+        <h2 id="calendarTitle" class="modal-title">订场日历</h2>
+        <button class="modal-close-btn" data-close="calendarModal" aria-label="关闭" title="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="calendar-toolbar">
+          <button id="calendarPrevBtn" type="button" aria-label="上个月" title="上个月">‹</button>
+          <strong id="calendarMonthLabel" class="calendar-month-label"></strong>
+          <button id="calendarNextBtn" type="button" aria-label="下个月" title="下个月">›</button>
+          <button id="calendarTodayBtn" type="button">今天</button>
+        </div>
+        <div class="calendar-summary">
+          <span>本月：<strong id="calendarMonthTotal">0</strong> 个场</span>
+          <span>本周：<strong id="calendarWeekTotal">0</strong> 个场</span>
+          <span id="calendarWeekdayStats" class="calendar-weekday-stats"></span>
+        </div>
+        <div class="calendar-weekday-row" aria-hidden="true">
+          <span>周一</span><span>周二</span><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>周日</span>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+        <section class="calendar-day-panel">
+          <div class="calendar-day-head">
+            <h3 id="calendarDayTitle">选择日期查看详情</h3>
+          </div>
+          <div id="calendarDayRecords" class="calendar-day-records"></div>
+        </section>
       </div>
     </div>
   </div>
@@ -1861,7 +2208,7 @@
     const IS_GITHUB_PAGES = location.hostname === "choi975.github.io" && location.pathname.startsWith("/badminton-level");
     const IS_WORKER_APP = location.hostname === "badminton-level.choi975.workers.dev"
       || ["127.0.0.1", "localhost"].includes(location.hostname);
-    const BOOTSTRAP_CACHE_KEY = "badminton-level-bootstrap-cache-v1";
+    const BOOTSTRAP_CACHE_KEY = "badminton-level-bootstrap-cache-v2";
     const SNAPSHOT_URL = new URL("./bootstrap-snapshot.json", location.href).href;
     const shouldOpenRemoteApp = location.protocol === "file:" && !new URLSearchParams(location.search).has("local");
 
@@ -1874,6 +2221,9 @@
       { key: "affiliation", label: "所属", width: "14%", filter: "enum", options: AFFILIATIONS, sortable: true, cycle: AFFILIATIONS },
       { key: "friendsJoinNumber", label: "球友群序号", width: "8%", sortable: true },
       { key: "hytronikJoinNumber", label: "Hytronik群序号", width: "8%", sortable: true },
+      { key: "playCount", label: "打球次数", width: "8%", sortable: true },
+      { key: "guestCount", label: "带人数", width: "8%", sortable: true },
+      { key: "amountTotal", label: "A钱总额", width: "10%", sortable: true },
       { key: "notes", label: "备注", width: "18%", filter: "text", sortable: false },
     ];
 
@@ -1889,6 +2239,7 @@
     const collator = new Intl.Collator("zh-Hans-CN-u-co-pinyin", { numeric: true, sensitivity: "base" });
     const state = {
       players: [],
+      sessions: [],
       draft: { ...DEFAULT_DRAFT },
       levelDescriptions: {},
       levelGuideRaw: "",
@@ -1912,6 +2263,8 @@
         special: {},
       },
       paymentSortModes: { "球友": "join", "Hytronik": "join" },
+      currentPaymentRecord: null,
+      calendar: { year: null, month: null, selectedDate: "" },
     };
 
     const els = {
@@ -1935,6 +2288,18 @@
       exportModal: document.getElementById("exportModal"),
       exportOptions: document.getElementById("exportOptions"),
       confirmExportBtn: document.getElementById("confirmExportBtn"),
+      bookingCalendarBtn: document.getElementById("bookingCalendarBtn"),
+      calendarModal: document.getElementById("calendarModal"),
+      calendarPrevBtn: document.getElementById("calendarPrevBtn"),
+      calendarNextBtn: document.getElementById("calendarNextBtn"),
+      calendarTodayBtn: document.getElementById("calendarTodayBtn"),
+      calendarMonthLabel: document.getElementById("calendarMonthLabel"),
+      calendarMonthTotal: document.getElementById("calendarMonthTotal"),
+      calendarWeekTotal: document.getElementById("calendarWeekTotal"),
+      calendarWeekdayStats: document.getElementById("calendarWeekdayStats"),
+      calendarGrid: document.getElementById("calendarGrid"),
+      calendarDayTitle: document.getElementById("calendarDayTitle"),
+      calendarDayRecords: document.getElementById("calendarDayRecords"),
       chainBtn: document.getElementById("chainBtn"),
       paymentSettingsBtn: document.getElementById("paymentSettingsBtn"),
       chainModal: document.getElementById("chainModal"),
@@ -1951,6 +2316,7 @@
       paymentModal: document.getElementById("paymentModal"),
       paymentDialog: document.getElementById("paymentDialog"),
       paymentCaptureBtn: document.getElementById("paymentCaptureBtn"),
+      paymentRecordBtn: document.getElementById("paymentRecordBtn"),
       paymentReport: document.getElementById("paymentReport"),
       paymentFriendsCard: document.getElementById("paymentFriendsCard"),
       paymentHeinekenCard: document.getElementById("paymentHeinekenCard"),
@@ -1980,6 +2346,16 @@
       photoModal: document.getElementById("photoModal"),
       photoViewer: document.getElementById("photoViewer"),
       photoDownloadBtn: document.getElementById("photoDownloadBtn"),
+      recordModal: document.getElementById("recordModal"),
+      recordTitle: document.getElementById("recordTitle"),
+      recordDateInput: document.getElementById("recordDateInput"),
+      recordCourtCountInput: document.getElementById("recordCourtCountInput"),
+      recordCourtCountHint: document.getElementById("recordCourtCountHint"),
+      recordCourtFeeInput: document.getElementById("recordCourtFeeInput"),
+      recordShuttlePriceInput: document.getElementById("recordShuttlePriceInput"),
+      recordShuttleCountInput: document.getElementById("recordShuttleCountInput"),
+      recordMembersList: document.getElementById("recordMembersList"),
+      saveRecordBtn: document.getElementById("saveRecordBtn"),
       toast: document.getElementById("toast"),
     };
 
@@ -2070,6 +2446,7 @@
 
     function applyBootstrapData(data, source, generatedAt) {
       state.players = Array.isArray(data.players) ? data.players : [];
+      state.sessions = normalizeSessions(data.sessions);
       state.levelDescriptions = data.levelDescriptions || {};
       state.levelGuideRaw = data.levelGuideRaw || "";
       applyPaymentOrderState(data);
@@ -2079,6 +2456,7 @@
       applyReadOnlyUi();
       updateDataStatus();
       renderTable();
+      if (els.calendarModal.classList.contains("open")) renderCalendar();
       if (els.chainModal.classList.contains("open")) processChain();
     }
 
@@ -2121,6 +2499,7 @@
     function applyReadOnlyUi() {
       const readOnly = state.readOnly;
       els.paymentSettingsBtn.disabled = readOnly || !state.players.length;
+      els.paymentRecordBtn.hidden = readOnly;
       els.guideEditor.readOnly = readOnly;
       els.saveGuideBtn.hidden = readOnly;
       els.readOnlyBanner.hidden = IS_GITHUB_PAGES || !readOnly || !state.players.length;
@@ -2157,6 +2536,10 @@
       els.exportBtn.addEventListener("click", openExportModal);
       els.confirmExportBtn.addEventListener("click", exportXlsx);
       els.paymentSettingsBtn.addEventListener("click", openPaymentSettingsModal);
+      els.bookingCalendarBtn.addEventListener("click", openCalendarModal);
+      els.calendarPrevBtn.addEventListener("click", () => shiftCalendarMonth(-1));
+      els.calendarNextBtn.addEventListener("click", () => shiftCalendarMonth(1));
+      els.calendarTodayBtn.addEventListener("click", goToCalendarToday);
       els.chainBtn.addEventListener("click", () => {
         openModal("chainModal");
         processChain();
@@ -2177,6 +2560,9 @@
       els.paymentHeinekenSortBtn.addEventListener("click", () => togglePaymentSortMode("Hytronik"));
       renderPaymentSortButtons();
       els.paymentCaptureBtn.addEventListener("click", copyPaymentScreenshot);
+      els.paymentRecordBtn.addEventListener("click", () => openRecordDialog());
+      els.recordCourtFeeInput.addEventListener("input", onRecordCourtFeeChange);
+      els.saveRecordBtn.addEventListener("click", saveRecordDialog);
       els.paymentSettingsTabs.forEach((tab) => {
         tab.addEventListener("click", () => switchPaymentSettingsTab(tab.dataset.paymentSettingsTab));
       });
@@ -2728,6 +3114,12 @@
       if (key === "photo") return player.photoKey ? getPhotoUrl(player) : "";
       if (key === "friendsJoinNumber") return getJoinNumber(player.id, "球友") ?? "";
       if (key === "hytronikJoinNumber") return getJoinNumber(player.id, "Hytronik") ?? "";
+      if (key === "playCount" || key === "guestCount" || key === "amountTotal") {
+        const stats = getMemberStats(player.id);
+        if (key === "playCount") return stats.playCount;
+        if (key === "guestCount") return stats.guestCount;
+        return formatMoney(stats.amountTotal);
+      }
       return player[key] || "";
     }
 
@@ -2806,6 +3198,9 @@
       let result;
       if (key === "level") result = levelRank(a.level) - levelRank(b.level);
       else if (key === "name") result = collator.compare(firstName(a.name), firstName(b.name));
+      else if (["playCount", "guestCount", "amountTotal"].includes(key)) {
+        result = Number(getCellValue(a, key)) - Number(getCellValue(b, key));
+      }
       else if (["friendsJoinNumber", "hytronikJoinNumber"].includes(key)) {
         const affiliation = key === "friendsJoinNumber" ? "球友" : "Hytronik";
         const aNumber = getJoinNumber(a.id, affiliation);
@@ -3341,6 +3736,454 @@
       return (a.joinNumber - b.joinNumber) || (a.playerId - b.playerId);
     }
 
+    function normalizeSessions(rawSessions) {
+      return (Array.isArray(rawSessions) ? rawSessions : []).map((session) => ({
+        id: Number(session.id),
+        date: String(session.date || ""),
+        courtCount: Number(session.courtCount) || 0,
+        courtFee: Number(session.courtFee) || 0,
+        shuttlePrice: Number(session.shuttlePrice) || 0,
+        shuttleCount: Number(session.shuttleCount) || 0,
+        players: (Array.isArray(session.players) ? session.players : []).map((row) => ({
+          playerId: row.playerId === null || row.playerId === undefined ? null : Number(row.playerId),
+          playerName: String(row.playerName || ""),
+          slots: Number(row.slots) || 0,
+          plusCount: Number(row.plusCount) || 0,
+          amount: Number(row.amount) || 0,
+          isFemale: Boolean(row.isFemale),
+        })),
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+      }));
+    }
+
+    function getMemberStatsMap() {
+      const statsMap = new Map();
+      for (const session of state.sessions) {
+        for (const row of session.players) {
+          if (row.playerId === null) continue;
+          const stats = statsMap.get(row.playerId) || { playCount: 0, guestCount: 0, amountTotal: 0 };
+          stats.playCount += 1;
+          stats.guestCount += row.plusCount;
+          stats.amountTotal += row.amount;
+          statsMap.set(row.playerId, stats);
+        }
+      }
+      return statsMap;
+    }
+
+    function getMemberStats(playerId) {
+      return getMemberStatsMap().get(Number(playerId)) || { playCount: 0, guestCount: 0, amountTotal: 0 };
+    }
+
+    function getLocalDateString(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function parseLocalDate(value) {
+      const parts = String(value || "").split("-").map(Number);
+      return new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+    }
+
+    function formatCalendarDate(value) {
+      const date = parseLocalDate(value);
+      if (Number.isNaN(date.getTime())) return value || "";
+      const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+      return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 星期${weekdays[date.getDay()]}`;
+    }
+
+    function inferCourtCounts(fee) {
+      if (!Number.isFinite(fee) || fee <= 0) return [];
+      const candidates = new Set();
+      if (fee % 70 === 0) candidates.add(fee / 70);
+      if (fee % 80 === 0) candidates.add(fee / 80);
+      return [...candidates].sort((a, b) => a - b);
+    }
+
+    function makeCourtCountHint(fee, candidates) {
+      if (!Number.isFinite(fee)) return "";
+      if (fee === 0) return "场地费为0，请填写订场数量";
+      if (candidates.length === 1) return `已按${formatCompactNumber(fee / candidates[0])}元/场自动推算`;
+      if (candidates.length > 1) return `可能是${candidates.map((count) => `${count}个场`).join("或")}，请确认`;
+      return "无法按70/80元/场推算，请确认订场数量";
+    }
+
+    function onRecordCourtFeeChange() {
+      const fee = Number(els.recordCourtFeeInput.value);
+      const candidates = inferCourtCounts(fee);
+      els.recordCourtCountHint.textContent = makeCourtCountHint(fee, candidates);
+      if (candidates.length === 1) {
+        els.recordCourtCountInput.value = String(candidates[0]);
+      }
+    }
+
+    function openRecordDialog({ session = null } = {}) {
+      if (state.readOnly) {
+        toast("当前为只读模式，不能记录订场");
+        return;
+      }
+      const editing = Boolean(session);
+      const source = state.currentPaymentRecord;
+      const courtFee = editing ? session.courtFee : (source?.courtFee ?? 0);
+      const candidates = inferCourtCounts(courtFee);
+      els.recordTitle.textContent = editing ? "编辑订场记录" : "记录本次订场";
+      els.recordDateInput.value = editing ? session.date : getLocalDateString();
+      els.recordCourtFeeInput.value = formatCompactNumber(courtFee);
+      els.recordCourtCountInput.value = editing
+        ? String(session.courtCount)
+        : (candidates.length === 1 ? String(candidates[0]) : "");
+      els.recordShuttlePriceInput.value = editing
+        ? formatCompactNumber(session.shuttlePrice)
+        : formatCompactNumber(source?.shuttlePrice ?? 0);
+      els.recordShuttleCountInput.value = editing
+        ? String(session.shuttleCount)
+        : String(source?.shuttleCount ?? 0);
+      els.recordCourtCountHint.textContent = makeCourtCountHint(courtFee, candidates);
+      renderRecordMembers(editing ? session.players : (source?.players || []));
+      els.recordModal.dataset.editing = editing ? "1" : "0";
+      els.recordModal.dataset.sessionId = editing ? String(session.id) : "";
+      openModal("recordModal");
+    }
+
+    function renderRecordMembers(rows) {
+      if (!rows.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-hint";
+        empty.textContent = "暂无成员明细";
+        els.recordMembersList.replaceChildren(empty);
+        return;
+      }
+      els.recordMembersList.replaceChildren(...rows.map(createRecordMemberRow));
+    }
+
+    function createRecordMemberRow(row) {
+      const div = document.createElement("div");
+      div.className = "record-member-row";
+      div.dataset.playerId = row.playerId === null || row.playerId === undefined ? "" : String(row.playerId);
+      div.dataset.isFemale = row.isFemale ? "1" : "0";
+
+      const name = document.createElement("span");
+      name.className = "record-member-name";
+      name.textContent = row.playerName || "未知成员";
+      name.title = row.playerName || "";
+
+      const slotsField = document.createElement("label");
+      slotsField.className = "record-member-field";
+      const slotsLabel = document.createElement("span");
+      slotsLabel.textContent = "人数";
+      const slotsInput = document.createElement("input");
+      slotsInput.className = "record-member-slots";
+      slotsInput.type = "number";
+      slotsInput.min = "0";
+      slotsInput.step = "1";
+      slotsInput.inputMode = "numeric";
+      slotsInput.value = String(Math.max(0, Math.floor(Number(row.slots) || 0)));
+      slotsField.append(slotsLabel, slotsInput);
+
+      const plus = document.createElement("span");
+      plus.className = "record-member-plus";
+      const updatePlus = () => {
+        const slots = Math.max(0, Math.floor(Number(slotsInput.value) || 0));
+        plus.textContent = slots > 0 ? `带${Math.max(0, slots - 1)}人` : "";
+      };
+      slotsInput.addEventListener("input", updatePlus);
+      updatePlus();
+
+      const amountField = document.createElement("label");
+      amountField.className = "record-member-field";
+      const amountLabel = document.createElement("span");
+      amountLabel.textContent = "A钱";
+      const amountInput = document.createElement("input");
+      amountInput.className = "record-member-amount";
+      amountInput.type = "number";
+      amountInput.min = "0";
+      amountInput.step = "any";
+      amountInput.inputMode = "decimal";
+      amountInput.value = formatCompactNumber(Number(row.amount) || 0);
+      amountField.append(amountLabel, amountInput);
+
+      div.append(name, slotsField, plus, amountField);
+      return div;
+    }
+
+    async function saveRecordDialog() {
+      if (state.readOnly) {
+        toast("当前为只读模式，不能保存订场记录");
+        return;
+      }
+      const date = els.recordDateInput.value;
+      const courtCount = Number(els.recordCourtCountInput.value);
+      const courtFee = Number(els.recordCourtFeeInput.value);
+      const shuttlePrice = Number(els.recordShuttlePriceInput.value);
+      const shuttleCount = Number(els.recordShuttleCountInput.value);
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        toast("请选择日期");
+        return;
+      }
+      if (!Number.isInteger(courtCount) || courtCount <= 0) {
+        toast("订场数量需要填写大于0的整数");
+        return;
+      }
+      if (!Number.isFinite(courtFee) || courtFee < 0 || !Number.isFinite(shuttlePrice) || shuttlePrice < 0) {
+        toast("费用需要填写不小于0的数字");
+        return;
+      }
+      if (!Number.isInteger(shuttleCount) || shuttleCount < 0) {
+        toast("球个数需要填写不小于0的整数");
+        return;
+      }
+
+      const players = [...els.recordMembersList.querySelectorAll(".record-member-row")].map((row) => {
+        const slots = Math.max(0, Math.floor(Number(row.querySelector(".record-member-slots")?.value) || 0));
+        return {
+          playerId: row.dataset.playerId ? Number(row.dataset.playerId) : null,
+          playerName: (row.querySelector(".record-member-name")?.textContent || "").trim(),
+          slots,
+          plusCount: Math.max(0, slots - 1),
+          amount: Math.max(0, Number(row.querySelector(".record-member-amount")?.value) || 0),
+          isFemale: row.dataset.isFemale === "1",
+        };
+      });
+
+      const editing = els.recordModal.dataset.editing === "1";
+      const sessionId = Number(els.recordModal.dataset.sessionId || 0);
+      els.saveRecordBtn.disabled = true;
+      setSync(editing ? "正在保存订场记录" : "正在记录订场");
+      try {
+        const body = { date, courtCount, courtFee, shuttlePrice, shuttleCount, players };
+        const data = editing
+          ? await api(`/api/sessions/${sessionId}`, { method: "PATCH", body: JSON.stringify(body) })
+          : await api("/api/sessions", { method: "POST", body: JSON.stringify(body) });
+        upsertSession(data.session);
+        setSync("已保存");
+        closeModal("recordModal");
+        renderTable();
+        if (els.calendarModal.classList.contains("open")) renderCalendar();
+        toast(editing ? "订场记录已更新" : "订场记录已保存");
+      } catch (error) {
+        setSync("保存失败");
+        toast(`保存订场记录失败：${error.message}`);
+      } finally {
+        els.saveRecordBtn.disabled = false;
+      }
+    }
+
+    function upsertSession(session) {
+      const normalized = normalizeSessions([session])[0];
+      const index = state.sessions.findIndex((item) => item.id === normalized.id);
+      if (index >= 0) state.sessions.splice(index, 1, normalized);
+      else state.sessions.push(normalized);
+      state.sessions.sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+    }
+
+    function openCalendarModal() {
+      const today = new Date();
+      if (!state.calendar.year) {
+        state.calendar = { year: today.getFullYear(), month: today.getMonth() + 1, selectedDate: getLocalDateString(today) };
+      }
+      renderCalendar();
+      openModal("calendarModal");
+    }
+
+    function shiftCalendarMonth(delta) {
+      const date = new Date(state.calendar.year, state.calendar.month - 1 + delta, 1);
+      state.calendar.year = date.getFullYear();
+      state.calendar.month = date.getMonth() + 1;
+      renderCalendar();
+    }
+
+    function goToCalendarToday() {
+      const today = new Date();
+      state.calendar.year = today.getFullYear();
+      state.calendar.month = today.getMonth() + 1;
+      state.calendar.selectedDate = getLocalDateString(today);
+      renderCalendar();
+    }
+
+    function getSessionsOnDate(dateString) {
+      return state.sessions.filter((session) => session.date === dateString);
+    }
+
+    function renderCalendar() {
+      const { year, month, selectedDate } = state.calendar;
+      els.calendarMonthLabel.textContent = `${year}年${month}月`;
+      const firstDay = new Date(year, month - 1, 1);
+      const startOffset = (firstDay.getDay() + 6) % 7;
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const cells = [];
+      for (let i = 0; i < startOffset; i++) cells.push(null);
+      for (let day = 1; day <= daysInMonth; day++) cells.push(new Date(year, month - 1, day));
+      while (cells.length % 7 !== 0) cells.push(null);
+
+      const todayString = getLocalDateString();
+      const fragment = document.createDocumentFragment();
+      cells.forEach((date) => {
+        if (!date) {
+          const empty = document.createElement("div");
+          empty.className = "calendar-day empty";
+          fragment.append(empty);
+          return;
+        }
+        const dateString = getLocalDateString(date);
+        const daySessions = getSessionsOnDate(dateString);
+        const courts = daySessions.reduce((sum, session) => sum + session.courtCount, 0);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "calendar-day";
+        button.classList.toggle("today", dateString === todayString);
+        button.classList.toggle("selected", dateString === selectedDate);
+        button.setAttribute("aria-label", `${dateString}${courts ? `，${courts}个场` : ""}`);
+        const number = document.createElement("span");
+        number.className = "calendar-day-number";
+        number.textContent = String(date.getDate());
+        button.append(number);
+        if (courts > 0) {
+          const badge = document.createElement("span");
+          badge.className = "calendar-day-badge";
+          badge.textContent = `${courts}场${daySessions.length > 1 ? ` · ${daySessions.length}次` : ""}`;
+          button.append(badge);
+        }
+        button.addEventListener("click", () => {
+          state.calendar.selectedDate = dateString;
+          renderCalendar();
+        });
+        fragment.append(button);
+      });
+      els.calendarGrid.replaceChildren(fragment);
+      renderCalendarSummaries();
+      renderCalendarDayPanel();
+    }
+
+    function renderCalendarSummaries() {
+      const { year, month } = state.calendar;
+      const monthPrefix = `${year}-${String(month).padStart(2, "0")}`;
+      const monthSessions = state.sessions.filter((session) => session.date.startsWith(monthPrefix));
+      els.calendarMonthTotal.textContent = String(monthSessions.reduce((sum, session) => sum + session.courtCount, 0));
+
+      const today = new Date();
+      const monday = new Date(today);
+      monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      const mondayString = getLocalDateString(monday);
+      const sundayString = getLocalDateString(sunday);
+      const weekSessions = state.sessions.filter((session) => session.date >= mondayString && session.date <= sundayString);
+      els.calendarWeekTotal.textContent = String(weekSessions.reduce((sum, session) => sum + session.courtCount, 0));
+
+      const weekdayNames = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+      const counts = Array(7).fill(0);
+      const courts = Array(7).fill(0);
+      for (const session of state.sessions) {
+        const date = parseLocalDate(session.date);
+        if (Number.isNaN(date.getTime())) continue;
+        const weekday = (date.getDay() + 6) % 7;
+        counts[weekday] += 1;
+        courts[weekday] += session.courtCount;
+      }
+      const parts = weekdayNames
+        .map((name, index) => ({ name, count: counts[index], courts: courts[index] }))
+        .filter((item) => item.count > 0)
+        .map((item) => `${item.name} ${item.count}次/${item.courts}场`);
+      els.calendarWeekdayStats.textContent = parts.length ? `周几分布：${parts.join("　")}` : "暂无订场记录";
+    }
+
+    function renderCalendarDayPanel() {
+      const dateString = state.calendar.selectedDate || getLocalDateString();
+      els.calendarDayTitle.textContent = formatCalendarDate(dateString);
+      const daySessions = getSessionsOnDate(dateString);
+      if (!daySessions.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-hint";
+        empty.textContent = "当天没有订场记录";
+        els.calendarDayRecords.replaceChildren(empty);
+        return;
+      }
+      els.calendarDayRecords.replaceChildren(...daySessions.map(createCalendarRecordCard));
+    }
+
+    function createCalendarRecordCard(session) {
+      const card = document.createElement("div");
+      card.className = "calendar-record";
+      const head = document.createElement("div");
+      head.className = "calendar-record-head";
+
+      const titleWrap = document.createElement("div");
+      const title = document.createElement("div");
+      title.textContent = `${session.courtCount}个场 · A钱合计 ${formatMoney(session.players.reduce((sum, row) => sum + row.amount, 0))} 元`;
+      const meta = document.createElement("div");
+      meta.className = "calendar-record-meta";
+      meta.textContent = `场地费 ${formatMoney(session.courtFee)} 元 · 球 ${session.shuttleCount} 个 × ${formatCompactNumber(session.shuttlePrice)} 元`;
+      titleWrap.append(title, meta);
+      head.append(titleWrap);
+
+      if (!state.readOnly) {
+        const actions = document.createElement("div");
+        actions.className = "calendar-record-actions";
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.textContent = "编辑";
+        editButton.addEventListener("click", () => openRecordDialog({ session }));
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.textContent = "删除";
+        deleteButton.addEventListener("click", () => deleteSessionRecord(session));
+        actions.append(editButton, deleteButton);
+        head.append(actions);
+      }
+      card.append(head);
+
+      const players = document.createElement("div");
+      players.className = "calendar-record-players";
+      if (!session.players.length) {
+        const empty = document.createElement("span");
+        empty.className = "empty-hint";
+        empty.textContent = "未记录成员明细";
+        players.append(empty);
+      } else {
+        players.append(...session.players.map((row) => {
+          const span = document.createElement("span");
+          span.className = "calendar-record-player";
+          span.textContent = row.playerName || "未知成员";
+          const details = [];
+          if (row.slots > 0) details.push(`${row.slots}人`);
+          if (row.plusCount > 0) details.push(`带${row.plusCount}人`);
+          if (!IS_GITHUB_PAGES) details.push(`${formatMoney(row.amount)}元`);
+          if (details.length) {
+            const suffix = document.createElement("span");
+            suffix.className = "plus";
+            suffix.textContent = `（${details.join("，")}）`;
+            span.append(suffix);
+          }
+          return span;
+        }));
+      }
+      card.append(players);
+      return card;
+    }
+
+    async function deleteSessionRecord(session) {
+      if (state.readOnly) {
+        toast("当前为只读模式，不能删除订场记录");
+        return;
+      }
+      if (!window.confirm(`确定删除 ${formatCalendarDate(session.date)} 的订场记录吗？`)) return;
+      setSync("正在删除订场记录");
+      try {
+        await api(`/api/sessions/${session.id}`, { method: "DELETE" });
+        state.sessions = state.sessions.filter((item) => item.id !== session.id);
+        setSync("已删除");
+        renderTable();
+        renderCalendar();
+        toast("订场记录已删除");
+      } catch (error) {
+        setSync("删除失败");
+        toast(`删除订场记录失败：${error.message}`);
+      }
+    }
+
     function openGuideModal() {
       els.guideEditor.value = state.levelGuideRaw || "";
       els.guideEditor.readOnly = state.readOnly;
@@ -3812,6 +4655,19 @@
       els.paymentShuttlePrice.textContent = formatCompactNumber(shuttlePrice);
       els.paymentShuttleCount.textContent = formatCompactNumber(shuttleCount);
       els.paymentLedgerAmount.textContent = formatMoney(calculateLedgerAmount(result.groups, courtFee));
+      state.currentPaymentRecord = {
+        courtFee,
+        shuttlePrice,
+        shuttleCount,
+        players: [...result.groups.friends, ...result.groups.heineken, ...result.groups.special].map((row) => ({
+          playerId: row.playerId || null,
+          playerName: row.name || "未知成员",
+          slots: Number(row.slots) || 0,
+          plusCount: Math.max(0, Number(row.slots) - 1),
+          amount: Number(row.amount) || 0,
+          isFemale: Boolean(row.hasFemale && !row.hasMale),
+        })),
+      };
       openModal("paymentModal");
     }
 
