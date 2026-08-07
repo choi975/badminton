@@ -4454,9 +4454,7 @@
       players.append(...members.map((member) => {
         const span = document.createElement("span");
         span.className = "calendar-record-player";
-        span.textContent = IS_GITHUB_PAGES
-          ? member.name
-          : `${member.name}（${formatMoney(member.amount)}元）`;
+        span.textContent = `${member.name}（${formatMoney(member.amount)}元）`;
         return span;
       }));
       card.append(players);
@@ -4564,9 +4562,7 @@
         players.append(...members.map((row) => {
           const span = document.createElement("span");
           span.className = "calendar-record-player";
-          span.textContent = IS_GITHUB_PAGES
-            ? (row.playerName || "未知成员")
-            : `${row.playerName || "未知成员"}（${formatMoney(row.amount)}元）`;
+          span.textContent = `${row.playerName || "未知成员"}（${formatMoney(row.amount)}元）`;
           return span;
         }));
       }
