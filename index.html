@@ -4475,7 +4475,10 @@
         empty.textContent = "未记录成员明细";
         players.append(empty);
       } else {
-        players.append(...session.players.map((row) => {
+        const members = [...session.players].sort((a, b) => (
+          (b.amount - a.amount) || collator.compare(a.playerName || "", b.playerName || "")
+        ));
+        players.append(...members.map((row) => {
           const span = document.createElement("span");
           span.className = "calendar-record-player";
           span.textContent = IS_GITHUB_PAGES
