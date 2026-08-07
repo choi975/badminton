@@ -4355,6 +4355,73 @@
       ));
     }
 
+    function courtPriceBreakdown(session) {
+      const count = Number(session.courtCount) || 0;
+      const fee = Number(session.courtFee) || 0;
+      if (count <= 0) return [];
+      if (fee === 0) return [{ price: 0, count }];
+      const average = fee / count;
+      if (Math.abs(average - 70) < 1e-9) return [{ price: 70, count }];
+      if (Math.abs(average - 80) < 1e-9) return [{ price: 80, count }];
+      const count80 = (fee - 70 * count) / 10;
+      if (Number.isInteger(count80) && count80 >= 0 && count80 <= count) {
+        const parts = [];
+        if (count - count80 > 0) parts.push({ price: 70, count: count - count80 });
+        if (count80 > 0) parts.push({ price: 80, count: count80 });
+        return parts;
+      }
+      return [{ fallback: true, total: fee, count }];
+    }
+
+    function buildCalendarSummaryLine(sessions) {
+      const courtGroups = new Map();
+      const shuttleGroups = new Map();
+      const perPersonValues = [];
+      let totalAmount = 0;
+
+      for (const session of sessions) {
+        for (const part of courtPriceBreakdown(session)) {
+          const key = part.fallback ? `f:${part.total}` : `p:${part.price}`;
+          const current = courtGroups.get(key) || (
+            part.fallback ? { fallback: true, total: 0, count: 0 } : { price: part.price, count: 0 }
+          );
+          current.count += part.count;
+          if (part.fallback) current.total += part.total;
+          courtGroups.set(key, current);
+        }
+
+        const shuttleCount = Number(session.shuttleCount) || 0;
+        if (shuttleCount > 0) {
+          const price = Number(session.shuttlePrice) || 0;
+          shuttleGroups.set(price, (shuttleGroups.get(price) || 0) + shuttleCount);
+        }
+
+        const amounts = (session.players || []).reduce((sum, row) => sum + row.amount, 0);
+        const slots = (session.players || []).reduce((sum, row) => sum + (row.slots > 0 ? row.slots : 0), 0);
+        totalAmount += amounts;
+        if (slots > 0) perPersonValues.push(amounts / slots);
+      }
+
+      const courtParts = [...courtGroups.values()]
+        .sort((a, b) => (a.fallback ? Number.POSITIVE_INFINITY : a.price) - (b.fallback ? Number.POSITIVE_INFINITY : b.price))
+        .map((part) => part.fallback
+          ? `共${formatMoney(part.total)}元（${part.count}个场）`
+          : `${formatCompactNumber(part.price)}元×${part.count}个`);
+      const shuttleParts = [...shuttleGroups.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([price, count]) => `${formatCompactNumber(price)}元×${count}个`);
+
+      const separator = courtParts.length + shuttleParts.length <= 2 ? "，" : "；";
+      const average = perPersonValues.length
+        ? perPersonValues.reduce((sum, value) => sum + value, 0) / perPersonValues.length
+        : 0;
+
+      let line = `场地 ${courtParts.join("、") || "0元×0个"}`;
+      if (shuttleParts.length) line += `${separator}球 ${shuttleParts.join("、")}`;
+      line += `${separator}共${formatMoney(totalAmount)}元，平均${formatMoney(average)}元/人次。`;
+      return line;
+    }
+
     function createAggregateCalendarCard(sessions, label) {
       const card = document.createElement("div");
       card.className = "calendar-record";
@@ -4366,11 +4433,8 @@
       const amountTotal = sessions.reduce((sum, session) => (
         sum + session.players.reduce((inner, row) => inner + row.amount, 0)
       ), 0);
-      const courtFee = sessions.reduce((sum, session) => sum + session.courtFee, 0);
-      const shuttleGroups = new Map();
       const memberMap = new Map();
       for (const session of sessions) {
-        shuttleGroups.set(session.shuttlePrice, (shuttleGroups.get(session.shuttlePrice) || 0) + session.shuttleCount);
         for (const row of session.players) {
           const key = row.playerId !== null && row.playerId !== undefined
             ? `p:${row.playerId}`
@@ -4380,15 +4444,12 @@
           memberMap.set(key, current);
         }
       }
-      const shuttleParts = [...shuttleGroups.entries()]
-        .sort((a, b) => a[0] - b[0])
-        .map(([price, count]) => `${count}个×${formatCompactNumber(price)}元`);
 
       const title = document.createElement("div");
       title.textContent = `${label}：${courts}个场 · A钱合计 ${formatMoney(amountTotal)} 元`;
       const meta = document.createElement("div");
       meta.className = "calendar-record-meta";
-      meta.textContent = `场地费 ${formatMoney(courtFee)} 元 · 球 ${shuttleParts.join("，") || "0个"}`;
+      meta.textContent = buildCalendarSummaryLine(sessions);
       titleWrap.append(title, meta);
       head.append(titleWrap);
       card.append(head);
@@ -4479,7 +4540,7 @@
       title.textContent = `${session.courtCount}个场 · A钱合计 ${formatMoney(session.players.reduce((sum, row) => sum + row.amount, 0))} 元`;
       const meta = document.createElement("div");
       meta.className = "calendar-record-meta";
-      meta.textContent = `场地费 ${formatMoney(session.courtFee)} 元 · 球 ${session.shuttleCount} 个 × ${formatCompactNumber(session.shuttlePrice)} 元`;
+      meta.textContent = buildCalendarSummaryLine([session]);
       titleWrap.append(title, meta);
       head.append(titleWrap);
 
