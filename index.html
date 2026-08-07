@@ -4160,6 +4160,38 @@
       return result;
     }
 
+    function getCalendarCellPosition(dateString) {
+      const { year, month } = state.calendar;
+      const date = parseLocalDate(dateString);
+      const first = new Date(year, month - 1, 1);
+      const offset = (first.getDay() + 6) % 7;
+      const index = date.getDate() - 1 + offset;
+      return { row: Math.floor(index / 7), col: index % 7 };
+    }
+
+    function datesInDragRect(startDate, endDate) {
+      const start = getCalendarCellPosition(startDate);
+      const end = getCalendarCellPosition(endDate);
+      const minRow = Math.min(start.row, end.row);
+      const maxRow = Math.max(start.row, end.row);
+      const minCol = Math.min(start.col, end.col);
+      const maxCol = Math.max(start.col, end.col);
+      const { year, month } = state.calendar;
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const first = new Date(year, month - 1, 1);
+      const offset = (first.getDay() + 6) % 7;
+      const result = [];
+      for (let day = 1; day <= daysInMonth; day++) {
+        const index = day - 1 + offset;
+        const row = Math.floor(index / 7);
+        const col = index % 7;
+        if (row >= minRow && row <= maxRow && col >= minCol && col <= maxCol) {
+          result.push(getLocalDateString(new Date(year, month - 1, day)));
+        }
+      }
+      return result.sort();
+    }
+
     function toggleCalendarDate(dateString) {
       const index = state.calendar.selectedDates.indexOf(dateString);
       if (index >= 0) state.calendar.selectedDates.splice(index, 1);
@@ -4194,7 +4226,7 @@
       if (!dateString || dateString === state.calendar.lastDragDate) return;
       state.calendar.lastDragDate = dateString;
       state.calendar.moved = true;
-      state.calendar.selectedDates = dateStringsBetween(state.calendar.dragStart, dateString);
+      state.calendar.selectedDates = datesInDragRect(state.calendar.dragStart, dateString);
       state.calendar.anchorDate = dateString;
       renderCalendar();
     }
@@ -4982,7 +5014,8 @@
       els.paymentShuttlePrice.textContent = formatCompactNumber(shuttlePrice);
       els.paymentShuttleCount.textContent = formatCompactNumber(shuttleCount);
       els.paymentLedgerAmount.textContent = formatMoney(calculateLedgerAmount(result.groups, courtFee));
-      els.paymentReportDate.textContent = formatPaymentDate(getLocalDateString());
+      const reportDate = state.pendingSessionEdit ? state.pendingSessionEdit.date : getLocalDateString();
+      els.paymentReportDate.textContent = formatPaymentDate(reportDate);
       state.currentPaymentRecord = {
         courtFee,
         shuttlePrice,
