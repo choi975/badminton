@@ -1710,6 +1710,12 @@
       font-size: 15px;
     }
 
+    .calendar-hint {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
     .calendar-weekday-stats {
       color: var(--muted);
     }
@@ -2121,6 +2127,7 @@
         <div class="calendar-summary">
           <span id="calendarSelectionText">本月：0 个场</span>
         </div>
+        <div class="calendar-hint">单击日期查看当天记录 · Ctrl/Shift/拖动可多选 · 单击空白处返回本月</div>
         <div class="calendar-weekday-row" aria-hidden="true">
           <span>周一</span><span>周二</span><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>周日</span>
         </div>
@@ -4165,11 +4172,17 @@
     function endCalendarDrag() {
       if (!state.calendar.dragActive) return;
       const moved = state.calendar.moved;
+      const pressDate = state.calendar.dragStart;
       state.calendar.dragActive = false;
       state.calendar.moved = false;
       if (!moved) {
-        state.calendar.selectedDates = [];
-        state.calendar.anchorDate = "";
+        if (pressDate) {
+          state.calendar.selectedDates = [pressDate];
+          state.calendar.anchorDate = pressDate;
+        } else {
+          state.calendar.selectedDates = [];
+          state.calendar.anchorDate = "";
+        }
       }
       renderCalendar();
     }
