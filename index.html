@@ -4349,10 +4349,7 @@
         els.calendarDayRecords.replaceChildren(empty);
         return;
       }
-      els.calendarDayRecords.replaceChildren(createAggregateCalendarCard(
-        sessions,
-        selection.length ? `选中 ${selection.length} 天合计` : "本月合计"
-      ));
+      els.calendarDayRecords.replaceChildren(createAggregateCalendarCard(sessions));
     }
 
     function courtPriceBreakdown(session) {
@@ -4422,17 +4419,13 @@
       return line;
     }
 
-    function createAggregateCalendarCard(sessions, label) {
+    function createAggregateCalendarCard(sessions) {
       const card = document.createElement("div");
       card.className = "calendar-record";
       const head = document.createElement("div");
       head.className = "calendar-record-head";
 
       const titleWrap = document.createElement("div");
-      const courts = sessions.reduce((sum, session) => sum + session.courtCount, 0);
-      const amountTotal = sessions.reduce((sum, session) => (
-        sum + session.players.reduce((inner, row) => inner + row.amount, 0)
-      ), 0);
       const memberMap = new Map();
       for (const session of sessions) {
         for (const row of session.players) {
@@ -4445,12 +4438,10 @@
         }
       }
 
-      const title = document.createElement("div");
-      title.textContent = `${label}：${courts}个场 · A钱合计 ${formatMoney(amountTotal)} 元`;
       const meta = document.createElement("div");
       meta.className = "calendar-record-meta";
       meta.textContent = buildCalendarSummaryLine(sessions);
-      titleWrap.append(title, meta);
+      titleWrap.append(meta);
       head.append(titleWrap);
       card.append(head);
 
@@ -4536,12 +4527,10 @@
       head.className = "calendar-record-head";
 
       const titleWrap = document.createElement("div");
-      const title = document.createElement("div");
-      title.textContent = `${session.courtCount}个场 · A钱合计 ${formatMoney(session.players.reduce((sum, row) => sum + row.amount, 0))} 元`;
       const meta = document.createElement("div");
       meta.className = "calendar-record-meta";
       meta.textContent = buildCalendarSummaryLine([session]);
-      titleWrap.append(title, meta);
+      titleWrap.append(meta);
       head.append(titleWrap);
 
       if (!state.readOnly) {
