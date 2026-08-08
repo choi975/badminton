@@ -1311,6 +1311,24 @@
       gap: 4px;
     }
 
+    .payment-group-toggle {
+      flex: 0 0 auto;
+      min-width: 28px;
+      min-height: 22px;
+      padding: 0 4px;
+      border-color: #b7d5cf;
+      border-radius: 5px;
+      background: #fff;
+      color: var(--accent-dark);
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .payment-group-toggle:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
     .payment-line-badge {
       border: 1px solid currentColor;
       border-radius: 4px;
@@ -2415,6 +2433,7 @@
         special: {},
       },
       paymentSortModes: { "球友": "join", "Hytronik": "join" },
+      paymentGroupOverrides: {},
       currentPaymentRecord: null,
       calendar: { year: null, month: null, selectedDates: [], anchorDate: "", dragStart: "", dragActive: false, moved: false },
       pendingSessionEdit: null,
@@ -5479,6 +5498,13 @@
       if (els.paymentModal.classList.contains("open")) openPaymentModal();
     }
 
+    function togglePaymentGroup(playerId) {
+      const id = Number(playerId);
+      const current = state.paymentGroupOverrides[id];
+      state.paymentGroupOverrides[id] = current === "Hytronik" ? "球友" : "Hytronik";
+      if (els.paymentModal.classList.contains("open")) openPaymentModal();
+    }
+
     function renderPaymentSortButtons() {
       const render = (button, affiliation) => {
         const chainMode = state.paymentSortModes[affiliation] === "chain";
@@ -5551,13 +5577,23 @@
       }
 
       const result = calculatePayment(state.chainEntries, courtFee, shuttlePrice, shuttleCount);
+      [result.groups.friends, result.groups.heineken].forEach((rows) => {
+        rows.forEach((row) => {
+          const player = row.playerId
+            ? state.players.find((item) => Number(item.id) === Number(row.playerId))
+            : null;
+          row.dualGroup = Boolean(player && player.affiliation === "球友+Hytronik");
+        });
+      });
       renderPaymentGroup(els.paymentFriends, result.groups.friends, {
         showTotal: true,
         femaleCapApplied: result.femaleCapApplied,
+        group: "friends",
       });
       renderPaymentGroup(els.paymentHeineken, result.groups.heineken, {
         showTotal: true,
         femaleCapApplied: result.femaleCapApplied,
+        group: "heineken",
       });
       renderPaymentGroup(els.paymentSpecial, result.groups.special, {
         showTotal: false,
@@ -6008,6 +6044,9 @@
 
     function getPaymentGroup(player, sharedPaymentGroup) {
       if (isSpecialPlayer(player)) return "special";
+      const override = player?.id ? state.paymentGroupOverrides[Number(player.id)] : null;
+      if (override === "球友") return "friends";
+      if (override === "Hytronik") return "heineken";
       if (sharedPaymentGroup) return sharedPaymentGroup;
       if (hasPlayerAffiliation(player, "Hytronik")) return "heineken";
       return "friends";
@@ -6068,7 +6107,7 @@
         : `${paymentRowDisplayName(row)}：${formatMoney(row.amount)}`).join("\n");
     }
 
-    function renderPaymentGroup(container, rows, { showTotal, femaleCapApplied }) {
+    function renderPaymentGroup(container, rows, { showTotal, femaleCapApplied, group = "" }) {
       const elements = rows.map((row) => {
         const highlights = getPaymentRowHighlights(row, femaleCapApplied);
         const line = document.createElement("div");
@@ -6082,6 +6121,20 @@
           ? `${paymentRowDisplayName(row)}：${row.note}`
           : `${paymentRowDisplayName(row)}：${formatMoney(row.amount)}`;
         line.append(main);
+
+        if (row.dualGroup && row.playerId) {
+          const currentLabel = group === "friends" ? "球友" : "Hytronik";
+          const nextLabel = group === "friends" ? "Hytronik" : "球友";
+          const toggle = document.createElement("button");
+          toggle.type = "button";
+          toggle.className = "payment-group-toggle";
+          toggle.textContent = "◀▶";
+          toggle.title = `当前${currentLabel}，点击切换到${nextLabel}`;
+          toggle.setAttribute("aria-label", `把${paymentRowDisplayName(row)}切换到${nextLabel}`);
+          toggle.setAttribute("data-html2canvas-ignore", "true");
+          toggle.addEventListener("click", () => togglePaymentGroup(row.playerId));
+          line.append(toggle);
+        }
 
         if (highlights.companion || highlights.femaleCap) {
           const badges = document.createElement("span");
