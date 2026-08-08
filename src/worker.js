@@ -402,7 +402,7 @@ async function listSessions(db) {
   const { results } = await db.prepare(
     `SELECT
        s.id AS session_id, s.date, s.court_count, s.court_fee, s.shuttle_price, s.shuttle_count,
-       s.created_at, s.updated_at,
+       s.court_price_rows, s.shuttle_price_rows, s.created_at, s.updated_at,
        p.player_id, p.player_name, p.slots, p.plus_count, p.amount, p.is_female
      FROM booking_sessions s
      LEFT JOIN booking_session_players p ON p.session_id = s.id
@@ -420,6 +420,8 @@ async function listSessions(db) {
         courtFee: Number(row.court_fee),
         shuttlePrice: Number(row.shuttle_price),
         shuttleCount: Number(row.shuttle_count),
+        courtPriceRows: parseStoredPriceRows(row.court_price_rows),
+        shuttlePriceRows: parseStoredPriceRows(row.shuttle_price_rows),
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         players: [],
@@ -460,10 +462,26 @@ function normalizeSessionInput(body) {
     return null;
   }
 
-  const courtCount = Number(body?.courtCount);
-  const courtFee = Number(body?.courtFee);
-  const shuttlePrice = Number(body?.shuttlePrice);
-  const shuttleCount = Number(body?.shuttleCount);
+  const courtPriceRows = normalizePriceRows(body?.courtPriceRows, false);
+  const shuttlePriceRows = normalizePriceRows(body?.shuttlePriceRows, true);
+  if (body?.courtPriceRows !== undefined && courtPriceRows === null) return null;
+  if (body?.shuttlePriceRows !== undefined && shuttlePriceRows === null) return null;
+  if (courtPriceRows !== null && courtPriceRows.length === 0) return null;
+
+  let courtCount = Number(body?.courtCount);
+  let courtFee = Number(body?.courtFee);
+  let shuttlePrice = Number(body?.shuttlePrice);
+  let shuttleCount = Number(body?.shuttleCount);
+  if (courtPriceRows) {
+    courtCount = courtPriceRows.reduce((sum, row) => sum + row.count, 0);
+    courtFee = courtPriceRows.reduce((sum, row) => sum + row.price * row.count, 0);
+  }
+  if (shuttlePriceRows) {
+    shuttleCount = shuttlePriceRows.reduce((sum, row) => sum + row.count, 0);
+    shuttlePrice = shuttleCount > 0
+      ? shuttlePriceRows.reduce((sum, row) => sum + row.price * row.count, 0) / shuttleCount
+      : 0;
+  }
   if (!Number.isInteger(courtCount) || courtCount <= 0) return null;
   if (!Number.isFinite(courtFee) || courtFee < 0) return null;
   if (!Number.isFinite(shuttlePrice) || shuttlePrice < 0) return null;
@@ -496,14 +514,52 @@ function normalizeSessionInput(body) {
     });
   }
 
-  return { date, courtCount, courtFee, shuttlePrice, shuttleCount, players };
+  return { date, courtCount, courtFee, shuttlePrice, shuttleCount, courtPriceRows, shuttlePriceRows, players };
+}
+
+function normalizePriceRows(raw, allowEmpty) {
+  if (raw === undefined || raw === null) return null;
+  if (!Array.isArray(raw)) return null;
+  const rows = [];
+  for (const item of raw) {
+    const price = Number(item?.price);
+    const count = Number(item?.count);
+    if (!Number.isFinite(price) || price < 0) return null;
+    if (!Number.isInteger(count) || count <= 0) return null;
+    rows.push({ price, count });
+  }
+  if (!allowEmpty && rows.length === 0) return null;
+  return rows;
+}
+
+function parseStoredPriceRows(raw) {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function serializePriceRows(rows) {
+  return rows && rows.length ? JSON.stringify(rows) : "";
 }
 
 async function createSession(db, input) {
   const result = await db.prepare(
-    `INSERT INTO booking_sessions (date, court_count, court_fee, shuttle_price, shuttle_count, updated_at)
-     VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
-  ).bind(input.date, input.courtCount, input.courtFee, input.shuttlePrice, input.shuttleCount).run();
+    `INSERT INTO booking_sessions
+       (date, court_count, court_fee, shuttle_price, shuttle_count, court_price_rows, shuttle_price_rows, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+  ).bind(
+    input.date,
+    input.courtCount,
+    input.courtFee,
+    input.shuttlePrice,
+    input.shuttleCount,
+    serializePriceRows(input.courtPriceRows),
+    serializePriceRows(input.shuttlePriceRows)
+  ).run();
   const sessionId = Number(result.meta.last_row_id);
   await insertSessionPlayers(db, sessionId, input.players);
   return getSessionById(db, sessionId);
@@ -513,9 +569,19 @@ async function updateSession(db, id, input) {
   const statements = [
     db.prepare(
       `UPDATE booking_sessions
-       SET date = ?, court_count = ?, court_fee = ?, shuttle_price = ?, shuttle_count = ?, updated_at = CURRENT_TIMESTAMP
+       SET date = ?, court_count = ?, court_fee = ?, shuttle_price = ?, shuttle_count = ?,
+           court_price_rows = ?, shuttle_price_rows = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`
-    ).bind(input.date, input.courtCount, input.courtFee, input.shuttlePrice, input.shuttleCount, id),
+    ).bind(
+      input.date,
+      input.courtCount,
+      input.courtFee,
+      input.shuttlePrice,
+      input.shuttleCount,
+      serializePriceRows(input.courtPriceRows),
+      serializePriceRows(input.shuttlePriceRows),
+      id
+    ),
     db.prepare("DELETE FROM booking_session_players WHERE session_id = ?").bind(id),
   ];
   statements.push(...buildSessionPlayerStatements(db, id, input.players));

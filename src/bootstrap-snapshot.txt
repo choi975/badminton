@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-07T09:56:16.566Z",
+  "generatedAt": "2026-08-08T04:26:49.262Z",
   "source": "Cloudflare D1: Badminton-level",
   "data": {
     "players": [
@@ -538,7 +538,7 @@
       },
       {
         "id": 44,
-        "name": "黃安鋒",
+        "name": "黃安鋒，黄安锋，大鋒",
         "gender": "男",
         "level": "4.5级",
         "bookingTime": "19:00~22:00",
@@ -547,7 +547,7 @@
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-10 01:49:14",
-        "updatedAt": "2026-07-10 01:51:01"
+        "updatedAt": "2026-08-07 14:32:59"
       },
       {
         "id": 45,
@@ -1349,6 +1349,8 @@
         "courtFee": 210,
         "shuttlePrice": 11.3,
         "shuttleCount": 5,
+        "courtPriceRows": null,
+        "shuttlePriceRows": null,
         "players": [
           {
             "playerId": 15,
@@ -1457,6 +1459,8 @@
         "courtFee": 140,
         "shuttlePrice": 11.3,
         "shuttleCount": 8,
+        "courtPriceRows": null,
+        "shuttlePriceRows": null,
         "players": [
           {
             "playerId": 38,
@@ -1557,6 +1561,8 @@
         "courtFee": 140,
         "shuttlePrice": 11.3,
         "shuttleCount": 8,
+        "courtPriceRows": null,
+        "shuttlePriceRows": null,
         "players": [
           {
             "playerId": 15,
@@ -1625,6 +1631,132 @@
         ],
         "createdAt": "2026-08-06 14:57:16",
         "updatedAt": "2026-08-06 14:57:16"
+      },
+      {
+        "id": 5,
+        "date": "2026-08-07",
+        "courtCount": 2,
+        "courtFee": 140,
+        "shuttlePrice": 11.3,
+        "shuttleCount": 12,
+        "courtPriceRows": null,
+        "shuttlePriceRows": null,
+        "players": [
+          {
+            "playerId": 38,
+            "playerName": "吴悠",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": true
+          },
+          {
+            "playerId": 20,
+            "playerName": "0.o",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": false
+          },
+          {
+            "playerId": 19,
+            "playerName": "FENG",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": false
+          },
+          {
+            "playerId": 24,
+            "playerName": "Hx7",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": false
+          },
+          {
+            "playerId": 11,
+            "playerName": "老洪",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": false
+          },
+          {
+            "playerId": 26,
+            "playerName": "威朱",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": false
+          },
+          {
+            "playerId": 1,
+            "playerName": "达哥",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": false
+          },
+          {
+            "playerId": 5,
+            "playerName": "杰哥",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": false
+          },
+          {
+            "playerId": 6,
+            "playerName": "冯丽美",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": true
+          },
+          {
+            "playerId": 4,
+            "playerName": "何兴康",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": false
+          },
+          {
+            "playerId": 31,
+            "playerName": "April",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": true
+          },
+          {
+            "playerId": 16,
+            "playerName": "ben",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": false
+          },
+          {
+            "playerId": 17,
+            "playerName": "Baymax",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": false
+          },
+          {
+            "playerId": 51,
+            "playerName": "choi",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.7,
+            "isFemale": false
+          }
+        ],
+        "createdAt": "2026-08-07 14:26:04",
+        "updatedAt": "2026-08-07 14:26:04"
       }
     ]
   }

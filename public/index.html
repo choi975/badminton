@@ -1083,6 +1083,78 @@
       gap: 8px;
     }
 
+    .fee-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .fee-advanced-toggle {
+      min-height: 26px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    .fee-advanced-area {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .fee-advanced-group {
+      display: grid;
+      gap: 5px;
+    }
+
+    .fee-advanced-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .fee-advanced-rows {
+      display: grid;
+      gap: 5px;
+    }
+
+    .fee-advanced-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto auto;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .fee-advanced-row input {
+      min-height: 32px;
+      padding: 4px 7px;
+    }
+
+    .fee-grid[hidden],
+    .fee-advanced-area[hidden],
+    .payment-cost-rows[hidden],
+    .payment-cost-item[hidden] {
+      display: none;
+    }
+
+    .fee-advanced-times {
+      color: var(--muted);
+    }
+
+    .fee-advanced-add,
+    .fee-advanced-remove {
+      min-width: 30px;
+      min-height: 30px;
+      padding: 0;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .record-advanced-area {
+      margin-top: 2px;
+    }
+
     .field label {
       display: block;
       margin-bottom: 5px;
@@ -1282,6 +1354,35 @@
     }
 
     .payment-cost-item strong {
+      overflow: hidden;
+      color: var(--text);
+      font-size: 13px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .payment-cost-rows {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 2px;
+    }
+
+    .payment-cost-row {
+      min-width: 0;
+      min-height: 20px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .payment-cost-row span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    .payment-cost-row strong {
       overflow: hidden;
       color: var(--text);
       font-size: 13px;
@@ -1990,8 +2091,11 @@
               <div id="chainStats" class="stats-box"></div>
             </section>
             <div class="fee-box">
-              <div class="fee-title">费用计算</div>
-              <div class="fee-grid">
+              <div class="fee-title-row">
+                <div class="fee-title">费用计算</div>
+                <button id="feeAdvancedBtn" class="fee-advanced-toggle" type="button">高级</button>
+              </div>
+              <div id="feeBasicGrid" class="fee-grid">
                 <div class="field">
                   <label for="courtFeeInput">场地费</label>
                   <input id="courtFeeInput" inputmode="decimal" value="70" data-default-value="70" autocomplete="off">
@@ -2003,6 +2107,16 @@
                 <div class="field">
                   <label for="shuttleCountInput">球个数</label>
                   <input id="shuttleCountInput" inputmode="decimal" value="4" data-default-value="4" autocomplete="off">
+                </div>
+              </div>
+              <div id="feeAdvancedArea" class="fee-advanced-area" hidden>
+                <div class="fee-advanced-group">
+                  <div class="fee-advanced-label">场地</div>
+                  <div id="courtPriceRows" class="fee-advanced-rows"></div>
+                </div>
+                <div class="fee-advanced-group">
+                  <div class="fee-advanced-label">球</div>
+                  <div id="shuttlePriceRows" class="fee-advanced-rows"></div>
                 </div>
               </div>
               <button id="paymentBtn" class="primary-btn" disabled>群收款</button>
@@ -2057,6 +2171,7 @@
                 <span>球个数</span>
                 <strong id="paymentShuttleCount">0</strong>
               </div>
+              <div id="paymentCostRows" class="payment-cost-rows" hidden></div>
             </div>
             <div class="payment-ledger-summary" data-html2canvas-ignore="true" aria-label="私人记账金额">
               <span>记账</span>
@@ -2084,22 +2199,32 @@
             <label for="recordDateInput">日期</label>
             <input id="recordDateInput" type="date" autocomplete="off">
           </div>
-          <div class="field">
+          <div class="field record-basic-fee-field">
             <label for="recordCourtCountInput">订场数量</label>
             <input id="recordCourtCountInput" type="number" min="1" step="1" inputmode="numeric" autocomplete="off">
             <div id="recordCourtCountHint" class="field-hint"></div>
           </div>
-          <div class="field">
+          <div class="field record-basic-fee-field">
             <label for="recordCourtFeeInput">场地费</label>
             <input id="recordCourtFeeInput" type="number" min="0" step="any" inputmode="decimal" autocomplete="off">
           </div>
-          <div class="field">
+          <div class="field record-basic-fee-field">
             <label for="recordShuttlePriceInput">球单价</label>
             <input id="recordShuttlePriceInput" type="number" min="0" step="any" inputmode="decimal" autocomplete="off">
           </div>
-          <div class="field">
+          <div class="field record-basic-fee-field">
             <label for="recordShuttleCountInput">球个数</label>
             <input id="recordShuttleCountInput" type="number" min="0" step="1" inputmode="numeric" autocomplete="off">
+          </div>
+        </div>
+        <div id="recordAdvancedArea" class="fee-advanced-area record-advanced-area" hidden>
+          <div class="fee-advanced-group">
+            <div class="fee-advanced-label">场地</div>
+            <div id="recordCourtPriceRows" class="fee-advanced-rows"></div>
+          </div>
+          <div class="fee-advanced-group">
+            <div class="fee-advanced-label">球</div>
+            <div id="recordShuttlePriceRows" class="fee-advanced-rows"></div>
           </div>
         </div>
         <div class="record-members-head">打球成员（人数含本人，A钱为本人+所带朋友合计）</div>
@@ -2280,6 +2405,10 @@
       chainLevelMode: IS_GITHUB_PAGES ? "group" : "exact",
       plusOverrides: {},
       autoFeeDefaults: { fee: 70, shuttle: 4 },
+      feeMode: "basic",
+      advancedRows: { court: [], shuttle: [] },
+      advancedAutoDefaults: null,
+      recordRows: { court: [], shuttle: [] },
       paymentSettingsEditor: {
         activeTab: "球友",
         joinNumbers: { "球友": [], "Hytronik": [] },
@@ -2335,6 +2464,11 @@
       courtFeeInput: document.getElementById("courtFeeInput"),
       shuttlePriceInput: document.getElementById("shuttlePriceInput"),
       shuttleCountInput: document.getElementById("shuttleCountInput"),
+      feeAdvancedBtn: document.getElementById("feeAdvancedBtn"),
+      feeBasicGrid: document.getElementById("feeBasicGrid"),
+      feeAdvancedArea: document.getElementById("feeAdvancedArea"),
+      courtPriceRows: document.getElementById("courtPriceRows"),
+      shuttlePriceRows: document.getElementById("shuttlePriceRows"),
       paymentBtn: document.getElementById("paymentBtn"),
       paymentModal: document.getElementById("paymentModal"),
       paymentDialog: document.getElementById("paymentDialog"),
@@ -2351,6 +2485,8 @@
       paymentCourtFee: document.getElementById("paymentCourtFee"),
       paymentShuttlePrice: document.getElementById("paymentShuttlePrice"),
       paymentShuttleCount: document.getElementById("paymentShuttleCount"),
+      paymentCostRows: document.getElementById("paymentCostRows"),
+      paymentCostItems: [...document.querySelectorAll(".payment-cost-item")],
       paymentLedgerAmount: document.getElementById("paymentLedgerAmount"),
       paymentReportDate: document.getElementById("paymentReportDate"),
       paymentSettingsModal: document.getElementById("paymentSettingsModal"),
@@ -2378,6 +2514,10 @@
       recordCourtFeeInput: document.getElementById("recordCourtFeeInput"),
       recordShuttlePriceInput: document.getElementById("recordShuttlePriceInput"),
       recordShuttleCountInput: document.getElementById("recordShuttleCountInput"),
+      recordAdvancedArea: document.getElementById("recordAdvancedArea"),
+      recordCourtPriceRows: document.getElementById("recordCourtPriceRows"),
+      recordShuttlePriceRows: document.getElementById("recordShuttlePriceRows"),
+      recordBasicFeeFields: [...document.querySelectorAll(".record-basic-fee-field")],
       recordMembersList: document.getElementById("recordMembersList"),
       saveRecordBtn: document.getElementById("saveRecordBtn"),
       toast: document.getElementById("toast"),
@@ -2579,6 +2719,7 @@
         });
         input.addEventListener("input", updatePaymentButton);
       });
+      els.feeAdvancedBtn.addEventListener("click", toggleFeeMode);
       els.paymentBtn.addEventListener("click", openPaymentModal);
       els.paymentFriendsSortBtn.addEventListener("click", () => togglePaymentSortMode("球友"));
       els.paymentHeinekenSortBtn.addEventListener("click", () => togglePaymentSortMode("Hytronik"));
@@ -3777,6 +3918,8 @@
         courtFee: Number(session.courtFee) || 0,
         shuttlePrice: Number(session.shuttlePrice) || 0,
         shuttleCount: Number(session.shuttleCount) || 0,
+        courtPriceRows: Array.isArray(session.courtPriceRows) ? session.courtPriceRows : null,
+        shuttlePriceRows: Array.isArray(session.shuttlePriceRows) ? session.shuttlePriceRows : null,
         players: (Array.isArray(session.players) ? session.players : []).map((row) => ({
           playerId: row.playerId === null || row.playerId === undefined ? null : Number(row.playerId),
           playerName: String(row.playerName || ""),
@@ -3873,6 +4016,10 @@
         openRecordDialogForChainEdit();
         return;
       }
+      if (state.feeMode === "advanced") {
+        void savePaymentRecordDirect(record.courtCount);
+        return;
+      }
       const candidates = inferCourtCounts(record.courtFee);
       if (candidates.length === 1) {
         void savePaymentRecordDirect(candidates[0]);
@@ -3884,6 +4031,7 @@
     function openRecordDialogForChainEdit() {
       const record = state.currentPaymentRecord;
       const pending = state.pendingSessionEdit;
+      const advanced = state.feeMode === "advanced";
       const candidates = inferCourtCounts(record.courtFee);
       openRecordDialog({
         session: {
@@ -3892,7 +4040,9 @@
           courtFee: record.courtFee,
           shuttlePrice: record.shuttlePrice,
           shuttleCount: record.shuttleCount,
-          courtCount: candidates.length === 1 ? candidates[0] : "",
+          courtCount: advanced ? record.courtCount : (candidates.length === 1 ? candidates[0] : ""),
+          courtPriceRows: record.courtPriceRows,
+          shuttlePriceRows: record.shuttlePriceRows,
           players: record.players,
         },
       });
@@ -3904,16 +4054,19 @@
       els.paymentRecordBtn.disabled = true;
       setSync("正在记录订场");
       try {
+        const body = {
+          date: getLocalDateString(),
+          courtCount,
+          courtFee: record.courtFee,
+          shuttlePrice: record.shuttlePrice,
+          shuttleCount: record.shuttleCount,
+          players: record.players,
+        };
+        if (record.courtPriceRows?.length) body.courtPriceRows = record.courtPriceRows;
+        if (record.shuttlePriceRows?.length) body.shuttlePriceRows = record.shuttlePriceRows;
         const data = await api("/api/sessions", {
           method: "POST",
-          body: JSON.stringify({
-            date: getLocalDateString(),
-            courtCount,
-            courtFee: record.courtFee,
-            shuttlePrice: record.shuttlePrice,
-            shuttleCount: record.shuttleCount,
-            players: record.players,
-          }),
+          body: JSON.stringify(body),
         });
         upsertSession(data.session);
         setSync("已保存");
@@ -3935,6 +4088,9 @@
       }
       const editing = Boolean(session);
       const source = state.currentPaymentRecord;
+      const advanced = editing
+        ? Boolean(session.courtPriceRows?.length || session.shuttlePriceRows?.length || state.feeMode === "advanced")
+        : state.feeMode === "advanced";
       const courtFee = editing ? session.courtFee : (source?.courtFee ?? 0);
       const candidates = inferCourtCounts(courtFee);
       els.recordTitle.textContent = editing ? "编辑订场记录" : "记录本次订场";
@@ -3950,6 +4106,15 @@
         ? String(session.shuttleCount)
         : String(source?.shuttleCount ?? 0);
       els.recordCourtCountHint.textContent = makeCourtCountHint(courtFee, candidates);
+      state.recordRows = {
+        court: advanced
+          ? (editing ? session.courtPriceRows || [] : source?.courtPriceRows || []).map((row) => ({ ...row }))
+          : [],
+        shuttle: advanced
+          ? (editing ? session.shuttlePriceRows || [] : source?.shuttlePriceRows || []).map((row) => ({ ...row }))
+          : [],
+      };
+      applyRecordFeeMode(advanced);
       renderRecordMembers(editing ? session.players : (source?.players || []));
       els.recordModal.dataset.editing = editing ? "1" : "0";
       els.recordModal.dataset.sessionId = editing ? String(session.id) : "";
@@ -4023,24 +4188,8 @@
         return;
       }
       const date = els.recordDateInput.value;
-      const courtCount = Number(els.recordCourtCountInput.value);
-      const courtFee = Number(els.recordCourtFeeInput.value);
-      const shuttlePrice = Number(els.recordShuttlePriceInput.value);
-      const shuttleCount = Number(els.recordShuttleCountInput.value);
       if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         toast("请选择日期");
-        return;
-      }
-      if (!Number.isInteger(courtCount) || courtCount <= 0) {
-        toast("订场数量需要填写大于0的整数");
-        return;
-      }
-      if (!Number.isFinite(courtFee) || courtFee < 0 || !Number.isFinite(shuttlePrice) || shuttlePrice < 0) {
-        toast("费用需要填写不小于0的数字");
-        return;
-      }
-      if (!Number.isInteger(shuttleCount) || shuttleCount < 0) {
-        toast("球个数需要填写不小于0的整数");
         return;
       }
 
@@ -4056,12 +4205,54 @@
         };
       });
 
+      let courtCount;
+      let courtFee;
+      let shuttlePrice;
+      let shuttleCount;
+      let courtPriceRows = [];
+      let shuttlePriceRows = [];
+      const advanced = !els.recordAdvancedArea.hidden;
+      if (advanced) {
+        courtPriceRows = state.recordRows.court.filter((row) => row.count > 0);
+        shuttlePriceRows = state.recordRows.shuttle.filter((row) => row.count > 0);
+        if (!courtPriceRows.length) {
+          toast("请至少填写一行有效的场地单价和个数");
+          return;
+        }
+        courtCount = courtPriceRows.reduce((sum, row) => sum + row.count, 0);
+        courtFee = courtPriceRows.reduce((sum, row) => sum + row.price * row.count, 0);
+        shuttleCount = shuttlePriceRows.reduce((sum, row) => sum + row.count, 0);
+        const shuttleCost = shuttlePriceRows.reduce((sum, row) => sum + row.price * row.count, 0);
+        shuttlePrice = shuttleCount > 0 ? shuttleCost / shuttleCount : 0;
+      } else {
+        courtCount = Number(els.recordCourtCountInput.value);
+        courtFee = Number(els.recordCourtFeeInput.value);
+        shuttlePrice = Number(els.recordShuttlePriceInput.value);
+        shuttleCount = Number(els.recordShuttleCountInput.value);
+        if (!Number.isInteger(courtCount) || courtCount <= 0) {
+          toast("订场数量需要填写大于0的整数");
+          return;
+        }
+        if (!Number.isFinite(courtFee) || courtFee < 0 || !Number.isFinite(shuttlePrice) || shuttlePrice < 0) {
+          toast("费用需要填写不小于0的数字");
+          return;
+        }
+        if (!Number.isInteger(shuttleCount) || shuttleCount < 0) {
+          toast("球个数需要填写不小于0的整数");
+          return;
+        }
+        courtPriceRows = deriveCourtRows(courtFee, courtCount);
+        if (shuttleCount > 0) shuttlePriceRows = [{ price: shuttlePrice, count: shuttleCount }];
+      }
+
       const sessionId = Number(els.recordModal.dataset.sessionId || 0);
       const editing = els.recordModal.dataset.editing === "1" && Number.isInteger(sessionId) && sessionId > 0;
       els.saveRecordBtn.disabled = true;
       setSync(editing ? "正在保存订场记录" : "正在记录订场");
       try {
         const body = { date, courtCount, courtFee, shuttlePrice, shuttleCount, players };
+        if (courtPriceRows.length) body.courtPriceRows = courtPriceRows;
+        if (shuttlePriceRows.length) body.shuttlePriceRows = shuttlePriceRows;
         const data = editing
           ? await api(`/api/sessions/${sessionId}`, { method: "PATCH", body: JSON.stringify(body) })
           : await api("/api/sessions", { method: "POST", body: JSON.stringify(body) });
@@ -4379,7 +4570,10 @@
       let totalAmount = 0;
 
       for (const session of sessions) {
-        for (const part of courtPriceBreakdown(session)) {
+        const courtRows = session.courtPriceRows && session.courtPriceRows.length
+          ? session.courtPriceRows
+          : courtPriceBreakdown(session);
+        for (const part of courtRows) {
           const key = part.fallback ? `f:${part.total}` : `p:${part.price}`;
           const current = courtGroups.get(key) || (
             part.fallback ? { fallback: true, total: 0, count: 0 } : { price: part.price, count: 0 }
@@ -4389,10 +4583,16 @@
           courtGroups.set(key, current);
         }
 
-        const shuttleCount = Number(session.shuttleCount) || 0;
-        if (shuttleCount > 0) {
-          const price = Number(session.shuttlePrice) || 0;
-          shuttleGroups.set(price, (shuttleGroups.get(price) || 0) + shuttleCount);
+        if (session.shuttlePriceRows && session.shuttlePriceRows.length) {
+          for (const row of session.shuttlePriceRows) {
+            shuttleGroups.set(row.price, (shuttleGroups.get(row.price) || 0) + row.count);
+          }
+        } else {
+          const shuttleCount = Number(session.shuttleCount) || 0;
+          if (shuttleCount > 0) {
+            const price = Number(session.shuttlePrice) || 0;
+            shuttleGroups.set(price, (shuttleGroups.get(price) || 0) + shuttleCount);
+          }
         }
 
         const amounts = (session.players || []).reduce((sum, row) => sum + row.amount, 0);
@@ -4485,16 +4685,37 @@
       state.pendingSessionEdit = { id: session.id, date: session.date };
       state.returnToCalendar = true;
       els.chainInput.value = buildChainLinesFromSession(session);
-      els.courtFeeInput.value = formatCompactNumber(session.courtFee);
-      els.shuttlePriceInput.value = formatCompactNumber(session.shuttlePrice);
-      els.shuttleCountInput.value = String(session.shuttleCount);
-      const peopleCount = (session.players || []).reduce((sum, row) => sum + row.slots, 0);
-      const defaultCourts = getDefaultCourtCount(peopleCount);
-      const defaultFee = defaultCourts * 70;
-      const defaultShuttle = defaultCourts * 4;
-      state.autoFeeDefaults = (
-        Number(session.courtFee) === defaultFee && Number(session.shuttleCount) === defaultShuttle
-      ) ? { fee: defaultFee, shuttle: defaultShuttle } : null;
+      const courtRows = Array.isArray(session.courtPriceRows) ? session.courtPriceRows : [];
+      const shuttleRows = Array.isArray(session.shuttlePriceRows) ? session.shuttlePriceRows : [];
+      const needsAdvanced = courtRows.length > 1 || shuttleRows.length > 1;
+      if (needsAdvanced) {
+        state.feeMode = "advanced";
+        state.advancedRows = {
+          court: courtRows.map((row) => ({ ...row })),
+          shuttle: shuttleRows.map((row) => ({ ...row })),
+        };
+        state.advancedAutoDefaults = null;
+        els.feeBasicGrid.hidden = true;
+        els.feeAdvancedArea.hidden = false;
+        els.feeAdvancedBtn.textContent = "基础";
+        renderAllFeeAdvancedRows();
+      } else {
+        state.feeMode = "basic";
+        state.advancedRows = { court: [], shuttle: [] };
+        els.feeAdvancedArea.hidden = true;
+        els.feeBasicGrid.hidden = false;
+        els.feeAdvancedBtn.textContent = "高级";
+        els.courtFeeInput.value = formatCompactNumber(session.courtFee);
+        els.shuttlePriceInput.value = formatCompactNumber(session.shuttlePrice);
+        els.shuttleCountInput.value = String(session.shuttleCount);
+        const peopleCount = (session.players || []).reduce((sum, row) => sum + row.slots, 0);
+        const defaultCourts = getDefaultCourtCount(peopleCount);
+        const defaultFee = defaultCourts * 70;
+        const defaultShuttle = defaultCourts * 4;
+        state.autoFeeDefaults = (
+          Number(session.courtFee) === defaultFee && Number(session.shuttleCount) === defaultShuttle
+        ) ? { fee: defaultFee, shuttle: defaultShuttle } : null;
+      }
       processChain();
       closeModal("calendarModal");
       openModal("chainModal");
@@ -4509,6 +4730,12 @@
       state.pendingSessionEdit = { id: null, date: dateString };
       state.returnToCalendar = true;
       els.chainInput.value = "";
+      state.feeMode = "basic";
+      state.advancedRows = { court: [], shuttle: [] };
+      state.advancedAutoDefaults = null;
+      els.feeAdvancedArea.hidden = true;
+      els.feeBasicGrid.hidden = false;
+      els.feeAdvancedBtn.textContent = "高级";
       els.courtFeeInput.value = "70";
       els.shuttlePriceInput.value = "11.3";
       els.shuttleCountInput.value = "4";
@@ -4766,7 +4993,188 @@
       return 6 + Math.ceil((peopleCount - 42) / 7);
     }
 
+    function deriveCourtRows(fee, count) {
+      const breakdown = courtPriceBreakdown({ courtCount: count, courtFee: fee });
+      if (breakdown.length && !breakdown[0].fallback) return breakdown;
+      return [];
+    }
+
+    function createPriceRowElement(row, { isLast, onlyRow, onAdd, onRemove, onChanged }) {
+      const div = document.createElement("div");
+      div.className = "fee-advanced-row";
+
+      const priceInput = document.createElement("input");
+      priceInput.type = "number";
+      priceInput.min = "0";
+      priceInput.step = "any";
+      priceInput.inputMode = "decimal";
+      priceInput.value = formatCompactNumber(row.price);
+
+      const times = document.createElement("span");
+      times.className = "fee-advanced-times";
+      times.textContent = "×";
+
+      const countInput = document.createElement("input");
+      countInput.type = "number";
+      countInput.min = "0";
+      countInput.step = "1";
+      countInput.inputMode = "numeric";
+      countInput.value = String(row.count);
+
+      const addButton = document.createElement("button");
+      addButton.type = "button";
+      addButton.className = "fee-advanced-add";
+      addButton.textContent = "+";
+      addButton.title = "添加一行";
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "fee-advanced-remove";
+      removeButton.textContent = "×";
+      removeButton.title = "删除这一行";
+
+      priceInput.addEventListener("input", () => {
+        row.price = Number(priceInput.value) || 0;
+        onChanged?.();
+      });
+      countInput.addEventListener("input", () => {
+        row.count = Math.max(0, Math.floor(Number(countInput.value) || 0));
+        onChanged?.();
+      });
+      addButton.addEventListener("click", onAdd);
+      removeButton.addEventListener("click", onRemove);
+
+      if (!isLast) addButton.hidden = true;
+      if (onlyRow) removeButton.disabled = true;
+
+      div.append(priceInput, times, countInput, addButton, removeButton);
+      return div;
+    }
+
+    function renderPriceRows(container, rows, onChanged) {
+      container.replaceChildren(...rows.map((row, index) => createPriceRowElement(row, {
+        isLast: index === rows.length - 1,
+        onlyRow: rows.length === 1,
+        onAdd: () => {
+          rows.push({ price: 0, count: 1 });
+          renderPriceRows(container, rows, onChanged);
+          onChanged?.();
+        },
+        onRemove: () => {
+          if (rows.length <= 1) return;
+          rows.splice(index, 1);
+          renderPriceRows(container, rows, onChanged);
+          onChanged?.();
+        },
+        onChanged,
+      })));
+    }
+
+    function renderFeeAdvancedRows(kind) {
+      const container = kind === "court" ? els.courtPriceRows : els.shuttlePriceRows;
+      renderPriceRows(container, state.advancedRows[kind], updatePaymentButton);
+    }
+
+    function renderAllFeeAdvancedRows() {
+      renderFeeAdvancedRows("court");
+      renderFeeAdvancedRows("shuttle");
+    }
+
+    function renderRecordAdvancedRows() {
+      renderPriceRows(els.recordCourtPriceRows, state.recordRows.court, null);
+      renderPriceRows(els.recordShuttlePriceRows, state.recordRows.shuttle, null);
+    }
+
+    function applyRecordFeeMode(advanced) {
+      els.recordBasicFeeFields.forEach((field) => { field.hidden = advanced; });
+      els.recordAdvancedArea.hidden = !advanced;
+      if (advanced) renderRecordAdvancedRows();
+    }
+
+    function getAdvancedTotals() {
+      const courtRows = state.advancedRows.court.filter((row) => row.count > 0);
+      const shuttleRows = state.advancedRows.shuttle.filter((row) => row.count > 0);
+      const courtFee = courtRows.reduce((sum, row) => sum + row.price * row.count, 0);
+      const courtCount = courtRows.reduce((sum, row) => sum + row.count, 0);
+      const shuttleCount = shuttleRows.reduce((sum, row) => sum + row.count, 0);
+      const shuttleCost = shuttleRows.reduce((sum, row) => sum + row.price * row.count, 0);
+      return {
+        courtFee,
+        courtCount,
+        shuttleCount,
+        shuttlePrice: shuttleCount ? shuttleCost / shuttleCount : 0,
+        courtRows,
+        shuttleRows,
+      };
+    }
+
+    function toggleFeeMode() {
+      if (state.feeMode === "basic") enterAdvancedFeeMode();
+      else exitAdvancedFeeMode();
+    }
+
+    function enterAdvancedFeeMode() {
+      const peopleCount = state.chainEntries.length;
+      const courts = getDefaultCourtCount(peopleCount);
+      const currentFee = Number(els.courtFeeInput.value) || 0;
+      const breakdown = courtPriceBreakdown({ courtCount: courts, courtFee: currentFee });
+      const courtRows = breakdown.length && !breakdown[0].fallback
+        ? breakdown
+        : [{ price: courts ? currentFee / courts : 0, count: courts || 1 }];
+      const shuttleCount = Math.max(0, Math.floor(Number(els.shuttleCountInput.value) || 0));
+      const shuttleRows = [{ price: Number(els.shuttlePriceInput.value) || 0, count: shuttleCount }];
+
+      state.advancedRows = { court: courtRows, shuttle: shuttleRows };
+      state.feeMode = "advanced";
+      state.advancedAutoDefaults = null;
+      els.feeBasicGrid.hidden = true;
+      els.feeAdvancedArea.hidden = false;
+      els.feeAdvancedBtn.textContent = "基础";
+      renderAllFeeAdvancedRows();
+      updatePaymentButton();
+    }
+
+    function exitAdvancedFeeMode() {
+      const totals = getAdvancedTotals();
+      els.courtFeeInput.value = formatCompactNumber(totals.courtFee);
+      els.shuttlePriceInput.value = formatCompactNumber(totals.shuttlePrice);
+      els.shuttleCountInput.value = String(totals.shuttleCount);
+      const courts = getDefaultCourtCount(state.chainEntries.length);
+      const matchesDefault = Math.abs(totals.courtFee - courts * 70) < 1e-9
+        && totals.shuttleCount === courts * 4;
+      state.autoFeeDefaults = matchesDefault ? { fee: courts * 70, shuttle: courts * 4 } : null;
+      state.feeMode = "basic";
+      state.advancedRows = { court: [], shuttle: [] };
+      els.feeAdvancedArea.hidden = true;
+      els.feeBasicGrid.hidden = false;
+      els.feeAdvancedBtn.textContent = "高级";
+      updatePaymentButton();
+    }
+
     function updateFeeDefaults(peopleCount) {
+      if (state.feeMode === "advanced") {
+        const courts = getDefaultCourtCount(Math.max(0, peopleCount));
+        const defaultShuttleCount = courts * 4;
+        const previous = state.advancedAutoDefaults;
+        const courtRows = state.advancedRows.court;
+        const shuttleRows = state.advancedRows.shuttle;
+        if (previous && courtRows.length) {
+          const first = courtRows[0];
+          if (first.price === 70 && first.count === previous.courts) {
+            first.count = courts;
+          }
+        }
+        if (previous && shuttleRows.length) {
+          const first = shuttleRows[0];
+          if (first.price === 11.3 && first.count === previous.shuttleCount) {
+            first.count = defaultShuttleCount;
+          }
+        }
+        state.advancedAutoDefaults = { courts, shuttleCount: defaultShuttleCount };
+        renderAllFeeAdvancedRows();
+        updatePaymentButton();
+        return;
+      }
       const courts = getDefaultCourtCount(Math.max(0, peopleCount));
       const newFee = courts * 70;
       const newShuttle = courts * 4;
@@ -5050,6 +5458,12 @@
     }
 
     function updatePaymentButton() {
+      if (state.feeMode === "advanced") {
+        const totals = getAdvancedTotals();
+        const hasShuttleRow = state.advancedRows.shuttle.length > 0;
+        els.paymentBtn.disabled = !(els.chainInput.value.trim() && totals.courtCount > 0 && hasShuttleRow);
+        return;
+      }
       const ready = Boolean(
         els.chainInput.value.trim() &&
         els.courtFeeInput.value.trim() &&
@@ -5078,15 +5492,64 @@
       render(els.paymentHeinekenSortBtn, "Hytronik");
     }
 
+    function renderPaymentCostSummary(advanced, courtRows, shuttleRows) {
+      els.paymentCostItems.forEach((item) => { item.hidden = advanced; });
+      els.paymentCostRows.hidden = !advanced;
+      if (!advanced) return;
+      const rows = [
+        ...courtRows.map((row) => ({ label: "场地费", text: `${formatCompactNumber(row.price)}元×${row.count}个` })),
+        ...shuttleRows.map((row) => ({ label: "球单价", text: `${formatCompactNumber(row.price)}元×${row.count}个` })),
+      ];
+      els.paymentCostRows.replaceChildren(...rows.map((row) => {
+        const div = document.createElement("div");
+        div.className = "payment-cost-row";
+        const span = document.createElement("span");
+        span.textContent = row.label;
+        const strong = document.createElement("strong");
+        strong.textContent = row.text;
+        div.append(span, strong);
+        return div;
+      }));
+    }
+
     function openPaymentModal() {
       processChain();
-      const courtFee = Number(els.courtFeeInput.value);
-      const shuttlePrice = Number(els.shuttlePriceInput.value);
-      const shuttleCount = Number(els.shuttleCountInput.value);
-      if (![courtFee, shuttlePrice, shuttleCount].every(Number.isFinite)) {
-        toast("费用和球数需要填写数字");
-        return;
+      const advanced = state.feeMode === "advanced";
+      let courtFee;
+      let shuttlePrice;
+      let shuttleCount;
+      let courtCount = null;
+      let courtRows = [];
+      let shuttleRows = [];
+
+      if (advanced) {
+        const totals = getAdvancedTotals();
+        if (totals.courtCount <= 0) {
+          toast("请至少填写一行有效的场地个数");
+          return;
+        }
+        courtFee = totals.courtFee;
+        shuttlePrice = totals.shuttlePrice;
+        shuttleCount = totals.shuttleCount;
+        courtCount = totals.courtCount;
+        courtRows = totals.courtRows;
+        shuttleRows = totals.shuttleRows;
+      } else {
+        courtFee = Number(els.courtFeeInput.value);
+        shuttlePrice = Number(els.shuttlePriceInput.value);
+        shuttleCount = Number(els.shuttleCountInput.value);
+        if (![courtFee, shuttlePrice, shuttleCount].every(Number.isFinite)) {
+          toast("费用和球数需要填写数字");
+          return;
+        }
+        const candidates = inferCourtCounts(courtFee);
+        if (candidates.length === 1) {
+          courtCount = candidates[0];
+          courtRows = deriveCourtRows(courtFee, courtCount);
+        }
+        if (shuttleCount > 0) shuttleRows = [{ price: shuttlePrice, count: shuttleCount }];
       }
+
       const result = calculatePayment(state.chainEntries, courtFee, shuttlePrice, shuttleCount);
       renderPaymentGroup(els.paymentFriends, result.groups.friends, {
         showTotal: true,
@@ -5108,6 +5571,7 @@
       els.paymentCourtFee.textContent = formatCompactNumber(courtFee);
       els.paymentShuttlePrice.textContent = formatCompactNumber(shuttlePrice);
       els.paymentShuttleCount.textContent = formatCompactNumber(shuttleCount);
+      renderPaymentCostSummary(advanced, courtRows, shuttleRows);
       els.paymentLedgerAmount.textContent = formatMoney(calculateLedgerAmount(result.groups, courtFee));
       const reportDate = state.pendingSessionEdit ? state.pendingSessionEdit.date : getLocalDateString();
       els.paymentReportDate.textContent = formatPaymentDate(reportDate);
@@ -5115,6 +5579,9 @@
         courtFee,
         shuttlePrice,
         shuttleCount,
+        courtCount,
+        courtPriceRows: courtRows,
+        shuttlePriceRows: shuttleRows,
         players: [...result.groups.friends, ...result.groups.heineken, ...result.groups.special].map((row) => ({
           playerId: row.playerId || null,
           playerName: row.name || "未知成员",
