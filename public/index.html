@@ -2002,7 +2002,7 @@
                 </div>
                 <div class="field">
                   <label for="shuttleCountInput">球个数</label>
-                  <input id="shuttleCountInput" inputmode="decimal" value="5" data-default-value="5" autocomplete="off">
+                  <input id="shuttleCountInput" inputmode="decimal" value="4" data-default-value="4" autocomplete="off">
                 </div>
               </div>
               <button id="paymentBtn" class="primary-btn" disabled>群收款</button>
@@ -2279,6 +2279,7 @@
       chainOutputText: "",
       chainLevelMode: IS_GITHUB_PAGES ? "group" : "exact",
       plusOverrides: {},
+      autoFeeDefaults: { fee: 70, shuttle: 4 },
       paymentSettingsEditor: {
         activeTab: "球友",
         joinNumbers: { "球友": [], "Hytronik": [] },
@@ -4487,6 +4488,13 @@
       els.courtFeeInput.value = formatCompactNumber(session.courtFee);
       els.shuttlePriceInput.value = formatCompactNumber(session.shuttlePrice);
       els.shuttleCountInput.value = String(session.shuttleCount);
+      const peopleCount = (session.players || []).reduce((sum, row) => sum + row.slots, 0);
+      const defaultCourts = getDefaultCourtCount(peopleCount);
+      const defaultFee = defaultCourts * 70;
+      const defaultShuttle = defaultCourts * 4;
+      state.autoFeeDefaults = (
+        Number(session.courtFee) === defaultFee && Number(session.shuttleCount) === defaultShuttle
+      ) ? { fee: defaultFee, shuttle: defaultShuttle } : null;
       processChain();
       closeModal("calendarModal");
       openModal("chainModal");
@@ -4503,7 +4511,10 @@
       els.chainInput.value = "";
       els.courtFeeInput.value = "70";
       els.shuttlePriceInput.value = "11.3";
-      els.shuttleCountInput.value = "5";
+      els.shuttleCountInput.value = "4";
+      els.courtFeeInput.dataset.defaultValue = "70";
+      els.shuttleCountInput.dataset.defaultValue = "4";
+      state.autoFeeDefaults = { fee: 70, shuttle: 4 };
       processChain();
       closeModal("calendarModal");
       openModal("chainModal");
@@ -4745,6 +4756,42 @@
       return concatUint8([...localParts, ...centralParts, end]);
     }
 
+    function getDefaultCourtCount(peopleCount) {
+      if (peopleCount <= 9) return 1;
+      if (peopleCount <= 14) return 2;
+      if (peopleCount <= 21) return 3;
+      if (peopleCount <= 28) return 4;
+      if (peopleCount <= 35) return 5;
+      if (peopleCount <= 42) return 6;
+      return 6 + Math.ceil((peopleCount - 42) / 7);
+    }
+
+    function updateFeeDefaults(peopleCount) {
+      const courts = getDefaultCourtCount(Math.max(0, peopleCount));
+      const newFee = courts * 70;
+      const newShuttle = courts * 4;
+      const previous = state.autoFeeDefaults;
+
+      const currentFeeRaw = els.courtFeeInput.value.trim();
+      const currentShuttleRaw = els.shuttleCountInput.value.trim();
+      const currentFee = currentFeeRaw === "" ? null : Number(currentFeeRaw);
+      const currentShuttle = currentShuttleRaw === "" ? null : Number(currentShuttleRaw);
+
+      const feeIsAuto = currentFee === null || (previous !== null && currentFee === previous.fee);
+      const shuttleIsAuto = currentShuttle === null || (previous !== null && currentShuttle === previous.shuttle);
+
+      if (feeIsAuto) {
+        els.courtFeeInput.value = String(newFee);
+        els.courtFeeInput.dataset.defaultValue = String(newFee);
+      }
+      if (shuttleIsAuto) {
+        els.shuttleCountInput.value = String(newShuttle);
+        els.shuttleCountInput.dataset.defaultValue = String(newShuttle);
+      }
+
+      state.autoFeeDefaults = { fee: newFee, shuttle: newShuttle };
+    }
+
     function processChain() {
       const aliasIndex = buildAliasIndex();
       const identityCounts = new Map();
@@ -4766,6 +4813,7 @@
       renderChainOutput(sorted);
       renderChainStats(sorted);
       state.chainEntries = entries;
+      updateFeeDefaults(entries.length);
       updatePaymentButton();
     }
 
