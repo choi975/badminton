@@ -5498,10 +5498,13 @@
       if (els.paymentModal.classList.contains("open")) openPaymentModal();
     }
 
-    function togglePaymentGroup(playerId) {
+    function togglePaymentGroup(playerId, currentGroup, kind) {
       const id = Number(playerId);
-      const current = state.paymentGroupOverrides[id];
-      state.paymentGroupOverrides[id] = current === "Hytronik" ? "球友" : "Hytronik";
+      if (kind === "dual") {
+        state.paymentGroupOverrides[id] = currentGroup === "friends" ? "Hytronik" : "球友";
+      } else {
+        state.paymentGroupOverrides[id] = currentGroup === "heineken" ? "特殊" : "Hytronik";
+      }
       if (els.paymentModal.classList.contains("open")) openPaymentModal();
     }
 
@@ -5577,12 +5580,13 @@
       }
 
       const result = calculatePayment(state.chainEntries, courtFee, shuttlePrice, shuttleCount);
-      [result.groups.friends, result.groups.heineken].forEach((rows) => {
+      [result.groups.friends, result.groups.heineken, result.groups.special].forEach((rows) => {
         rows.forEach((row) => {
           const player = row.playerId
             ? state.players.find((item) => Number(item.id) === Number(row.playerId))
             : null;
           row.dualGroup = Boolean(player && player.affiliation === "球友+Hytronik");
+          row.hytronikOnly = Boolean(player && player.affiliation === "Hytronik");
         });
       });
       renderPaymentGroup(els.paymentFriends, result.groups.friends, {
@@ -5598,6 +5602,7 @@
       renderPaymentGroup(els.paymentSpecial, result.groups.special, {
         showTotal: false,
         femaleCapApplied: result.femaleCapApplied,
+        group: "special",
       });
       els.paymentFriendsCard.hidden = result.groups.friends.length === 0;
       els.paymentHeinekenCard.hidden = result.groups.heineken.length === 0;
@@ -6047,6 +6052,7 @@
       const override = player?.id ? state.paymentGroupOverrides[Number(player.id)] : null;
       if (override === "球友") return "friends";
       if (override === "Hytronik") return "heineken";
+      if (override === "特殊") return "special";
       if (sharedPaymentGroup) return sharedPaymentGroup;
       if (hasPlayerAffiliation(player, "Hytronik")) return "heineken";
       return "friends";
@@ -6122,9 +6128,19 @@
           : `${paymentRowDisplayName(row)}：${formatMoney(row.amount)}`;
         line.append(main);
 
-        if (row.dualGroup && row.playerId) {
-          const currentLabel = group === "friends" ? "球友" : "Hytronik";
-          const nextLabel = group === "friends" ? "Hytronik" : "球友";
+        if (row.playerId && (row.dualGroup || row.hytronikOnly)) {
+          let currentLabel;
+          let nextLabel;
+          let kind;
+          if (row.dualGroup) {
+            kind = "dual";
+            currentLabel = group === "friends" ? "球友" : "Hytronik";
+            nextLabel = group === "friends" ? "Hytronik" : "球友";
+          } else {
+            kind = "hytronik";
+            currentLabel = group === "special" ? "特殊" : "Hytronik";
+            nextLabel = group === "special" ? "Hytronik" : "特殊";
+          }
           const toggle = document.createElement("button");
           toggle.type = "button";
           toggle.className = "payment-group-toggle";
@@ -6132,7 +6148,7 @@
           toggle.title = `当前${currentLabel}，点击切换到${nextLabel}`;
           toggle.setAttribute("aria-label", `把${paymentRowDisplayName(row)}切换到${nextLabel}`);
           toggle.setAttribute("data-html2canvas-ignore", "true");
-          toggle.addEventListener("click", () => togglePaymentGroup(row.playerId));
+          toggle.addEventListener("click", () => togglePaymentGroup(row.playerId, group, kind));
           line.append(toggle);
         }
 
