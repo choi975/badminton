@@ -1132,9 +1132,7 @@
     }
 
     .fee-grid[hidden],
-    .fee-advanced-area[hidden],
-    .payment-cost-rows[hidden],
-    .payment-cost-item[hidden] {
+    .fee-advanced-area[hidden] {
       display: none;
     }
 
@@ -1356,31 +1354,7 @@
       border-top: 1px dashed var(--line-strong);
     }
 
-    .payment-cost-item {
-      min-width: 0;
-      min-height: 20px;
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .payment-cost-item span {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 400;
-    }
-
-    .payment-cost-item strong {
-      overflow: hidden;
-      color: var(--text);
-      font-size: 13px;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .payment-cost-rows {
-      grid-column: 1 / -1;
+    .payment-cost-summary-lines {
       display: grid;
       gap: 2px;
     }
@@ -2177,19 +2151,7 @@
             </div>
             <div id="paymentSpecial" class="payment-content"></div>
             <div class="payment-cost-summary" aria-label="费用信息">
-              <div class="payment-cost-item">
-                <span>场地费</span>
-                <strong id="paymentCourtFee">0</strong>
-              </div>
-              <div class="payment-cost-item">
-                <span>球单价</span>
-                <strong id="paymentShuttlePrice">0</strong>
-              </div>
-              <div class="payment-cost-item">
-                <span>球个数</span>
-                <strong id="paymentShuttleCount">0</strong>
-              </div>
-              <div id="paymentCostRows" class="payment-cost-rows" hidden></div>
+              <div id="paymentCostSummary" class="payment-cost-summary-lines"></div>
             </div>
             <div class="payment-ledger-summary" data-html2canvas-ignore="true" aria-label="私人记账金额">
               <span>记账</span>
@@ -2501,11 +2463,7 @@
       paymentFriendsSortBtn: document.getElementById("paymentFriendsSortBtn"),
       paymentHeinekenSortBtn: document.getElementById("paymentHeinekenSortBtn"),
       paymentSpecial: document.getElementById("paymentSpecial"),
-      paymentCourtFee: document.getElementById("paymentCourtFee"),
-      paymentShuttlePrice: document.getElementById("paymentShuttlePrice"),
-      paymentShuttleCount: document.getElementById("paymentShuttleCount"),
-      paymentCostRows: document.getElementById("paymentCostRows"),
-      paymentCostItems: [...document.querySelectorAll(".payment-cost-item")],
+      paymentCostSummary: document.getElementById("paymentCostSummary"),
       paymentLedgerAmount: document.getElementById("paymentLedgerAmount"),
       paymentReportDate: document.getElementById("paymentReportDate"),
       paymentSettingsModal: document.getElementById("paymentSettingsModal"),
@@ -5121,6 +5079,7 @@
         courtFee,
         courtCount,
         shuttleCount,
+        shuttleCost,
         shuttlePrice: shuttleCount ? shuttleCost / shuttleCount : 0,
         courtRows,
         shuttleRows,
@@ -5521,15 +5480,31 @@
       render(els.paymentHeinekenSortBtn, "Hytronik");
     }
 
-    function renderPaymentCostSummary(advanced, courtRows, shuttleRows) {
-      els.paymentCostItems.forEach((item) => { item.hidden = advanced; });
-      els.paymentCostRows.hidden = !advanced;
-      if (!advanced) return;
-      const rows = [
-        ...courtRows.map((row) => ({ label: "场地费", text: `${formatCompactNumber(row.price)}元×${row.count}个` })),
-        ...shuttleRows.map((row) => ({ label: "球单价", text: `${formatCompactNumber(row.price)}元×${row.count}个` })),
+    function renderPaymentCostSummary(courtFee, courtRows, shuttleRows, shuttleCost, payerCount) {
+      const courtParts = courtRows.length
+        ? courtRows.map((row) => `${formatCompactNumber(row.price)}元*${row.count}个`).join("+")
+        : "";
+      const shuttleParts = shuttleRows.length
+        ? shuttleRows.map((row) => `${formatCompactNumber(row.price)}元*${row.count}个`).join("+")
+        : "";
+      const courtText = courtParts
+        ? `${courtParts}=${formatCompactNumber(courtFee)}元`
+        : `${formatCompactNumber(courtFee)}元`;
+      const shuttleText = shuttleParts
+        ? `${shuttleParts}=${formatCompactNumber(shuttleCost)}元`
+        : `${formatCompactNumber(shuttleCost)}元`;
+      const totalCost = courtFee + shuttleCost;
+      const perPerson = payerCount > 0 ? totalCost / payerCount : 0;
+      const personText = payerCount > 0
+        ? `（${formatCompactNumber(courtFee)} + ${formatCompactNumber(shuttleCost)}）/ ${payerCount} = ${formatMoney(perPerson)}元`
+        : "（...）/ 0 = -";
+
+      const lines = [
+        { label: "场地费", text: courtText },
+        { label: "球费", text: shuttleText },
+        { label: "人均", text: personText },
       ];
-      els.paymentCostRows.replaceChildren(...rows.map((row) => {
+      els.paymentCostSummary.replaceChildren(...lines.map((row) => {
         const div = document.createElement("div");
         div.className = "payment-cost-row";
         const span = document.createElement("span");
@@ -5547,6 +5522,7 @@
       let courtFee;
       let shuttlePrice;
       let shuttleCount;
+      let shuttleCost = 0;
       let courtCount = null;
       let courtRows = [];
       let shuttleRows = [];
@@ -5560,6 +5536,7 @@
         courtFee = totals.courtFee;
         shuttlePrice = totals.shuttlePrice;
         shuttleCount = totals.shuttleCount;
+        shuttleCost = totals.shuttleCost;
         courtCount = totals.courtCount;
         courtRows = totals.courtRows;
         shuttleRows = totals.shuttleRows;
@@ -5577,6 +5554,7 @@
           courtRows = deriveCourtRows(courtFee, courtCount);
         }
         if (shuttleCount > 0) shuttleRows = [{ price: shuttlePrice, count: shuttleCount }];
+        shuttleCost = shuttlePrice * shuttleCount;
       }
 
       const result = calculatePayment(state.chainEntries, courtFee, shuttlePrice, shuttleCount);
@@ -5609,10 +5587,7 @@
       const visibleGroupCount = 1 + Number(!els.paymentFriendsCard.hidden) + Number(!els.paymentHeinekenCard.hidden);
       els.paymentDialog.dataset.groupCount = String(visibleGroupCount);
       els.paymentReport.dataset.groupCount = String(visibleGroupCount);
-      els.paymentCourtFee.textContent = formatCompactNumber(courtFee);
-      els.paymentShuttlePrice.textContent = formatCompactNumber(shuttlePrice);
-      els.paymentShuttleCount.textContent = formatCompactNumber(shuttleCount);
-      renderPaymentCostSummary(advanced, courtRows, shuttleRows);
+      renderPaymentCostSummary(courtFee, courtRows, shuttleRows, shuttleCost, result.payerCount);
       els.paymentLedgerAmount.textContent = formatMoney(calculateLedgerAmount(result.groups, courtFee));
       const reportDate = state.pendingSessionEdit ? state.pendingSessionEdit.date : getLocalDateString();
       els.paymentReportDate.textContent = formatPaymentDate(reportDate);
