@@ -5480,7 +5480,7 @@
       render(els.paymentHeinekenSortBtn, "Hytronik");
     }
 
-    function renderPaymentCostSummary(courtFee, courtRows, shuttleRows, shuttleCost, payerCount) {
+    function renderPaymentCostSummary(courtFee, courtRows, shuttleRows, shuttleCost, payerCount, femaleCount, maleCount, femaleCapApplied) {
       const courtParts = courtRows.length
         ? courtRows.map((row) => `${formatCompactNumber(row.price)}元*${row.count}个`).join("+")
         : "";
@@ -5495,15 +5495,26 @@
         : `${formatCompactNumber(shuttleCost)}元`;
       const totalCost = courtFee + shuttleCost;
       const perPerson = payerCount > 0 ? totalCost / payerCount : 0;
-      const personText = payerCount > 0
-        ? `（${formatCompactNumber(courtFee)} + ${formatCompactNumber(shuttleCost)}）/ ${payerCount} = ${formatMoney(perPerson)}元`
-        : "（...）/ 0 = -";
-
       const lines = [
         { label: "场地费", text: courtText },
         { label: "球费", text: shuttleText },
-        { label: "人均", text: personText },
       ];
+      if (femaleCapApplied && femaleCount > 0 && maleCount > 0) {
+        const malePerPerson = ceilOneDecimal((totalCost - FEMALE_PAYMENT_CAP * femaleCount) / maleCount);
+        lines.push({ label: "女性", text: `${FEMALE_PAYMENT_CAP}元` });
+        lines.push({
+          label: "男性",
+          text: `（${formatCompactNumber(courtFee)} + ${formatCompactNumber(shuttleCost)} - ${FEMALE_PAYMENT_CAP}*${femaleCount}）/ ${maleCount} ≈ ${formatMoney(malePerPerson)}元`,
+        });
+      } else {
+        const roundedPerPerson = ceilOneDecimal(perPerson);
+        lines.push({
+          label: "人均",
+          text: payerCount > 0
+            ? `（${formatCompactNumber(courtFee)} + ${formatCompactNumber(shuttleCost)}）/ ${payerCount} ≈ ${formatMoney(roundedPerPerson)}元`
+            : "（...）/ 0 ≈ -",
+        });
+      }
       els.paymentCostSummary.replaceChildren(...lines.map((row) => {
         const div = document.createElement("div");
         div.className = "payment-cost-row";
@@ -5587,7 +5598,16 @@
       const visibleGroupCount = 1 + Number(!els.paymentFriendsCard.hidden) + Number(!els.paymentHeinekenCard.hidden);
       els.paymentDialog.dataset.groupCount = String(visibleGroupCount);
       els.paymentReport.dataset.groupCount = String(visibleGroupCount);
-      renderPaymentCostSummary(courtFee, courtRows, shuttleRows, shuttleCost, result.payerCount);
+      renderPaymentCostSummary(
+        courtFee,
+        courtRows,
+        shuttleRows,
+        shuttleCost,
+        result.payerCount,
+        result.femaleCount,
+        result.maleCount,
+        result.femaleCapApplied
+      );
       els.paymentLedgerAmount.textContent = formatMoney(calculateLedgerAmount(result.groups, courtFee));
       const reportDate = state.pendingSessionEdit ? state.pendingSessionEdit.date : getLocalDateString();
       els.paymentReportDate.textContent = formatPaymentDate(reportDate);
