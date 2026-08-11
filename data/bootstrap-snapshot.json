@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-11T07:02:45.860Z",
+  "generatedAt": "2026-08-11T16:12:51.581Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -1342,6 +1342,110 @@
       ]
     },
     "sessions": [
+      {
+        "id": 8,
+        "date": "2026-08-01",
+        "courtCount": 2,
+        "courtFee": 140,
+        "shuttlePrice": 11.3,
+        "shuttleCount": 5,
+        "courtPriceRows": [
+          {
+            "price": 70,
+            "count": 2
+          }
+        ],
+        "shuttlePriceRows": [
+          {
+            "price": 11.3,
+            "count": 5
+          }
+        ],
+        "players": [
+          {
+            "playerId": 9,
+            "playerName": "柚子🍀",
+            "slots": 2,
+            "plusCount": 1,
+            "amount": 30.4,
+            "isFemale": true
+          },
+          {
+            "playerId": 19,
+            "playerName": "FENG",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 15.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 45,
+            "playerName": "吕教",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 15.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 10,
+            "playerName": "🌹",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 15.2,
+            "isFemale": true
+          },
+          {
+            "playerId": 53,
+            "playerName": "oi",
+            "slots": 3,
+            "plusCount": 2,
+            "amount": 45.6,
+            "isFemale": false
+          },
+          {
+            "playerId": 73,
+            "playerName": "果花",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 15.2,
+            "isFemale": true
+          },
+          {
+            "playerId": 1,
+            "playerName": "达哥",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 15.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 27,
+            "playerName": "孙子城",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 15.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 29,
+            "playerName": "listen",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 15.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 51,
+            "playerName": "choi",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 15.2,
+            "isFemale": false
+          }
+        ],
+        "createdAt": "2026-08-11 07:24:34",
+        "updatedAt": "2026-08-11 09:59:17"
+      },
       {
         "id": 4,
         "date": "2026-08-04",
