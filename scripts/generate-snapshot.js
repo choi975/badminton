@@ -85,7 +85,7 @@ const sessions = sessionRows.map((row) => {
 
 const snapshot = {
   generatedAt: new Date().toISOString(),
-  source: "Cloudflare D1: Badminton-level",
+  source: "Cloudflare D1: Badminton",
   data: { players, levelDescriptions, levelGuideRaw, groupJoinNumbers, paymentOrders, sessions },
 };
 

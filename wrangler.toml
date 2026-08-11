@@ -1,4 +1,4 @@
-name = "badminton-level"
+name = "badminton"
 main = "src/worker.js"
 compatibility_date = "2026-07-09"
 
@@ -9,10 +9,10 @@ fallthrough = true
 
 [[d1_databases]]
 binding = "DB"
-database_name = "Badminton-level"
-database_id = "5715c3ab-3575-473b-ad5e-601d78eaaee1"
+database_name = "Badminton"
+database_id = "9bcf9305-121d-423a-a87a-d225aa2bf5cc"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
 binding = "PHOTOS"
-bucket_name = "badminton-level-photos"
+bucket_name = "badminton-photos"

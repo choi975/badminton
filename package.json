@@ -1,5 +1,5 @@
 {
-  "name": "badminton-level",
+  "name": "badminton",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "build:fresh": "npm run snapshot && npm run build",
     "dev": "npm run build && wrangler dev",
     "deploy": "npm run build:fresh && wrangler deploy",
-    "d1:create": "wrangler d1 create Badminton-level",
+    "d1:create": "wrangler d1 create Badminton",
     "d1:migrate:local": "wrangler d1 migrations apply DB --local",
     "d1:migrate:remote": "wrangler d1 migrations apply DB --remote"
   },

@@ -1,22 +1,19 @@
-# 中羽等级
+# 羽球助手
 
 这是一个用于组织羽毛球局的单页应用。前端入口是 `index.html`，数据保存在 Cloudflare D1，并提供 GitHub Pages 只读备用入口。
 
 ## 线上地址
 
-- 管理版：https://badminton-level.choi975.workers.dev
-- 备用版：https://choi975.github.io/badminton-level/
+- 管理版：https://badminton.choi975.workers.dev
+- 备用版：https://choi975.github.io/badminton/
 
 管理版优先读取 D1，断网时自动降级到浏览器缓存或随代码发布的数据快照并进入只读状态。备用版始终只读，默认打开接龙助手并隐藏数据库。
 
 ## Cloudflare 资源
 
-- Worker: `badminton-level`
-- D1: `Badminton-level`
-- D1 ID: `5715c3ab-3575-473b-ad5e-601d78eaaee1`
-- R2: `badminton-level-photos`（成员照片）
-
-说明：Cloudflare D1 数据库名不允许空格，所以实际创建名为 `Badminton-level`。
+- Worker: `badminton`
+- D1: `Badminton`
+- R2: `badminton-photos`（成员照片）
 
 ## 常用命令
 

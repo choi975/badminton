@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>中羽等级</title>
+  <title>羽球助手</title>
   <style>
     :root {
       --bg: #f2f6f5;
@@ -1980,7 +1980,7 @@
       <div class="brand">
         <div class="brand-mark">羽</div>
         <div>
-          <h1>中羽等级</h1>
+          <h1>羽球助手</h1>
           <div class="data-status-row">
             <div id="syncState" class="sync-state">连接中</div>
             <button id="retryConnectionBtn" class="retry-connection-btn" type="button" title="重试连接云端" aria-label="重试连接云端" hidden>↻</button>
@@ -2011,7 +2011,7 @@
         </div>
       </section>
 
-      <section class="table-wrap" aria-label="中羽等级表格">
+      <section class="table-wrap" aria-label="羽球助手表格">
         <table id="playerTable">
           <thead id="tableHead"></thead>
           <tbody id="tableBody"></tbody>
@@ -2331,11 +2331,11 @@
     const FEMALE_PAYMENT_CAP = 25;
     const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
-    const REMOTE_API_BASE = "https://badminton-level.choi975.workers.dev";
-    const IS_GITHUB_PAGES = location.hostname === "choi975.github.io" && location.pathname.startsWith("/badminton-level");
-    const IS_WORKER_APP = location.hostname === "badminton-level.choi975.workers.dev"
+    const REMOTE_API_BASE = "https://badminton.choi975.workers.dev";
+    const IS_GITHUB_PAGES = location.hostname === "choi975.github.io" && location.pathname.startsWith("/badminton");
+    const IS_WORKER_APP = location.hostname === "badminton.choi975.workers.dev"
       || ["127.0.0.1", "localhost"].includes(location.hostname);
-    const BOOTSTRAP_CACHE_KEY = "badminton-level-bootstrap-cache-v2";
+    const BOOTSTRAP_CACHE_KEY = "badminton-bootstrap-cache-v3";
     const SNAPSHOT_URL = new URL("./bootstrap-snapshot.json", location.href).href;
     const shouldOpenRemoteApp = location.protocol === "file:" && !new URLSearchParams(location.search).has("local");
 
@@ -4871,7 +4871,7 @@
       const blob = new Blob([createXlsx(rows)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `中羽等级-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      link.download = `羽球助手-${new Date().toISOString().slice(0, 10)}.xlsx`;
       document.body.append(link);
       link.click();
       link.remove();
@@ -4896,7 +4896,7 @@
       const files = [
         { name: "[Content_Types].xml", content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>` },
         { name: "_rels/.rels", content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
-        { name: "xl/workbook.xml", content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="中羽等级" sheetId="1" r:id="rId1"/></sheets></workbook>` },
+        { name: "xl/workbook.xml", content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="羽球助手" sheetId="1" r:id="rId1"/></sheets></workbook>` },
         { name: "xl/_rels/workbook.xml.rels", content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>` },
         { name: "xl/worksheets/sheet1.xml", content: worksheet },
       ];
