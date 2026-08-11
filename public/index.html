@@ -1837,6 +1837,7 @@
     }
 
     .calendar-day {
+      position: relative;
       display: grid;
       grid-template-rows: auto 1fr;
       min-height: 64px;
@@ -1874,11 +1875,14 @@
     }
 
     .calendar-day-badge {
-      align-self: center;
-      justify-self: center;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      max-width: 100%;
+      transform: translate(-50%, -50%);
       overflow: hidden;
       color: var(--accent-dark);
-      font-size: 15px;
+      font-size: 18px;
       font-weight: 700;
       text-overflow: ellipsis;
       white-space: nowrap;
