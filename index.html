@@ -1780,8 +1780,8 @@
     }
 
     .calendar-month-label {
-      min-width: 130px;
-      font-size: 17px;
+      min-width: 250px;
+      font-size: 16px;
       text-align: center;
     }
 
@@ -1836,6 +1836,32 @@
       user-select: none;
     }
 
+    .calendar-months {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+      user-select: none;
+    }
+
+    .calendar-month-block {
+      min-width: 0;
+    }
+
+    .calendar-month-title {
+      margin: 0 0 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      .calendar-months {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .calendar-day {
       position: relative;
       display: grid;
@@ -1857,24 +1883,6 @@
 
     .calendar-day.empty {
       opacity: 0;
-    }
-
-    .calendar-day.ghost {
-      background: #f7faf9;
-      border-color: #e4ebe9;
-      opacity: 0.62;
-    }
-
-    .calendar-day.ghost.today {
-      opacity: 1;
-    }
-
-    .calendar-day.ghost.selected {
-      opacity: 0.85;
-    }
-
-    .calendar-day.ghost .calendar-day-number {
-      color: var(--muted);
     }
 
     .calendar-day.today {
@@ -2253,13 +2261,10 @@
           <button id="calendarTodayBtn" type="button">今天</button>
         </div>
         <div class="calendar-summary">
-          <span id="calendarSelectionText">本月：0 个场</span>
+          <span id="calendarSelectionText">两月：0 个场</span>
         </div>
         <div class="calendar-hint">滚动切换月份 · 单击日期查看当天记录 · Ctrl/Shift/拖动可多选</div>
-        <div class="calendar-weekday-row" aria-hidden="true">
-          <span>周一</span><span>周二</span><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>周日</span>
-        </div>
-        <div id="calendarGrid" class="calendar-grid"></div>
+        <div id="calendarMonths" class="calendar-months"></div>
         <section class="calendar-day-panel">
           <div class="calendar-day-head">
             <h3 id="calendarDayTitle">选择日期查看详情</h3>
@@ -2451,7 +2456,7 @@
       calendarTodayBtn: document.getElementById("calendarTodayBtn"),
       calendarMonthLabel: document.getElementById("calendarMonthLabel"),
       calendarSelectionText: document.getElementById("calendarSelectionText"),
-      calendarGrid: document.getElementById("calendarGrid"),
+      calendarMonths: document.getElementById("calendarMonths"),
       calendarDayTitle: document.getElementById("calendarDayTitle"),
       calendarDayRecords: document.getElementById("calendarDayRecords"),
       chainBtn: document.getElementById("chainBtn"),
@@ -2752,12 +2757,14 @@
       });
 
       document.addEventListener("mouseup", endCalendarDrag);
-      els.calendarGrid.addEventListener("mousemove", handleCalendarDragMove);
+      els.calendarMonths.addEventListener("mousemove", handleCalendarDragMove);
       let calendarWheelAcc = 0;
-      els.calendarGrid.addEventListener(
+      els.calendarMonths.addEventListener(
         "wheel",
         (event) => {
           if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+          const columns = getComputedStyle(els.calendarMonths).gridTemplateColumns.trim().split(/\s+/).filter(Boolean);
+          if (columns.length < 2) return;
           event.preventDefault();
           const amount =
             event.deltaMode === 1 ? event.deltaY * 16 : event.deltaMode === 2 ? event.deltaY * 100 : event.deltaY;
@@ -4345,8 +4352,12 @@
       const selection = state.calendar.selectedDates;
       if (!selection.length) {
         const { year, month } = state.calendar;
-        const monthPrefix = `${year}-${String(month).padStart(2, "0")}`;
-        return state.sessions.filter((session) => session.date.startsWith(monthPrefix));
+        const prevDate = new Date(year, month - 2, 1);
+        const prefixes = [
+          `${year}-${String(month).padStart(2, "0")}`,
+          `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`,
+        ];
+        return state.sessions.filter((session) => prefixes.some((prefix) => session.date.startsWith(prefix)));
       }
       const selectionSet = new Set(selection);
       return state.sessions.filter((session) => selectionSet.has(session.date));
@@ -4363,38 +4374,6 @@
         current.setDate(current.getDate() + 1);
       }
       return result;
-    }
-
-    function getCalendarCellPosition(dateString) {
-      const { year, month } = state.calendar;
-      const date = parseLocalDate(dateString);
-      const first = new Date(year, month - 1, 1);
-      const offset = (first.getDay() + 6) % 7;
-      const index = date.getDate() - 1 + offset;
-      return { row: Math.floor(index / 7), col: index % 7 };
-    }
-
-    function datesInDragRect(startDate, endDate) {
-      const start = getCalendarCellPosition(startDate);
-      const end = getCalendarCellPosition(endDate);
-      const minRow = Math.min(start.row, end.row);
-      const maxRow = Math.max(start.row, end.row);
-      const minCol = Math.min(start.col, end.col);
-      const maxCol = Math.max(start.col, end.col);
-      const { year, month } = state.calendar;
-      const daysInMonth = new Date(year, month, 0).getDate();
-      const first = new Date(year, month - 1, 1);
-      const offset = (first.getDay() + 6) % 7;
-      const result = [];
-      for (let day = 1; day <= daysInMonth; day++) {
-        const index = day - 1 + offset;
-        const row = Math.floor(index / 7);
-        const col = index % 7;
-        if (row >= minRow && row <= maxRow && col >= minCol && col <= maxCol) {
-          result.push(getLocalDateString(new Date(year, month - 1, day)));
-        }
-      }
-      return result.sort();
     }
 
     function toggleCalendarDate(dateString) {
@@ -4431,29 +4410,67 @@
       if (!dateString || dateString === state.calendar.lastDragDate) return;
       state.calendar.lastDragDate = dateString;
       state.calendar.moved = true;
-      state.calendar.selectedDates = datesInDragRect(state.calendar.dragStart, dateString);
+      state.calendar.selectedDates = dateStringsBetween(state.calendar.dragStart, dateString);
       state.calendar.anchorDate = dateString;
       renderCalendar();
     }
 
     function renderCalendar() {
       const { year, month, selectedDates } = state.calendar;
-      els.calendarMonthLabel.textContent = `${year}年${month}月`;
-      const firstDay = new Date(year, month - 1, 1);
-      const startOffset = (firstDay.getDay() + 6) % 7;
-      const daysInMonth = new Date(year, month, 0).getDate();
-      const prevDaysInMonth = new Date(year, month - 1, 0).getDate();
-      const cells = [];
-      for (let i = startOffset - 1; i >= 0; i--) cells.push(new Date(year, month - 2, prevDaysInMonth - i));
-      for (let day = 1; day <= daysInMonth; day++) cells.push(new Date(year, month - 1, day));
-      const trailing = (7 - (cells.length % 7)) % 7;
-      for (let day = 1; day <= trailing; day++) cells.push(new Date(year, month, day));
+      const prevDate = new Date(year, month - 2, 1);
+      const prevYear = prevDate.getFullYear();
+      const prevMonth = prevDate.getMonth() + 1;
+      els.calendarMonthLabel.textContent = `${prevYear}年${prevMonth}月 – ${year}年${month}月`;
 
-      const todayString = getLocalDateString();
       const fragment = document.createDocumentFragment();
-      cells.forEach((date) => {
+      fragment.append(buildCalendarMonthBlock(prevYear, prevMonth));
+      fragment.append(buildCalendarMonthBlock(year, month));
+      els.calendarMonths.replaceChildren(fragment);
+      renderCalendarSelection();
+      renderCalendarDayPanel();
+    }
+
+    function buildCalendarMonthBlock(blockYear, blockMonth) {
+      const block = document.createElement("section");
+      block.className = "calendar-month-block";
+
+      const title = document.createElement("div");
+      title.className = "calendar-month-title";
+      title.textContent = `${blockYear}年${blockMonth}月`;
+      block.append(title);
+
+      const weekdayRow = document.createElement("div");
+      weekdayRow.className = "calendar-weekday-row";
+      weekdayRow.setAttribute("aria-hidden", "true");
+      for (const name of ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]) {
+        const span = document.createElement("span");
+        span.textContent = name;
+        weekdayRow.append(span);
+      }
+      block.append(weekdayRow);
+
+      const grid = document.createElement("div");
+      grid.className = "calendar-grid";
+      const firstDay = new Date(blockYear, blockMonth - 1, 1);
+      const startOffset = (firstDay.getDay() + 6) % 7;
+      const daysInMonth = new Date(blockYear, blockMonth, 0).getDate();
+      const todayString = getLocalDateString();
+      const selectedDates = state.calendar.selectedDates;
+      const clearSelection = () => {
+        state.calendar.selectedDates = [];
+        state.calendar.anchorDate = "";
+        renderCalendar();
+      };
+
+      for (let i = 0; i < startOffset; i++) {
+        const empty = document.createElement("div");
+        empty.className = "calendar-day empty";
+        empty.addEventListener("click", clearSelection);
+        grid.append(empty);
+      }
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(blockYear, blockMonth - 1, day);
         const dateString = getLocalDateString(date);
-        const ghost = date.getFullYear() !== year || date.getMonth() + 1 !== month;
         const daySessions = getSessionsOnDate(dateString);
         const courts = daySessions.reduce((sum, session) => sum + session.courtCount, 0);
         const button = document.createElement("button");
@@ -4462,11 +4479,10 @@
         button.dataset.date = dateString;
         button.classList.toggle("today", dateString === todayString);
         button.classList.toggle("selected", selectedDates.includes(dateString));
-        button.classList.toggle("ghost", ghost);
         button.setAttribute("aria-label", `${dateString}${courts ? `，${courts}个场` : ""}`);
         const number = document.createElement("span");
         number.className = "calendar-day-number";
-        number.textContent = String(date.getDate());
+        number.textContent = String(day);
         button.append(number);
         if (courts > 0) {
           const badge = document.createElement("span");
@@ -4496,20 +4512,40 @@
         button.addEventListener("dblclick", () => {
           if (!daySessions.length) openChainForNewDate(dateString);
         });
-        fragment.append(button);
-      });
-      els.calendarGrid.replaceChildren(fragment);
-      renderCalendarSelection();
-      renderCalendarDayPanel();
+        grid.append(button);
+      }
+      const trailing = (7 - ((startOffset + daysInMonth) % 7)) % 7;
+      for (let i = 0; i < trailing; i++) {
+        const empty = document.createElement("div");
+        empty.className = "calendar-day empty";
+        empty.addEventListener("click", clearSelection);
+        grid.append(empty);
+      }
+      block.append(grid);
+      return block;
     }
 
     function renderCalendarSelection() {
       const selection = state.calendar.selectedDates;
       const sessions = getSessionsForSelection();
       const totalCourts = sessions.reduce((sum, session) => sum + session.courtCount, 0);
-      els.calendarSelectionText.textContent = selection.length
-        ? `选中 ${selection.length} 天：${totalCourts} 个场`
-        : `本月：${totalCourts} 个场`;
+      if (selection.length) {
+        els.calendarSelectionText.textContent = `选中 ${selection.length} 天：${totalCourts} 个场`;
+        return;
+      }
+      const { year, month } = state.calendar;
+      const prevDate = new Date(year, month - 2, 1);
+      const prevYear = prevDate.getFullYear();
+      const prevMonth = prevDate.getMonth() + 1;
+      const courtsOf = (blockYear, blockMonth) => {
+        const prefix = `${blockYear}-${String(blockMonth).padStart(2, "0")}`;
+        return state.sessions
+          .filter((session) => session.date.startsWith(prefix))
+          .reduce((sum, session) => sum + session.courtCount, 0);
+      };
+      els.calendarSelectionText.textContent =
+        `${prevYear}年${prevMonth}月：${courtsOf(prevYear, prevMonth)} 个场 · ` +
+        `${year}年${month}月：${courtsOf(year, month)} 个场`;
     }
 
     function renderCalendarDayPanel() {
@@ -4539,11 +4575,11 @@
         els.calendarDayRecords.replaceChildren(...sessions.map(createCalendarRecordCard));
         return;
       }
-      els.calendarDayTitle.textContent = selection.length ? `选中 ${selection.length} 天` : "本月合计";
+      els.calendarDayTitle.textContent = selection.length ? `选中 ${selection.length} 天` : "两月合计";
       if (!sessions.length) {
         const empty = document.createElement("div");
         empty.className = "empty-hint";
-        empty.textContent = selection.length ? "所选日期没有订场记录" : "本月没有订场记录";
+        empty.textContent = selection.length ? "所选日期没有订场记录" : "两月没有订场记录";
         els.calendarDayRecords.replaceChildren(empty);
         return;
       }
