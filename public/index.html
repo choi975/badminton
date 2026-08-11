@@ -2320,8 +2320,8 @@
     const AFFILIATIONS = ["球友", "Hytronik", "球友+Hytronik", "特殊"];
     const CHAIN_NUMBER_PREFIX = /^\s*\d+\s*[\.、\):：-]\s*/;
     const PLUS_LEVEL_LABELS = [["比赛级高手", "5级"], ["新手", "2级"], ["中手", "3级"], ["高手", "4级"]];
-    const PLUS_LEVEL_OPTIONS = [
-      { label: "不详", level: "不详", text: "不详" },
+    const PLUS_GROUP_LEVEL_OPTIONS = [
+      { label: "不详", level: "不详", text: "等级不详" },
       { label: "新手", level: "2级", text: "新手（2级）" },
       { label: "中手", level: "3级", text: "中手（3级）" },
       { label: "高手", level: "4级", text: "高手（4级）" },
@@ -5336,7 +5336,7 @@
       const levelSelect = document.createElement("select");
       levelSelect.className = "inline-level-select";
       levelSelect.setAttribute("aria-label", `${getChainEntryBaseName(entry)}的水平`);
-      levelSelect.replaceChildren(...PLUS_LEVEL_OPTIONS.map((option) => {
+      levelSelect.replaceChildren(...getInlinePlusLevelOptions().map((option) => {
         const element = document.createElement("option");
         element.value = option.label;
         element.textContent = option.text;
@@ -5349,12 +5349,21 @@
       return controls;
     }
 
+    function getInlinePlusLevelOptions() {
+      if (state.chainLevelMode === "group") return PLUS_GROUP_LEVEL_OPTIONS;
+      return [
+        { label: "不详", level: "不详", text: "等级不详" },
+        ...LEVELS.filter((level) => level !== "不详").map((level) => ({ label: level, level, text: level })),
+      ];
+    }
+
     function getInlinePlusLevelLabel(entry) {
-      if (entry.levelGroupLabel && PLUS_LEVEL_OPTIONS.some((option) => option.label === entry.levelGroupLabel)) {
-        return entry.levelGroupLabel;
-      }
-      const exactMatch = PLUS_LEVEL_OPTIONS.find((option) => option.level === entry.levelText);
-      return exactMatch?.label || getLevelGroupLabel(entry.levelText);
+      const options = getInlinePlusLevelOptions();
+      const currentLabel = state.chainLevelMode === "group"
+        ? (entry.levelGroupLabel || getLevelGroupLabel(entry.levelText))
+        : entry.levelText;
+      const option = options.find((item) => item.label === currentLabel || item.level === currentLabel);
+      return option?.label || "不详";
     }
 
     function setInlinePlusGender(overrideKey, gender) {
@@ -5370,11 +5379,11 @@
 
     function setInlinePlusLevel(overrideKey, label) {
       const entry = state.chainEntries.find((item) => item.overrideKey === overrideKey);
-      const option = PLUS_LEVEL_OPTIONS.find((item) => item.label === label);
+      const option = getInlinePlusLevelOptions().find((item) => item.label === label);
       if (!entry || !option) return;
       state.plusOverrides[overrideKey] = {
         levelText: option.level,
-        levelGroupLabel: option.label,
+        levelGroupLabel: getLevelGroupLabel(option.level),
         gender: entry.gender,
       };
       processChain();
