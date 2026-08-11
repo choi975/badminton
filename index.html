@@ -1859,6 +1859,24 @@
       opacity: 0;
     }
 
+    .calendar-day.ghost {
+      background: #f7faf9;
+      border-color: #e4ebe9;
+      opacity: 0.62;
+    }
+
+    .calendar-day.ghost.today {
+      opacity: 1;
+    }
+
+    .calendar-day.ghost.selected {
+      opacity: 0.85;
+    }
+
+    .calendar-day.ghost .calendar-day-number {
+      color: var(--muted);
+    }
+
     .calendar-day.today {
       border-color: var(--accent);
     }
@@ -2237,7 +2255,7 @@
         <div class="calendar-summary">
           <span id="calendarSelectionText">本月：0 个场</span>
         </div>
-        <div class="calendar-hint">单击日期查看当天记录 · Ctrl/Shift/拖动可多选 · 单击空白处返回本月</div>
+        <div class="calendar-hint">滚动切换月份 · 单击日期查看当天记录 · Ctrl/Shift/拖动可多选</div>
         <div class="calendar-weekday-row" aria-hidden="true">
           <span>周一</span><span>周二</span><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>周日</span>
         </div>
@@ -2735,6 +2753,22 @@
 
       document.addEventListener("mouseup", endCalendarDrag);
       els.calendarGrid.addEventListener("mousemove", handleCalendarDragMove);
+      let calendarWheelAcc = 0;
+      els.calendarGrid.addEventListener(
+        "wheel",
+        (event) => {
+          if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+          event.preventDefault();
+          const amount =
+            event.deltaMode === 1 ? event.deltaY * 16 : event.deltaMode === 2 ? event.deltaY * 100 : event.deltaY;
+          calendarWheelAcc += amount;
+          if (Math.abs(calendarWheelAcc) >= 60) {
+            calendarWheelAcc = 0;
+            shiftCalendarMonth(Math.sign(amount));
+          }
+        },
+        { passive: false },
+      );
       document.addEventListener("keydown", handleGlobalKeydown);
     }
 
@@ -4408,26 +4442,18 @@
       const firstDay = new Date(year, month - 1, 1);
       const startOffset = (firstDay.getDay() + 6) % 7;
       const daysInMonth = new Date(year, month, 0).getDate();
+      const prevDaysInMonth = new Date(year, month - 1, 0).getDate();
       const cells = [];
-      for (let i = 0; i < startOffset; i++) cells.push(null);
+      for (let i = startOffset - 1; i >= 0; i--) cells.push(new Date(year, month - 2, prevDaysInMonth - i));
       for (let day = 1; day <= daysInMonth; day++) cells.push(new Date(year, month - 1, day));
-      while (cells.length % 7 !== 0) cells.push(null);
+      const trailing = (7 - (cells.length % 7)) % 7;
+      for (let day = 1; day <= trailing; day++) cells.push(new Date(year, month, day));
 
       const todayString = getLocalDateString();
       const fragment = document.createDocumentFragment();
       cells.forEach((date) => {
-        if (!date) {
-          const empty = document.createElement("div");
-          empty.className = "calendar-day empty";
-          empty.addEventListener("click", () => {
-            state.calendar.selectedDates = [];
-            state.calendar.anchorDate = "";
-            renderCalendar();
-          });
-          fragment.append(empty);
-          return;
-        }
         const dateString = getLocalDateString(date);
+        const ghost = date.getFullYear() !== year || date.getMonth() + 1 !== month;
         const daySessions = getSessionsOnDate(dateString);
         const courts = daySessions.reduce((sum, session) => sum + session.courtCount, 0);
         const button = document.createElement("button");
@@ -4436,6 +4462,7 @@
         button.dataset.date = dateString;
         button.classList.toggle("today", dateString === todayString);
         button.classList.toggle("selected", selectedDates.includes(dateString));
+        button.classList.toggle("ghost", ghost);
         button.setAttribute("aria-label", `${dateString}${courts ? `，${courts}个场` : ""}`);
         const number = document.createElement("span");
         number.className = "calendar-day-number";
