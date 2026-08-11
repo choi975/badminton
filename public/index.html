@@ -985,7 +985,7 @@
 
     .inline-gender-choice {
       display: grid;
-      grid-template-columns: 34px 48px 42px;
+      grid-template-columns: 34px 48px auto;
       overflow: hidden;
       border: 1px solid var(--line-strong);
       border-radius: 6px;
@@ -5327,7 +5327,7 @@
 
       const unknownButton = document.createElement("button");
       unknownButton.type = "button";
-      unknownButton.textContent = "不详";
+      unknownButton.textContent = "性别不详";
       unknownButton.classList.toggle("active", entry.gender === "不详");
       unknownButton.setAttribute("aria-pressed", String(entry.gender === "不详"));
       unknownButton.addEventListener("click", () => setInlinePlusGender(entry.overrideKey, "不详"));
@@ -5419,7 +5419,7 @@
         const gender = entry.gender === "女" ? "女" : entry.gender === "不详" ? "不详" : "男";
         genderCounts[gender] += 1;
       }
-      const genderLabels = { 男: "男生", 女: "女生", 不详: "不详" };
+      const genderLabels = { 男: "男生", 女: "女生", 不详: "性别不详" };
       const genderLines = ["男", "女", "不详"]
         .filter((gender) => genderCounts[gender] > 0)
         .map((gender) => `${genderLabels[gender]}：${genderCounts[gender]}人`);
