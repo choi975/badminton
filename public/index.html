@@ -985,7 +985,7 @@
 
     .inline-gender-choice {
       display: grid;
-      grid-template-columns: 34px 48px;
+      grid-template-columns: 34px 48px 42px;
       overflow: hidden;
       border: 1px solid var(--line-strong);
       border-radius: 6px;
@@ -2072,7 +2072,6 @@
               <span>接龙人员</span>
               <div class="chain-head-actions">
                 <button id="levelDisplayModeBtn" class="chain-mode-btn" type="button" title="切换等级显示方式" aria-pressed="false">⇄ 等级</button>
-                <button id="copyOutputBtn" title="复制显示内容"><span class="icon-text">▤ 一键复制</span></button>
               </div>
             </div>
             <div id="chainOutput" class="chain-output-list" role="list" aria-label="整理后的接龙人员"></div>
@@ -2381,7 +2380,6 @@
       selected: { rowKey: "draft", col: 0 },
       editing: null,
       chainEntries: [],
-      chainOutputText: "",
       chainLevelMode: IS_GITHUB_PAGES ? "group" : "exact",
       plusOverrides: {},
       autoFeeDefaults: { fee: 70, shuttle: 4 },
@@ -2440,7 +2438,6 @@
       chainOutput: document.getElementById("chainOutput"),
       chainStats: document.getElementById("chainStats"),
       pasteInputBtn: document.getElementById("pasteInputBtn"),
-      copyOutputBtn: document.getElementById("copyOutputBtn"),
       levelDisplayModeBtn: document.getElementById("levelDisplayModeBtn"),
       courtFeeInput: document.getElementById("courtFeeInput"),
       shuttlePriceInput: document.getElementById("shuttlePriceInput"),
@@ -2715,7 +2712,6 @@
         if (event.key === "Enter") confirmUnrecordedExit();
       });
       els.pasteInputBtn.addEventListener("click", pasteChainInput);
-      els.copyOutputBtn.addEventListener("click", copyChainOutput);
       if (!IS_GITHUB_PAGES) els.levelDisplayModeBtn.addEventListener("click", toggleChainLevelMode);
 
       document.addEventListener("click", (event) => {
@@ -5195,7 +5191,6 @@
         if (!activePlusKeys.has(key)) delete state.plusOverrides[key];
       });
       const sorted = [...entries].sort((a, b) => (b.sortRank - a.sortRank) || (a.index - b.index));
-      state.chainOutputText = sorted.map((entry, index) => formatChainOutputLine(entry, index)).join("\n");
       renderChainOutput(sorted);
       renderChainStats(sorted);
       state.chainEntries = entries;
@@ -5241,13 +5236,23 @@
       const player = findPlayerForLine(clean, aliasIndex);
       const knownLevel = player?.level || "不详";
       const detectedLevelText = plusMetadata.plusEntry ? plusMetadata.levelText : knownLevel;
-      const detectedIsFemale = plusMetadata.plusEntry ? plusMetadata.isFemale : player?.gender === "女";
+      const detectedGender = plusMetadata.plusEntry
+        ? (plusMetadata.isFemale ? "女" : "不详")
+        : (player?.gender === "女" ? "女" : "男");
       const levelText = plusMetadata.plusEntry && override?.levelText ? override.levelText : detectedLevelText;
       const detectedLevelGroupLabel = plusMetadata.plusEntry ? plusMetadata.levelGroupLabel : null;
       const levelGroupLabel = plusMetadata.plusEntry && override?.levelGroupLabel
         ? override.levelGroupLabel
         : detectedLevelGroupLabel;
-      const isFemale = plusMetadata.plusEntry && typeof override?.isFemale === "boolean" ? override.isFemale : detectedIsFemale;
+      const overrideGender = plusMetadata.plusEntry
+        ? (typeof override?.gender === "string"
+          ? override.gender
+          : typeof override?.isFemale === "boolean"
+            ? (override.isFemale ? "女" : "男")
+            : null)
+        : null;
+      const gender = overrideGender || detectedGender;
+      const isFemale = gender === "女";
       return {
         index,
         raw: line,
@@ -5257,7 +5262,8 @@
         overrideKey,
         detectedLevelText,
         detectedLevelGroupLabel,
-        detectedIsFemale,
+        detectedGender,
+        gender,
         levelText,
         levelGroupLabel,
         isFemale,
@@ -5308,17 +5314,24 @@
       const maleButton = document.createElement("button");
       maleButton.type = "button";
       maleButton.textContent = "男";
-      maleButton.classList.toggle("active", !entry.isFemale);
-      maleButton.setAttribute("aria-pressed", String(!entry.isFemale));
-      maleButton.addEventListener("click", () => setInlinePlusGender(entry.overrideKey, false));
+      maleButton.classList.toggle("active", entry.gender === "男");
+      maleButton.setAttribute("aria-pressed", String(entry.gender === "男"));
+      maleButton.addEventListener("click", () => setInlinePlusGender(entry.overrideKey, "男"));
 
       const femaleButton = document.createElement("button");
       femaleButton.type = "button";
       femaleButton.textContent = "女🌸";
-      femaleButton.classList.toggle("active", entry.isFemale);
-      femaleButton.setAttribute("aria-pressed", String(entry.isFemale));
-      femaleButton.addEventListener("click", () => setInlinePlusGender(entry.overrideKey, true));
-      genderChoice.append(maleButton, femaleButton);
+      femaleButton.classList.toggle("active", entry.gender === "女");
+      femaleButton.setAttribute("aria-pressed", String(entry.gender === "女"));
+      femaleButton.addEventListener("click", () => setInlinePlusGender(entry.overrideKey, "女"));
+
+      const unknownButton = document.createElement("button");
+      unknownButton.type = "button";
+      unknownButton.textContent = "不详";
+      unknownButton.classList.toggle("active", entry.gender === "不详");
+      unknownButton.setAttribute("aria-pressed", String(entry.gender === "不详"));
+      unknownButton.addEventListener("click", () => setInlinePlusGender(entry.overrideKey, "不详"));
+      genderChoice.append(maleButton, femaleButton, unknownButton);
 
       const levelSelect = document.createElement("select");
       levelSelect.className = "inline-level-select";
@@ -5344,13 +5357,13 @@
       return exactMatch?.label || getLevelGroupLabel(entry.levelText);
     }
 
-    function setInlinePlusGender(overrideKey, isFemale) {
+    function setInlinePlusGender(overrideKey, gender) {
       const entry = state.chainEntries.find((item) => item.overrideKey === overrideKey);
       if (!entry) return;
       state.plusOverrides[overrideKey] = {
         levelText: entry.levelText,
         levelGroupLabel: entry.levelGroupLabel,
-        isFemale,
+        gender,
       };
       processChain();
     }
@@ -5362,7 +5375,7 @@
       state.plusOverrides[overrideKey] = {
         levelText: option.level,
         levelGroupLabel: option.label,
-        isFemale: entry.isFemale,
+        gender: entry.gender,
       };
       processChain();
     }
@@ -5401,7 +5414,15 @@
       const levelLines = state.chainLevelMode === "group"
         ? buildGroupedLevelStats(entries)
         : buildExactLevelStats(entries);
-      const femaleCount = entries.filter((entry) => entry.isFemale).length;
+      const genderCounts = { 男: 0, 女: 0, 不详: 0 };
+      for (const entry of entries) {
+        const gender = entry.gender === "女" ? "女" : entry.gender === "不详" ? "不详" : "男";
+        genderCounts[gender] += 1;
+      }
+      const genderLabels = { 男: "男生", 女: "女生", 不详: "不详" };
+      const genderLines = ["男", "女", "不详"]
+        .filter((gender) => genderCounts[gender] > 0)
+        .map((gender) => `${genderLabels[gender]}：${genderCounts[gender]}人`);
 
       const levelStats = document.createElement("div");
       levelStats.textContent = levelLines.join("\n");
@@ -5411,7 +5432,7 @@
       divider.setAttribute("role", "separator");
 
       const genderStats = document.createElement("div");
-      genderStats.textContent = `女生：${femaleCount}人`;
+      genderStats.textContent = genderLines.join("\n");
 
       els.chainStats.replaceChildren(levelStats, divider, genderStats);
     }
@@ -6232,15 +6253,6 @@
         toast("已粘贴");
       } catch (error) {
         toast("浏览器没有允许读取剪贴板");
-      }
-    }
-
-    async function copyChainOutput() {
-      try {
-        await navigator.clipboard.writeText(state.chainOutputText);
-        toast("已复制");
-      } catch (error) {
-        toast("浏览器没有允许写入剪贴板");
       }
     }
 
