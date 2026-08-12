@@ -74,6 +74,7 @@ const PAYMENT_ORDER_AFFILIATIONS = ["球友", "Hytronik"];
 const ORDERABLE_AFFILIATIONS = new Set(PAYMENT_ORDER_AFFILIATIONS);
 const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 const SESSION_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const VALID_SESSION_VENUES = new Set(["文体", "EDC"]);
 
 const LEVEL_PATTERN = /^(\d+(?:\.5)?级)$/;
 
@@ -294,19 +295,33 @@ async function handleApi(request, env, url) {
   }
 
   if (pathname === "/api/sessions" && method === "POST") {
-    const input = normalizeSessionInput(await readJson(request));
+    const input = normalizeSessionInput(await readJson(request), "EDC");
     if (!input) return json({ error: "订场记录数据无效" }, 400);
     const session = await createSession(env.DB, input);
     return json({ session }, 201);
   }
 
-  const sessionMatch = pathname.match(/^\/api\/sessions\/(\d+)$/);
-  if (sessionMatch && method === "PATCH") {
-    const input = normalizeSessionInput(await readJson(request));
-    if (!input) return json({ error: "订场记录数据无效" }, 400);
-    const id = Number(sessionMatch[1]);
+  const sessionVenueMatch = pathname.match(/^\/api\/sessions\/(\d+)\/venue$/);
+  if (sessionVenueMatch && method === "PATCH") {
+    const id = Number(sessionVenueMatch[1]);
+    const body = await readJson(request);
+    const venue = normalizeSessionVenue(body?.venue);
+    if (!venue) return json({ error: "球馆数据无效" }, 400);
     const existing = await env.DB.prepare("SELECT id FROM booking_sessions WHERE id = ?").bind(id).first();
     if (!existing) return json({ error: "找不到这个订场记录" }, 404);
+    await env.DB.prepare(
+      "UPDATE booking_sessions SET venue = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+    ).bind(venue, id).run();
+    return json({ session: await getSessionById(env.DB, id) });
+  }
+
+  const sessionMatch = pathname.match(/^\/api\/sessions\/(\d+)$/);
+  if (sessionMatch && method === "PATCH") {
+    const id = Number(sessionMatch[1]);
+    const existing = await env.DB.prepare("SELECT id, venue FROM booking_sessions WHERE id = ?").bind(id).first();
+    if (!existing) return json({ error: "找不到这个订场记录" }, 404);
+    const input = normalizeSessionInput(await readJson(request), normalizeSessionVenue(existing.venue) || "文体");
+    if (!input) return json({ error: "订场记录数据无效" }, 400);
     const session = await updateSession(env.DB, id, input);
     return json({ session });
   }
@@ -401,7 +416,7 @@ async function listPlayers(db) {
 async function listSessions(db) {
   const { results } = await db.prepare(
     `SELECT
-       s.id AS session_id, s.date, s.court_count, s.court_fee, s.shuttle_price, s.shuttle_count,
+       s.id AS session_id, s.date, s.venue, s.court_count, s.court_fee, s.shuttle_price, s.shuttle_count,
        s.court_price_rows, s.shuttle_price_rows, s.created_at, s.updated_at,
        p.player_id, p.player_name, p.slots, p.plus_count, p.amount, p.is_female
      FROM booking_sessions s
@@ -416,6 +431,7 @@ async function listSessions(db) {
       session = {
         id: Number(row.session_id),
         date: row.date,
+        venue: normalizeSessionVenue(row.venue) || "文体",
         courtCount: Number(row.court_count),
         courtFee: Number(row.court_fee),
         shuttlePrice: Number(row.shuttle_price),
@@ -449,7 +465,12 @@ async function getSessionById(db, id) {
   return session;
 }
 
-function normalizeSessionInput(body) {
+function normalizeSessionVenue(value) {
+  const venue = String(value || "").trim();
+  return VALID_SESSION_VENUES.has(venue) ? venue : null;
+}
+
+function normalizeSessionInput(body, fallbackVenue = "EDC") {
   const date = String(body?.date || "").trim();
   if (!SESSION_DATE_PATTERN.test(date)) return null;
   const [year, month, day] = date.split("-").map(Number);
@@ -514,7 +535,12 @@ function normalizeSessionInput(body) {
     });
   }
 
-  return { date, courtCount, courtFee, shuttlePrice, shuttleCount, courtPriceRows, shuttlePriceRows, players };
+  const venue = body?.venue === undefined
+    ? normalizeSessionVenue(fallbackVenue)
+    : normalizeSessionVenue(body.venue);
+  if (!venue) return null;
+
+  return { date, venue, courtCount, courtFee, shuttlePrice, shuttleCount, courtPriceRows, shuttlePriceRows, players };
 }
 
 function normalizePriceRows(raw, allowEmpty) {
@@ -549,10 +575,11 @@ function serializePriceRows(rows) {
 async function createSession(db, input) {
   const result = await db.prepare(
     `INSERT INTO booking_sessions
-       (date, court_count, court_fee, shuttle_price, shuttle_count, court_price_rows, shuttle_price_rows, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+       (date, venue, court_count, court_fee, shuttle_price, shuttle_count, court_price_rows, shuttle_price_rows, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).bind(
     input.date,
+    input.venue,
     input.courtCount,
     input.courtFee,
     input.shuttlePrice,
@@ -569,11 +596,12 @@ async function updateSession(db, id, input) {
   const statements = [
     db.prepare(
       `UPDATE booking_sessions
-       SET date = ?, court_count = ?, court_fee = ?, shuttle_price = ?, shuttle_count = ?,
+       SET date = ?, venue = ?, court_count = ?, court_fee = ?, shuttle_price = ?, shuttle_count = ?,
            court_price_rows = ?, shuttle_price_rows = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`
     ).bind(
       input.date,
+      input.venue,
       input.courtCount,
       input.courtFee,
       input.shuttlePrice,

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-11T17:05:13.991Z",
+  "generatedAt": "2026-08-12T10:12:30.375Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -865,14 +865,14 @@
         "id": 69,
         "name": "泥沼",
         "gender": "男",
-        "level": "3.5级",
+        "level": "4级",
         "bookingTime": "19:00~22:00",
         "affiliation": "球友",
         "notes": "",
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-28 04:22:48",
-        "updatedAt": "2026-07-30 02:57:20"
+        "updatedAt": "2026-08-12 04:38:26"
       },
       {
         "id": 70,
@@ -1343,8 +1343,751 @@
     },
     "sessions": [
       {
+        "id": 14,
+        "date": "2026-07-13",
+        "venue": "文体",
+        "courtCount": 1,
+        "courtFee": 70,
+        "shuttlePrice": 11.5,
+        "shuttleCount": 4,
+        "courtPriceRows": [
+          {
+            "price": 70,
+            "count": 1
+          }
+        ],
+        "shuttlePriceRows": [
+          {
+            "price": 11.5,
+            "count": 4
+          }
+        ],
+        "players": [
+          {
+            "playerId": 15,
+            "playerName": "江涛",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 16.6,
+            "isFemale": true
+          },
+          {
+            "playerId": 13,
+            "playerName": "甲乙丙",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 16.6,
+            "isFemale": true
+          },
+          {
+            "playerId": 41,
+            "playerName": "清。",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 16.6,
+            "isFemale": false
+          },
+          {
+            "playerId": 9,
+            "playerName": "柚子🍀",
+            "slots": 2,
+            "plusCount": 1,
+            "amount": 33.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 8,
+            "playerName": "阿恒",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 16.6,
+            "isFemale": false
+          },
+          {
+            "playerId": 49,
+            "playerName": "Maiko",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 16.6,
+            "isFemale": false
+          }
+        ],
+        "createdAt": "2026-08-12 00:53:41",
+        "updatedAt": "2026-08-12 00:53:41"
+      },
+      {
+        "id": 13,
+        "date": "2026-07-17",
+        "venue": "文体",
+        "courtCount": 4,
+        "courtFee": 280,
+        "shuttlePrice": 11.3,
+        "shuttleCount": 21,
+        "courtPriceRows": [
+          {
+            "price": 70,
+            "count": 4
+          }
+        ],
+        "shuttlePriceRows": [
+          {
+            "price": 11.3,
+            "count": 21
+          }
+        ],
+        "players": [
+          {
+            "playerId": 15,
+            "playerName": "江涛",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": true
+          },
+          {
+            "playerId": 37,
+            "playerName": "🎀 ～TomCat",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 39,
+            "playerName": "1fan",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 40,
+            "playerName": "小孩哥",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 9,
+            "playerName": "柚子🍀",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": true
+          },
+          {
+            "playerId": 20,
+            "playerName": "0.o",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 45,
+            "playerName": "吕教",
+            "slots": 3,
+            "plusCount": 2,
+            "amount": 57.6,
+            "isFemale": false
+          },
+          {
+            "playerId": 46,
+            "playerName": "政",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": true
+          },
+          {
+            "playerId": 47,
+            "playerName": "狗屁熊",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": true
+          },
+          {
+            "playerId": 10,
+            "playerName": "🌹",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": true
+          },
+          {
+            "playerId": 24,
+            "playerName": "Hx7",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 14,
+            "playerName": "小零",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": true
+          },
+          {
+            "playerId": 53,
+            "playerName": "oi",
+            "slots": 2,
+            "plusCount": 1,
+            "amount": 38.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 11,
+            "playerName": "老洪",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 1,
+            "playerName": "达哥",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 5,
+            "playerName": "杰哥",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 6,
+            "playerName": "冯丽美",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": true
+          },
+          {
+            "playerId": 4,
+            "playerName": "何兴康",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 29,
+            "playerName": "listen",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 31,
+            "playerName": "April",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": true
+          },
+          {
+            "playerId": 7,
+            "playerName": "huangjie21",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 16,
+            "playerName": "ben",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 17,
+            "playerName": "Baymax",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 51,
+            "playerName": "choi",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.2,
+            "isFemale": false
+          }
+        ],
+        "createdAt": "2026-08-12 00:51:22",
+        "updatedAt": "2026-08-12 00:51:22"
+      },
+      {
+        "id": 12,
+        "date": "2026-07-21",
+        "venue": "文体",
+        "courtCount": 2,
+        "courtFee": 140,
+        "shuttlePrice": 11.300000000000002,
+        "shuttleCount": 12,
+        "courtPriceRows": [
+          {
+            "price": 70,
+            "count": 2
+          }
+        ],
+        "shuttlePriceRows": [
+          {
+            "price": 11.3,
+            "count": 12
+          }
+        ],
+        "players": [
+          {
+            "playerId": 13,
+            "playerName": "甲乙丙",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.4,
+            "isFemale": true
+          },
+          {
+            "playerId": 41,
+            "playerName": "清。",
+            "slots": 3,
+            "plusCount": 2,
+            "amount": 55.2,
+            "isFemale": false
+          },
+          {
+            "playerId": 45,
+            "playerName": "吕教",
+            "slots": 5,
+            "plusCount": 4,
+            "amount": 92,
+            "isFemale": false
+          },
+          {
+            "playerId": 10,
+            "playerName": "🌹",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.4,
+            "isFemale": true
+          },
+          {
+            "playerId": 26,
+            "playerName": "威朱",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 12,
+            "playerName": "刘俊杰",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 17,
+            "playerName": "Baymax",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 54,
+            "playerName": "游",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 51,
+            "playerName": "choi",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.4,
+            "isFemale": false
+          }
+        ],
+        "createdAt": "2026-08-12 00:50:37",
+        "updatedAt": "2026-08-12 00:50:37"
+      },
+      {
+        "id": 11,
+        "date": "2026-07-24",
+        "venue": "文体",
+        "courtCount": 3,
+        "courtFee": 240,
+        "shuttlePrice": 11.3,
+        "shuttleCount": 21,
+        "courtPriceRows": [
+          {
+            "price": 80,
+            "count": 3
+          }
+        ],
+        "shuttlePriceRows": [
+          {
+            "price": 11.3,
+            "count": 21
+          }
+        ],
+        "players": [
+          {
+            "playerId": 37,
+            "playerName": "🎀 ～TomCat",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": false
+          },
+          {
+            "playerId": 38,
+            "playerName": "吴悠",
+            "slots": 2,
+            "plusCount": 1,
+            "amount": 47.8,
+            "isFemale": true
+          },
+          {
+            "playerId": 13,
+            "playerName": "甲乙丙",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": true
+          },
+          {
+            "playerId": 39,
+            "playerName": "1fan",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": false
+          },
+          {
+            "playerId": 23,
+            "playerName": "L",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": false
+          },
+          {
+            "playerId": 44,
+            "playerName": "黃安鋒",
+            "slots": 3,
+            "plusCount": 2,
+            "amount": 71.7,
+            "isFemale": false
+          },
+          {
+            "playerId": 19,
+            "playerName": "FENG",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": false
+          },
+          {
+            "playerId": 24,
+            "playerName": "Hx7",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": false
+          },
+          {
+            "playerId": 11,
+            "playerName": "老洪",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": false
+          },
+          {
+            "playerId": 5,
+            "playerName": "杰哥",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": false
+          },
+          {
+            "playerId": 6,
+            "playerName": "冯丽美",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": true
+          },
+          {
+            "playerId": 4,
+            "playerName": "何兴康",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": false
+          },
+          {
+            "playerId": 31,
+            "playerName": "April",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": true
+          },
+          {
+            "playerId": 7,
+            "playerName": "huangjie21",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": false
+          },
+          {
+            "playerId": 16,
+            "playerName": "ben",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": false
+          },
+          {
+            "playerId": 17,
+            "playerName": "Baymax",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": false
+          },
+          {
+            "playerId": 51,
+            "playerName": "choi",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.9,
+            "isFemale": false
+          }
+        ],
+        "createdAt": "2026-08-12 00:48:59",
+        "updatedAt": "2026-08-12 00:48:59"
+      },
+      {
+        "id": 10,
+        "date": "2026-07-26",
+        "venue": "文体",
+        "courtCount": 1,
+        "courtFee": 70,
+        "shuttlePrice": 11.300000000000002,
+        "shuttleCount": 3,
+        "courtPriceRows": [
+          {
+            "price": 70,
+            "count": 1
+          }
+        ],
+        "shuttlePriceRows": [
+          {
+            "price": 11.3,
+            "count": 3
+          }
+        ],
+        "players": [
+          {
+            "playerId": 9,
+            "playerName": "柚子🍀",
+            "slots": 2,
+            "plusCount": 1,
+            "amount": 34.8,
+            "isFemale": false
+          },
+          {
+            "playerId": 10,
+            "playerName": "🌹",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 17.4,
+            "isFemale": true
+          },
+          {
+            "playerId": 24,
+            "playerName": "Hx7",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 17.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 33,
+            "playerName": "朱薛陈",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 17.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 51,
+            "playerName": "choi",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 17.4,
+            "isFemale": false
+          }
+        ],
+        "createdAt": "2026-08-12 00:48:14",
+        "updatedAt": "2026-08-12 00:48:14"
+      },
+      {
+        "id": 15,
+        "date": "2026-07-30",
+        "venue": "文体",
+        "courtCount": 3,
+        "courtFee": 210,
+        "shuttlePrice": 11.3,
+        "shuttleCount": 16,
+        "courtPriceRows": [
+          {
+            "price": 70,
+            "count": 3
+          }
+        ],
+        "shuttlePriceRows": [
+          {
+            "price": 11.3,
+            "count": 16
+          }
+        ],
+        "players": [
+          {
+            "playerId": 38,
+            "playerName": "吴悠",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 24.5,
+            "isFemale": true
+          },
+          {
+            "playerId": 44,
+            "playerName": "黃安鋒",
+            "slots": 2,
+            "plusCount": 1,
+            "amount": 49,
+            "isFemale": false
+          },
+          {
+            "playerId": 24,
+            "playerName": "Hx7",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 24.5,
+            "isFemale": false
+          },
+          {
+            "playerId": 53,
+            "playerName": "oi",
+            "slots": 2,
+            "plusCount": 1,
+            "amount": 49,
+            "isFemale": false
+          },
+          {
+            "playerId": 11,
+            "playerName": "老洪",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 24.5,
+            "isFemale": false
+          },
+          {
+            "playerId": 26,
+            "playerName": "威朱",
+            "slots": 2,
+            "plusCount": 1,
+            "amount": 49,
+            "isFemale": false
+          },
+          {
+            "playerId": 1,
+            "playerName": "达哥",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 24.5,
+            "isFemale": false
+          },
+          {
+            "playerId": 12,
+            "playerName": "刘俊杰",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 24.5,
+            "isFemale": false
+          },
+          {
+            "playerId": 33,
+            "playerName": "朱薛陈",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 24.5,
+            "isFemale": false
+          },
+          {
+            "playerId": 2,
+            "playerName": "Benny",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 24.5,
+            "isFemale": false
+          },
+          {
+            "playerId": 16,
+            "playerName": "ben",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 24.5,
+            "isFemale": false
+          },
+          {
+            "playerId": 17,
+            "playerName": "Baymax",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 24.5,
+            "isFemale": false
+          },
+          {
+            "playerId": 51,
+            "playerName": "choi",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 24.5,
+            "isFemale": false
+          }
+        ],
+        "createdAt": "2026-08-12 02:03:12",
+        "updatedAt": "2026-08-12 02:03:12"
+      },
+      {
         "id": 8,
         "date": "2026-08-01",
+        "venue": "文体",
         "courtCount": 2,
         "courtFee": 140,
         "shuttlePrice": 11.3,
@@ -1449,6 +2192,7 @@
       {
         "id": 4,
         "date": "2026-08-04",
+        "venue": "文体",
         "courtCount": 3,
         "courtFee": 210,
         "shuttlePrice": 11.3,
@@ -1559,6 +2303,7 @@
       {
         "id": 3,
         "date": "2026-08-05",
+        "venue": "文体",
         "courtCount": 2,
         "courtFee": 140,
         "shuttlePrice": 11.3,
@@ -1661,6 +2406,7 @@
       {
         "id": 1,
         "date": "2026-08-06",
+        "venue": "文体",
         "courtCount": 2,
         "courtFee": 140,
         "shuttlePrice": 11.3,
@@ -1739,6 +2485,7 @@
       {
         "id": 5,
         "date": "2026-08-07",
+        "venue": "文体",
         "courtCount": 2,
         "courtFee": 140,
         "shuttlePrice": 11.3,
@@ -1865,6 +2612,7 @@
       {
         "id": 6,
         "date": "2026-08-08",
+        "venue": "文体",
         "courtCount": 4,
         "courtFee": 0,
         "shuttlePrice": 12.573684210526316,
@@ -2013,6 +2761,7 @@
       {
         "id": 7,
         "date": "2026-08-10",
+        "venue": "文体",
         "courtCount": 1,
         "courtFee": 70,
         "shuttlePrice": 11.3,

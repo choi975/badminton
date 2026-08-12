@@ -1874,7 +1874,7 @@
       color: var(--muted);
     }
 
-    .calendar-day.ghost .calendar-day-badge {
+    .calendar-day.ghost .calendar-day-meta {
       opacity: 0.58;
     }
 
@@ -1893,18 +1893,83 @@
       font-weight: 700;
     }
 
-    .calendar-day-badge {
+    .calendar-day-meta {
       position: absolute;
       top: 50%;
       left: 50%;
-      max-width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      max-width: calc(100% - 8px);
       transform: translate(-50%, -50%);
+      white-space: nowrap;
+    }
+
+    .calendar-day-badge {
       overflow: hidden;
       color: var(--accent-dark);
       font-size: 18px;
       font-weight: 700;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .calendar-day-venue {
+      flex: none;
+      padding: 2px 4px;
+      border: 1px solid currentColor;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.15;
+      cursor: pointer;
+      transition: filter 0.16s ease, transform 0.16s ease;
+    }
+
+    .calendar-day-venue:hover {
+      filter: brightness(0.96);
+    }
+
+    .calendar-day-venue:active {
+      transform: scale(0.96);
+    }
+
+    .calendar-day-venue:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .calendar-day-venue.venue-wenti {
+      border-color: #d69b35;
+      background: #fff4d7;
+      color: #9a5b00;
+    }
+
+    .calendar-day-venue.venue-edc {
+      border-color: #65a8dc;
+      background: #e6f4ff;
+      color: #17699f;
+    }
+
+    @media (max-width: 560px) {
+      .calendar-day {
+        min-height: 58px;
+        padding-inline: 5px;
+      }
+
+      .calendar-day-meta {
+        gap: 3px;
+      }
+
+      .calendar-day-badge {
+        font-size: 15px;
+      }
+
+      .calendar-day-venue {
+        padding-inline: 3px;
+        font-size: 9px;
+      }
     }
 
     .calendar-day-panel {
@@ -3926,6 +3991,7 @@
       return (Array.isArray(rawSessions) ? rawSessions : []).map((session) => ({
         id: Number(session.id),
         date: String(session.date || ""),
+        venue: session.venue === "EDC" ? "EDC" : "文体",
         courtCount: Number(session.courtCount) || 0,
         courtFee: Number(session.courtFee) || 0,
         shuttlePrice: Number(session.shuttlePrice) || 0,
@@ -4049,6 +4115,7 @@
         session: {
           id: pending.id,
           date: pending.date,
+          venue: pending.venue,
           courtFee: record.courtFee,
           shuttlePrice: record.shuttlePrice,
           shuttleCount: record.shuttleCount,
@@ -4068,6 +4135,7 @@
       try {
         const body = {
           date: getLocalDateString(),
+          venue: "EDC",
           courtCount,
           courtFee: record.courtFee,
           shuttlePrice: record.shuttlePrice,
@@ -4130,6 +4198,7 @@
       renderRecordMembers(editing ? session.players : (source?.players || []));
       els.recordModal.dataset.editing = editing ? "1" : "0";
       els.recordModal.dataset.sessionId = editing ? String(session.id) : "";
+      els.recordModal.dataset.venue = editing ? session.venue : "EDC";
       openModal("recordModal");
     }
 
@@ -4262,7 +4331,15 @@
       els.saveRecordBtn.disabled = true;
       setSync(editing ? "正在保存订场记录" : "正在记录订场");
       try {
-        const body = { date, courtCount, courtFee, shuttlePrice, shuttleCount, players };
+        const body = {
+          date,
+          venue: editing ? (els.recordModal.dataset.venue || "文体") : "EDC",
+          courtCount,
+          courtFee,
+          shuttlePrice,
+          shuttleCount,
+          players,
+        };
         if (courtPriceRows.length) body.courtPriceRows = courtPriceRows;
         if (shuttlePriceRows.length) body.shuttlePriceRows = shuttlePriceRows;
         const data = editing
@@ -4504,10 +4581,33 @@
       number.textContent = String(date.getDate());
       button.append(number);
       if (courts > 0) {
+        const meta = document.createElement("span");
+        meta.className = "calendar-day-meta";
         const badge = document.createElement("span");
         badge.className = "calendar-day-badge";
-        badge.textContent = `${courts}场${daySessions.length > 1 ? ` · ${daySessions.length}次` : ""}`;
-        button.append(badge);
+        badge.textContent = `${courts}场`;
+        const session = daySessions[0];
+        const venue = document.createElement("span");
+        venue.className = `calendar-day-venue ${session.venue === "EDC" ? "venue-edc" : "venue-wenti"}`;
+        venue.textContent = session.venue;
+        venue.title = state.readOnly ? "只读模式下不能切换球馆" : `点击切换为${session.venue === "EDC" ? "文体" : "EDC"}`;
+        venue.setAttribute("role", "button");
+        venue.setAttribute("tabindex", "0");
+        venue.setAttribute("aria-label", `${dateString}球馆：${session.venue}，点击切换`);
+        venue.addEventListener("mousedown", (event) => event.stopPropagation());
+        venue.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void toggleSessionVenue(session);
+        });
+        venue.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          event.stopPropagation();
+          void toggleSessionVenue(session);
+        });
+        meta.append(badge, venue);
+        button.append(meta);
       }
       button.addEventListener("mousedown", (event) => {
         if (event.button !== 0) return;
@@ -4532,6 +4632,28 @@
         if (!daySessions.length) openChainForNewDate(dateString);
       });
       return button;
+    }
+
+    async function toggleSessionVenue(session) {
+      if (state.readOnly) {
+        toast("当前为只读模式，不能切换球馆");
+        return;
+      }
+      const venue = session.venue === "EDC" ? "文体" : "EDC";
+      setSync("正在切换球馆");
+      try {
+        const data = await api(`/api/sessions/${session.id}/venue`, {
+          method: "PATCH",
+          body: JSON.stringify({ venue }),
+        });
+        upsertSession(data.session);
+        renderCalendar();
+        setSync("已保存");
+        toast(`已切换为${venue}`);
+      } catch (error) {
+        setSync("保存失败");
+        toast(`切换球馆失败：${error.message}`);
+      }
     }
 
     function getCalendarRangeStartDate(monthIndex) {
@@ -4833,7 +4955,7 @@
         toast("当前为只读模式，不能编辑订场记录");
         return;
       }
-      state.pendingSessionEdit = { id: session.id, date: session.date };
+      state.pendingSessionEdit = { id: session.id, date: session.date, venue: session.venue };
       state.returnToCalendar = true;
       els.chainInput.value = buildChainLinesFromSession(session);
       const courtRows = Array.isArray(session.courtPriceRows) ? session.courtPriceRows : [];
