@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T10:12:30.375Z",
+  "generatedAt": "2026-08-14T08:08:50.546Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -925,6 +925,19 @@
         "participatesPayment": true,
         "createdAt": "2026-08-04 14:28:22",
         "updatedAt": "2026-08-10 08:32:54"
+      },
+      {
+        "id": 75,
+        "name": "春玲，黄春玲",
+        "gender": "女",
+        "level": "3级",
+        "bookingTime": "19:00~22:00",
+        "affiliation": "球友",
+        "notes": "",
+        "photoKey": "",
+        "participatesPayment": true,
+        "createdAt": "2026-08-13 14:22:32",
+        "updatedAt": "2026-08-13 14:22:48"
       }
     ],
     "levelDescriptions": {
@@ -1165,6 +1178,10 @@
         {
           "playerId": 74,
           "joinNumber": 57
+        },
+        {
+          "playerId": 75,
+          "joinNumber": 58
         }
       ],
       "Hytronik": [
@@ -1314,7 +1331,8 @@
         60,
         59,
         73,
-        74
+        74,
+        75
       ],
       "Hytronik": [
         11,
@@ -2480,7 +2498,7 @@
           }
         ],
         "createdAt": "2026-08-06 14:57:16",
-        "updatedAt": "2026-08-06 14:57:16"
+        "updatedAt": "2026-08-13 00:40:34"
       },
       {
         "id": 5,
@@ -2854,6 +2872,119 @@
         ],
         "createdAt": "2026-08-10 14:39:27",
         "updatedAt": "2026-08-10 14:39:27"
+      },
+      {
+        "id": 16,
+        "date": "2026-08-13",
+        "venue": "EDC",
+        "courtCount": 2,
+        "courtFee": 140,
+        "shuttlePrice": 11.3,
+        "shuttleCount": 14,
+        "courtPriceRows": [
+          {
+            "price": 70,
+            "count": 2
+          }
+        ],
+        "shuttlePriceRows": [
+          {
+            "price": 11.3,
+            "count": 14
+          }
+        ],
+        "players": [
+          {
+            "playerId": 13,
+            "playerName": "甲乙丙",
+            "slots": 3,
+            "plusCount": 2,
+            "amount": 64.19999999999999,
+            "isFemale": false
+          },
+          {
+            "playerId": 9,
+            "playerName": "柚子🍀",
+            "slots": 2,
+            "plusCount": 1,
+            "amount": 42.8,
+            "isFemale": false
+          },
+          {
+            "playerId": 8,
+            "playerName": "阿恒",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 21.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 1,
+            "playerName": "达哥",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 21.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 19,
+            "playerName": "FENG",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 21.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 10,
+            "playerName": "🌹",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 21.4,
+            "isFemale": true
+          },
+          {
+            "playerId": 49,
+            "playerName": "Maiko",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 21.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 59,
+            "playerName": "俊",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 21.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 26,
+            "playerName": "威朱",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 21.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 5,
+            "playerName": "杰哥",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 21.4,
+            "isFemale": false
+          },
+          {
+            "playerId": 16,
+            "playerName": "ben",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 21.4,
+            "isFemale": false
+          }
+        ],
+        "createdAt": "2026-08-13 14:12:37",
+        "updatedAt": "2026-08-14 02:46:14"
       }
     ]
   }
