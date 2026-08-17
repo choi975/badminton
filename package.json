@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/sync-public.js",
+    "estimator": "node scripts/train-estimator.js",
     "snapshot": "node scripts/generate-snapshot.js",
-    "build:fresh": "npm run snapshot && npm run build",
+    "build:fresh": "npm run estimator && npm run snapshot && npm run build",
+    "test": "node scripts/verify-chain.js",
     "dev": "npm run build && wrangler dev",
     "deploy": "npm run build:fresh && wrangler deploy",
     "d1:create": "wrangler d1 create Badminton",

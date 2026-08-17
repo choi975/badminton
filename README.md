@@ -19,6 +19,7 @@
 
 ```bash
 npm run build
+npm run estimator
 npm run snapshot
 npm run build:fresh
 npm run dev
@@ -33,5 +34,8 @@ npm run deploy
 - `src/worker.js`: Worker API，负责连接 D1。
 - `data/bootstrap-snapshot.json`: 随版本发布的 D1 数据快照。
 - `scripts/generate-snapshot.js`: 从远程 D1 生成最新快照。
+- `scripts/train-estimator.js`: 使用最新 D1 订场记录训练场地和用球预估模型。
+- `data/booking-estimator.json`: 当前部署使用的预估模型参数。
+- `docs/booking-estimation.md`: 预估规则、固定排除记录和后续更新说明。
 - `migrations/0001_initial.sql`: D1 表结构。
 - `scripts/verify-chain.js`: 使用需求里的示例验证接龙和群收款规则。

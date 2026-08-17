@@ -1,6 +1,9 @@
 import INDEX_HTML from "./index.html";
 import HTML2CANVAS_JS from "./html2canvas.txt";
 import BOOTSTRAP_SNAPSHOT from "./bootstrap-snapshot.txt";
+import BOOKING_ESTIMATOR from "./booking-estimator.txt";
+
+const BOOKING_ESTIMATOR_DATA = JSON.parse(BOOKING_ESTIMATOR);
 
 const DEFAULT_LEVEL_GUIDE_RAW = `中羽等级表格
 0.5级
@@ -68,13 +71,13 @@ const DEFAULT_LEVEL_GUIDE_RAW = `中羽等级表格
 
 const VALID_GENDERS = new Set(["男", "女"]);
 const VALID_LEVELS = new Set(["不详", "0.5级", "1级", "1.5级", "2级", "2.5级", "3级", "3.5级", "4级", "4.5级", "5级", "6级", "7级", "8级", "9级"]);
-const VALID_BOOKING_TIMES = new Set(["19:00~22:00", "19:00~21:00", "20:00~22:00"]);
 const VALID_AFFILIATIONS = new Set(["球友", "Hytronik", "球友+Hytronik", "特殊"]);
 const PAYMENT_ORDER_AFFILIATIONS = ["球友", "Hytronik"];
 const ORDERABLE_AFFILIATIONS = new Set(PAYMENT_ORDER_AFFILIATIONS);
 const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 const SESSION_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const VALID_SESSION_VENUES = new Set(["文体", "EDC"]);
+const VALID_PARTICIPANT_GENDERS = new Set(["男", "女", "不详"]);
 
 const LEVEL_PATTERN = /^(\d+(?:\.5)?级)$/;
 
@@ -143,7 +146,7 @@ async function handleApi(request, env, url) {
       getPaymentOrderState(env.DB),
       listSessions(env.DB),
     ]);
-    return json({ players, ...guide, ...paymentState, sessions });
+    return json({ players, ...guide, ...paymentState, sessions, estimator: BOOKING_ESTIMATOR_DATA });
   }
 
   if (pathname === "/api/players" && method === "GET") {
@@ -154,9 +157,9 @@ async function handleApi(request, env, url) {
     const input = sanitizePlayer(await readJson(request));
     if (!input.name) return json({ error: "名称不能为空" }, 400);
     const result = await env.DB.prepare(
-      `INSERT INTO players (name, gender, level, booking_time, affiliation, notes, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
-    ).bind(input.name, input.gender, input.level, input.booking_time, input.affiliation, input.notes).run();
+      `INSERT INTO players (name, gender, level, affiliation, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+    ).bind(input.name, input.gender, input.level, input.affiliation, input.notes).run();
     const playerId = Number(result.meta.last_row_id);
     const joinStatements = groupsForAffiliation(input.affiliation).map((affiliation) => buildJoinAtEndStatement(env.DB, affiliation, playerId));
     if (joinStatements.length) await env.DB.batch(joinStatements);
@@ -259,9 +262,9 @@ async function handleApi(request, env, url) {
     if (!input.name) return json({ error: "名称不能为空" }, 400);
     const updates = [env.DB.prepare(
       `UPDATE players
-       SET name = ?, gender = ?, level = ?, booking_time = ?, affiliation = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+       SET name = ?, gender = ?, level = ?, affiliation = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`
-    ).bind(input.name, input.gender, input.level, input.booking_time, input.affiliation, input.notes, id)];
+    ).bind(input.name, input.gender, input.level, input.affiliation, input.notes, id)];
     if (existing.affiliation !== input.affiliation) {
       updates.push(...await buildAffiliationChangeStatements(env.DB, id, existing.affiliation, input.affiliation));
     }
@@ -418,7 +421,8 @@ async function listSessions(db) {
     `SELECT
        s.id AS session_id, s.date, s.venue, s.court_count, s.court_fee, s.shuttle_price, s.shuttle_count,
        s.court_price_rows, s.shuttle_price_rows, s.created_at, s.updated_at,
-       p.player_id, p.player_name, p.slots, p.plus_count, p.amount, p.is_female
+       p.player_id, p.player_name, p.slots, p.plus_count, p.amount, p.is_female,
+       p.gender_snapshot, p.level_snapshot
      FROM booking_sessions s
      LEFT JOIN booking_session_players p ON p.session_id = s.id
      ORDER BY s.date ASC, s.id ASC, p.id ASC`
@@ -437,7 +441,7 @@ async function listSessions(db) {
         shuttlePrice: Number(row.shuttle_price),
         shuttleCount: Number(row.shuttle_count),
         courtPriceRows: parseStoredPriceRows(row.court_price_rows),
-        shuttlePriceRows: parseStoredPriceRows(row.shuttle_price_rows),
+        shuttlePriceRows: parseStoredPriceRows(row.shuttle_price_rows, true),
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         players: [],
@@ -452,6 +456,8 @@ async function listSessions(db) {
         plusCount: Number(row.plus_count),
         amount: Number(row.amount),
         isFemale: Number(row.is_female) !== 0,
+        gender: VALID_PARTICIPANT_GENDERS.has(row.gender_snapshot) ? row.gender_snapshot : "不详",
+        level: VALID_LEVELS.has(row.level_snapshot) ? row.level_snapshot : "不详",
       });
     }
   }
@@ -483,8 +489,8 @@ function normalizeSessionInput(body, fallbackVenue = "EDC") {
     return null;
   }
 
-  const courtPriceRows = normalizePriceRows(body?.courtPriceRows, false);
-  const shuttlePriceRows = normalizePriceRows(body?.shuttlePriceRows, true);
+  const courtPriceRows = normalizePriceRows(body?.courtPriceRows, false, false);
+  const shuttlePriceRows = normalizePriceRows(body?.shuttlePriceRows, true, true);
   if (body?.courtPriceRows !== undefined && courtPriceRows === null) return null;
   if (body?.shuttlePriceRows !== undefined && shuttlePriceRows === null) return null;
   if (courtPriceRows !== null && courtPriceRows.length === 0) return null;
@@ -520,6 +526,10 @@ function normalizeSessionInput(body, fallbackVenue = "EDC") {
     const slots = Number(raw?.slots);
     const plusCount = Number(raw?.plusCount);
     const amount = Number(raw?.amount);
+    const gender = VALID_PARTICIPANT_GENDERS.has(raw?.gender)
+      ? raw.gender
+      : Boolean(raw?.isFemale) ? "女" : "不详";
+    const level = VALID_LEVELS.has(raw?.level) ? raw.level : "不详";
     if (!Number.isInteger(slots) || slots < 0) return null;
     if (!Number.isInteger(plusCount) || plusCount < 0 || plusCount > Math.max(0, slots - 1)) return null;
     if (!Number.isFinite(amount) || amount < 0) return null;
@@ -531,7 +541,9 @@ function normalizeSessionInput(body, fallbackVenue = "EDC") {
       slots,
       plusCount,
       amount,
-      isFemale: Boolean(raw?.isFemale),
+      isFemale: gender === "女",
+      gender,
+      level,
     });
   }
 
@@ -543,7 +555,7 @@ function normalizeSessionInput(body, fallbackVenue = "EDC") {
   return { date, venue, courtCount, courtFee, shuttlePrice, shuttleCount, courtPriceRows, shuttlePriceRows, players };
 }
 
-function normalizePriceRows(raw, allowEmpty) {
+function normalizePriceRows(raw, allowEmpty, includeShuttleType) {
   if (raw === undefined || raw === null) return null;
   if (!Array.isArray(raw)) return null;
   const rows = [];
@@ -552,20 +564,31 @@ function normalizePriceRows(raw, allowEmpty) {
     const count = Number(item?.count);
     if (!Number.isFinite(price) || price < 0) return null;
     if (!Number.isInteger(count) || count <= 0) return null;
-    rows.push({ price, count });
+    rows.push(includeShuttleType
+      ? { price, count, type: shuttleTypeForPrice(price) }
+      : { price, count });
   }
   if (!allowEmpty && rows.length === 0) return null;
   return rows;
 }
 
-function parseStoredPriceRows(raw) {
+function parseStoredPriceRows(raw, includeShuttleType = false) {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : null;
+    if (!Array.isArray(parsed)) return null;
+    return parsed.map((row) => includeShuttleType
+      ? { price: Number(row.price), count: Number(row.count), type: shuttleTypeForPrice(Number(row.price)) }
+      : row);
   } catch (error) {
     return null;
   }
+}
+
+function shuttleTypeForPrice(price) {
+  if ([11, 11.3, 11.5].some((known) => Math.abs(known - price) < 0.02)) return "rsl3";
+  if (Math.abs(13.5 - price) < 0.02) return "as05";
+  return "unknown";
 }
 
 function serializePriceRows(rows) {
@@ -625,8 +648,8 @@ async function insertSessionPlayers(db, sessionId, players) {
 function buildSessionPlayerStatements(db, sessionId, players) {
   return players.map((player) => db.prepare(
     `INSERT INTO booking_session_players
-       (session_id, player_id, player_name, slots, plus_count, amount, is_female, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+       (session_id, player_id, player_name, slots, plus_count, amount, is_female, gender_snapshot, level_snapshot, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).bind(
     sessionId,
     player.playerId,
@@ -634,7 +657,9 @@ function buildSessionPlayerStatements(db, sessionId, players) {
     player.slots,
     player.plusCount,
     player.amount,
-    player.isFemale ? 1 : 0
+    player.isFemale ? 1 : 0,
+    player.gender,
+    player.level
   ));
 }
 
@@ -934,12 +959,10 @@ function sanitizePlayer(input) {
   const name = String(input.name || "").trim();
   const gender = VALID_GENDERS.has(input.gender) ? input.gender : "男";
   const level = VALID_LEVELS.has(input.level) ? input.level : "不详";
-  const bookingCandidate = input.bookingTime ?? input.booking_time;
-  const bookingTime = VALID_BOOKING_TIMES.has(bookingCandidate) ? bookingCandidate : "19:00~22:00";
   const affiliation = VALID_AFFILIATIONS.has(input.affiliation) ? input.affiliation : "球友";
   const notes = String(input.notes || "").trim();
 
-  return { name, gender, level, booking_time: bookingTime, affiliation, notes };
+  return { name, gender, level, affiliation, notes };
 }
 
 function normalizePlayer(row) {
@@ -948,7 +971,6 @@ function normalizePlayer(row) {
     name: row.name || "",
     gender: row.gender || "男",
     level: row.level || "不详",
-    bookingTime: row.booking_time || "19:00~22:00",
     affiliation: row.affiliation || "球友",
     notes: row.notes || "",
     photoKey: row.photo_key || "",

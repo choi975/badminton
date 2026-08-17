@@ -1062,6 +1062,17 @@
       background: var(--line);
     }
 
+    .estimate-line {
+      color: #173f38;
+      font-weight: 700;
+    }
+
+    .fee-notice {
+      color: #a23b24;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
     .fee-box {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -2202,6 +2213,7 @@
                   <div id="shuttlePriceRows" class="fee-advanced-rows"></div>
                 </div>
               </div>
+              <div id="shuttleTypeNotice" class="fee-notice" hidden></div>
               <button id="paymentBtn" class="primary-btn" disabled>群收款</button>
             </div>
           </aside>
@@ -2424,6 +2436,29 @@
     const FEMALE_PAYMENT_CAP = 25;
     const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
+    const DEFAULT_ESTIMATOR = {
+      version: 0,
+      training: { fallbackLevel: 3.5, unknownMaleProbability: 0.65 },
+      shuttleTypes: [
+        { id: "rsl3", name: "亚3", prices: [11, 11.3, 11.5], durability: 1 },
+        { id: "as05", name: "AS05", prices: [13.5], durability: 1.2 },
+      ],
+      court: {
+        levelSlope: 0.1,
+        maleBonus: 0.05,
+        intercept: 0.15,
+        slope: 0.145,
+        roundingOffset: 0.4,
+        memberAdjustments: {},
+      },
+      shuttle: {
+        levelSlope: 0.08,
+        maleBonus: 0.08,
+        intercept: -1.5,
+        slope: 0.85,
+        memberAdjustments: {},
+      },
+    };
     const REMOTE_API_BASE = "https://badminton.choi975.workers.dev";
     const IS_GITHUB_PAGES = location.hostname === "choi975.github.io" && location.pathname.startsWith("/badminton");
     const IS_WORKER_APP = location.hostname === "badminton.choi975.workers.dev"
@@ -2463,6 +2498,7 @@
       draft: { ...DEFAULT_DRAFT },
       levelDescriptions: {},
       levelGuideRaw: "",
+      estimator: DEFAULT_ESTIMATOR,
       groupJoinNumbers: { "球友": [], "Hytronik": [] },
       paymentOrders: { "球友": [], "Hytronik": [] },
       readOnly: IS_GITHUB_PAGES,
@@ -2476,7 +2512,7 @@
       chainEntries: [],
       chainLevelMode: IS_GITHUB_PAGES ? "group" : "exact",
       plusOverrides: {},
-      autoFeeDefaults: { fee: 70, shuttle: 4 },
+      autoFeeDefaults: { fee: 70, shuttle: 4, courts: 1 },
       feeMode: "basic",
       advancedRows: { court: [], shuttle: [] },
       advancedAutoDefaults: null,
@@ -2548,6 +2584,7 @@
       courtFeeInput: document.getElementById("courtFeeInput"),
       shuttlePriceInput: document.getElementById("shuttlePriceInput"),
       shuttleCountInput: document.getElementById("shuttleCountInput"),
+      shuttleTypeNotice: document.getElementById("shuttleTypeNotice"),
       feeAdvancedBtn: document.getElementById("feeAdvancedBtn"),
       feeBasicGrid: document.getElementById("feeBasicGrid"),
       feeAdvancedArea: document.getElementById("feeAdvancedArea"),
@@ -2693,6 +2730,7 @@
       state.sessions = normalizeSessions(data.sessions);
       state.levelDescriptions = data.levelDescriptions || {};
       state.levelGuideRaw = data.levelGuideRaw || "";
+      state.estimator = normalizeEstimator(data.estimator);
       applyPaymentOrderState(data);
       state.dataSource = source;
       state.dataTimestamp = generatedAt || null;
@@ -2797,7 +2835,16 @@
             updatePaymentButton();
           }
         });
-        input.addEventListener("input", updatePaymentButton);
+        input.addEventListener("input", () => {
+          if (input === els.shuttlePriceInput) processChain();
+          else updatePaymentButton();
+        });
+      });
+      els.shuttlePriceInput.addEventListener("change", () => {
+        const price = Number(els.shuttlePriceInput.value);
+        if (Number.isFinite(price) && !findShuttleTypeByPrice(price)) {
+          toast("未登记球型号，请先记录");
+        }
       });
       els.feeAdvancedBtn.addEventListener("click", toggleFeeMode);
       els.paymentBtn.addEventListener("click", openPaymentModal);
@@ -3990,6 +4037,20 @@
       return (a.joinNumber - b.joinNumber) || (a.playerId - b.playerId);
     }
 
+    function normalizeEstimator(raw) {
+      if (!raw || typeof raw !== "object") return DEFAULT_ESTIMATOR;
+      return {
+        ...DEFAULT_ESTIMATOR,
+        ...raw,
+        training: { ...DEFAULT_ESTIMATOR.training, ...(raw.training || {}) },
+        shuttleTypes: Array.isArray(raw.shuttleTypes) && raw.shuttleTypes.length
+          ? raw.shuttleTypes
+          : DEFAULT_ESTIMATOR.shuttleTypes,
+        court: { ...DEFAULT_ESTIMATOR.court, ...(raw.court || {}) },
+        shuttle: { ...DEFAULT_ESTIMATOR.shuttle, ...(raw.shuttle || {}) },
+      };
+    }
+
     function normalizeSessions(rawSessions) {
       return (Array.isArray(rawSessions) ? rawSessions : []).map((session) => ({
         id: Number(session.id),
@@ -4000,7 +4061,12 @@
         shuttlePrice: Number(session.shuttlePrice) || 0,
         shuttleCount: Number(session.shuttleCount) || 0,
         courtPriceRows: Array.isArray(session.courtPriceRows) ? session.courtPriceRows : null,
-        shuttlePriceRows: Array.isArray(session.shuttlePriceRows) ? session.shuttlePriceRows : null,
+        shuttlePriceRows: Array.isArray(session.shuttlePriceRows)
+          ? session.shuttlePriceRows.map((row) => ({
+              ...row,
+              type: row.type || findShuttleTypeByPrice(Number(row.price))?.id || "unknown",
+            }))
+          : null,
         players: (Array.isArray(session.players) ? session.players : []).map((row) => ({
           playerId: row.playerId === null || row.playerId === undefined ? null : Number(row.playerId),
           playerName: String(row.playerName || ""),
@@ -4008,6 +4074,10 @@
           plusCount: Number(row.plusCount) || 0,
           amount: Number(row.amount) || 0,
           isFemale: Boolean(row.isFemale),
+          gender: ["男", "女", "不详"].includes(row.gender)
+            ? row.gender
+            : Boolean(row.isFemale) ? "女" : "不详",
+          level: LEVELS.includes(row.level) ? row.level : "不详",
         })),
         createdAt: session.createdAt,
         updatedAt: session.updatedAt,
@@ -4221,6 +4291,10 @@
       div.className = "record-member-row";
       div.dataset.playerId = row.playerId === null || row.playerId === undefined ? "" : String(row.playerId);
       div.dataset.isFemale = row.isFemale ? "1" : "0";
+      div.dataset.gender = ["男", "女", "不详"].includes(row.gender)
+        ? row.gender
+        : row.isFemale ? "女" : "不详";
+      div.dataset.level = LEVELS.includes(row.level) ? row.level : "不详";
 
       const name = document.createElement("span");
       name.className = "record-member-name";
@@ -4286,6 +4360,8 @@
           plusCount: Math.max(0, slots - 1),
           amount: Math.max(0, Number(row.querySelector(".record-member-amount")?.value) || 0),
           isFemale: row.dataset.isFemale === "1",
+          gender: row.dataset.gender || "不详",
+          level: row.dataset.level || "不详",
         };
       });
 
@@ -4326,7 +4402,13 @@
           return;
         }
         courtPriceRows = deriveCourtRows(courtFee, courtCount);
-        if (shuttleCount > 0) shuttlePriceRows = [{ price: shuttlePrice, count: shuttleCount }];
+        if (shuttleCount > 0) {
+          shuttlePriceRows = [{
+            price: shuttlePrice,
+            count: shuttleCount,
+            type: findShuttleTypeByPrice(shuttlePrice)?.id || "unknown",
+          }];
+        }
       }
 
       const sessionId = Number(els.recordModal.dataset.sessionId || 0);
@@ -4938,19 +5020,35 @@
       return card;
     }
 
-    function buildChainLinesFromSession(session) {
+    function buildChainInputFromSession(session) {
       const lines = [];
+      const plusOverrides = {};
+      const identityCounts = new Map();
+      const appendLine = (line, snapshot = null) => {
+        const identity = normalizeAlias(cleanChainLine(line));
+        const occurrence = identityCounts.get(identity) || 0;
+        identityCounts.set(identity, occurrence + 1);
+        lines.push(line);
+        if (snapshot) plusOverrides[`${identity}::${occurrence}`] = snapshot;
+      };
       for (const row of session.players) {
         const name = row.playerName || "未知成员";
+        if (row.playerId === null && /[+＋➕]\s*\d+/.test(name)) {
+          appendLine(name, {
+            gender: row.gender || (row.isFemale ? "女" : "不详"),
+            levelText: row.level || "不详",
+            levelGroupLabel: getLevelGroupLabel(row.level),
+          });
+          continue;
+        }
         if (row.slots <= 1) {
-          lines.push(row.isFemale ? `${name}🌸` : name);
+          appendLine(row.isFemale ? `${name}🌸` : name);
         } else {
-          lines.push(name);
-          const flower = row.isFemale ? "🌸" : "";
-          for (let i = 1; i < row.slots; i++) lines.push(`${name}+${i}${flower}`);
+          appendLine(name);
+          for (let i = 1; i < row.slots; i++) appendLine(`${name}+${i}`);
         }
       }
-      return lines.join("\n");
+      return { text: lines.join("\n"), plusOverrides };
     }
 
     function openChainForSessionEdit(session) {
@@ -4960,7 +5058,9 @@
       }
       state.pendingSessionEdit = { id: session.id, date: session.date, venue: session.venue };
       state.returnToCalendar = true;
-      els.chainInput.value = buildChainLinesFromSession(session);
+      const chainInput = buildChainInputFromSession(session);
+      els.chainInput.value = chainInput.text;
+      state.plusOverrides = chainInput.plusOverrides;
       const courtRows = Array.isArray(session.courtPriceRows) ? session.courtPriceRows : [];
       const shuttleRows = Array.isArray(session.shuttlePriceRows) ? session.shuttlePriceRows : [];
       const needsAdvanced = courtRows.length > 1 || shuttleRows.length > 1;
@@ -4984,13 +5084,7 @@
         els.courtFeeInput.value = formatCompactNumber(session.courtFee);
         els.shuttlePriceInput.value = formatCompactNumber(session.shuttlePrice);
         els.shuttleCountInput.value = String(session.shuttleCount);
-        const peopleCount = (session.players || []).reduce((sum, row) => sum + row.slots, 0);
-        const defaultCourts = getDefaultCourtCount(peopleCount);
-        const defaultFee = defaultCourts * 70;
-        const defaultShuttle = defaultCourts * 4;
-        state.autoFeeDefaults = (
-          Number(session.courtFee) === defaultFee && Number(session.shuttleCount) === defaultShuttle
-        ) ? { fee: defaultFee, shuttle: defaultShuttle } : null;
+        state.autoFeeDefaults = null;
       }
       processChain();
       closeModal("calendarModal");
@@ -5006,6 +5100,7 @@
       state.pendingSessionEdit = { id: null, date: dateString };
       state.returnToCalendar = true;
       els.chainInput.value = "";
+      state.plusOverrides = {};
       state.feeMode = "basic";
       state.advancedRows = { court: [], shuttle: [] };
       state.advancedAutoDefaults = null;
@@ -5017,7 +5112,7 @@
       els.shuttleCountInput.value = "4";
       els.courtFeeInput.dataset.defaultValue = "70";
       els.shuttleCountInput.dataset.defaultValue = "4";
-      state.autoFeeDefaults = { fee: 70, shuttle: 4 };
+      state.autoFeeDefaults = { fee: 70, shuttle: 4, courts: 1 };
       processChain();
       closeModal("calendarModal");
       openModal("chainModal");
@@ -5259,6 +5354,74 @@
       return concatUint8([...localParts, ...centralParts, end]);
     }
 
+    function findShuttleTypeByPrice(price) {
+      if (!Number.isFinite(price)) return null;
+      return (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes).find((type) => (
+        Array.isArray(type.prices) && type.prices.some((knownPrice) => Math.abs(Number(knownPrice) - price) < 0.02)
+      )) || null;
+    }
+
+    function estimatorEntryWeight(entry, model) {
+      const fallbackLevel = Number(state.estimator?.training?.fallbackLevel) || DEFAULT_ESTIMATOR.training.fallbackLevel;
+      const parsedLevel = levelRank(entry.levelText);
+      const level = parsedLevel < 0 ? fallbackLevel : parsedLevel;
+      const unknownMaleProbability = Number(state.estimator?.training?.unknownMaleProbability);
+      const genderLoad = entry.gender === "男"
+        ? 1
+        : entry.gender === "不详"
+          ? (Number.isFinite(unknownMaleProbability) ? unknownMaleProbability : 0.5)
+          : 0;
+      return Math.max(0.4, 1
+        + (Number(model.levelSlope) || 0) * (level - fallbackLevel)
+        + (Number(model.maleBonus) || 0) * genderLoad);
+    }
+
+    function estimateBooking(entries) {
+      if (!entries.length) return { courts: 0, rsl3: 0, as05: 0, rsl3Equivalent: 0 };
+      const estimator = state.estimator || DEFAULT_ESTIMATOR;
+      const courtModel = estimator.court || DEFAULT_ESTIMATOR.court;
+      const shuttleModel = estimator.shuttle || DEFAULT_ESTIMATOR.shuttle;
+      const sumLoad = (model) => entries.reduce((sum, entry) => sum + estimatorEntryWeight(entry, model), 0);
+      const sumMemberAdjustments = (model) => entries.reduce((sum, entry) => {
+        const playerId = entry.player?.id;
+        return sum + (playerId ? Number(model.memberAdjustments?.[String(playerId)]) || 0 : 0);
+      }, 0);
+
+      const courtRaw = (Number(courtModel.intercept) || 0)
+        + (Number(courtModel.slope) || 0) * sumLoad(courtModel)
+        + sumMemberAdjustments(courtModel);
+      const courts = Math.max(1, Math.ceil(courtRaw - (Number(courtModel.roundingOffset) || 0)));
+
+      const shuttleRaw = (Number(shuttleModel.intercept) || 0)
+        + (Number(shuttleModel.slope) || 0) * sumLoad(shuttleModel)
+        + sumMemberAdjustments(shuttleModel);
+      const rsl3Equivalent = Math.max(1, shuttleRaw);
+      const rsl3Type = estimator.shuttleTypes.find((type) => type.id === "rsl3") || { durability: 1 };
+      const as05Type = estimator.shuttleTypes.find((type) => type.id === "as05") || { durability: 1.2 };
+      return {
+        courts,
+        rsl3Equivalent,
+        rsl3: Math.max(1, Math.ceil(rsl3Equivalent / (Number(rsl3Type.durability) || 1))),
+        as05: Math.max(1, Math.ceil(rsl3Equivalent / (Number(as05Type.durability) || 1.2))),
+      };
+    }
+
+    function predictedShuttleCountForPrice(estimate, price) {
+      const type = findShuttleTypeByPrice(price);
+      if (!type || !estimate) return null;
+      if (type.id === "rsl3") return estimate.rsl3;
+      if (type.id === "as05") return estimate.as05;
+      return Math.max(1, Math.ceil(estimate.rsl3Equivalent / (Number(type.durability) || 1)));
+    }
+
+    function updateShuttleTypeNotice() {
+      const raw = els.shuttlePriceInput.value.trim();
+      const price = raw === "" ? null : Number(raw);
+      const unknown = price !== null && Number.isFinite(price) && !findShuttleTypeByPrice(price);
+      els.shuttleTypeNotice.hidden = !unknown;
+      els.shuttleTypeNotice.textContent = unknown ? "未登记球型号，请先记录" : "";
+    }
+
     function getDefaultCourtCount(peopleCount) {
       if (peopleCount <= 9) return 1;
       if (peopleCount <= 14) return 2;
@@ -5391,8 +5554,8 @@
     }
 
     function enterAdvancedFeeMode() {
-      const peopleCount = state.chainEntries.length;
-      const courts = getDefaultCourtCount(peopleCount);
+      const estimate = estimateBooking(state.chainEntries);
+      const courts = estimate.courts || 1;
       const currentFee = Number(els.courtFeeInput.value) || 0;
       const breakdown = courtPriceBreakdown({ courtCount: courts, courtFee: currentFee });
       const courtRows = breakdown.length && !breakdown[0].fallback
@@ -5416,10 +5579,15 @@
       els.courtFeeInput.value = formatCompactNumber(totals.courtFee);
       els.shuttlePriceInput.value = formatCompactNumber(totals.shuttlePrice);
       els.shuttleCountInput.value = String(totals.shuttleCount);
-      const courts = getDefaultCourtCount(state.chainEntries.length);
+      const estimate = estimateBooking(state.chainEntries);
+      const courts = estimate.courts || 1;
+      const predictedShuttle = predictedShuttleCountForPrice(estimate, totals.shuttlePrice);
       const matchesDefault = Math.abs(totals.courtFee - courts * 70) < 1e-9
-        && totals.shuttleCount === courts * 4;
-      state.autoFeeDefaults = matchesDefault ? { fee: courts * 70, shuttle: courts * 4 } : null;
+        && predictedShuttle !== null
+        && totals.shuttleCount === predictedShuttle;
+      state.autoFeeDefaults = matchesDefault
+        ? { fee: courts * 70, shuttle: predictedShuttle, courts }
+        : null;
       state.feeMode = "basic";
       state.advancedRows = { court: [], shuttle: [] };
       els.feeAdvancedArea.hidden = true;
@@ -5428,10 +5596,13 @@
       updatePaymentButton();
     }
 
-    function updateFeeDefaults(peopleCount) {
+    function updateFeeDefaults(entries, estimate) {
+      updateShuttleTypeNotice();
+      if (!entries.length || !estimate?.courts) return;
+      const currentShuttlePrice = Number(els.shuttlePriceInput.value);
+      const defaultShuttleCount = predictedShuttleCountForPrice(estimate, currentShuttlePrice);
       if (state.feeMode === "advanced") {
-        const courts = getDefaultCourtCount(Math.max(0, peopleCount));
-        const defaultShuttleCount = courts * 4;
+        const courts = estimate.courts;
         const previous = state.advancedAutoDefaults;
         const courtRows = state.advancedRows.court;
         const shuttleRows = state.advancedRows.shuttle;
@@ -5441,9 +5612,9 @@
             first.count = courts;
           }
         }
-        if (previous && shuttleRows.length) {
+        if (previous && shuttleRows.length && defaultShuttleCount !== null) {
           const first = shuttleRows[0];
-          if (first.price === 11.3 && first.count === previous.shuttleCount) {
+          if (first.count === previous.shuttleCount) {
             first.count = defaultShuttleCount;
           }
         }
@@ -5452,15 +5623,17 @@
         updatePaymentButton();
         return;
       }
-      const courts = getDefaultCourtCount(Math.max(0, peopleCount));
-      const newFee = courts * 70;
-      const newShuttle = courts * 4;
+      const courts = estimate.courts;
       const previous = state.autoFeeDefaults;
 
       const currentFeeRaw = els.courtFeeInput.value.trim();
       const currentShuttleRaw = els.shuttleCountInput.value.trim();
       const currentFee = currentFeeRaw === "" ? null : Number(currentFeeRaw);
       const currentShuttle = currentShuttleRaw === "" ? null : Number(currentShuttleRaw);
+
+      const previousCourtUnit = previous?.courts > 0 ? previous.fee / previous.courts : 70;
+      const courtUnit = Number.isFinite(previousCourtUnit) ? previousCourtUnit : 70;
+      const newFee = courts * courtUnit;
 
       const feeIsAuto = currentFee === null || (previous !== null && currentFee === previous.fee);
       const shuttleIsAuto = currentShuttle === null || (previous !== null && currentShuttle === previous.shuttle);
@@ -5469,12 +5642,16 @@
         els.courtFeeInput.value = String(newFee);
         els.courtFeeInput.dataset.defaultValue = String(newFee);
       }
-      if (shuttleIsAuto) {
-        els.shuttleCountInput.value = String(newShuttle);
-        els.shuttleCountInput.dataset.defaultValue = String(newShuttle);
+      if (shuttleIsAuto && defaultShuttleCount !== null) {
+        els.shuttleCountInput.value = String(defaultShuttleCount);
+        els.shuttleCountInput.dataset.defaultValue = String(defaultShuttleCount);
       }
 
-      state.autoFeeDefaults = { fee: newFee, shuttle: newShuttle };
+      state.autoFeeDefaults = {
+        fee: newFee,
+        shuttle: defaultShuttleCount ?? previous?.shuttle ?? currentShuttle,
+        courts,
+      };
     }
 
     function processChain() {
@@ -5494,10 +5671,11 @@
         if (!activePlusKeys.has(key)) delete state.plusOverrides[key];
       });
       const sorted = [...entries].sort((a, b) => (b.sortRank - a.sortRank) || (a.index - b.index));
-      renderChainOutput(sorted);
-      renderChainStats(sorted);
       state.chainEntries = entries;
-      updateFeeDefaults(entries.length);
+      const estimate = estimateBooking(entries);
+      renderChainOutput(sorted);
+      renderChainStats(sorted, estimate);
+      updateFeeDefaults(entries, estimate);
       updatePaymentButton();
     }
 
@@ -5536,7 +5714,8 @@
     function parseChainLine(line, index, aliasIndex, overrideKey = "", override = null) {
       const plusMetadata = parsePlusEntryMetadata(cleanChainLine(line));
       const clean = plusMetadata.displayName;
-      const player = findPlayerForLine(clean, aliasIndex);
+      const matchedPlayer = findPlayerForLine(clean, aliasIndex);
+      const player = plusMetadata.plusEntry ? null : matchedPlayer;
       const knownLevel = player?.level || "不详";
       const detectedLevelText = plusMetadata.plusEntry ? plusMetadata.levelText : knownLevel;
       const detectedGender = plusMetadata.plusEntry
@@ -5717,7 +5896,7 @@
       };
     }
 
-    function renderChainStats(entries) {
+    function renderChainStats(entries, estimate) {
       if (!entries.length) {
         els.chainStats.replaceChildren();
         return;
@@ -5746,7 +5925,15 @@
       const genderStats = document.createElement("div");
       genderStats.textContent = genderLines.join("\n");
 
-      els.chainStats.replaceChildren(levelStats, divider, genderStats);
+      const estimateDivider = document.createElement("div");
+      estimateDivider.className = "stats-divider";
+      estimateDivider.setAttribute("role", "separator");
+
+      const estimateLine = document.createElement("div");
+      estimateLine.className = "estimate-line";
+      estimateLine.textContent = `预计需要 ${estimate.courts} 个场地 和 ${estimate.rsl3} 颗亚3或 ${estimate.as05} 颗AS05`;
+
+      els.chainStats.replaceChildren(levelStats, divider, genderStats, estimateDivider, estimateLine);
     }
 
     function buildExactLevelStats(entries) {
@@ -5952,15 +6139,28 @@
         courtPriceRows: courtRows,
         shuttlePriceRows: shuttleRows,
         players: [...result.groups.friends, ...result.groups.heineken, ...result.groups.special].map((row) => ({
-          playerId: row.playerId || null,
-          playerName: row.name || "未知成员",
-          slots: Number(row.slots) || 0,
-          plusCount: Math.max(0, Number(row.slots) - 1),
-          amount: Number(row.amount) || 0,
-          isFemale: Boolean(row.hasFemale && !row.hasMale),
+          ...buildSessionParticipantFromPaymentRow(row),
         })),
       };
       openModal("paymentModal");
+    }
+
+    function buildSessionParticipantFromPaymentRow(row) {
+      const entry = row.playerId
+        ? state.chainEntries.find((item) => Number(item.player?.id) === Number(row.playerId))
+        : state.chainEntries.find((item) => !item.player && getChainEntryBaseName(item) === row.name);
+      const gender = entry?.gender || (row.hasFemale && !row.hasMale ? "女" : row.hasMale && !row.hasFemale ? "男" : "不详");
+      const level = entry?.levelText || entry?.player?.level || "不详";
+      return {
+        playerId: row.playerId || null,
+        playerName: row.name || "未知成员",
+        slots: Number(row.slots) || 0,
+        plusCount: Math.max(0, Number(row.slots) - 1),
+        amount: Number(row.amount) || 0,
+        isFemale: gender === "女",
+        gender,
+        level,
+      };
     }
 
     async function copyPaymentScreenshot() {

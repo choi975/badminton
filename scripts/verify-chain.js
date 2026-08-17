@@ -91,7 +91,8 @@ function removeChainAnnotations(value) {
 function parseChainLine(line, index, aliasIndex, overrideKey = "", override = null) {
   const plusMetadata = parsePlusEntryMetadata(cleanChainLine(line));
   const clean = plusMetadata.displayName;
-  const player = findPlayerForLine(clean, aliasIndex);
+  const matchedPlayer = findPlayerForLine(clean, aliasIndex);
+  const player = plusMetadata.plusEntry ? null : matchedPlayer;
   const knownLevel = player?.level || "不详";
   const detectedLevelText = plusMetadata.plusEntry ? plusMetadata.levelText : knownLevel;
   const detectedIsFemale = plusMetadata.plusEntry ? plusMetadata.isFemale : player?.gender === "女";
@@ -315,7 +316,10 @@ console.log(JSON.stringify({ payerCount: payment.payerCount, perPerson: formatMo
 
 if (payment.payerCount !== 7) throw new Error(`Expected payerCount 7, got ${payment.payerCount}`);
 if (formatMoney(payment.perPerson) !== "18.1") throw new Error(`Expected 18.1, got ${formatMoney(payment.perPerson)}`);
-if (formatMoney(payment.heineken.find((row) => row.name === "海尼克-刘赵达")?.amount || 0) !== "54.3") throw new Error("Expected 刘赵达 amount to be three shares");
+if (formatMoney(payment.heineken.find((row) => row.name === "海尼克-刘赵达")?.amount || 0) !== "18.1") throw new Error("Expected 刘赵达 to remain one independent share");
+if (!payment.friends.some((row) => row.name === "阿达+1") || !payment.friends.some((row) => row.name === "阿达➕2")) {
+  throw new Error("Expected +N guests to be independent friend rows");
+}
 if (payment.heineken.some((row) => row.name === "达哥的领导" || row.name === "海尼克-徐攀")) throw new Error("Expected special members to stay out of heineken group");
 if (!payment.special.some((row) => row.name === "达哥的领导" && row.note === "不参与A钱")) throw new Error("Expected non-paying special row");
 if (formatMoney(payment.special.find((row) => row.name === "海尼克-徐攀")?.amount || 0) !== "18.1") throw new Error("Expected paying special member amount");
@@ -327,13 +331,16 @@ const choiCompanionEntries = ["choi", "choi+1", "甲乙丙"]
   .filter((entry) => entry.clean);
 const choiCompanionPayment = calculatePayment(choiCompanionEntries, 70, 11.3, 5);
 const choiCompanionRow = choiCompanionPayment.special.find((row) => row.name === "choi");
-if (choiCompanionRow?.slots !== 2) throw new Error("Expected choi and companion to share one payment row");
+if (choiCompanionRow?.slots !== 1) throw new Error("Expected choi to remain separate from the +N guest");
+if (!choiCompanionPayment.friends.some((row) => row.name === "choi+1" && row.slots === 1)) {
+  throw new Error("Expected choi+1 to be an independent friend row");
+}
 if (formatMoney(calculateLedgerAmount({
   friends: choiCompanionPayment.friends,
   heineken: choiCompanionPayment.heineken,
   special: choiCompanionPayment.special,
-}, 70)) !== "-45.0") {
-  throw new Error("Expected ledger amount to exclude choi's entire companion row");
+}, 70)) !== "5.8") {
+  throw new Error("Expected ledger amount to include the independent guest and exclude choi");
 }
 if (formatMoney(payment.special.find((row) => row.name === "choi")?.amount || 0) !== "18.1") throw new Error("Expected choi to follow special payment settings and remain visible");
 if (!output.some((line) => line.includes("甲乙丙🌸（3级）"))) throw new Error("Expected female flower suffix");
