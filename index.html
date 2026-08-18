@@ -4867,10 +4867,13 @@
     function renderCalendarDayPanel() {
       const selection = state.calendar.selectedDates;
       const sessions = getSessionsForSelection();
+      const dayHead = els.calendarDayTitle.parentElement;
       if (selection.length === 1) {
         const dateString = selection[0];
+        const dateTitle = formatCalendarDate(dateString);
         els.calendarDayTitle.textContent = formatCalendarDate(dateString);
         if (!sessions.length) {
+          if (dayHead) dayHead.hidden = false;
           const wrap = document.createElement("div");
           wrap.className = "empty-day-actions";
           const empty = document.createElement("div");
@@ -4888,19 +4891,23 @@
           els.calendarDayRecords.replaceChildren(wrap);
           return;
         }
-        els.calendarDayRecords.replaceChildren(...sessions.map(createCalendarRecordCard));
+        if (dayHead) dayHead.hidden = true;
+        els.calendarDayRecords.replaceChildren(...sessions.map((session) => createCalendarRecordCard(session, dateTitle)));
         return;
       }
       const monthLabel = formatCalendarSummaryMonth(state.calendar.year, state.calendar.month);
-      els.calendarDayTitle.textContent = selection.length ? `选中 ${selection.length} 天` : `${monthLabel}合计`;
+      const panelTitle = selection.length ? `选中 ${selection.length} 天` : `${monthLabel}合计`;
+      els.calendarDayTitle.textContent = panelTitle;
       if (!sessions.length) {
+        if (dayHead) dayHead.hidden = false;
         const empty = document.createElement("div");
         empty.className = "empty-hint";
         empty.textContent = selection.length ? "所选日期没有订场记录" : `${monthLabel}没有订场记录`;
         els.calendarDayRecords.replaceChildren(empty);
         return;
       }
-      els.calendarDayRecords.replaceChildren(createAggregateCalendarCard(sessions));
+      if (dayHead) dayHead.hidden = true;
+      els.calendarDayRecords.replaceChildren(createAggregateCalendarCard(sessions, panelTitle));
     }
 
     function courtPriceBreakdown(session) {
@@ -4979,7 +4986,7 @@
       return line;
     }
 
-    function createAggregateCalendarCard(sessions) {
+    function createAggregateCalendarCard(sessions, title) {
       const card = document.createElement("div");
       card.className = "calendar-record";
       const head = document.createElement("div");
@@ -5000,7 +5007,7 @@
 
       const meta = document.createElement("div");
       meta.className = "calendar-record-meta";
-      meta.textContent = buildCalendarSummaryLine(sessions);
+      meta.textContent = title ? `${title}：${buildCalendarSummaryLine(sessions)}` : buildCalendarSummaryLine(sessions);
       titleWrap.append(meta);
       head.append(titleWrap);
       card.append(head);
@@ -5128,7 +5135,7 @@
       }
     }
 
-    function createCalendarRecordCard(session) {
+    function createCalendarRecordCard(session, title) {
       const card = document.createElement("div");
       card.className = "calendar-record";
       const head = document.createElement("div");
@@ -5137,7 +5144,7 @@
       const titleWrap = document.createElement("div");
       const meta = document.createElement("div");
       meta.className = "calendar-record-meta";
-      meta.textContent = buildCalendarSummaryLine([session]);
+      meta.textContent = title ? `${title}：${buildCalendarSummaryLine([session])}` : buildCalendarSummaryLine([session]);
       titleWrap.append(meta);
       head.append(titleWrap);
 

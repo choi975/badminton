@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-17T07:08:13.779Z",
+  "generatedAt": "2026-08-18T16:36:05.553Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -3441,7 +3441,7 @@
     ],
     "estimator": {
       "version": 1,
-      "generatedAt": "2026-08-17T07:08:10.178Z",
+      "generatedAt": "2026-08-18T16:36:03.207Z",
       "training": {
         "validSessions": 13,
         "excludedSessions": [
