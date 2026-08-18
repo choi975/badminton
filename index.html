@@ -2041,6 +2041,80 @@
       color: var(--accent);
     }
 
+    .calendar-detail-summary {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .calendar-detail-table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .calendar-detail-table {
+      width: 100%;
+      min-width: 860px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .calendar-detail-table th,
+    .calendar-detail-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .calendar-detail-table th {
+      background: var(--panel-soft);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .calendar-detail-table th.num,
+    .calendar-detail-table td.num {
+      text-align: right;
+    }
+
+    .calendar-detail-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .calendar-detail-change {
+      display: block;
+      font-weight: 700;
+    }
+
+    .calendar-detail-change-up {
+      color: var(--accent-dark);
+    }
+
+    .calendar-detail-change-down {
+      color: var(--danger);
+    }
+
+    .calendar-detail-change-new {
+      color: var(--amber);
+    }
+
+    .calendar-detail-change-flat {
+      color: var(--muted);
+    }
+
+    .calendar-detail-change-prev {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
     .calendar-record-actions {
       display: flex;
       gap: 6px;
@@ -2357,6 +2431,22 @@
     </div>
   </div>
 
+  <div id="calendarDetailModal" class="modal-backdrop">
+    <div class="modal wide calendar-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="calendarDetailTitle">
+      <div class="modal-header">
+        <h2 id="calendarDetailTitle" class="modal-title">详细统计</h2>
+        <button class="modal-close-btn" data-close="calendarDetailModal" aria-label="关闭" title="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="calendarDetailSummary" class="calendar-detail-summary"></div>
+        <div id="calendarDetailTableWrap" class="calendar-detail-table-wrap"></div>
+      </div>
+      <div class="modal-footer">
+        <button data-close="calendarDetailModal">关闭</button>
+      </div>
+    </div>
+  </div>
+
   <div id="paymentSettingsModal" class="modal-backdrop">
     <div class="modal medium payment-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="paymentSettingsTitle">
       <div class="modal-header">
@@ -2577,6 +2667,10 @@
       calendarGrid: document.getElementById("calendarGrid"),
       calendarDayTitle: document.getElementById("calendarDayTitle"),
       calendarDayRecords: document.getElementById("calendarDayRecords"),
+      calendarDetailModal: document.getElementById("calendarDetailModal"),
+      calendarDetailTitle: document.getElementById("calendarDetailTitle"),
+      calendarDetailSummary: document.getElementById("calendarDetailSummary"),
+      calendarDetailTableWrap: document.getElementById("calendarDetailTableWrap"),
       chainBtn: document.getElementById("chainBtn"),
       paymentSettingsBtn: document.getElementById("paymentSettingsBtn"),
       chainModal: document.getElementById("chainModal"),
@@ -4088,9 +4182,9 @@
       }));
     }
 
-    function getMemberStatsMap() {
+    function getMemberStatsMapForSessions(sessions) {
       const statsMap = new Map();
-      for (const session of state.sessions) {
+      for (const session of sessions) {
         for (const row of session.players) {
           if (row.playerId === null) continue;
           const stats = statsMap.get(row.playerId) || { playCount: 0, guestCount: 0, amountTotal: 0 };
@@ -4101,6 +4195,10 @@
         }
       }
       return statsMap;
+    }
+
+    function getMemberStatsMap() {
+      return getMemberStatsMapForSessions(state.sessions);
     }
 
     function getMemberStats(playerId) {
@@ -4124,6 +4222,206 @@
       if (Number.isNaN(date.getTime())) return value || "";
       const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
       return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 星期${weekdays[date.getDay()]}`;
+    }
+
+    function formatCalendarShortDate(date) {
+      if (Number.isNaN(date.getTime())) return "";
+      return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+    }
+
+    function getMemberDetailStatsMap(sessions) {
+      const weekdayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+      const statsMap = new Map();
+      for (const session of sessions) {
+        const weekday = parseLocalDate(session.date).getDay();
+        for (const row of session.players) {
+          if (row.playerId === null) continue;
+          const stats = statsMap.get(row.playerId) || {
+            playCount: 0,
+            guestCount: 0,
+            amountTotal: 0,
+            weekdays: Object.fromEntries(weekdayNames.map((_, index) => [index, 0])),
+          };
+          stats.playCount += 1;
+          stats.guestCount += row.plusCount;
+          stats.amountTotal += row.amount;
+          stats.weekdays[weekday] += 1;
+          statsMap.set(row.playerId, stats);
+        }
+      }
+      return statsMap;
+    }
+
+    function subtractCalendarMonth(year, month) {
+      const total = year * 12 + month - 2;
+      return {
+        year: Math.floor(total / 12),
+        month: (total % 12) + 1,
+      };
+    }
+
+    function getCalendarDetailComparisonRange(selectedDates, year, month) {
+      if (selectedDates.length) {
+        const earliest = parseLocalDate(selectedDates[0]);
+        const length = selectedDates.length;
+        const end = new Date(earliest);
+        end.setDate(end.getDate() - 1);
+        const start = new Date(end);
+        start.setDate(start.getDate() - (length - 1));
+        return {
+          start: getLocalDateString(start),
+          end: getLocalDateString(end),
+          label: `${formatCalendarShortDate(start)}～${formatCalendarShortDate(end)}`,
+        };
+      }
+
+      const previous = subtractCalendarMonth(year, month);
+      const start = new Date(previous.year, previous.month - 1, 1);
+      const end = new Date(previous.year, previous.month, 0);
+      return {
+        start: getLocalDateString(start),
+        end: getLocalDateString(end),
+        label: `${previous.year}年${previous.month}月`,
+      };
+    }
+
+    function getSessionsForDateRange(start, end) {
+      return state.sessions.filter((session) => session.date >= start && session.date <= end);
+    }
+
+    function formatWeekdayDistribution(weekdays) {
+      const weekdayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+      const weekdayOrder = [1, 2, 3, 4, 5, 6, 0];
+      return weekdayOrder
+        .filter((day) => Number(weekdays[day]) > 0)
+        .map((day) => `${weekdayNames[day]} ${weekdays[day]}次`)
+        .join("、") || "—";
+    }
+
+    function formatCalendarDetailPercent(value) {
+      const rounded = Math.round(value * 10) / 10;
+      return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+    }
+
+    function formatCalendarDetailChange(currentCount, previousCount) {
+      if (previousCount <= 0) return currentCount > 0 ? "新增" : "持平";
+      if (currentCount === previousCount) return "持平";
+      const difference = currentCount - previousCount;
+      const percent = difference / previousCount * 100;
+      return `${difference > 0 ? "+" : ""}${formatCalendarDetailPercent(percent)}%`;
+    }
+
+    function getCalendarDetailChangeClass(changeText) {
+      if (changeText === "新增") return "calendar-detail-change-new";
+      if (changeText === "持平") return "calendar-detail-change-flat";
+      return changeText.startsWith("+") ? "calendar-detail-change-up" : "calendar-detail-change-down";
+    }
+
+    function renderCalendarDetailTable(entries) {
+      const wrap = els.calendarDetailTableWrap;
+      wrap.replaceChildren();
+      if (!entries.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-hint";
+        empty.style.padding = "18px";
+        empty.textContent = "本期没有关联成员的统计";
+        wrap.append(empty);
+        return;
+      }
+
+      const table = document.createElement("table");
+      table.className = "calendar-detail-table";
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      const columns = [
+        { label: "成员", numeric: false },
+        { label: "打球次数", numeric: true },
+        { label: "带人数", numeric: true },
+        { label: "A钱总额", numeric: true },
+        { label: "打球日分布", numeric: false },
+        { label: "较上期变化", numeric: true },
+      ];
+      columns.forEach((column) => {
+        const th = document.createElement("th");
+        th.textContent = column.label;
+        if (column.numeric) th.className = "num";
+        headerRow.append(th);
+      });
+      thead.append(headerRow);
+
+      const tbody = document.createElement("tbody");
+      entries.forEach((entry) => {
+        const tr = document.createElement("tr");
+        const nameTd = document.createElement("td");
+        nameTd.textContent = entry.name;
+
+        const playTd = document.createElement("td");
+        playTd.className = "num";
+        playTd.textContent = String(entry.playCount);
+
+        const guestTd = document.createElement("td");
+        guestTd.className = "num";
+        guestTd.textContent = String(entry.guestCount);
+
+        const amountTd = document.createElement("td");
+        amountTd.className = "num";
+        amountTd.textContent = `${formatMoney(entry.amountTotal)}元`;
+
+        const weekdayTd = document.createElement("td");
+        weekdayTd.textContent = formatWeekdayDistribution(entry.weekdays);
+
+        const changeTd = document.createElement("td");
+        changeTd.className = "num";
+        const changeText = formatCalendarDetailChange(entry.playCount, entry.previousPlayCount);
+        const change = document.createElement("span");
+        change.className = `calendar-detail-change ${getCalendarDetailChangeClass(changeText)}`;
+        change.textContent = changeText;
+        const previous = document.createElement("span");
+        previous.className = "calendar-detail-change-prev";
+        previous.textContent = `上期 ${entry.previousPlayCount} 次`;
+        changeTd.append(change, previous);
+
+        tr.append(nameTd, playTd, guestTd, amountTd, weekdayTd, changeTd);
+        tbody.append(tr);
+      });
+
+      table.append(thead, tbody);
+      wrap.append(table);
+    }
+
+    function openCalendarDetailModal(sessions, title) {
+      const currentStats = getMemberDetailStatsMap(sessions);
+      const comparison = getCalendarDetailComparisonRange(
+        state.calendar.selectedDates,
+        state.calendar.year,
+        state.calendar.month,
+      );
+      const previousSessions = getSessionsForDateRange(comparison.start, comparison.end);
+      const previousStats = getMemberStatsMapForSessions(previousSessions);
+      const playersById = new Map(state.players.map((player) => [Number(player.id), player]));
+
+      const entries = [...currentStats.entries()].map(([playerId, stats]) => {
+        const player = playersById.get(Number(playerId));
+        const previous = previousStats.get(Number(playerId)) || { playCount: 0, guestCount: 0, amountTotal: 0 };
+        return {
+          playerId: Number(playerId),
+          name: player?.name ? firstName(player.name) : `#${playerId}`,
+          playCount: stats.playCount,
+          guestCount: stats.guestCount,
+          amountTotal: stats.amountTotal,
+          weekdays: stats.weekdays,
+          previousPlayCount: previous.playCount,
+        };
+      }).sort((a, b) => (
+        (b.playCount - a.playCount)
+        || (b.amountTotal - a.amountTotal)
+        || collator.compare(a.name, b.name)
+      ));
+
+      els.calendarDetailTitle.textContent = "详细统计";
+      els.calendarDetailSummary.textContent = `${title} · 对比${comparison.label}`;
+      renderCalendarDetailTable(entries);
+      openModal("calendarDetailModal");
     }
 
     function inferCourtCounts(fee) {
@@ -5025,6 +5323,17 @@
       setCalendarRecordMetaText(meta, title, buildCalendarSummaryLine(sessions));
       titleWrap.append(meta);
       head.append(titleWrap);
+
+      const actions = document.createElement("div");
+      actions.className = "calendar-record-actions";
+      const detailButton = document.createElement("button");
+      detailButton.type = "button";
+      detailButton.className = "primary-btn";
+      detailButton.textContent = "详情";
+      detailButton.addEventListener("click", () => openCalendarDetailModal(sessions, title));
+      actions.append(detailButton);
+      head.append(actions);
+
       card.append(head);
 
       const players = document.createElement("div");
