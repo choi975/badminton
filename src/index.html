@@ -2037,6 +2037,10 @@
       line-height: 1.5;
     }
 
+    .calendar-record-meta-title {
+      color: var(--accent);
+    }
+
     .calendar-record-actions {
       display: flex;
       gap: 6px;
@@ -4986,6 +4990,17 @@
       return line;
     }
 
+    function setCalendarRecordMetaText(meta, title, summaryText) {
+      meta.replaceChildren();
+      if (title) {
+        const titleSpan = document.createElement("span");
+        titleSpan.className = "calendar-record-meta-title";
+        titleSpan.textContent = `${title}：`;
+        meta.append(titleSpan);
+      }
+      meta.append(document.createTextNode(summaryText));
+    }
+
     function createAggregateCalendarCard(sessions, title) {
       const card = document.createElement("div");
       card.className = "calendar-record";
@@ -5007,7 +5022,7 @@
 
       const meta = document.createElement("div");
       meta.className = "calendar-record-meta";
-      meta.textContent = title ? `${title}：${buildCalendarSummaryLine(sessions)}` : buildCalendarSummaryLine(sessions);
+      setCalendarRecordMetaText(meta, title, buildCalendarSummaryLine(sessions));
       titleWrap.append(meta);
       head.append(titleWrap);
       card.append(head);
@@ -5144,7 +5159,7 @@
       const titleWrap = document.createElement("div");
       const meta = document.createElement("div");
       meta.className = "calendar-record-meta";
-      meta.textContent = title ? `${title}：${buildCalendarSummaryLine([session])}` : buildCalendarSummaryLine([session]);
+      setCalendarRecordMetaText(meta, title, buildCalendarSummaryLine([session]));
       titleWrap.append(meta);
       head.append(titleWrap);
 
