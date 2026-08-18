@@ -2064,56 +2064,6 @@
       font-weight: 700;
     }
 
-    .calendar-member-stats {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px dashed var(--line-strong);
-    }
-
-    .calendar-member-stats-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 6px;
-      font-size: 13px;
-    }
-
-    .calendar-member-stats-summary {
-      color: var(--muted);
-      font-size: 12px;
-      text-align: right;
-    }
-
-    .calendar-member-stats-table-wrap {
-      overflow-x: auto;
-    }
-
-    .calendar-member-stats-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-
-    .calendar-member-stats-table th,
-    .calendar-member-stats-table td {
-      padding: 6px 8px;
-      border-bottom: 1px solid var(--line);
-      text-align: left;
-      white-space: nowrap;
-    }
-
-    .calendar-member-stats-table th {
-      background: var(--panel-soft);
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .calendar-member-stats-table th.num,
-    .calendar-member-stats-table td.num {
-      text-align: right;
-    }
-
     @media (max-width: 700px) {
       .record-form-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4134,9 +4084,9 @@
       }));
     }
 
-    function getMemberStatsMapForSessions(sessions) {
+    function getMemberStatsMap() {
       const statsMap = new Map();
-      for (const session of sessions) {
+      for (const session of state.sessions) {
         for (const row of session.players) {
           if (row.playerId === null) continue;
           const stats = statsMap.get(row.playerId) || { playCount: 0, guestCount: 0, amountTotal: 0 };
@@ -4147,10 +4097,6 @@
         }
       }
       return statsMap;
-    }
-
-    function getMemberStatsMap() {
-      return getMemberStatsMapForSessions(state.sessions);
     }
 
     function getMemberStats(playerId) {
@@ -5033,122 +4979,6 @@
       return line;
     }
 
-    function compareCalendarMemberStats(a, b, key, dir) {
-      let result;
-      if (key === "name") result = collator.compare(a.name, b.name);
-      else result = Number(a[key]) - Number(b[key]);
-      if (result === 0 && key !== "name") result = collator.compare(a.name, b.name);
-      return dir === "asc" ? result : -result;
-    }
-
-    function createMemberStatsTable(sessions) {
-      const statsMap = getMemberStatsMapForSessions(sessions);
-      const playersById = new Map(state.players.map((player) => [Number(player.id), player]));
-      const entries = [...statsMap.entries()].map(([playerId, stats]) => {
-        const player = playersById.get(Number(playerId));
-        return {
-          playerId: Number(playerId),
-          name: player?.name ? firstName(player.name) : `#${playerId}`,
-          playCount: stats.playCount,
-          guestCount: stats.guestCount,
-          amountTotal: stats.amountTotal,
-        };
-      });
-      entries.sort((a, b) => compareCalendarMemberStats(a, b, "playCount", "desc"));
-
-      const wrap = document.createElement("div");
-      wrap.className = "calendar-member-stats";
-
-      const head = document.createElement("div");
-      head.className = "calendar-member-stats-head";
-      const title = document.createElement("strong");
-      title.textContent = "成员统计";
-      const summary = document.createElement("span");
-      summary.className = "calendar-member-stats-summary";
-      const totals = entries.reduce((acc, entry) => ({
-        playCount: acc.playCount + entry.playCount,
-        guestCount: acc.guestCount + entry.guestCount,
-        amountTotal: acc.amountTotal + entry.amountTotal,
-      }), { playCount: 0, guestCount: 0, amountTotal: 0 });
-      summary.textContent = `${entries.length}人 · 共${totals.playCount}次 · 带人${totals.guestCount}人 · A钱${formatMoney(totals.amountTotal)}元`;
-      head.append(title, summary);
-      wrap.append(head);
-
-      const tableWrap = document.createElement("div");
-      tableWrap.className = "calendar-member-stats-table-wrap";
-      const table = document.createElement("table");
-      table.className = "calendar-member-stats-table";
-      const thead = document.createElement("thead");
-      const tbody = document.createElement("tbody");
-      const columns = [
-        { key: "name", label: "成员", numeric: false },
-        { key: "playCount", label: "打球次数", numeric: true },
-        { key: "guestCount", label: "带人数", numeric: true },
-        { key: "amountTotal", label: "A钱总额", numeric: true },
-      ];
-      let sortKey = "playCount";
-      let sortDir = "desc";
-
-      const headerRow = document.createElement("tr");
-      columns.forEach((column) => {
-        const th = document.createElement("th");
-        th.textContent = column.label;
-        th.dataset.key = column.key;
-        th.className = column.numeric ? "num" : "";
-        th.tabIndex = 0;
-        th.title = `按${column.label}排序`;
-        th.setAttribute("aria-sort", column.key === sortKey ? (sortDir === "asc" ? "ascending" : "descending") : "none");
-        th.addEventListener("click", () => setSort(column.key));
-        th.addEventListener("keydown", (event) => {
-          if (event.key !== "Enter" && event.key !== " ") return;
-          event.preventDefault();
-          setSort(column.key);
-        });
-        headerRow.append(th);
-      });
-      thead.append(headerRow);
-
-      function setSort(key) {
-        if (sortKey === key) sortDir = sortDir === "asc" ? "desc" : "asc";
-        else {
-          sortKey = key;
-          sortDir = key === "name" ? "asc" : "desc";
-        }
-        [...thead.querySelectorAll("th")].forEach((th, index) => {
-          th.setAttribute("aria-sort", columns[index].key === sortKey
-            ? (sortDir === "asc" ? "ascending" : "descending")
-            : "none");
-        });
-        renderRows();
-      }
-
-      function renderRows() {
-        const sorted = [...entries].sort((a, b) => compareCalendarMemberStats(a, b, sortKey, sortDir));
-        tbody.replaceChildren(...sorted.map((entry) => {
-          const tr = document.createElement("tr");
-          const nameTd = document.createElement("td");
-          nameTd.textContent = entry.name;
-          const playTd = document.createElement("td");
-          playTd.className = "num";
-          playTd.textContent = String(entry.playCount);
-          const guestTd = document.createElement("td");
-          guestTd.className = "num";
-          guestTd.textContent = String(entry.guestCount);
-          const amountTd = document.createElement("td");
-          amountTd.className = "num";
-          amountTd.textContent = formatMoney(entry.amountTotal);
-          tr.append(nameTd, playTd, guestTd, amountTd);
-          return tr;
-        }));
-      }
-
-      table.append(thead, tbody);
-      tableWrap.append(table);
-      wrap.append(tableWrap);
-      renderRows();
-      return wrap;
-    }
-
     function createAggregateCalendarCard(sessions) {
       const card = document.createElement("div");
       card.className = "calendar-record";
@@ -5156,13 +4986,37 @@
       head.className = "calendar-record-head";
 
       const titleWrap = document.createElement("div");
+      const memberMap = new Map();
+      for (const session of sessions) {
+        for (const row of session.players) {
+          const key = row.playerId !== null && row.playerId !== undefined
+            ? `p:${row.playerId}`
+            : `n:${row.playerName}`;
+          const current = memberMap.get(key) || { name: row.playerName || "未知成员", amount: 0 };
+          current.amount += row.amount;
+          memberMap.set(key, current);
+        }
+      }
+
       const meta = document.createElement("div");
       meta.className = "calendar-record-meta";
       meta.textContent = buildCalendarSummaryLine(sessions);
       titleWrap.append(meta);
       head.append(titleWrap);
       card.append(head);
-      card.append(createMemberStatsTable(sessions));
+
+      const players = document.createElement("div");
+      players.className = "calendar-record-players";
+      const members = [...memberMap.values()].sort((a, b) => (
+        (b.amount - a.amount) || collator.compare(a.name, b.name)
+      ));
+      players.append(...members.map((member) => {
+        const span = document.createElement("span");
+        span.className = "calendar-record-player";
+        span.textContent = `${member.name}（${formatMoney(member.amount)}元）`;
+        return span;
+      }));
+      card.append(players);
       return card;
     }
 
