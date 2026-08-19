@@ -898,7 +898,7 @@
 
     .chain-grid {
       display: grid;
-      grid-template-columns: minmax(250px, 0.9fr) minmax(430px, 1.25fr) minmax(260px, 0.72fr);
+      grid-template-columns: minmax(230px, 0.8fr) minmax(420px, 1.15fr) minmax(320px, 0.85fr);
       gap: 10px;
       height: 100%;
       min-height: 0;
@@ -982,11 +982,12 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      flex-wrap: nowrap;
     }
 
     .inline-gender-choice {
       display: grid;
-      grid-template-columns: 34px 48px auto;
+      grid-template-columns: 34px 48px max-content;
       overflow: hidden;
       border: 1px solid var(--line-strong);
       border-radius: 6px;
@@ -1001,6 +1002,7 @@
       background: #fff;
       color: var(--muted);
       font-size: 12px;
+      white-space: nowrap;
     }
 
     .inline-gender-choice button + button { border-left: 1px solid var(--line-strong); }
@@ -1019,6 +1021,7 @@
       color: var(--text);
       padding: 0 7px;
       font-size: 12px;
+      white-space: nowrap;
     }
 
     .side-stack {
@@ -1066,6 +1069,7 @@
     .estimate-line {
       color: #173f38;
       font-weight: 400;
+      white-space: nowrap;
     }
 
     .estimate-line strong {
@@ -1779,8 +1783,25 @@
       line-height: 1.4;
     }
 
-    .calendar-dialog {
+    .modal.calendar-dialog {
       width: min(1100px, 100%);
+      height: auto;
+      max-height: calc(100vh - 32px);
+    }
+
+    .calendar-dialog .modal-body {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .calendar-dialog .calendar-toolbar,
+    .calendar-dialog .calendar-summary,
+    .calendar-dialog .calendar-hint,
+    .calendar-dialog .calendar-weekday-row,
+    .calendar-dialog .calendar-day-panel {
+      flex: 0 0 auto;
     }
 
     .calendar-toolbar {
@@ -1845,11 +1866,17 @@
     }
 
     .calendar-scroll {
-      height: clamp(280px, 45vh, 520px);
+      flex: 1 1 auto;
+      min-height: 220px;
+      height: auto;
       margin-bottom: 14px;
       overflow-y: auto;
       overscroll-behavior: contain;
       scrollbar-gutter: stable;
+    }
+
+    .calendar-day-panel {
+      flex: 0 0 auto;
     }
 
     .calendar-scroll:focus-visible {
@@ -2589,18 +2616,14 @@
         { id: "as05", name: "AS05", prices: [13.5], durability: 1.2 },
       ],
       court: {
-        levelSlope: 0.1,
-        maleBonus: 0.05,
+        genderLevelWeights: {},
         intercept: 0.15,
-        slope: 0.145,
         roundingOffset: 0.4,
         memberAdjustments: {},
       },
       shuttle: {
-        levelSlope: 0.08,
-        maleBonus: 0.08,
+        genderLevelWeights: {},
         intercept: -1.5,
-        slope: 0.85,
         memberAdjustments: {},
       },
     };
@@ -4195,8 +4218,22 @@
         shuttleTypes: Array.isArray(raw.shuttleTypes) && raw.shuttleTypes.length
           ? raw.shuttleTypes
           : DEFAULT_ESTIMATOR.shuttleTypes,
-        court: { ...DEFAULT_ESTIMATOR.court, ...(raw.court || {}) },
-        shuttle: { ...DEFAULT_ESTIMATOR.shuttle, ...(raw.shuttle || {}) },
+        court: {
+          ...DEFAULT_ESTIMATOR.court,
+          ...(raw.court || {}),
+          genderLevelWeights: {
+            ...(DEFAULT_ESTIMATOR.court.genderLevelWeights || {}),
+            ...(raw.court?.genderLevelWeights || {}),
+          },
+        },
+        shuttle: {
+          ...DEFAULT_ESTIMATOR.shuttle,
+          ...(raw.shuttle || {}),
+          genderLevelWeights: {
+            ...(DEFAULT_ESTIMATOR.shuttle.genderLevelWeights || {}),
+            ...(raw.shuttle?.genderLevelWeights || {}),
+          },
+        },
       };
     }
 
@@ -4411,7 +4448,6 @@
         { label: "成员", numeric: false },
         { label: "打球次数", numeric: true },
         { label: "带人数", numeric: true },
-        { label: "A钱总额", numeric: true },
         { label: "打球日分布", numeric: false },
         { label: "较上期变化", numeric: true },
       ];
@@ -4437,10 +4473,6 @@
         guestTd.className = "num";
         guestTd.textContent = String(entry.guestCount);
 
-        const amountTd = document.createElement("td");
-        amountTd.className = "num";
-        amountTd.textContent = `${formatMoney(entry.amountTotal)}元`;
-
         const weekdayTd = document.createElement("td");
         weekdayTd.append(createCalendarDetailHeatmap(entry.weekdays));
 
@@ -4455,7 +4487,7 @@
         previous.textContent = `上期 ${entry.previousPlayCount} 次`;
         changeTd.append(change, previous);
 
-        tr.append(nameTd, playTd, guestTd, amountTd, weekdayTd, changeTd);
+        tr.append(nameTd, playTd, guestTd, weekdayTd, changeTd);
         tbody.append(tr);
       });
 
@@ -5766,19 +5798,30 @@
       )) || null;
     }
 
+    function estimatorGenderKey(gender) {
+      return gender === "男" ? "male" : gender === "女" ? "female" : "unknown";
+    }
+
+    function estimatorLevelKey(level) {
+      if (!level || level === "不详" || level === "等级不详") return "不详";
+      const parsed = Number.parseFloat(String(level).replace("级", ""));
+      return Number.isFinite(parsed) ? String(parsed) : "不详";
+    }
+
     function estimatorEntryWeight(entry, model) {
-      const fallbackLevel = Number(state.estimator?.training?.fallbackLevel) || DEFAULT_ESTIMATOR.training.fallbackLevel;
-      const parsedLevel = levelRank(entry.levelText);
-      const level = parsedLevel < 0 ? fallbackLevel : parsedLevel;
-      const unknownMaleProbability = Number(state.estimator?.training?.unknownMaleProbability);
-      const genderLoad = entry.gender === "男"
-        ? 1
-        : entry.gender === "不详"
-          ? (Number.isFinite(unknownMaleProbability) ? unknownMaleProbability : 0.5)
-          : 0;
-      return Math.max(0.4, 1
-        + (Number(model.levelSlope) || 0) * (level - fallbackLevel)
-        + (Number(model.maleBonus) || 0) * genderLoad);
+      const weights = model.genderLevelWeights || {};
+      const gender = estimatorGenderKey(entry.gender);
+      const level = estimatorLevelKey(entry.levelText);
+      const exactKey = `${gender}:${level}`;
+      if (weights[exactKey] !== undefined) return Math.max(0.4, Number(weights[exactKey]));
+      if (gender === "unknown" && level !== "不详") {
+        const maleKey = `male:${level}`;
+        const femaleKey = `female:${level}`;
+        if (weights[maleKey] !== undefined && weights[femaleKey] !== undefined) {
+          return Math.max(0.4, (Number(weights[maleKey]) + Number(weights[femaleKey])) / 2);
+        }
+      }
+      return 1;
     }
 
     function estimateBooking(entries) {
@@ -5793,12 +5836,12 @@
       }, 0);
 
       const courtRaw = (Number(courtModel.intercept) || 0)
-        + (Number(courtModel.slope) || 0) * sumLoad(courtModel)
+        + sumLoad(courtModel)
         + sumMemberAdjustments(courtModel);
       const courts = Math.max(1, Math.ceil(courtRaw - (Number(courtModel.roundingOffset) || 0)));
 
       const shuttleRaw = (Number(shuttleModel.intercept) || 0)
-        + (Number(shuttleModel.slope) || 0) * sumLoad(shuttleModel)
+        + sumLoad(shuttleModel)
         + sumMemberAdjustments(shuttleModel);
       const rsl3Equivalent = Math.max(1, shuttleRaw);
       const rsl3Type = estimator.shuttleTypes.find((type) => type.id === "rsl3") || { durability: 1 };
@@ -6936,7 +6979,8 @@
         : perPerson;
       const groups = { friends: new Map(), heineken: new Map(), special: new Map() };
       const sharedPaymentGroup = getSharedPaymentGroup(entries);
-      let sequence = 0;
+      let nextSequence = 0;
+      let lastPayingOwner = null;
 
       for (const entry of entries) {
         const player = entry.player;
@@ -6944,14 +6988,36 @@
         if (!entry.clean) continue;
 
         if (isSpecialPlayer(player) && player.participatesPayment === false) {
-          addPaymentLine(groups.special, canonicalName, 0, "不参与A钱", 0, player.id, sequence++, entry.isFemale);
+          addPaymentLine(groups.special, canonicalName, 0, "不参与A钱", 0, player.id, nextSequence++, entry.isFemale);
+          lastPayingOwner = null;
           continue;
         }
         if (!shouldCountForPayment(entry)) continue;
 
-        const groupName = getPaymentGroup(player, sharedPaymentGroup);
         const entryAmount = entry.isFemale ? femalePerPerson : malePerPerson;
-        addPaymentLine(groups[groupName], canonicalName, entryAmount, null, 1, player?.id || null, sequence++, entry.isFemale);
+        if (entry.plusEntry && lastPayingOwner) {
+          addPaymentLine(
+            groups[lastPayingOwner.groupName],
+            lastPayingOwner.name,
+            entryAmount,
+            null,
+            1,
+            lastPayingOwner.playerId,
+            lastPayingOwner.sequence,
+            entry.isFemale,
+          );
+          continue;
+        }
+
+        const groupName = getPaymentGroup(player, sharedPaymentGroup);
+        const sequence = nextSequence++;
+        addPaymentLine(groups[groupName], canonicalName, entryAmount, null, 1, player?.id || null, sequence, entry.isFemale);
+        lastPayingOwner = {
+          name: canonicalName,
+          playerId: player?.id || null,
+          sequence,
+          groupName,
+        };
       }
 
       return {

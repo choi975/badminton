@@ -142,93 +142,151 @@ const sessions = sessionRows
 
 if (sessions.length < 3) throw new Error("至少需要三场有效订场记录才能训练预估模型");
 
-function participantWeight(participant, params) {
-  const rawLevel = levelValue(participant.level);
-  const level = rawLevel === null ? fallbackLevel : rawLevel;
-  const genderLoad = participant.gender === "男" ? 1 : participant.gender === "不详" ? unknownMaleProbability : 0;
-  return Math.max(0.4, 1 + params.levelSlope * (level - fallbackLevel) + params.maleBonus * genderLoad);
+const STANDARD_LEVEL_KEYS = ["不详", "0.5", "1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5", "6", "7", "8", "9"];
+const GENDER_LEVEL_KEYS = [
+  ...["male", "female"].flatMap((gender) => STANDARD_LEVEL_KEYS.map((level) => `${gender}:${level}`)),
+  "unknown:unknown",
+];
+
+function genderLevelKey(participant) {
+  const gender = participant.gender === "男" ? "male" : participant.gender === "女" ? "female" : "unknown";
+  const level = participant.level === "不详" ? "不详" : String(levelValue(participant.level));
+  const key = `${gender}:${level}`;
+  return GENDER_LEVEL_KEYS.includes(key) ? key : "unknown:unknown";
 }
 
-function loadFor(session, params) {
-  return session.participants.reduce((sum, participant) => sum + participantWeight(participant, params), 0);
+function categoryCounts(session) {
+  const counts = new Map(GENDER_LEVEL_KEYS.map((key) => [key, 0]));
+  for (const participant of session.participants) {
+    const key = genderLevelKey(participant);
+    counts.set(key, counts.get(key) + 1);
+  }
+  return counts;
 }
 
-function fitLine(samples) {
-  const count = samples.length;
-  const meanX = samples.reduce((sum, sample) => sum + sample.x, 0) / count;
-  const meanY = samples.reduce((sum, sample) => sum + sample.y, 0) / count;
-  const denominator = samples.reduce((sum, sample) => sum + (sample.x - meanX) ** 2, 0);
-  let slope = denominator > 1e-9
-    ? samples.reduce((sum, sample) => sum + (sample.x - meanX) * (sample.y - meanY), 0) / denominator
-    : 0;
-  slope = Math.max(0, slope);
-  const intercept = meanY - slope * meanX;
-  return { intercept, slope };
-}
-
-function prediction(line, load, kind, roundingOffset = 0) {
-  const raw = line.intercept + line.slope * load;
-  if (kind === "court") return Math.max(1, Math.ceil(raw - roundingOffset));
-  return Math.max(1, Math.ceil(raw));
-}
-
-function candidates(kind) {
-  const result = [];
-  const levelSlopes = kind === "court"
-    ? [0.06, 0.08, 0.1, 0.12, 0.14, 0.16]
-    : [0.04, 0.08, 0.12, 0.16, 0.2];
-  const maleBonuses = kind === "court"
-    ? [0.02, 0.04, 0.06, 0.08, 0.1]
-    : [0.04, 0.08, 0.12, 0.16, 0.2];
-  for (const levelSlope of levelSlopes) {
-    for (const maleBonus of maleBonuses) {
-      result.push({ levelSlope, maleBonus });
+function solveLinearSystem(matrix, vector) {
+  const size = matrix.length;
+  const augmented = matrix.map((row, index) => [...row, vector[index]]);
+  for (let column = 0; column < size; column += 1) {
+    let pivot = column;
+    for (let row = column + 1; row < size; row += 1) {
+      if (Math.abs(augmented[row][column]) > Math.abs(augmented[pivot][column])) pivot = row;
+    }
+    [augmented[column], augmented[pivot]] = [augmented[pivot], augmented[column]];
+    const pivotValue = augmented[column][column];
+    if (Math.abs(pivotValue) < 1e-12) continue;
+    for (let col = column; col <= size; col += 1) augmented[column][col] /= pivotValue;
+    for (let row = 0; row < size; row += 1) {
+      if (row === column || Math.abs(augmented[row][column]) < 1e-12) continue;
+      const factor = augmented[row][column];
+      for (let col = column; col <= size; col += 1) augmented[row][col] -= factor * augmented[column][col];
     }
   }
-  return result;
+  return augmented.map((row) => row[size]);
+}
+
+function ridgeCoefficients(samples, kind, lambda) {
+  const featureCount = GENDER_LEVEL_KEYS.length;
+  const size = 1 + featureCount;
+  const gram = Array.from({ length: size }, () => Array(size).fill(0));
+  const moment = Array(size).fill(0);
+  for (const sample of samples) {
+    const features = [1, ...GENDER_LEVEL_KEYS.map((key) => sample.counts.get(key) || 0)];
+    const target = kind === "court" ? sample.session.courtTarget : sample.session.shuttleTarget;
+    for (let row = 0; row < size; row += 1) {
+      moment[row] += features[row] * target;
+      for (let column = 0; column < size; column += 1) {
+        gram[row][column] += features[row] * features[column];
+      }
+    }
+  }
+  for (let index = 1; index < size; index += 1) gram[index][index] += lambda;
+  return solveLinearSystem(gram, moment);
+}
+
+function modelFromCoefficients(samples, coefficients) {
+  const rawWeights = coefficients.slice(1).map((value) => Math.max(0.4, value));
+  const meanTarget = samples.reduce((sum, sample) => sum + sample.target, 0) / samples.length;
+  const intercept = meanTarget - GENDER_LEVEL_KEYS.reduce((sum, key, index) => {
+    const meanCount = samples.reduce((total, sample) => total + (sample.counts.get(key) || 0), 0) / samples.length;
+    return sum + rawWeights[index] * meanCount;
+  }, 0);
+  return { intercept, weights: rawWeights };
+}
+
+function trainModel(samples, kind, lambda) {
+  const coefficients = ridgeCoefficients(samples, kind, lambda);
+  return modelFromCoefficients(samples, coefficients);
+}
+
+function rawPrediction(sample, model) {
+  return model.intercept + GENDER_LEVEL_KEYS.reduce((sum, key, index) => (
+    sum + model.weights[index] * (sample.counts.get(key) || 0)
+  ), 0);
+}
+
+function countPrediction(sample, model, kind, roundingOffset = 0) {
+  const raw = rawPrediction(sample, model);
+  return kind === "court"
+    ? Math.max(1, Math.ceil(raw - roundingOffset))
+    : Math.max(1, Math.ceil(raw));
+}
+
+function leaveOneOutScore(samples, kind, lambda, roundingOffset = 0) {
+  let absoluteError = 0;
+  let squaredError = 0;
+  for (let holdout = 0; holdout < samples.length; holdout += 1) {
+    const training = samples.filter((_, index) => index !== holdout);
+    const model = trainModel(training, kind, lambda);
+    const sample = samples[holdout];
+    const error = countPrediction(sample, model, kind, roundingOffset) - sample.target;
+    absoluteError += Math.abs(error);
+    squaredError += error ** 2;
+  }
+  return {
+    looMae: absoluteError / samples.length,
+    looRmse: Math.sqrt(squaredError / samples.length),
+  };
 }
 
 function selectModel(kind) {
+  const samples = sessions.map((session) => ({
+    session,
+    counts: categoryCounts(session),
+    target: kind === "court" ? session.courtTarget : session.shuttleTarget,
+  }));
+  const lambdas = [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10, 20];
   const offsets = kind === "court" ? [0, 0.2, 0.4, 0.6, 0.8] : [0];
   let best = null;
-  for (const params of candidates(kind)) {
+  for (const lambda of lambdas) {
     for (const roundingOffset of offsets) {
-      let absoluteError = 0;
-      let squaredError = 0;
-      for (let holdout = 0; holdout < sessions.length; holdout += 1) {
-        const training = sessions.filter((_, index) => index !== holdout).map((session) => ({
-          x: loadFor(session, params),
-          y: kind === "court" ? session.courtTarget : session.shuttleTarget,
-        }));
-        const line = fitLine(training);
-        const held = sessions[holdout];
-        const predicted = prediction(line, loadFor(held, params), kind, roundingOffset);
-        const actual = kind === "court" ? held.courtTarget : held.shuttleTarget;
-        const error = predicted - actual;
-        absoluteError += Math.abs(error);
-        squaredError += error ** 2;
+      const validation = leaveOneOutScore(samples, kind, lambda, roundingOffset);
+      const score = validation.looMae + validation.looRmse * 0.08;
+      if (!best || score < best.score) {
+        best = { lambda, roundingOffset, score, ...validation };
       }
-      const complexity = params.levelSlope + params.maleBonus;
-      const score = absoluteError + squaredError * 0.08 + complexity * 0.02;
-      if (!best || score < best.score) best = { params, roundingOffset, score, absoluteError, squaredError };
     }
   }
-  const line = fitLine(sessions.map((session) => ({
-    x: loadFor(session, best.params),
-    y: kind === "court" ? session.courtTarget : session.shuttleTarget,
-  })));
+  const model = trainModel(samples, kind, best.lambda);
   return {
     ...best,
-    line,
-    looMae: best.absoluteError / sessions.length,
-    looRmse: Math.sqrt(best.squaredError / sessions.length),
+    model,
+    looMae: best.looMae,
+    looRmse: best.looRmse,
   };
+}
+
+function expectedLoad(session, model) {
+  return model.intercept + GENDER_LEVEL_KEYS.reduce((sum, key, index) => {
+    const counts = categoryCounts(session);
+    return sum + model.weights[index] * (counts.get(key) || 0);
+  }, 0);
 }
 
 function memberAdjustments(kind, model) {
   const values = new Map();
   for (const session of sessions) {
-    const expected = model.line.intercept + model.line.slope * loadFor(session, model.params);
+    const expected = expectedLoad(session, model);
     const target = kind === "court" ? session.courtTarget : session.shuttleTarget;
     const members = session.participants.filter((participant) => participant.playerId !== null);
     if (!members.length) continue;
@@ -251,7 +309,7 @@ function memberAdjustments(kind, model) {
 const court = selectModel("court");
 const shuttle = selectModel("shuttle");
 const model = {
-  version: 1,
+  version: 2,
   generatedAt: new Date().toISOString(),
   training: {
     validSessions: sessions.length,
@@ -261,21 +319,17 @@ const model = {
   },
   shuttleTypes: SHUTTLE_TYPES,
   court: {
-    levelSlope: court.params.levelSlope,
-    maleBonus: court.params.maleBonus,
-    intercept: Number(court.line.intercept.toFixed(4)),
-    slope: Number(court.line.slope.toFixed(4)),
+    genderLevelWeights: Object.fromEntries(GENDER_LEVEL_KEYS.map((key, index) => [key, Number(court.model.weights[index].toFixed(4))])),
+    intercept: Number(court.model.intercept.toFixed(4)),
     roundingOffset: court.roundingOffset,
-    memberAdjustments: memberAdjustments("court", court),
+    memberAdjustments: memberAdjustments("court", court.model),
     validation: { looMae: Number(court.looMae.toFixed(3)), looRmse: Number(court.looRmse.toFixed(3)) },
   },
   shuttle: {
     baseType: "rsl3",
-    levelSlope: shuttle.params.levelSlope,
-    maleBonus: shuttle.params.maleBonus,
-    intercept: Number(shuttle.line.intercept.toFixed(4)),
-    slope: Number(shuttle.line.slope.toFixed(4)),
-    memberAdjustments: memberAdjustments("shuttle", shuttle),
+    genderLevelWeights: Object.fromEntries(GENDER_LEVEL_KEYS.map((key, index) => [key, Number(shuttle.model.weights[index].toFixed(4))])),
+    intercept: Number(shuttle.model.intercept.toFixed(4)),
+    memberAdjustments: memberAdjustments("shuttle", shuttle.model),
     validation: { looMae: Number(shuttle.looMae.toFixed(3)), looRmse: Number(shuttle.looRmse.toFixed(3)) },
   },
 };
