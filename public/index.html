@@ -2041,6 +2041,11 @@
       color: var(--accent);
     }
 
+    .modal.calendar-detail-dialog {
+      width: min(760px, 100%);
+      grid-template-rows: auto 1fr;
+    }
+
     .calendar-detail-summary {
       margin: 0 0 12px;
       color: var(--muted);
@@ -2056,8 +2061,9 @@
     }
 
     .calendar-detail-table {
-      width: 100%;
-      min-width: 860px;
+      width: auto;
+      max-width: 100%;
+      min-width: 720px;
       border-collapse: collapse;
       font-size: 14px;
     }
@@ -2075,11 +2081,6 @@
       color: var(--text);
       font-size: 13px;
       font-weight: 700;
-    }
-
-    .calendar-detail-table th.num,
-    .calendar-detail-table td.num {
-      text-align: right;
     }
 
     .calendar-detail-table tbody tr:last-child td {
@@ -2488,9 +2489,6 @@
       <div class="modal-body">
         <div id="calendarDetailSummary" class="calendar-detail-summary"></div>
         <div id="calendarDetailTableWrap" class="calendar-detail-table-wrap"></div>
-      </div>
-      <div class="modal-footer">
-        <button data-close="calendarDetailModal">关闭</button>
       </div>
     </div>
   </div>
