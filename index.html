@@ -6096,9 +6096,10 @@
     }
 
     function getChainLevelDisplay(entry) {
-      return state.chainLevelMode === "group"
+      const display = state.chainLevelMode === "group"
         ? (entry.levelGroupLabel || getLevelGroupLabel(entry.levelText))
         : entry.levelText;
+      return display === "不详" ? "等级不详" : display;
     }
 
     function getLevelGroupLabel(level) {
