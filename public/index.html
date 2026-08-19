@@ -2115,6 +2115,54 @@
       font-weight: 500;
     }
 
+    .calendar-detail-heatmap {
+      display: grid;
+      grid-template-columns: repeat(7, 34px);
+      gap: 4px;
+      align-items: stretch;
+    }
+
+    .calendar-detail-heat-cell {
+      min-height: 38px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: #eef3f1;
+      color: var(--muted);
+      line-height: 1.05;
+    }
+
+    .calendar-detail-heat-cell .day-label {
+      font-size: 11px;
+    }
+
+    .calendar-detail-heat-cell .day-count {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .calendar-detail-heat-cell.level-1 {
+      background: var(--accent-soft);
+      border-color: #bfded8;
+      color: var(--accent-dark);
+    }
+
+    .calendar-detail-heat-cell.level-2 {
+      background: #8fc9c0;
+      border-color: #70b6ac;
+      color: #0b403a;
+    }
+
+    .calendar-detail-heat-cell.level-3 {
+      background: var(--accent);
+      border-color: var(--accent-dark);
+      color: #fff;
+    }
+
     .calendar-record-actions {
       display: flex;
       gap: 6px;
@@ -4298,6 +4346,29 @@
         .join("、") || "—";
     }
 
+    function createCalendarDetailHeatmap(weekdays) {
+      const weekdayShortNames = ["日", "一", "二", "三", "四", "五", "六"];
+      const weekdayFullNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+      const weekdayOrder = [1, 2, 3, 4, 5, 6, 0];
+      const wrap = document.createElement("div");
+      wrap.className = "calendar-detail-heatmap";
+      weekdayOrder.forEach((day) => {
+        const count = Number(weekdays[day]) || 0;
+        const cell = document.createElement("span");
+        cell.className = `calendar-detail-heat-cell level-${count <= 0 ? 0 : Math.min(3, count)}`;
+        cell.title = `${weekdayFullNames[day]} ${count}次`;
+        const label = document.createElement("span");
+        label.className = "day-label";
+        label.textContent = weekdayShortNames[day];
+        const value = document.createElement("span");
+        value.className = "day-count";
+        value.textContent = String(count);
+        cell.append(label, value);
+        wrap.append(cell);
+      });
+      return wrap;
+    }
+
     function formatCalendarDetailPercent(value) {
       const rounded = Math.round(value * 10) / 10;
       return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
@@ -4368,7 +4439,7 @@
         amountTd.textContent = `${formatMoney(entry.amountTotal)}元`;
 
         const weekdayTd = document.createElement("td");
-        weekdayTd.textContent = formatWeekdayDistribution(entry.weekdays);
+        weekdayTd.append(createCalendarDetailHeatmap(entry.weekdays));
 
         const changeTd = document.createElement("td");
         changeTd.className = "num";
@@ -4419,7 +4490,7 @@
       ));
 
       els.calendarDetailTitle.textContent = "详细统计";
-      els.calendarDetailSummary.textContent = `${title} · 对比${comparison.label}`;
+      els.calendarDetailSummary.textContent = `${title} · 对比${comparison.label} · 颜色越深，表示该成员在当天打球次数越多`;
       renderCalendarDetailTable(entries);
       openModal("calendarDetailModal");
     }
