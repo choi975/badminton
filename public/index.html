@@ -792,16 +792,17 @@
     }
 
     .modal.chain-dialog {
-      width: min(1680px, calc(100vw - 16px));
-      height: calc(100vh - 12px);
-      max-height: calc(100vh - 12px);
+      width: min(1120px, calc(100vw - 32px));
+      min-height: 320px;
+      height: auto;
+      max-height: calc(100vh - 32px);
     }
 
     .chain-dialog .modal-header { padding: 8px 16px; }
 
     .chain-dialog .modal-body {
       min-height: 0;
-      overflow: hidden;
+      overflow: auto;
       padding: 10px;
     }
     .modal.guide-dialog {
@@ -1064,7 +1065,11 @@
 
     .estimate-line {
       color: #173f38;
-      font-weight: 700;
+      font-weight: 400;
+    }
+
+    .estimate-line strong {
+      font-weight: 800;
     }
 
     .fee-notice {
@@ -6077,6 +6082,16 @@
       renderChainStats(sorted, estimate);
       updateFeeDefaults(entries, estimate);
       updatePaymentButton();
+      resizeChainDialog(entries.length);
+    }
+
+    function resizeChainDialog(entryCount) {
+      const dialog = els.chainModal.querySelector(".chain-dialog");
+      if (!dialog) return;
+      const minHeight = 340;
+      const maxHeight = Math.max(minHeight, window.innerHeight - 32);
+      const estimatedHeight = 190 + entryCount * 34;
+      dialog.style.height = `${Math.round(Math.min(maxHeight, Math.max(minHeight, estimatedHeight)))}px`;
     }
 
     function toggleChainLevelMode() {
@@ -6332,9 +6347,23 @@
 
       const estimateLine = document.createElement("div");
       estimateLine.className = "estimate-line";
-      estimateLine.textContent = `预计需要 ${estimate.courts} 个场地 和 ${estimate.rsl3} 颗亚3或 ${estimate.as05} 颗AS05`;
+      estimateLine.append(
+        document.createTextNode("预计需要 "),
+        createEstimateValue(String(estimate.courts)),
+        document.createTextNode(" 个场地 和 "),
+        createEstimateValue(String(estimate.rsl3)),
+        document.createTextNode(" 颗亚3 或 "),
+        createEstimateValue(String(estimate.as05)),
+        document.createTextNode(" 颗AS05"),
+      );
 
       els.chainStats.replaceChildren(levelStats, divider, genderStats, estimateDivider, estimateLine);
+    }
+
+    function createEstimateValue(value) {
+      const strong = document.createElement("strong");
+      strong.textContent = value;
+      return strong;
     }
 
     function buildExactLevelStats(entries) {
@@ -6353,7 +6382,7 @@
       }
       return ["比赛级高手", "高手", "中手", "新手", "不详"]
         .filter((group) => counts.has(group))
-        .map((group) => `${group}：${counts.get(group)}人`);
+        .map((group) => `${group === "不详" ? "等级不详" : group}：${counts.get(group)}人`);
     }
 
     function updatePaymentButton() {
