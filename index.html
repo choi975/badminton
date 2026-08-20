@@ -2076,7 +2076,7 @@
     }
 
     .modal.calendar-detail-dialog {
-      width: min(760px, 100%);
+      width: min(1500px, calc(100vw - 36px));
       grid-template-rows: auto 1fr;
     }
 
@@ -2088,16 +2088,16 @@
     }
 
     .calendar-detail-table-wrap {
-      overflow: auto;
+      overflow-y: auto;
+      overflow-x: hidden;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
     }
 
     .calendar-detail-table {
-      width: auto;
-      max-width: 100%;
-      min-width: 720px;
+      width: 100%;
+      table-layout: auto;
       border-collapse: collapse;
       font-size: 14px;
     }
