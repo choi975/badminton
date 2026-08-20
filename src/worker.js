@@ -4,6 +4,9 @@ import BOOTSTRAP_SNAPSHOT from "./bootstrap-snapshot.txt";
 import BOOKING_ESTIMATOR from "./booking-estimator.txt";
 
 const BOOKING_ESTIMATOR_DATA = JSON.parse(BOOKING_ESTIMATOR);
+const SHUTTLE_TYPES_BY_ID = new Map(
+  (BOOKING_ESTIMATOR_DATA.shuttleTypes || []).map((type) => [type.id, type]),
+);
 
 const DEFAULT_LEVEL_GUIDE_RAW = `中羽等级表格
 0.5级
@@ -490,7 +493,7 @@ function normalizeSessionInput(body, fallbackVenue = "EDC") {
   }
 
   const courtPriceRows = normalizePriceRows(body?.courtPriceRows, false, false);
-  const shuttlePriceRows = normalizePriceRows(body?.shuttlePriceRows, true, true);
+  let shuttlePriceRows = normalizePriceRows(body?.shuttlePriceRows, true, true);
   if (body?.courtPriceRows !== undefined && courtPriceRows === null) return null;
   if (body?.shuttlePriceRows !== undefined && shuttlePriceRows === null) return null;
   if (courtPriceRows !== null && courtPriceRows.length === 0) return null;
@@ -513,6 +516,11 @@ function normalizeSessionInput(body, fallbackVenue = "EDC") {
   if (!Number.isFinite(courtFee) || courtFee < 0) return null;
   if (!Number.isFinite(shuttlePrice) || shuttlePrice < 0) return null;
   if (!Number.isInteger(shuttleCount) || shuttleCount < 0) return null;
+  if (shuttlePriceRows === null && shuttleCount > 0) {
+    const type = shuttleTypeForPrice(shuttlePrice);
+    if (!type) return null;
+    shuttlePriceRows = [{ price: shuttlePrice, count: shuttleCount, type }];
+  }
 
   if (!Array.isArray(body?.players)) return null;
   const players = [];
@@ -564,9 +572,14 @@ function normalizePriceRows(raw, allowEmpty, includeShuttleType) {
     const count = Number(item?.count);
     if (!Number.isFinite(price) || price < 0) return null;
     if (!Number.isInteger(count) || count <= 0) return null;
-    rows.push(includeShuttleType
-      ? { price, count, type: shuttleTypeForPrice(price) }
-      : { price, count });
+    if (includeShuttleType) {
+      const explicitType = SHUTTLE_TYPES_BY_ID.has(item?.type) ? item.type : null;
+      const type = explicitType || shuttleTypeForPrice(price);
+      if (!type) return null;
+      rows.push({ price, count, type });
+    } else {
+      rows.push({ price, count });
+    }
   }
   if (!allowEmpty && rows.length === 0) return null;
   return rows;
@@ -577,9 +590,15 @@ function parseStoredPriceRows(raw, includeShuttleType = false) {
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
-    return parsed.map((row) => includeShuttleType
-      ? { price: Number(row.price), count: Number(row.count), type: shuttleTypeForPrice(Number(row.price)) }
-      : row);
+    return parsed.map((row) => {
+      if (!includeShuttleType) return row;
+      const explicitType = SHUTTLE_TYPES_BY_ID.has(row.type) ? row.type : null;
+      return {
+        price: Number(row.price),
+        count: Number(row.count),
+        type: explicitType || shuttleTypeForPrice(Number(row.price)) || "unknown",
+      };
+    });
   } catch (error) {
     return null;
   }
@@ -588,7 +607,7 @@ function parseStoredPriceRows(raw, includeShuttleType = false) {
 function shuttleTypeForPrice(price) {
   if ([11, 11.3, 11.5].some((known) => Math.abs(known - price) < 0.02)) return "rsl3";
   if (Math.abs(13.5 - price) < 0.02) return "as05";
-  return "unknown";
+  return null;
 }
 
 function serializePriceRows(rows) {

@@ -2611,22 +2611,24 @@
     const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
     const DEFAULT_ESTIMATOR = {
-      version: 0,
-      training: { fallbackLevel: 3.5, unknownMaleProbability: 0.65 },
+      version: 3,
+      training: {},
       shuttleTypes: [
         { id: "rsl3", name: "亚3", prices: [11, 11.3, 11.5], durability: 1 },
         { id: "as05", name: "AS05", prices: [13.5], durability: 1.2 },
       ],
       court: {
-        genderLevelWeights: {},
-        intercept: 0.15,
-        roundingOffset: 0.4,
-        memberAdjustments: {},
+        formula: "ceil(participantCount / peoplePerCourt)",
+        peoplePerCourt: 7.5,
+        minimum: 1,
       },
       shuttle: {
-        genderLevelWeights: {},
-        intercept: -1.5,
-        memberAdjustments: {},
+        baseType: "rsl3",
+        formula: "ceil((participantCount * rsl3EquivalentPerParticipant + riskBuffer) / durability)",
+        rsl3EquivalentPerParticipant: 0.81,
+        riskQuantile: 0.7,
+        riskBuffer: 0,
+        minimum: 1,
       },
     };
     const REMOTE_API_BASE = "https://badminton.choi975.workers.dev";
@@ -4223,18 +4225,10 @@
         court: {
           ...DEFAULT_ESTIMATOR.court,
           ...(raw.court || {}),
-          genderLevelWeights: {
-            ...(DEFAULT_ESTIMATOR.court.genderLevelWeights || {}),
-            ...(raw.court?.genderLevelWeights || {}),
-          },
         },
         shuttle: {
           ...DEFAULT_ESTIMATOR.shuttle,
           ...(raw.shuttle || {}),
-          genderLevelWeights: {
-            ...(DEFAULT_ESTIMATOR.shuttle.genderLevelWeights || {}),
-            ...(raw.shuttle?.genderLevelWeights || {}),
-          },
         },
       };
     }
@@ -4573,6 +4567,10 @@
         toast("没有可保存的群收款数据");
         return;
       }
+      if (hasUnknownShuttleType(record.shuttlePriceRows)) {
+        toast("未登记球型号，不能保存订场记录");
+        return;
+      }
       if (state.pendingSessionEdit) {
         openRecordDialogForChainEdit();
         return;
@@ -4784,7 +4782,7 @@
       const advanced = !els.recordAdvancedArea.hidden;
       if (advanced) {
         courtPriceRows = state.recordRows.court.filter((row) => row.count > 0);
-        shuttlePriceRows = state.recordRows.shuttle.filter((row) => row.count > 0);
+        shuttlePriceRows = withShuttleTypes(state.recordRows.shuttle.filter((row) => row.count > 0));
         if (!courtPriceRows.length) {
           toast("请至少填写一行有效的场地单价和个数");
           return;
@@ -4819,6 +4817,11 @@
             type: findShuttleTypeByPrice(shuttlePrice)?.id || "unknown",
           }];
         }
+      }
+
+      if (hasUnknownShuttleType(shuttlePriceRows)) {
+        toast("未登记球型号，不能保存订场记录");
+        return;
       }
 
       const sessionId = Number(els.recordModal.dataset.sessionId || 0);
@@ -5800,30 +5803,23 @@
       )) || null;
     }
 
-    function estimatorGenderKey(gender) {
-      return gender === "男" ? "male" : gender === "女" ? "female" : "unknown";
+    function withShuttleTypes(rows) {
+      const registeredTypes = new Set(
+        (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes).map((type) => type.id),
+      );
+      return rows.map((row) => ({
+        ...row,
+        type: registeredTypes.has(row.type)
+          ? row.type
+          : findShuttleTypeByPrice(Number(row.price))?.id || "unknown",
+      }));
     }
 
-    function estimatorLevelKey(level) {
-      if (!level || level === "不详" || level === "等级不详") return "不详";
-      const parsed = Number.parseFloat(String(level).replace("级", ""));
-      return Number.isFinite(parsed) ? String(parsed) : "不详";
-    }
-
-    function estimatorEntryWeight(entry, model) {
-      const weights = model.genderLevelWeights || {};
-      const gender = estimatorGenderKey(entry.gender);
-      const level = estimatorLevelKey(entry.levelText);
-      const exactKey = `${gender}:${level}`;
-      if (weights[exactKey] !== undefined) return Math.max(0.4, Number(weights[exactKey]));
-      if (gender === "unknown" && level !== "不详") {
-        const maleKey = `male:${level}`;
-        const femaleKey = `female:${level}`;
-        if (weights[maleKey] !== undefined && weights[femaleKey] !== undefined) {
-          return Math.max(0.4, (Number(weights[maleKey]) + Number(weights[femaleKey])) / 2);
-        }
-      }
-      return 1;
+    function hasUnknownShuttleType(rows) {
+      const registeredTypes = new Set(
+        (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes).map((type) => type.id),
+      );
+      return (rows || []).some((row) => !registeredTypes.has(row.type));
     }
 
     function estimateBooking(entries) {
@@ -5831,21 +5827,24 @@
       const estimator = state.estimator || DEFAULT_ESTIMATOR;
       const courtModel = estimator.court || DEFAULT_ESTIMATOR.court;
       const shuttleModel = estimator.shuttle || DEFAULT_ESTIMATOR.shuttle;
-      const sumLoad = (model) => entries.reduce((sum, entry) => sum + estimatorEntryWeight(entry, model), 0);
-      const sumMemberAdjustments = (model) => entries.reduce((sum, entry) => {
-        const playerId = entry.player?.id;
-        return sum + (playerId ? Number(model.memberAdjustments?.[String(playerId)]) || 0 : 0);
-      }, 0);
-
-      const courtRaw = (Number(courtModel.intercept) || 0)
-        + sumLoad(courtModel)
-        + sumMemberAdjustments(courtModel);
-      const courts = Math.max(1, Math.ceil(courtRaw - (Number(courtModel.roundingOffset) || 0)));
-
-      const shuttleRaw = (Number(shuttleModel.intercept) || 0)
-        + sumLoad(shuttleModel)
-        + sumMemberAdjustments(shuttleModel);
-      const rsl3Equivalent = Math.max(1, shuttleRaw);
+      const participantCount = entries.length;
+      const peoplePerCourt = Number(courtModel.peoplePerCourt) > 0
+        ? Number(courtModel.peoplePerCourt)
+        : DEFAULT_ESTIMATOR.court.peoplePerCourt;
+      const courts = Math.max(
+        Number(courtModel.minimum) || 1,
+        Math.ceil(participantCount / peoplePerCourt),
+      );
+      const perParticipant = Number(shuttleModel.rsl3EquivalentPerParticipant) >= 0
+        ? Number(shuttleModel.rsl3EquivalentPerParticipant)
+        : DEFAULT_ESTIMATOR.shuttle.rsl3EquivalentPerParticipant;
+      const riskBuffer = Number.isFinite(Number(shuttleModel.riskBuffer))
+        ? Number(shuttleModel.riskBuffer)
+        : DEFAULT_ESTIMATOR.shuttle.riskBuffer;
+      const rsl3Equivalent = Math.max(
+        Number(shuttleModel.minimum) || 1,
+        participantCount * perParticipant + riskBuffer,
+      );
       const rsl3Type = estimator.shuttleTypes.find((type) => type.id === "rsl3") || { durability: 1 };
       const as05Type = estimator.shuttleTypes.find((type) => type.id === "as05") || { durability: 1.2 };
       return {
@@ -5873,13 +5872,9 @@
     }
 
     function getDefaultCourtCount(peopleCount) {
-      if (peopleCount <= 9) return 1;
-      if (peopleCount <= 14) return 2;
-      if (peopleCount <= 21) return 3;
-      if (peopleCount <= 28) return 4;
-      if (peopleCount <= 35) return 5;
-      if (peopleCount <= 42) return 6;
-      return 6 + Math.ceil((peopleCount - 42) / 7);
+      const peoplePerCourt = Number(state.estimator?.court?.peoplePerCourt)
+        || DEFAULT_ESTIMATOR.court.peoplePerCourt;
+      return Math.max(1, Math.ceil(peopleCount / peoplePerCourt));
     }
 
     function deriveCourtRows(fee, count) {
@@ -6181,7 +6176,7 @@
       const detectedLevelText = plusMetadata.plusEntry ? plusMetadata.levelText : knownLevel;
       const detectedGender = plusMetadata.plusEntry
         ? (plusMetadata.isFemale ? "女" : "不详")
-        : (player?.gender === "女" ? "女" : "男");
+        : (player?.gender === "女" ? "女" : player?.gender === "男" ? "男" : "不详");
       const levelText = plusMetadata.plusEntry && override?.levelText ? override.levelText : detectedLevelText;
       const detectedLevelGroupLabel = plusMetadata.plusEntry ? plusMetadata.levelGroupLabel : null;
       const levelGroupLabel = plusMetadata.plusEntry && override?.levelGroupLabel
@@ -6545,7 +6540,7 @@
         shuttleCost = totals.shuttleCost;
         courtCount = totals.courtCount;
         courtRows = totals.courtRows;
-        shuttleRows = totals.shuttleRows;
+        shuttleRows = withShuttleTypes(totals.shuttleRows);
       } else {
         courtFee = Number(els.courtFeeInput.value);
         shuttlePrice = Number(els.shuttlePriceInput.value);
@@ -6559,7 +6554,9 @@
           courtCount = candidates[0];
           courtRows = deriveCourtRows(courtFee, courtCount);
         }
-        if (shuttleCount > 0) shuttleRows = [{ price: shuttlePrice, count: shuttleCount }];
+        if (shuttleCount > 0) {
+          shuttleRows = withShuttleTypes([{ price: shuttlePrice, count: shuttleCount }]);
+        }
         shuttleCost = shuttlePrice * shuttleCount;
       }
 
@@ -6613,29 +6610,29 @@
         courtCount,
         courtPriceRows: courtRows,
         shuttlePriceRows: shuttleRows,
-        players: [...result.groups.friends, ...result.groups.heineken, ...result.groups.special].map((row) => ({
-          ...buildSessionParticipantFromPaymentRow(row),
-        })),
+        players: buildSessionParticipants(state.chainEntries, result),
       };
       openModal("paymentModal");
     }
 
-    function buildSessionParticipantFromPaymentRow(row) {
-      const entry = row.playerId
-        ? state.chainEntries.find((item) => Number(item.player?.id) === Number(row.playerId))
-        : state.chainEntries.find((item) => !item.player && getChainEntryBaseName(item) === row.name);
-      const gender = entry?.gender || (row.hasFemale && !row.hasMale ? "女" : row.hasMale && !row.hasFemale ? "男" : "不详");
-      const level = entry?.levelText || entry?.player?.level || "不详";
-      return {
-        playerId: row.playerId || null,
-        playerName: row.name || "未知成员",
-        slots: Number(row.slots) || 0,
-        plusCount: Math.max(0, Number(row.slots) - 1),
-        amount: Number(row.amount) || 0,
-        isFemale: gender === "女",
-        gender,
-        level,
-      };
+    function buildSessionParticipants(entries, payment) {
+      return entries.filter((entry) => entry.clean).map((entry) => {
+        const player = entry.player;
+        const gender = ["男", "女", "不详"].includes(entry.gender) ? entry.gender : "不详";
+        const amount = shouldCountForPayment(entry)
+          ? (gender === "女" ? payment.femalePerPerson : payment.malePerPerson)
+          : 0;
+        return {
+          playerId: player?.id || null,
+          playerName: player ? paymentDisplayName(player) : getChainEntryBaseName(entry),
+          slots: 1,
+          plusCount: 0,
+          amount,
+          isFemale: gender === "女",
+          gender,
+          level: entry.levelText || player?.level || "不详",
+        };
+      });
     }
 
     async function copyPaymentScreenshot() {

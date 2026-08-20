@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T01:51:36.198Z",
+  "generatedAt": "2026-08-20T03:26:04.279Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -3596,22 +3596,41 @@
       }
     ],
     "estimator": {
-      "version": 2,
-      "generatedAt": "2026-08-20T01:51:34.151Z",
+      "version": 3,
+      "generatedAt": "2026-08-20T03:13:18.085Z",
       "training": {
-        "validSessions": 14,
-        "excludedSessions": [
-          {
-            "date": "2026-08-04",
-            "reason": "球友请客，实际用球数量不完整，不能作为训练样本。"
+        "dateRange": {
+          "from": "2026-07-13",
+          "to": "2026-08-19"
+        },
+        "court": {
+          "sampleCount": 15,
+          "dateRange": {
+            "from": "2026-07-13",
+            "to": "2026-08-19"
           },
-          {
-            "date": "2026-08-10",
-            "reason": "低水平且场地拥挤，实际订场数量不代表常规需求。"
-          }
-        ],
-        "fallbackLevel": 3.632,
-        "unknownMaleProbability": 0.747
+          "excludedSessions": [
+            {
+              "date": "2026-08-10",
+              "reason": "低水平且场地拥挤，实际订场数量不代表常规需求。"
+            }
+          ],
+          "skippedSessions": []
+        },
+        "shuttle": {
+          "sampleCount": 15,
+          "dateRange": {
+            "from": "2026-07-13",
+            "to": "2026-08-19"
+          },
+          "excludedSessions": [
+            {
+              "date": "2026-08-04",
+              "reason": "球友请客，实际用球数量不完整，不能作为训练样本。"
+            }
+          ],
+          "skippedSessions": []
+        }
       },
       "shuttleTypes": [
         {
@@ -3636,175 +3655,54 @@
         }
       ],
       "court": {
-        "genderLevelWeights": {
-          "male:不详": 0.4,
-          "male:0.5": 0.4,
-          "male:1": 0.4,
-          "male:1.5": 0.4,
-          "male:2": 0.4,
-          "male:2.5": 0.4,
-          "male:3": 0.4,
-          "male:3.5": 0.4,
-          "male:4": 0.4,
-          "male:4.5": 0.4,
-          "male:5": 0.4,
-          "male:6": 0.4,
-          "male:7": 0.4,
-          "male:8": 0.4,
-          "male:9": 0.4,
-          "female:不详": 0.4,
-          "female:0.5": 0.4,
-          "female:1": 0.4,
-          "female:1.5": 0.4,
-          "female:2": 0.4,
-          "female:2.5": 0.4,
-          "female:3": 0.4,
-          "female:3.5": 0.4,
-          "female:4": 0.4,
-          "female:4.5": 0.4,
-          "female:5": 0.4,
-          "female:6": 0.4,
-          "female:7": 0.4,
-          "female:8": 0.4,
-          "female:9": 0.4,
-          "unknown:unknown": 0.4
-        },
-        "intercept": -3.6571,
-        "roundingOffset": 0.4,
-        "memberAdjustments": {
-          "1": -0.01,
-          "2": 0.004,
-          "4": -0.042,
-          "5": -0.005,
-          "6": -0.029,
-          "7": -0.014,
-          "8": 0.05,
-          "9": 0.072,
-          "10": 0.022,
-          "11": -0.017,
-          "12": 0.017,
-          "13": 0.01,
-          "14": -0.026,
-          "15": 0.041,
-          "16": -0.014,
-          "17": -0.007,
-          "19": -0.015,
-          "20": -0.029,
-          "23": -0.016,
-          "24": 0.023,
-          "26": 0.014,
-          "27": 0.009,
-          "29": -0.014,
-          "31": -0.029,
-          "33": 0.079,
-          "37": -0.06,
-          "38": 0.007,
-          "39": -0.06,
-          "40": -0.004,
-          "41": 0.044,
-          "44": -0.038,
-          "45": -0.019,
-          "46": -0.026,
-          "47": -0.026,
-          "49": 0.05,
-          "51": 0.017,
-          "53": -0.003,
-          "54": 0.013,
-          "59": 0.001,
-          "73": -0.002,
-          "74": -0.019,
-          "75": 0.007,
-          "76": 0.007
+        "formula": "ceil(participantCount / peoplePerCourt)",
+        "peoplePerCourt": 7.5,
+        "minimum": 1,
+        "selection": {
+          "strategy": "grid-search",
+          "objective": "mae-then-rmse",
+          "tieBreak": "closest-to-default",
+          "defaultPeoplePerCourt": 7.5,
+          "candidates": {
+            "min": 6,
+            "max": 9,
+            "step": 0.25
+          }
         },
         "validation": {
-          "looMae": 0.714,
-          "looRmse": 1.309
+          "method": "rolling-origin",
+          "minimumTrainingSessions": 5,
+          "firstValidationDate": "2026-07-30",
+          "lastValidationDate": "2026-08-19",
+          "folds": 10,
+          "mae": 0,
+          "rmse": 0,
+          "exactRate": 1,
+          "bias": 0,
+          "underPredictionRate": 0,
+          "overPredictionRate": 0
         }
       },
       "shuttle": {
         "baseType": "rsl3",
-        "genderLevelWeights": {
-          "male:不详": 0.4,
-          "male:0.5": 0.4,
-          "male:1": 0.4,
-          "male:1.5": 0.4,
-          "male:2": 0.4,
-          "male:2.5": 0.4,
-          "male:3": 0.4538,
-          "male:3.5": 0.7208,
-          "male:4": 1.4967,
-          "male:4.5": 0.8556,
-          "male:5": 0.4,
-          "male:6": 0.5973,
-          "male:7": 0.4,
-          "male:8": 0.4,
-          "male:9": 0.4,
-          "female:不详": 0.4,
-          "female:0.5": 0.4,
-          "female:1": 0.4,
-          "female:1.5": 0.4,
-          "female:2": 0.4,
-          "female:2.5": 0.4,
-          "female:3": 0.4,
-          "female:3.5": 0.4,
-          "female:4": 0.4,
-          "female:4.5": 0.4,
-          "female:5": 0.4,
-          "female:6": 0.4,
-          "female:7": 0.4,
-          "female:8": 0.4,
-          "female:9": 0.4,
-          "unknown:unknown": 0.6346
-        },
-        "intercept": 0.987,
-        "memberAdjustments": {
-          "1": -0.048,
-          "2": 0.03,
-          "4": -0.002,
-          "5": 0.013,
-          "6": 0.017,
-          "7": 0.023,
-          "8": 0.023,
-          "9": -0.047,
-          "10": -0.026,
-          "11": 0.021,
-          "12": 0.028,
-          "13": 0.014,
-          "14": 0,
-          "15": -0.069,
-          "16": 0.034,
-          "17": 0.031,
-          "19": -0.003,
-          "20": -0.051,
-          "23": 0.045,
-          "24": -0.028,
-          "26": 0.06,
-          "27": -0.077,
-          "29": -0.065,
-          "31": 0.017,
-          "33": -0.015,
-          "37": 0.027,
-          "38": 0.026,
-          "39": 0.027,
-          "40": -0.045,
-          "41": -0.01,
-          "44": 0.049,
-          "45": -0.026,
-          "46": 0,
-          "47": 0,
-          "49": 0.023,
-          "51": -0.008,
-          "53": -0.043,
-          "54": 0.031,
-          "59": 0.036,
-          "73": -0.036,
-          "74": 0.007,
-          "75": 0.038,
-          "76": 0.038
-        },
+        "formula": "ceil((participantCount * rsl3EquivalentPerParticipant + riskBuffer) / durability)",
+        "rsl3EquivalentPerParticipant": 0.811659,
+        "riskQuantile": 0.7,
+        "riskBuffer": 0.5991,
+        "riskBufferSource": "residual-quantile",
+        "minimum": 1,
         "validation": {
-          "looMae": 2.7,
-          "looRmse": 3.01
+          "method": "rolling-origin",
+          "minimumTrainingSessions": 5,
+          "firstValidationDate": "2026-07-30",
+          "lastValidationDate": "2026-08-19",
+          "folds": 10,
+          "mae": 2.28,
+          "rmse": 3.044,
+          "exactRate": 0.1,
+          "bias": 1.28,
+          "underPredictionRate": 0.3,
+          "overPredictionRate": 0.6
         }
       }
     }

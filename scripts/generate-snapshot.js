@@ -26,6 +26,9 @@ if (!Array.isArray(resultSets) || resultSets.length < 6 || resultSets.some((set)
 }
 
 const [playerRows, settingRows, levelRows, joinRows, sessionRows, sessionPlayerRows] = resultSets.map((set) => set.results || []);
+const estimator = JSON.parse(await readFile(resolve("data/booking-estimator.json"), "utf8"));
+const shuttleTypes = Array.isArray(estimator.shuttleTypes) ? estimator.shuttleTypes : [];
+const shuttleTypeIds = new Set(shuttleTypes.map((type) => type.id));
 const players = playerRows.map((row) => ({
   id: Number(row.id),
   name: row.name || "",
@@ -53,16 +56,21 @@ const paymentOrders = Object.fromEntries(Object.entries(groupJoinNumbers).map(([
   entries.map((entry) => entry.playerId),
 ]));
 const shuttleTypeForPrice = (price) => {
-  if ([11, 11.3, 11.5].some((known) => Math.abs(known - Number(price)) < 0.02)) return "rsl3";
-  if (Math.abs(13.5 - Number(price)) < 0.02) return "as05";
-  return "unknown";
+  const match = shuttleTypes.find((type) => (
+    Array.isArray(type.prices)
+      && type.prices.some((known) => Math.abs(Number(known) - Number(price)) < 0.02)
+  ));
+  return match?.id || "unknown";
 };
 const parsePriceRows = (raw, includeShuttleType = false) => {
   if (!raw) return null;
   const rows = JSON.parse(raw);
   if (!Array.isArray(rows)) return null;
   return rows.map((row) => includeShuttleType
-    ? { ...row, type: shuttleTypeForPrice(row.price) }
+    ? {
+        ...row,
+        type: shuttleTypeIds.has(row.type) ? row.type : shuttleTypeForPrice(row.price),
+      }
     : row);
 };
 const sessionPlayersBySession = new Map();
@@ -97,8 +105,6 @@ const sessions = sessionRows.map((row) => {
     updatedAt: row.updated_at,
   };
 });
-
-const estimator = JSON.parse(await readFile(resolve("data/booking-estimator.json"), "utf8"));
 
 const snapshot = {
   generatedAt: new Date().toISOString(),
