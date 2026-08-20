@@ -955,7 +955,7 @@
 
     .chain-output-list {
       min-height: 100%;
-      overflow-x: auto;
+      overflow-x: hidden;
       overflow-y: auto;
       padding: 4px 8px;
       background: #fff;
@@ -966,7 +966,6 @@
       grid-template-columns: minmax(150px, 1fr) auto;
       align-items: center;
       gap: 6px;
-      min-width: max-content;
       min-height: 28px;
       padding: 1px 2px;
       border-bottom: 1px solid #edf1f0;
@@ -977,7 +976,8 @@
     .chain-output-text {
       min-width: 0;
       line-height: 1.4;
-      white-space: nowrap;
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
 
     .inline-plus-controls {
@@ -1015,13 +1015,13 @@
     }
 
     .inline-level-select {
-      width: 148px;
+      width: 100px;
       min-height: 32px;
       border: 1px solid var(--line-strong);
       border-radius: 6px;
       background: #fff;
       color: var(--text);
-      padding: 0 7px;
+      padding: 0 5px;
       font-size: 12px;
       white-space: nowrap;
     }
