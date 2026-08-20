@@ -4336,6 +4336,34 @@
       return statsMap;
     }
 
+    function getBestPartnerIdsMap(sessions) {
+      const partnerCounts = new Map();
+      for (const session of sessions) {
+        const playerIds = [...new Set((session.players || [])
+          .map((row) => row.playerId)
+          .filter((playerId) => playerId !== null && playerId !== undefined)
+          .map(Number)
+          .filter(Number.isFinite))];
+        playerIds.forEach((playerId) => {
+          const counts = partnerCounts.get(playerId) || new Map();
+          playerIds.forEach((partnerId) => {
+            if (partnerId !== playerId) counts.set(partnerId, (counts.get(partnerId) || 0) + 1);
+          });
+          partnerCounts.set(playerId, counts);
+        });
+      }
+
+      return new Map([...partnerCounts.entries()].map(([playerId, counts]) => {
+        const highestCount = Math.max(0, ...counts.values());
+        const partnerIds = highestCount > 0
+          ? [...counts.entries()]
+            .filter(([, count]) => count === highestCount)
+            .map(([partnerId]) => partnerId)
+          : [];
+        return [playerId, partnerIds];
+      }));
+    }
+
     function subtractCalendarMonth(year, month) {
       const total = year * 12 + month - 2;
       return {
@@ -4444,6 +4472,7 @@
         { label: "成员", numeric: false },
         { label: "打球次数", numeric: true },
         { label: "带人数", numeric: true },
+        { label: "最佳拍档", numeric: false },
         { label: "打球日分布", numeric: false },
         { label: "较上期变化", numeric: true },
       ];
@@ -4469,6 +4498,9 @@
         guestTd.className = "num";
         guestTd.textContent = String(entry.guestCount);
 
+        const partnerTd = document.createElement("td");
+        partnerTd.textContent = entry.bestPartners.join("，") || "—";
+
         const weekdayTd = document.createElement("td");
         weekdayTd.append(createCalendarDetailHeatmap(entry.weekdays));
 
@@ -4483,7 +4515,7 @@
         previous.textContent = `上期 ${entry.previousPlayCount} 次`;
         changeTd.append(change, previous);
 
-        tr.append(nameTd, playTd, guestTd, weekdayTd, changeTd);
+        tr.append(nameTd, playTd, guestTd, partnerTd, weekdayTd, changeTd);
         tbody.append(tr);
       });
 
@@ -4501,10 +4533,20 @@
       const previousSessions = getSessionsForDateRange(comparison.start, comparison.end);
       const previousStats = getMemberStatsMapForSessions(previousSessions);
       const playersById = new Map(state.players.map((player) => [Number(player.id), player]));
+      const bestPartnerIds = getBestPartnerIdsMap(sessions);
+      const displayNameForId = (playerId) => {
+        const player = playersById.get(Number(playerId));
+        return player?.name ? firstName(player.name) : `#${playerId}`;
+      };
 
       const entries = [...currentStats.entries()].map(([playerId, stats]) => {
         const player = playersById.get(Number(playerId));
         const previous = previousStats.get(Number(playerId)) || { playCount: 0, guestCount: 0, amountTotal: 0 };
+        const bestPartners = (bestPartnerIds.get(Number(playerId)) || [])
+          .map((partnerId) => ({ partnerId, name: displayNameForId(partnerId) }))
+          .sort((a, b) => collator.compare(a.name, b.name) || a.partnerId - b.partnerId)
+          .slice(0, 3)
+          .map((partner) => partner.name);
         return {
           playerId: Number(playerId),
           name: player?.name ? firstName(player.name) : `#${playerId}`,
@@ -4512,6 +4554,7 @@
           guestCount: stats.guestCount,
           amountTotal: stats.amountTotal,
           weekdays: stats.weekdays,
+          bestPartners,
           previousPlayCount: previous.playCount,
         };
       }).sort((a, b) => (
