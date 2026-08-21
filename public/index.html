@@ -792,7 +792,7 @@
     }
 
     .modal.chain-dialog {
-      width: min(1120px, calc(100vw - 32px));
+      width: min(1360px, calc(100vw - 32px));
       min-height: 320px;
       height: auto;
       max-height: calc(100vh - 32px);
@@ -898,7 +898,7 @@
 
     .chain-grid {
       display: grid;
-      grid-template-columns: minmax(230px, 0.8fr) minmax(420px, 1.15fr) minmax(320px, 0.85fr);
+      grid-template-columns: minmax(230px, 0.72fr) minmax(560px, 1.6fr) minmax(300px, 0.78fr);
       gap: 10px;
       height: 100%;
       min-height: 0;
@@ -976,8 +976,9 @@
     .chain-output-text {
       min-width: 0;
       line-height: 1.4;
-      white-space: normal;
-      overflow-wrap: anywhere;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .inline-plus-controls {
@@ -1654,7 +1655,7 @@
         min-width: 400px;
       }
       .chain-dialog {
-        width: min(980px, calc(100vw - 20px));
+        width: min(1360px, calc(100vw - 20px));
         height: auto;
         max-height: calc(100vh - 20px);
       }
