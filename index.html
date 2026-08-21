@@ -792,7 +792,8 @@
     }
 
     .modal.chain-dialog {
-      width: min(1360px, calc(100vw - 32px));
+      width: fit-content;
+      max-width: calc(100vw - 32px);
       min-height: 320px;
       height: auto;
       max-height: calc(100vh - 32px);
@@ -898,7 +899,7 @@
 
     .chain-grid {
       display: grid;
-      grid-template-columns: minmax(230px, 0.72fr) minmax(560px, 1.6fr) minmax(300px, 0.78fr);
+      grid-template-columns: 300px minmax(560px, max-content) 320px;
       gap: 10px;
       height: 100%;
       min-height: 0;
@@ -954,6 +955,8 @@
     }
 
     .chain-output-list {
+      width: max-content;
+      min-width: 100%;
       min-height: 100%;
       overflow-x: hidden;
       overflow-y: auto;
@@ -963,7 +966,7 @@
 
     .chain-output-row {
       display: grid;
-      grid-template-columns: minmax(150px, 1fr) auto;
+      grid-template-columns: max-content auto;
       align-items: center;
       gap: 6px;
       min-height: 28px;
@@ -974,11 +977,9 @@
     .chain-output-row:last-child { border-bottom: 0; }
 
     .chain-output-text {
-      min-width: 0;
+      min-width: max-content;
       line-height: 1.4;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .inline-plus-controls {
@@ -1654,8 +1655,8 @@
         width: 400px;
         min-width: 400px;
       }
-      .chain-dialog {
-        width: min(1360px, calc(100vw - 20px));
+      .modal.chain-dialog {
+        width: min(100%, calc(100vw - 20px));
         height: auto;
         max-height: calc(100vh - 20px);
       }
