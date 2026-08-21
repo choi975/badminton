@@ -5519,7 +5519,7 @@
       };
       for (const row of session.players) {
         const name = row.playerName || "未知成员";
-        if (row.playerId === null && /[+＋➕]\s*\d+/.test(name)) {
+        if (row.playerId === null && /(?:[+＋➕]|代|加)\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)/.test(name)) {
           appendLine(name, {
             gender: row.gender || (row.isFemale ? "女" : "不详"),
             levelText: row.level || "不详",
@@ -6155,6 +6155,7 @@
           return parseChainLine(line, index, aliasIndex, overrideKey, state.plusOverrides[overrideKey]);
         })
         .filter((entry) => entry.clean);
+      normalizeRepeatedMemberEntries(entries);
       const activePlusKeys = new Set(entries.filter((entry) => entry.plusEntry).map((entry) => entry.overrideKey));
       Object.keys(state.plusOverrides).forEach((key) => {
         if (!activePlusKeys.has(key)) delete state.plusOverrides[key];
@@ -6167,6 +6168,33 @@
       updateFeeDefaults(entries, estimate);
       updatePaymentButton();
       resizeChainDialog(entries.length);
+    }
+
+    function normalizeRepeatedMemberEntries(entries) {
+      const entriesByOwner = new Map();
+      entries.forEach((entry) => {
+        if (!entry.ownerPlayer?.id) return;
+        const ownerEntries = entriesByOwner.get(Number(entry.ownerPlayer.id)) || [];
+        ownerEntries.push(entry);
+        entriesByOwner.set(Number(entry.ownerPlayer.id), ownerEntries);
+      });
+
+      entriesByOwner.forEach((ownerEntries) => {
+        const personalEntries = ownerEntries.filter((entry) => !entry.plusEntry);
+        personalEntries.slice(1).forEach((entry) => {
+          const override = state.plusOverrides[entry.overrideKey];
+          entry.player = null;
+          entry.plusEntry = true;
+          entry.detectedLevelText = "不详";
+          entry.detectedLevelGroupLabel = "不详";
+          entry.detectedGender = "不详";
+          entry.levelText = override?.levelText || "不详";
+          entry.levelGroupLabel = override?.levelGroupLabel || "不详";
+          entry.gender = override?.gender || "不详";
+          entry.isFemale = entry.gender === "女";
+          entry.sortRank = levelRank(entry.levelText);
+        });
+      });
     }
 
     function resizeChainDialog(entryCount) {
@@ -6212,10 +6240,12 @@
     }
 
     function parseChainLine(line, index, aliasIndex, overrideKey = "", override = null) {
-      const plusMetadata = parsePlusEntryMetadata(cleanChainLine(line));
+      const rawClean = cleanChainLine(line);
+      const matchedPlayer = findPlayerForLine(rawClean, aliasIndex);
+      const plusMetadata = parsePlusEntryMetadata(rawClean, matchedPlayer);
       const clean = plusMetadata.displayName;
-      const matchedPlayer = findPlayerForLine(clean, aliasIndex);
       const player = plusMetadata.plusEntry ? null : matchedPlayer;
+      const ownerPlayer = matchedPlayer;
       const knownLevel = player?.level || "不详";
       const detectedLevelText = plusMetadata.plusEntry ? plusMetadata.levelText : knownLevel;
       const detectedGender = plusMetadata.plusEntry
@@ -6240,6 +6270,7 @@
         raw: line,
         clean,
         player,
+        ownerPlayer,
         plusEntry: plusMetadata.plusEntry,
         overrideKey,
         detectedLevelText,
@@ -6265,7 +6296,9 @@
     }
 
     function formatChainOutputLine(entry, index) {
-      return `${index + 1}. ${getChainEntryDisplayName(entry)}（${getChainLevelDisplay(entry)}）`;
+      const levelDisplay = getChainLevelDisplay(entry);
+      const levelSuffix = entry.plusEntry && entry.levelText === "不详" ? "" : `（${levelDisplay}）`;
+      return `${index + 1}. ${getChainEntryDisplayName(entry)}${levelSuffix}`;
     }
 
     function renderChainOutput(entries) {
@@ -6371,20 +6404,34 @@
       processChain();
     }
 
-    function parsePlusEntryMetadata(value) {
-      const displayName = String(value || "");
-      const plusMatch = displayName.match(/[+＋➕]\s*\d+/);
-      if (!plusMatch) return { plusEntry: false, displayName, levelText: null, isFemale: false };
+    function getMemberLineSuffix(value, player) {
+      if (!player) return "";
+      const candidate = normalizeAlias(removeChainAnnotations(value).replace(/[🌸🍀]/g, ""));
+      const aliases = splitAliases(player.name)
+        .map((alias) => normalizeAlias(alias))
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length);
+      for (const alias of aliases) {
+        const aliasIndex = candidate.indexOf(alias);
+        if (aliasIndex >= 0) return candidate.slice(aliasIndex + alias.length);
+      }
+      return "";
+    }
 
-      const suffixStart = (plusMatch.index || 0) + plusMatch[0].length;
-      const suffix = displayName.slice(suffixStart);
+    function parsePlusEntryMetadata(value, matchedPlayer = null) {
+      const displayName = String(value || "");
+      const memberSuffix = getMemberLineSuffix(displayName, matchedPlayer);
+      const suffixMatch = memberSuffix.match(/^(?:[+＋➕]\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|代\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|加\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+))/);
+      const genericSuffixMatch = displayName.match(/(?:[+＋➕]\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|代\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|加\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+))/);
+      const isCompanionLine = matchedPlayer ? Boolean(suffixMatch) : Boolean(genericSuffixMatch);
+      if (!isCompanionLine) return { plusEntry: false, displayName, levelText: null, isFemale: false };
+
+      const suffix = memberSuffix || displayName.slice((genericSuffixMatch?.index || 0) + (genericSuffixMatch?.[0]?.length || 0));
       const levelMapping = PLUS_LEVEL_LABELS.find(([label]) => suffix.includes(label));
       let cleanedDisplayName = displayName;
 
       if (levelMapping) {
-        const labelIndex = suffix.indexOf(levelMapping[0]);
-        const absoluteIndex = suffixStart + labelIndex;
-        cleanedDisplayName = `${displayName.slice(0, absoluteIndex)}${displayName.slice(absoluteIndex + levelMapping[0].length)}`.trim();
+        cleanedDisplayName = cleanedDisplayName.replace(levelMapping[0], "").replace(/\s{2,}/g, " ").trim();
       }
 
       return {
@@ -6392,7 +6439,7 @@
         displayName: cleanedDisplayName,
         levelText: levelMapping?.[1] || "不详",
         levelGroupLabel: levelMapping?.[0] || "不详",
-        isFemale: suffix.includes("🌸"),
+        isFemale: displayName.includes("🌸"),
       };
     }
 
@@ -7027,7 +7074,8 @@
 
       for (const entry of entries) {
         const player = entry.player;
-        const canonicalName = player ? paymentDisplayName(player) : getChainEntryBaseName(entry);
+        const paymentOwner = entry.ownerPlayer || player;
+        const canonicalName = paymentOwner ? paymentDisplayName(paymentOwner) : getChainEntryBaseName(entry);
         if (!entry.clean) continue;
 
         if (isSpecialPlayer(player) && player.participatesPayment === false) {
@@ -7038,6 +7086,23 @@
         if (!shouldCountForPayment(entry)) continue;
 
         const entryAmount = entry.isFemale ? femalePerPerson : malePerPerson;
+        if (entry.plusEntry && paymentOwner) {
+          const groupName = getPaymentGroup(paymentOwner, sharedPaymentGroup);
+          const existingOwner = [...groups[groupName].values()].find((row) => Number(row.playerId) === Number(paymentOwner.id));
+          const ownerSequence = existingOwner?.sequence ?? nextSequence++;
+          addPaymentLine(
+            groups[groupName],
+            canonicalName,
+            entryAmount,
+            null,
+            1,
+            paymentOwner.id,
+            ownerSequence,
+            entry.isFemale,
+          );
+          continue;
+        }
+
         if (entry.plusEntry && lastPayingOwner) {
           addPaymentLine(
             groups[lastPayingOwner.groupName],
@@ -7102,7 +7167,7 @@
     }
 
     function getSharedPaymentGroup(entries) {
-      const groupableEntries = entries.filter((entry) => shouldCountForPayment(entry) && !isSpecialPlayer(entry.player));
+      const groupableEntries = entries.filter((entry) => shouldCountForPayment(entry) && !isSpecialPlayer(entry.ownerPlayer || entry.player));
       if (!groupableEntries.length) return null;
       if (groupableEntries.every((entry) => canEntryUsePaymentGroup(entry, "heineken"))) return "heineken";
       if (groupableEntries.every((entry) => canEntryUsePaymentGroup(entry, "friends"))) return "friends";
@@ -7110,8 +7175,9 @@
     }
 
     function canEntryUsePaymentGroup(entry, groupName) {
-      if (!entry.player) return groupName === "friends";
-      return hasPlayerAffiliation(entry.player, PAYMENT_GROUPS[groupName]);
+      const paymentOwner = entry.ownerPlayer || entry.player;
+      if (!paymentOwner) return groupName === "friends";
+      return hasPlayerAffiliation(paymentOwner, PAYMENT_GROUPS[groupName]);
     }
 
     function getPaymentGroup(player, sharedPaymentGroup) {

@@ -89,9 +89,10 @@ function removeChainAnnotations(value) {
 }
 
 function parseChainLine(line, index, aliasIndex, overrideKey = "", override = null) {
-  const plusMetadata = parsePlusEntryMetadata(cleanChainLine(line));
+  const rawClean = cleanChainLine(line);
+  const matchedPlayer = findPlayerForLine(rawClean, aliasIndex);
+  const plusMetadata = parsePlusEntryMetadata(rawClean, matchedPlayer);
   const clean = plusMetadata.displayName;
-  const matchedPlayer = findPlayerForLine(clean, aliasIndex);
   const player = plusMetadata.plusEntry ? null : matchedPlayer;
   const knownLevel = player?.level || "不详";
   const detectedLevelText = plusMetadata.plusEntry ? plusMetadata.levelText : knownLevel;
@@ -107,6 +108,7 @@ function parseChainLine(line, index, aliasIndex, overrideKey = "", override = nu
     raw: line,
     clean,
     player,
+    ownerPlayer: matchedPlayer,
     plusEntry: plusMetadata.plusEntry,
     overrideKey,
     detectedLevelText,
@@ -130,20 +132,31 @@ function getChainEntryDisplayName(entry) {
   return `${name}🌸`;
 }
 
-function parsePlusEntryMetadata(value) {
-  const displayName = String(value || "");
-  const plusMatch = displayName.match(/[+＋➕]\s*\d+/);
-  if (!plusMatch) return { plusEntry: false, displayName, levelText: null, isFemale: false };
+function getMemberLineSuffix(value, player) {
+  if (!player) return "";
+  const candidate = normalizeAlias(removeChainAnnotations(value).replace(/[🌸🍀]/g, ""));
+  const aliases = splitAliases(player.name).map(normalizeAlias).filter(Boolean).sort((a, b) => b.length - a.length);
+  for (const alias of aliases) {
+    const aliasIndex = candidate.indexOf(alias);
+    if (aliasIndex >= 0) return candidate.slice(aliasIndex + alias.length);
+  }
+  return "";
+}
 
-  const suffixStart = (plusMatch.index || 0) + plusMatch[0].length;
-  const suffix = displayName.slice(suffixStart);
+function parsePlusEntryMetadata(value, matchedPlayer = null) {
+  const displayName = String(value || "");
+  const memberSuffix = getMemberLineSuffix(displayName, matchedPlayer);
+  const suffixMatch = memberSuffix.match(/^(?:[+＋➕]\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|代\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|加\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+))/);
+  const genericSuffixMatch = displayName.match(/(?:[+＋➕]\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|代\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|加\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+))/);
+  const isCompanionLine = matchedPlayer ? Boolean(suffixMatch) : Boolean(genericSuffixMatch);
+  if (!isCompanionLine) return { plusEntry: false, displayName, levelText: null, isFemale: false };
+
+  const suffix = memberSuffix || displayName.slice((genericSuffixMatch?.index || 0) + (genericSuffixMatch?.[0]?.length || 0));
   const levelMapping = PLUS_LEVEL_LABELS.find(([label]) => suffix.includes(label));
   let cleanedDisplayName = displayName;
 
   if (levelMapping) {
-    const labelIndex = suffix.indexOf(levelMapping[0]);
-    const absoluteIndex = suffixStart + labelIndex;
-    cleanedDisplayName = `${displayName.slice(0, absoluteIndex)}${displayName.slice(absoluteIndex + levelMapping[0].length)}`.trim();
+    cleanedDisplayName = cleanedDisplayName.replace(levelMapping[0], "").replace(/\s{2,}/g, " ").trim();
   }
 
   return {
@@ -151,7 +164,7 @@ function parsePlusEntryMetadata(value) {
     displayName: cleanedDisplayName,
     levelText: levelMapping?.[1] || "不详",
     levelGroupLabel: levelMapping?.[0] || "不详",
-    isFemale: suffix.includes("🌸"),
+    isFemale: displayName.includes("🌸"),
   };
 }
 
@@ -241,19 +254,20 @@ function calculatePayment(entries, courtFee, shuttlePrice, shuttleCount) {
   let sequence = 0;
   for (const entry of entries) {
     const player = entry.player;
-    const canonicalName = player ? paymentDisplayName(player) : getChainEntryBaseName(entry);
+    const paymentOwner = entry.ownerPlayer || player;
+    const canonicalName = paymentOwner ? paymentDisplayName(paymentOwner) : getChainEntryBaseName(entry);
     if (player?.affiliation === "特殊" && player.participatesPayment === false) {
       addPaymentLine(groups.special, canonicalName, 0, "不参与A钱", 0, player.id, sequence++, entry.isFemale);
       continue;
     }
     if (!shouldCountForPayment(entry)) continue;
     addPaymentLine(
-      groups[getPaymentGroup(player)],
+      groups[getPaymentGroup(paymentOwner)],
       canonicalName,
       entry.isFemale ? femalePerPerson : malePerPerson,
       null,
       1,
-      player?.id || null,
+      paymentOwner?.id || null,
       sequence++,
       entry.isFemale
     );
@@ -316,9 +330,9 @@ console.log(JSON.stringify({ payerCount: payment.payerCount, perPerson: formatMo
 
 if (payment.payerCount !== 7) throw new Error(`Expected payerCount 7, got ${payment.payerCount}`);
 if (formatMoney(payment.perPerson) !== "18.1") throw new Error(`Expected 18.1, got ${formatMoney(payment.perPerson)}`);
-if (formatMoney(payment.heineken.find((row) => row.name === "海尼克-刘赵达")?.amount || 0) !== "18.1") throw new Error("Expected 刘赵达 to remain one independent share");
-if (!payment.friends.some((row) => row.name === "阿达+1") || !payment.friends.some((row) => row.name === "阿达➕2")) {
-  throw new Error("Expected +N guests to be independent friend rows");
+const liuzhaodaRow = payment.heineken.find((row) => row.name === "海尼克-刘赵达");
+if (formatMoney(liuzhaodaRow?.amount || 0) !== "54.3" || liuzhaodaRow?.slots !== 3) {
+  throw new Error("Expected 刘赵达 and his two companions to merge into one Hytronik payment row");
 }
 if (payment.heineken.some((row) => row.name === "达哥的领导" || row.name === "海尼克-徐攀")) throw new Error("Expected special members to stay out of heineken group");
 if (!payment.special.some((row) => row.name === "达哥的领导" && row.note === "不参与A钱")) throw new Error("Expected non-paying special row");
@@ -331,16 +345,13 @@ const choiCompanionEntries = ["choi", "choi+1", "甲乙丙"]
   .filter((entry) => entry.clean);
 const choiCompanionPayment = calculatePayment(choiCompanionEntries, 70, 11.3, 5);
 const choiCompanionRow = choiCompanionPayment.special.find((row) => row.name === "choi");
-if (choiCompanionRow?.slots !== 1) throw new Error("Expected choi to remain separate from the +N guest");
-if (!choiCompanionPayment.friends.some((row) => row.name === "choi+1" && row.slots === 1)) {
-  throw new Error("Expected choi+1 to be an independent friend row");
-}
+if (choiCompanionRow?.slots !== 2) throw new Error("Expected choi and the companion to merge into one payment row");
 if (formatMoney(calculateLedgerAmount({
   friends: choiCompanionPayment.friends,
   heineken: choiCompanionPayment.heineken,
   special: choiCompanionPayment.special,
-}, 70)) !== "5.8") {
-  throw new Error("Expected ledger amount to include the independent guest and exclude choi");
+}, 70)) !== "-45.0") {
+  throw new Error("Expected ledger amount to exclude the companion amount collected through choi");
 }
 if (formatMoney(payment.special.find((row) => row.name === "choi")?.amount || 0) !== "18.1") throw new Error("Expected choi to follow special payment settings and remain visible");
 if (!output.some((line) => line.includes("甲乙丙🌸（3级）"))) throw new Error("Expected female flower suffix");
@@ -396,6 +407,37 @@ const annotatedSorted = [...annotatedEntries].sort((a, b) => (b.sortRank - a.sor
 const annotatedExactOutput = annotatedSorted.map((entry) => `${entry.clean}（${entry.levelText}）`);
 const annotatedGroupedOutput = annotatedSorted.map((entry) => `${entry.clean}（${getLevelGroupLabel(entry.levelText)}）`);
 const annotatedFemaleCount = annotatedEntries.filter((entry) => entry.isFemale).length;
+
+const hostedByMemberEntries = [
+  "甲乙丙（备注）",
+  "甲乙丙（随便）代1",
+  "甲乙丙加二",
+].map((line, index) => parseChainLine(line, index, aliasIndex)).filter((entry) => entry.clean);
+if (!hostedByMemberEntries[0].player || hostedByMemberEntries[0].player.id !== 1) {
+  throw new Error("Expected the unsuffixed member line to identify 甲乙丙");
+}
+if (!hostedByMemberEntries.slice(1).every((entry) => entry.plusEntry && entry.ownerPlayer?.id === 1)) {
+  throw new Error("Expected 代/加 companion lines to bind to 甲乙丙");
+}
+const hostedByMemberPayment = calculatePayment(hostedByMemberEntries, 70, 0, 0);
+const hostedByMemberRow = hostedByMemberPayment.friends.find((row) => row.playerId === 1);
+if (hostedByMemberPayment.payerCount !== 3 || hostedByMemberRow?.slots !== 3) {
+  throw new Error("Expected member plus two companions to be three paying slots under one owner");
+}
+
+const absentMemberEntries = [
+  "甲乙丙+1",
+  "甲乙丙代2",
+  "甲乙丙加三",
+].map((line, index) => parseChainLine(line, index, aliasIndex)).filter((entry) => entry.clean);
+if (!absentMemberEntries.every((entry) => entry.plusEntry && !entry.player && entry.ownerPlayer?.id === 1)) {
+  throw new Error("Expected all suffixed lines to represent unknown companions of 甲乙丙");
+}
+const absentMemberPayment = calculatePayment(absentMemberEntries, 70, 0, 0);
+const absentMemberRow = absentMemberPayment.friends.find((row) => row.playerId === 1);
+if (absentMemberPayment.payerCount !== 3 || absentMemberRow?.slots !== 3) {
+  throw new Error("Expected absent member's three companions to be charged under 甲乙丙");
+}
 
 if (!annotatedExactOutput.includes("阿恒+2（4级）")) throw new Error("Expected 高手 friend to display as 4级 in exact mode");
 if (!annotatedExactOutput.includes("阿恒+3🌸（3级）")) throw new Error("Expected 中手 friend to display as 3级 and female");
