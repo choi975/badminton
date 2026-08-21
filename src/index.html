@@ -2612,6 +2612,8 @@
       { label: "比赛级高手", level: "5级", text: "比赛级高手（5级）" },
     ];
     const FEMALE_PAYMENT_CAP = 25;
+    const STANDARD_COURT_UNIT_PRICE = 70;
+    const FRIDAY_SATURDAY_COURT_UNIT_PRICE = 80;
     const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
     const DEFAULT_ESTIMATOR = {
@@ -2843,6 +2845,7 @@
       updateDatabaseToggleButton();
       applyReadOnlyUi();
       if (IS_GITHUB_PAGES) {
+        syncAutoCourtFeeForActivityDate();
         openModal("chainModal");
         processChain();
         setTimeout(() => els.chainInput.focus(), 0);
@@ -3003,6 +3006,7 @@
       els.calendarNextBtn.addEventListener("click", () => shiftCalendarMonth(1));
       els.calendarTodayBtn.addEventListener("click", goToCalendarToday);
       els.chainBtn.addEventListener("click", () => {
+        syncAutoCourtFeeForActivityDate();
         openModal("chainModal");
         processChain();
         setTimeout(() => els.chainInput.focus(), 0);
@@ -4305,6 +4309,40 @@
       return new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
     }
 
+    function getCourtUnitPriceForDate(dateString) {
+      const weekday = parseLocalDate(dateString || getLocalDateString()).getDay();
+      return weekday === 5 || weekday === 6
+        ? FRIDAY_SATURDAY_COURT_UNIT_PRICE
+        : STANDARD_COURT_UNIT_PRICE;
+    }
+
+    function getChainActivityDate() {
+      return state.pendingSessionEdit?.date || getLocalDateString();
+    }
+
+    function syncAutoCourtFeeForActivityDate({ force = false, courts = null } = {}) {
+      if (state.feeMode !== "basic") return;
+      const activityDate = getChainActivityDate();
+      const courtCount = courts || estimateBooking(state.chainEntries).courts || 1;
+      const courtUnit = getCourtUnitPriceForDate(activityDate);
+      const previous = state.autoFeeDefaults;
+      const currentRaw = els.courtFeeInput.value.trim();
+      const currentFee = currentRaw === "" ? null : Number(currentRaw);
+      const feeIsAuto = force || currentFee === null || (previous !== null && currentFee === previous.fee);
+      if (!feeIsAuto) return;
+
+      const fee = courtCount * courtUnit;
+      els.courtFeeInput.value = String(fee);
+      els.courtFeeInput.dataset.defaultValue = String(fee);
+      state.autoFeeDefaults = {
+        fee,
+        shuttle: previous?.shuttle ?? (Number(els.shuttleCountInput.value) || 4),
+        courts: courtCount,
+        courtUnit,
+        date: activityDate,
+      };
+    }
+
     function formatCalendarDate(value) {
       const date = parseLocalDate(value);
       if (Number.isNaN(date.getTime())) return value || "";
@@ -5596,12 +5634,13 @@
       els.feeAdvancedArea.hidden = true;
       els.feeBasicGrid.hidden = false;
       els.feeAdvancedBtn.textContent = "高级";
-      els.courtFeeInput.value = "70";
+      const courtUnit = getCourtUnitPriceForDate(dateString);
+      els.courtFeeInput.value = String(courtUnit);
       els.shuttlePriceInput.value = "11.3";
       els.shuttleCountInput.value = "4";
-      els.courtFeeInput.dataset.defaultValue = "70";
+      els.courtFeeInput.dataset.defaultValue = String(courtUnit);
       els.shuttleCountInput.dataset.defaultValue = "4";
-      state.autoFeeDefaults = { fee: 70, shuttle: 4, courts: 1 };
+      state.autoFeeDefaults = { fee: courtUnit, shuttle: 4, courts: 1, courtUnit, date: dateString };
       processChain();
       closeModal("calendarModal");
       openModal("chainModal");
@@ -6058,7 +6097,7 @@
 
       state.advancedRows = { court: courtRows, shuttle: shuttleRows };
       state.feeMode = "advanced";
-      state.advancedAutoDefaults = null;
+      state.advancedAutoDefaults = { courts, courtUnit: getCourtUnitPriceForDate(getChainActivityDate()), shuttleCount };
       els.feeBasicGrid.hidden = true;
       els.feeAdvancedArea.hidden = false;
       els.feeAdvancedBtn.textContent = "基础";
@@ -6074,11 +6113,12 @@
       const estimate = estimateBooking(state.chainEntries);
       const courts = estimate.courts || 1;
       const predictedShuttle = predictedShuttleCountForPrice(estimate, totals.shuttlePrice);
-      const matchesDefault = Math.abs(totals.courtFee - courts * 70) < 1e-9
+      const courtUnit = getCourtUnitPriceForDate(getChainActivityDate());
+      const matchesDefault = Math.abs(totals.courtFee - courts * courtUnit) < 1e-9
         && predictedShuttle !== null
         && totals.shuttleCount === predictedShuttle;
       state.autoFeeDefaults = matchesDefault
-        ? { fee: courts * 70, shuttle: predictedShuttle, courts }
+        ? { fee: courts * courtUnit, shuttle: predictedShuttle, courts, courtUnit, date: getChainActivityDate() }
         : null;
       state.feeMode = "basic";
       state.advancedRows = { court: [], shuttle: [] };
@@ -6095,12 +6135,14 @@
       const defaultShuttleCount = predictedShuttleCountForPrice(estimate, currentShuttlePrice);
       if (state.feeMode === "advanced") {
         const courts = estimate.courts;
+        const courtUnit = getCourtUnitPriceForDate(getChainActivityDate());
         const previous = state.advancedAutoDefaults;
         const courtRows = state.advancedRows.court;
         const shuttleRows = state.advancedRows.shuttle;
         if (previous && courtRows.length) {
           const first = courtRows[0];
-          if (first.price === 70 && first.count === previous.courts) {
+          if (first.price === previous.courtUnit && first.count === previous.courts) {
+            first.price = courtUnit;
             first.count = courts;
           }
         }
@@ -6110,7 +6152,7 @@
             first.count = defaultShuttleCount;
           }
         }
-        state.advancedAutoDefaults = { courts, shuttleCount: defaultShuttleCount };
+        state.advancedAutoDefaults = { courts, courtUnit, shuttleCount: defaultShuttleCount };
         renderAllFeeAdvancedRows();
         updatePaymentButton();
         return;
@@ -6123,8 +6165,7 @@
       const currentFee = currentFeeRaw === "" ? null : Number(currentFeeRaw);
       const currentShuttle = currentShuttleRaw === "" ? null : Number(currentShuttleRaw);
 
-      const previousCourtUnit = previous?.courts > 0 ? previous.fee / previous.courts : 70;
-      const courtUnit = Number.isFinite(previousCourtUnit) ? previousCourtUnit : 70;
+      const courtUnit = getCourtUnitPriceForDate(getChainActivityDate());
       const newFee = courts * courtUnit;
 
       const feeIsAuto = currentFee === null || (previous !== null && currentFee === previous.fee);
@@ -6143,6 +6184,8 @@
         fee: newFee,
         shuttle: defaultShuttleCount ?? previous?.shuttle ?? currentShuttle,
         courts,
+        courtUnit,
+        date: getChainActivityDate(),
       };
     }
 
