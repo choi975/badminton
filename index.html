@@ -955,7 +955,7 @@
     }
 
     .chain-output-list {
-      width: max-content;
+      width: 100%;
       min-width: 100%;
       min-height: 100%;
       overflow-x: hidden;
@@ -966,7 +966,7 @@
 
     .chain-output-row {
       display: grid;
-      grid-template-columns: max-content auto;
+      grid-template-columns: minmax(max-content, 1fr) auto;
       align-items: center;
       gap: 6px;
       min-height: 28px;
@@ -985,6 +985,7 @@
     .inline-plus-controls {
       display: flex;
       align-items: center;
+      justify-self: end;
       gap: 6px;
       flex-wrap: nowrap;
     }
@@ -1696,7 +1697,7 @@
       .payment-settings-tabs { grid-template-columns: 1fr; }
       .payment-settings-tab + .payment-settings-tab { border-left: 0; border-top: 1px solid var(--line-strong); }
       .chain-output-row { grid-template-columns: 1fr; gap: 4px; padding-block: 7px; }
-      .inline-plus-controls { justify-content: flex-start; }
+      .inline-plus-controls { justify-self: start; justify-content: flex-start; }
       .inline-level-select { flex: 1; width: auto; min-width: 0; }
       .special-setting-row { grid-template-columns: 1fr; }
       .special-setting-name {
