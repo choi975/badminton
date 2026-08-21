@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-21T10:27:24.693Z",
+  "generatedAt": "2026-08-21T16:57:00.759Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -485,7 +485,7 @@
       },
       {
         "id": 43,
-        "name": "A 明🐴到成功",
+        "name": "A 明🐴到成功，菜鸟明，明",
         "gender": "男",
         "level": "4级",
         "affiliation": "球友",
@@ -493,7 +493,7 @@
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-10 01:48:56",
-        "updatedAt": "2026-07-10 01:51:04"
+        "updatedAt": "2026-08-21 14:23:01"
       },
       {
         "id": 44,
@@ -890,6 +890,18 @@
         "participatesPayment": true,
         "createdAt": "2026-08-17 00:45:06",
         "updatedAt": "2026-08-17 00:45:41"
+      },
+      {
+        "id": 78,
+        "name": "Scor.唐🤡，Joker.🤡",
+        "gender": "男",
+        "level": "5级",
+        "affiliation": "球友",
+        "notes": "",
+        "photoKey": "",
+        "participatesPayment": true,
+        "createdAt": "2026-08-21 14:24:11",
+        "updatedAt": "2026-08-21 14:31:25"
       }
     ],
     "levelDescriptions": {
@@ -1138,6 +1150,10 @@
         {
           "playerId": 76,
           "joinNumber": 59
+        },
+        {
+          "playerId": 78,
+          "joinNumber": 60
         }
       ],
       "Hytronik": [
@@ -1289,7 +1305,8 @@
         73,
         74,
         75,
-        76
+        76,
+        78
       ],
       "Hytronik": [
         11,
@@ -3593,21 +3610,297 @@
         ],
         "createdAt": "2026-08-19 14:17:56",
         "updatedAt": "2026-08-19 14:17:56"
+      },
+      {
+        "id": 23,
+        "date": "2026-08-21",
+        "venue": "EDC",
+        "courtCount": 4,
+        "courtFee": 320,
+        "shuttlePrice": 11.3,
+        "shuttleCount": 21,
+        "courtPriceRows": [
+          {
+            "price": 80,
+            "count": 4
+          }
+        ],
+        "shuttlePriceRows": [
+          {
+            "price": 11.3,
+            "count": 21,
+            "type": "rsl3"
+          }
+        ],
+        "players": [
+          {
+            "playerId": 51,
+            "playerName": "choi",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级"
+          },
+          {
+            "playerId": 31,
+            "playerName": "April",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": true,
+            "gender": "女",
+            "level": "3级"
+          },
+          {
+            "playerId": 45,
+            "playerName": "吕教",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "男",
+            "level": "4.5级"
+          },
+          {
+            "playerId": 7,
+            "playerName": "huangjie21",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "男",
+            "level": "2.5级"
+          },
+          {
+            "playerId": 19,
+            "playerName": "FENG",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3.5级"
+          },
+          {
+            "playerId": 10,
+            "playerName": "🌹",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": true,
+            "gender": "女",
+            "level": "3级"
+          },
+          {
+            "playerId": 17,
+            "playerName": "Baymax",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级"
+          },
+          {
+            "playerId": 75,
+            "playerName": "春玲",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": true,
+            "gender": "女",
+            "level": "3.5级"
+          },
+          {
+            "playerId": 12,
+            "playerName": "刘俊杰",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3.5级"
+          },
+          {
+            "playerId": null,
+            "playerName": "🌹 +1",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": true,
+            "gender": "女",
+            "level": "2.5级"
+          },
+          {
+            "playerId": 5,
+            "playerName": "杰哥",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "男",
+            "level": "4级"
+          },
+          {
+            "playerId": 1,
+            "playerName": "阿达",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "男",
+            "level": "4级"
+          },
+          {
+            "playerId": 11,
+            "playerName": "老洪",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "男",
+            "level": "4级"
+          },
+          {
+            "playerId": 9,
+            "playerName": "柚子🍀",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": true,
+            "gender": "女",
+            "level": "3级"
+          },
+          {
+            "playerId": null,
+            "playerName": "春玲 +1",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": true,
+            "gender": "女",
+            "level": "4级"
+          },
+          {
+            "playerId": null,
+            "playerName": "🍭 甲乙丙（过阵子打） 代1",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": true,
+            "gender": "女",
+            "level": "不详"
+          },
+          {
+            "playerId": null,
+            "playerName": "🍭 甲乙丙（过阵子打） 代2",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "不详",
+            "level": "不详"
+          },
+          {
+            "playerId": null,
+            "playerName": "🍭 甲乙丙（过阵子打） 代3",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": true,
+            "gender": "女",
+            "level": "不详"
+          },
+          {
+            "playerId": null,
+            "playerName": "🍭 甲乙丙（过阵子打） 代4",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": true,
+            "gender": "女",
+            "level": "不详"
+          },
+          {
+            "playerId": null,
+            "playerName": "🍭 甲乙丙（过阵子打） 代5",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "不详",
+            "level": "不详"
+          },
+          {
+            "playerId": null,
+            "playerName": "🍭 甲乙丙（过阵子打） 代6",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": true,
+            "gender": "女",
+            "level": "不详"
+          },
+          {
+            "playerId": 24,
+            "playerName": "Hx7",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "男",
+            "level": "4.5级"
+          },
+          {
+            "playerId": null,
+            "playerName": "🍭 甲乙丙（过阵子打） 代7",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "不详",
+            "level": "不详"
+          },
+          {
+            "playerId": 78,
+            "playerName": "Scor.唐🤡",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "男",
+            "level": "5级"
+          },
+          {
+            "playerId": 43,
+            "playerName": "A 明🐴到成功",
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 22.3,
+            "isFemale": false,
+            "gender": "男",
+            "level": "4级"
+          }
+        ],
+        "createdAt": "2026-08-21 14:48:27",
+        "updatedAt": "2026-08-21 14:48:27"
       }
     ],
     "estimator": {
       "version": 3,
-      "generatedAt": "2026-08-21T10:27:21.644Z",
+      "generatedAt": "2026-08-21T16:56:57.057Z",
       "training": {
         "dateRange": {
           "from": "2026-07-13",
-          "to": "2026-08-19"
+          "to": "2026-08-21"
         },
         "court": {
-          "sampleCount": 15,
+          "sampleCount": 16,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-08-19"
+            "to": "2026-08-21"
           },
           "excludedSessions": [
             {
@@ -3618,10 +3911,10 @@
           "skippedSessions": []
         },
         "shuttle": {
-          "sampleCount": 15,
+          "sampleCount": 16,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-08-19"
+            "to": "2026-08-21"
           },
           "excludedSessions": [
             {
@@ -3673,8 +3966,8 @@
           "method": "rolling-origin",
           "minimumTrainingSessions": 5,
           "firstValidationDate": "2026-07-30",
-          "lastValidationDate": "2026-08-19",
-          "folds": 10,
+          "lastValidationDate": "2026-08-21",
+          "folds": 11,
           "mae": 0,
           "rmse": 0,
           "exactRate": 1,
@@ -3686,23 +3979,23 @@
       "shuttle": {
         "baseType": "rsl3",
         "formula": "ceil((participantCount * rsl3EquivalentPerParticipant + riskBuffer) / durability)",
-        "rsl3EquivalentPerParticipant": 0.811659,
+        "rsl3EquivalentPerParticipant": 0.815766,
         "riskQuantile": 0.7,
-        "riskBuffer": 0.5991,
+        "riskBuffer": 0.592557,
         "riskBufferSource": "residual-quantile",
         "minimum": 1,
         "validation": {
           "method": "rolling-origin",
           "minimumTrainingSessions": 5,
           "firstValidationDate": "2026-07-30",
-          "lastValidationDate": "2026-08-19",
-          "folds": 10,
-          "mae": 2.28,
-          "rmse": 3.044,
-          "exactRate": 0.1,
-          "bias": 1.28,
-          "underPredictionRate": 0.3,
-          "overPredictionRate": 0.6
+          "lastValidationDate": "2026-08-21",
+          "folds": 11,
+          "mae": 2.073,
+          "rmse": 2.902,
+          "exactRate": 0.182,
+          "bias": 1.164,
+          "underPredictionRate": 0.273,
+          "overPredictionRate": 0.545
         }
       }
     }

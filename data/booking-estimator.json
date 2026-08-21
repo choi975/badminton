@@ -1,16 +1,16 @@
 {
   "version": 3,
-  "generatedAt": "2026-08-21T10:27:21.644Z",
+  "generatedAt": "2026-08-21T16:56:57.057Z",
   "training": {
     "dateRange": {
       "from": "2026-07-13",
-      "to": "2026-08-19"
+      "to": "2026-08-21"
     },
     "court": {
-      "sampleCount": 15,
+      "sampleCount": 16,
       "dateRange": {
         "from": "2026-07-13",
-        "to": "2026-08-19"
+        "to": "2026-08-21"
       },
       "excludedSessions": [
         {
@@ -21,10 +21,10 @@
       "skippedSessions": []
     },
     "shuttle": {
-      "sampleCount": 15,
+      "sampleCount": 16,
       "dateRange": {
         "from": "2026-07-13",
-        "to": "2026-08-19"
+        "to": "2026-08-21"
       },
       "excludedSessions": [
         {
@@ -76,8 +76,8 @@
       "method": "rolling-origin",
       "minimumTrainingSessions": 5,
       "firstValidationDate": "2026-07-30",
-      "lastValidationDate": "2026-08-19",
-      "folds": 10,
+      "lastValidationDate": "2026-08-21",
+      "folds": 11,
       "mae": 0,
       "rmse": 0,
       "exactRate": 1,
@@ -89,23 +89,23 @@
   "shuttle": {
     "baseType": "rsl3",
     "formula": "ceil((participantCount * rsl3EquivalentPerParticipant + riskBuffer) / durability)",
-    "rsl3EquivalentPerParticipant": 0.811659,
+    "rsl3EquivalentPerParticipant": 0.815766,
     "riskQuantile": 0.7,
-    "riskBuffer": 0.5991,
+    "riskBuffer": 0.592557,
     "riskBufferSource": "residual-quantile",
     "minimum": 1,
     "validation": {
       "method": "rolling-origin",
       "minimumTrainingSessions": 5,
       "firstValidationDate": "2026-07-30",
-      "lastValidationDate": "2026-08-19",
-      "folds": 10,
-      "mae": 2.28,
-      "rmse": 3.044,
-      "exactRate": 0.1,
-      "bias": 1.28,
-      "underPredictionRate": 0.3,
-      "overPredictionRate": 0.6
+      "lastValidationDate": "2026-08-21",
+      "folds": 11,
+      "mae": 2.073,
+      "rmse": 2.902,
+      "exactRate": 0.182,
+      "bias": 1.164,
+      "underPredictionRate": 0.273,
+      "overPredictionRate": 0.545
     }
   }
 }
