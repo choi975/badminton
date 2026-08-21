@@ -1436,6 +1436,14 @@
       text-align: right;
     }
 
+    .payment-weekend-notice {
+      grid-column: 1 / -1;
+      padding: 8px 12px 0;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+    }
+
     .payment-settings-dialog { width: min(760px, 100%); }
 
     .payment-settings-tabs {
@@ -2106,6 +2114,19 @@
       font-size: 14px;
     }
 
+    .calendar-detail-table th:nth-child(1),
+    .calendar-detail-table td:nth-child(1) { width: 92px; }
+    .calendar-detail-table th:nth-child(2),
+    .calendar-detail-table td:nth-child(2) { width: 78px; }
+    .calendar-detail-table th:nth-child(3),
+    .calendar-detail-table td:nth-child(3) { width: 68px; }
+    .calendar-detail-table th:nth-child(4),
+    .calendar-detail-table td:nth-child(4) { width: 150px; }
+    .calendar-detail-table th:nth-child(5),
+    .calendar-detail-table td:nth-child(5) { width: 218px; }
+    .calendar-detail-table th:nth-child(6),
+    .calendar-detail-table td:nth-child(6) { width: 104px; }
+
     .calendar-detail-table th,
     .calendar-detail-table td {
       padding: 9px 10px;
@@ -2119,6 +2140,27 @@
       color: var(--text);
       font-size: 13px;
       font-weight: 700;
+    }
+
+    .calendar-detail-sort-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      min-height: 22px;
+      padding: 0 4px;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .calendar-detail-sort-btn:hover,
+    .calendar-detail-sort-btn.active { color: var(--accent-dark); }
+
+    .calendar-detail-sort-arrow {
+      color: var(--muted);
+      font-size: 11px;
     }
 
     .calendar-detail-table tbody tr:last-child td {
@@ -2426,6 +2468,7 @@
               <strong id="paymentLedgerAmount">0.0</strong>
             </div>
           </section>
+          <div id="paymentWeekendNotice" class="payment-weekend-notice" hidden>周五周六场地80元</div>
           <div id="paymentReportDate" class="payment-report-date"></div>
         </div>
       </div>
@@ -2703,6 +2746,8 @@
       paymentSortModes: { "球友": "join", "Hytronik": "join" },
       paymentGroupOverrides: {},
       currentPaymentRecord: null,
+      calendarDetailEntries: [],
+      calendarDetailSort: { key: "playCount", dir: "desc" },
       calendar: {
         year: null,
         month: null,
@@ -2787,6 +2832,7 @@
       paymentSpecial: document.getElementById("paymentSpecial"),
       paymentCostSummary: document.getElementById("paymentCostSummary"),
       paymentLedgerAmount: document.getElementById("paymentLedgerAmount"),
+      paymentWeekendNotice: document.getElementById("paymentWeekendNotice"),
       paymentReportDate: document.getElementById("paymentReportDate"),
       paymentSettingsModal: document.getElementById("paymentSettingsModal"),
       paymentSettingsTabs: [...document.querySelectorAll("[data-payment-settings-tab]")],
@@ -4494,6 +4540,49 @@
       return changeText.startsWith("+") ? "calendar-detail-change-up" : "calendar-detail-change-down";
     }
 
+    function getCalendarDetailSortValue(entry, key) {
+      if (key === "change") {
+        if (entry.previousPlayCount <= 0) return entry.playCount > 0 ? Number.POSITIVE_INFINITY : 0;
+        return (entry.playCount - entry.previousPlayCount) / entry.previousPlayCount;
+      }
+      return Number(entry[key]) || 0;
+    }
+
+    function sortCalendarDetailEntries(entries) {
+      const { key, dir } = state.calendarDetailSort;
+      const factor = dir === "asc" ? 1 : -1;
+      return [...entries].sort((a, b) => {
+        const difference = getCalendarDetailSortValue(a, key) - getCalendarDetailSortValue(b, key);
+        return (difference * factor)
+          || (b.playCount - a.playCount)
+          || (b.amountTotal - a.amountTotal)
+          || collator.compare(a.name, b.name);
+      });
+    }
+
+    function toggleCalendarDetailSort(key) {
+      state.calendarDetailSort = state.calendarDetailSort.key === key
+        ? { key, dir: state.calendarDetailSort.dir === "desc" ? "asc" : "desc" }
+        : { key, dir: "desc" };
+      renderCalendarDetailTable(state.calendarDetailEntries);
+    }
+
+    function createCalendarDetailSortButton(label, key) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "calendar-detail-sort-btn";
+      const active = state.calendarDetailSort.key === key;
+      button.classList.toggle("active", active);
+      button.title = active && state.calendarDetailSort.dir === "asc" ? "升序" : "降序";
+      button.append(document.createTextNode(label));
+      const arrow = document.createElement("span");
+      arrow.className = "calendar-detail-sort-arrow";
+      arrow.textContent = active ? (state.calendarDetailSort.dir === "asc" ? "↑" : "↓") : "↕";
+      button.append(arrow);
+      button.addEventListener("click", () => toggleCalendarDetailSort(key));
+      return button;
+    }
+
     function renderCalendarDetailTable(entries) {
       const wrap = els.calendarDetailTableWrap;
       wrap.replaceChildren();
@@ -4512,22 +4601,23 @@
       const headerRow = document.createElement("tr");
       const columns = [
         { label: "成员", numeric: false },
-        { label: "打球次数", numeric: true },
-        { label: "带人数", numeric: true },
+        { label: "打球次数", numeric: true, sortKey: "playCount" },
+        { label: "带人数", numeric: true, sortKey: "guestCount" },
         { label: "最佳拍档", numeric: false },
         { label: "打球日分布", numeric: false },
-        { label: "较上期变化", numeric: true },
+        { label: "较上期变化", numeric: true, sortKey: "change" },
       ];
       columns.forEach((column) => {
         const th = document.createElement("th");
-        th.textContent = column.label;
+        if (column.sortKey) th.append(createCalendarDetailSortButton(column.label, column.sortKey));
+        else th.textContent = column.label;
         if (column.numeric) th.className = "num";
         headerRow.append(th);
       });
       thead.append(headerRow);
 
       const tbody = document.createElement("tbody");
-      entries.forEach((entry) => {
+      sortCalendarDetailEntries(entries).forEach((entry) => {
         const tr = document.createElement("tr");
         const nameTd = document.createElement("td");
         nameTd.textContent = entry.name;
@@ -4605,6 +4695,7 @@
         || collator.compare(a.name, b.name)
       ));
 
+      state.calendarDetailEntries = entries;
       els.calendarDetailTitle.textContent = "详细统计";
       els.calendarDetailSummary.textContent = `${title} · 对比${comparison.label} · 颜色越深，表示该成员在当天打球次数越多`;
       renderCalendarDetailTable(entries);
@@ -6739,6 +6830,8 @@
       );
       els.paymentLedgerAmount.textContent = formatMoney(calculateLedgerAmount(result.groups, courtFee));
       const reportDate = state.pendingSessionEdit ? state.pendingSessionEdit.date : getLocalDateString();
+      const reportWeekday = parseLocalDate(reportDate).getDay();
+      els.paymentWeekendNotice.hidden = reportWeekday !== 5 && reportWeekday !== 6;
       els.paymentReportDate.textContent = formatPaymentDate(reportDate);
       state.currentPaymentRecord = {
         courtFee,
