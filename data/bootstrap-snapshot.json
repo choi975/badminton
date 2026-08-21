@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-08-20T07:41:54.919Z",
+  "generatedAt": "2026-08-21T07:45:39.697Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
       {
         "id": 1,
-        "name": "达哥，刘赵达，阿达",
+        "name": "阿达，达哥，刘赵达",
         "gender": "男",
         "level": "4级",
         "affiliation": "球友+Hytronik",
@@ -13,7 +13,7 @@
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-09 11:31:03",
-        "updatedAt": "2026-07-28 03:40:17"
+        "updatedAt": "2026-08-21 03:53:21"
       },
       {
         "id": 2,
@@ -295,13 +295,13 @@
         "id": 26,
         "name": "威朱，朱工，朱剑威",
         "gender": "男",
-        "level": "6级",
+        "level": "5级",
         "affiliation": "Hytronik",
         "notes": "",
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-10 01:40:10",
-        "updatedAt": "2026-08-17 00:44:32"
+        "updatedAt": "2026-08-21 06:35:13"
       },
       {
         "id": 27,
@@ -3597,7 +3597,7 @@
     ],
     "estimator": {
       "version": 3,
-      "generatedAt": "2026-08-20T07:41:52.221Z",
+      "generatedAt": "2026-08-21T07:45:35.605Z",
       "training": {
         "dateRange": {
           "from": "2026-07-13",
