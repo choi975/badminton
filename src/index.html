@@ -2100,7 +2100,7 @@
     }
 
     .calendar-detail-table-wrap {
-      width: 784px;
+      width: max-content;
       max-width: 100%;
       overflow: auto;
       border: 1px solid var(--line);
@@ -2109,33 +2109,17 @@
     }
 
     .calendar-detail-table {
-      width: 784px;
-      table-layout: fixed;
+      width: max-content;
       border-collapse: collapse;
       font-size: 14px;
     }
 
-    .calendar-detail-table th:nth-child(1),
-    .calendar-detail-table td:nth-child(1) { width: 92px; }
-    .calendar-detail-table th:nth-child(2),
-    .calendar-detail-table td:nth-child(2) { width: 78px; }
-    .calendar-detail-table th:nth-child(3),
-    .calendar-detail-table td:nth-child(3) { width: 68px; }
-    .calendar-detail-table th:nth-child(4),
-    .calendar-detail-table td:nth-child(4) { width: 142px; }
-    .calendar-detail-table th:nth-child(5),
-    .calendar-detail-table td:nth-child(5) { width: 292px; }
-    .calendar-detail-table th:nth-child(6),
-    .calendar-detail-table td:nth-child(6) { width: 104px; }
-
     .calendar-detail-table th,
     .calendar-detail-table td {
-      padding: 9px 10px;
+      padding: 7px 8px;
       border-bottom: 1px solid var(--line);
       text-align: left;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .calendar-detail-table th {
