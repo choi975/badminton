@@ -1031,13 +1031,15 @@
 
     .side-stack {
       display: grid;
-      grid-template-rows: 1fr auto;
+      grid-template-rows: auto auto;
+      align-content: start;
       gap: 10px;
       min-height: 0;
     }
 
     .summary-panel {
-      min-height: 0;
+      min-height: auto;
+      height: max-content;
       display: grid;
       grid-template-rows: auto 1fr;
       overflow: hidden;
@@ -1059,7 +1061,7 @@
       border-radius: 0;
       background: #fff;
       padding: 10px 12px;
-      overflow: auto;
+      overflow: visible;
       line-height: 1.55;
       white-space: pre-wrap;
       box-shadow: none;
@@ -1879,11 +1881,11 @@
     }
 
     .calendar-scroll {
-      flex: 1 1 auto;
-      min-height: 220px;
+      flex: 0 0 auto;
+      min-height: 0;
       height: auto;
       margin-bottom: 14px;
-      overflow-y: auto;
+      overflow: hidden;
       overscroll-behavior: contain;
       scrollbar-gutter: stable;
     }
@@ -2185,8 +2187,8 @@
 
     .calendar-detail-heatmap {
       display: grid;
-      grid-template-columns: repeat(7, 34px);
-      gap: 4px;
+      grid-template-columns: repeat(7, 28px);
+      gap: 3px;
       align-items: stretch;
     }
 
@@ -5037,8 +5039,7 @@
       state.sessions.sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
     }
 
-    const CALENDAR_INITIAL_MONTHS_EACH_SIDE = 12;
-    const CALENDAR_RANGE_CHUNK = 6;
+    const CALENDAR_INITIAL_MONTHS_EACH_SIDE = 0;
 
     function calendarMonthIndex(year, month) {
       return year * 12 + month - 1;
@@ -5375,22 +5376,7 @@
     }
 
     function extendCalendarRangeIfNeeded() {
-      const scroll = els.calendarScroll;
-      if (!scroll.clientHeight) return;
-      if (scroll.scrollTop < scroll.clientHeight * 0.75) {
-        const oldHeight = scroll.scrollHeight;
-        const oldScrollTop = scroll.scrollTop;
-        const newStart = state.calendar.rangeStart - CALENDAR_RANGE_CHUNK;
-        state.calendar.rangeStart = newStart;
-        renderCalendar({ preserveScroll: false });
-        scroll.scrollTop = oldScrollTop + scroll.scrollHeight - oldHeight;
-      } else if (scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < scroll.clientHeight * 0.75) {
-        const oldScrollTop = scroll.scrollTop;
-        const newEnd = state.calendar.rangeEnd + CALENDAR_RANGE_CHUNK;
-        state.calendar.rangeEnd = newEnd;
-        renderCalendar({ preserveScroll: false });
-        scroll.scrollTop = oldScrollTop;
-      }
+      return;
     }
 
     function syncCalendarMonthFromViewport() {
