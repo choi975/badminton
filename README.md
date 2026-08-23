@@ -35,9 +35,9 @@ npm run deploy
 - `src/worker.js`: Worker API，负责连接 D1。
 - `data/bootstrap-snapshot.json`: 随版本发布的 D1 数据快照。
 - `scripts/generate-snapshot.js`: 从远程 D1 生成最新快照。
-- `scripts/train-estimator.js`: 使用最新 D1 订场记录训练并滚动验证场地和用球预估模型。
+- `scripts/train-estimator.js`: 使用最新 D1 订场记录训练场地容量和各球型号的独立权重。
 - `data/booking-estimator.json`: 当前部署使用的预估模型参数。
 - `docs/booking-estimation.md`: 预估规则、固定排除记录和后续更新说明。
 - `migrations/0001_initial.sql`: D1 表结构。
 - `scripts/verify-chain.js`: 使用需求里的示例验证接龙和群收款规则。
-- `scripts/verify-estimator.js`: 验证 v3 公式、模型快照同步、历史回放和滚动指标。
+- `scripts/verify-estimator.js`: 验证 v4 公式、独立球型号权重、异常阈值、模型快照同步和历史回放。
