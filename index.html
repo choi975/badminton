@@ -791,6 +791,25 @@
       box-shadow: 0 4px 18px rgba(18, 38, 33, 0.18);
     }
 
+    #photoModal { z-index: 70; }
+
+    .photo-body.full-screenshot {
+      display: block;
+      overflow: auto;
+      overscroll-behavior: contain;
+    }
+
+    .photo-body.full-screenshot img {
+      display: block;
+      margin: 0 auto;
+      box-shadow: none;
+    }
+
+    .photo-body.full-screenshot img[data-size-mode="actual"] {
+      max-width: none;
+      max-height: none;
+    }
+
     .modal.chain-dialog {
       width: fit-content;
       max-width: calc(100vw - 32px);
@@ -1541,6 +1560,29 @@
       font-weight: 600;
     }
 
+    .payment-settings-order-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .member-exit-investigator-btn {
+      min-height: 34px;
+      padding: 0 10px;
+      color: var(--accent-dark);
+      border-color: #9bc9c1;
+      background: var(--accent-soft);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .member-exit-investigator-btn:hover {
+      border-color: var(--accent);
+      background: #d8f1ec;
+    }
+
     .unrecorded-exit-btn {
       min-height: 34px;
       padding: 0 10px;
@@ -1614,6 +1656,371 @@
     }
 
     .unrecorded-exit-dialog { width: min(430px, 100%); }
+
+    #memberExitInvestigatorModal { z-index: 65; }
+
+    .member-exit-dialog { width: min(1180px, 100%); }
+
+    .member-exit-dialog .modal-body {
+      overflow: auto;
+      background: #f7faf9;
+    }
+
+    .member-exit-intake {
+      display: grid;
+      grid-template-columns: minmax(300px, 440px) minmax(280px, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .member-exit-upload {
+      position: relative;
+      width: 100%;
+      min-height: 232px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      padding: 0;
+      border: 1px dashed #91bbb4;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .member-exit-upload.has-preview {
+      display: block;
+      max-height: 390px;
+      overflow: auto;
+      overscroll-behavior: contain;
+      background: #eef4f2;
+    }
+
+    .member-exit-upload:hover,
+    .member-exit-upload.dragging {
+      border-color: var(--accent);
+      background: #f1faf7;
+    }
+
+    .member-exit-upload:focus-within {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .member-exit-upload-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .member-exit-upload-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .member-exit-upload-actions[hidden] { display: none; }
+
+    .member-exit-upload-actions button {
+      min-height: 34px;
+      padding: 0 10px;
+      font-size: 13px;
+    }
+
+    .member-exit-upload-empty {
+      display: grid;
+      justify-items: center;
+      gap: 8px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .member-exit-upload-empty[hidden],
+    .member-exit-preview[hidden] { display: none; }
+
+    .member-exit-upload-empty strong {
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    .member-exit-upload-empty span {
+      max-width: 34ch;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .member-exit-preview {
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      object-position: top center;
+    }
+
+    .member-exit-intake-fields {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .member-exit-context {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .member-exit-context strong { color: var(--text); }
+
+    .member-exit-context span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .member-exit-count-row {
+      display: grid;
+      grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
+      align-items: end;
+      gap: 12px;
+    }
+
+    .member-exit-count-row .field { margin: 0; }
+
+    .member-exit-count-hint {
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .member-exit-privacy {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .member-exit-analyze-btn { align-self: flex-start; }
+
+    .member-exit-status {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 11px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .member-exit-status[data-tone="working"] {
+      border-color: #9bc9c1;
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+    }
+
+    .member-exit-status[data-tone="success"] {
+      border-color: #a9d5cc;
+      background: #edf9f6;
+      color: #0d635d;
+    }
+
+    .member-exit-status[data-tone="warning"] {
+      border-color: #e4c781;
+      background: #fff9e9;
+      color: #775300;
+    }
+
+    .member-exit-status[data-tone="error"] {
+      border-color: #e6aaa5;
+      background: #fff4f3;
+      color: #8f1d15;
+    }
+
+    .member-exit-results {
+      display: grid;
+      gap: 14px;
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line-strong);
+    }
+
+    .member-exit-results[hidden] { display: none; }
+
+    .member-exit-results-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .member-exit-results-head h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .member-exit-results-head span {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .member-exit-warnings {
+      display: grid;
+      gap: 6px;
+      color: #775300;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .member-exit-detection-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      max-height: min(43vh, 520px);
+      overflow: auto;
+      padding-right: 3px;
+    }
+
+    .member-exit-detection {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas:
+        "position detected"
+        "position match";
+      gap: 5px 9px;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .member-exit-detection.reliable { border-color: #a9d5cc; }
+
+    .member-exit-position {
+      grid-area: position;
+      min-width: 36px;
+      color: var(--accent-dark);
+      font-size: 13px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+
+    .member-exit-detected-name {
+      grid-area: detected;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .member-exit-detected-name span:first-child {
+      min-width: 0;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow-wrap: anywhere;
+    }
+
+    .member-exit-confidence {
+      flex: none;
+      color: var(--muted);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .member-exit-match-select {
+      grid-area: match;
+      width: 100%;
+      min-width: 0;
+      min-height: 36px;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      padding: 0 7px;
+      background: #fff;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .member-exit-analysis {
+      display: grid;
+      gap: 10px;
+      padding-top: 4px;
+    }
+
+    .member-exit-analysis[hidden] { display: none; }
+
+    .member-exit-analysis-summary {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 11px 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      line-height: 1.55;
+    }
+
+    .member-exit-analysis-summary strong { color: var(--text); }
+
+    .member-exit-evidence-level {
+      flex: none;
+      color: var(--accent-dark);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .member-exit-evidence-list {
+      display: grid;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .member-exit-evidence-list li {
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .member-exit-dialog .modal-footer {
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .member-exit-footer-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-left: auto;
+    }
 
     .special-settings-list {
       display: grid;
@@ -1756,6 +2163,29 @@
       .chain-head-actions button { flex: 1; }
       .payment-settings-tabs { grid-template-columns: 1fr; }
       .payment-settings-tab + .payment-settings-tab { border-left: 0; border-top: 1px solid var(--line-strong); }
+      .payment-settings-order-toolbar { align-items: flex-start; }
+      .payment-settings-order-actions { justify-content: flex-end; }
+      .member-exit-dialog .modal-body { padding: 12px; }
+      .member-exit-intake { grid-template-columns: 1fr; gap: 14px; }
+      .member-exit-upload { min-height: 190px; }
+      .member-exit-upload.has-preview { max-height: 280px; }
+      .member-exit-upload-actions button { min-height: 44px; }
+      .member-exit-count-row { grid-template-columns: 1fr; gap: 6px; }
+      .member-exit-count-hint { min-height: 0; }
+      .member-exit-analyze-btn { width: 100%; }
+      .member-exit-results-head { align-items: flex-start; flex-direction: column; gap: 4px; }
+      .member-exit-results-head span { text-align: left; }
+      .member-exit-detection-grid {
+        grid-template-columns: 1fr;
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
+      }
+      .member-exit-match-select { min-height: 44px; font-size: 16px; }
+      .member-exit-analysis-summary { flex-direction: column; gap: 5px; }
+      .member-exit-dialog .modal-footer { align-items: stretch; flex-direction: column; }
+      .member-exit-footer-actions { width: 100%; margin-left: 0; }
+      .member-exit-footer-actions button { flex: 1; min-width: 0; }
       .chain-output-row { grid-template-columns: 1fr; gap: 4px; padding-block: 7px; }
       .inline-plus-controls { justify-self: start; justify-content: flex-start; }
       .inline-level-select { flex: 1; width: auto; min-width: 0; }
@@ -2650,7 +3080,10 @@
         <div id="paymentSettingsOrderPanel" class="payment-settings-panel" role="tabpanel">
           <div class="payment-settings-order-toolbar">
             <span id="paymentSettingsOrderCount" class="payment-settings-order-count"></span>
-            <button id="unrecordedExitBtn" class="unrecorded-exit-btn" type="button">↘ 未录入成员退群</button>
+            <div class="payment-settings-order-actions">
+              <button id="memberExitInvestigatorBtn" class="member-exit-investigator-btn" type="button">截图排查退群</button>
+              <button id="unrecordedExitBtn" class="unrecorded-exit-btn" type="button">↘ 未录入成员退群</button>
+            </div>
           </div>
           <div id="paymentSettingsOrderList" class="order-list"></div>
         </div>
@@ -2661,6 +3094,71 @@
       <div class="modal-footer">
         <button data-close="paymentSettingsModal">取消</button>
         <button id="savePaymentSettingsBtn" class="primary-btn">保存全部</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="memberExitInvestigatorModal" class="modal-backdrop">
+    <div class="modal wide member-exit-dialog" role="dialog" aria-modal="true" aria-labelledby="memberExitInvestigatorTitle">
+      <div class="modal-header">
+        <h2 id="memberExitInvestigatorTitle" class="modal-title">截图排查退群</h2>
+        <button class="modal-close-btn" data-close="memberExitInvestigatorModal" aria-label="关闭" title="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="member-exit-intake">
+          <div>
+            <button id="memberExitUploadZone" class="member-exit-upload" type="button" aria-describedby="memberExitUploadHint">
+              <span id="memberExitUploadEmpty" class="member-exit-upload-empty">
+                <strong>选择完整群成员截图</strong>
+                <span id="memberExitUploadHint">支持 PNG、JPEG、WebP，也可在此窗口直接粘贴截图</span>
+              </span>
+              <img id="memberExitPreview" class="member-exit-preview" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="待排查的群成员完整截图" hidden>
+            </button>
+            <input id="memberExitImageInput" class="member-exit-upload-input" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+            <div id="memberExitUploadActions" class="member-exit-upload-actions" hidden>
+              <button id="memberExitViewImageBtn" type="button">查看原图</button>
+              <button id="memberExitReplaceImageBtn" type="button">更换截图</button>
+            </div>
+          </div>
+          <div class="member-exit-intake-fields">
+            <div class="member-exit-context">
+              <strong id="memberExitAffiliationLabel">球友群</strong>
+              <span id="memberExitDatabaseSummary"></span>
+            </div>
+            <div class="member-exit-count-row">
+              <div class="field">
+                <label for="memberExitExpectedCount">截图中的群成员人数</label>
+                <input id="memberExitExpectedCount" type="number" min="1" max="200" step="1" inputmode="numeric" autocomplete="off">
+              </div>
+              <div id="memberExitCountHint" class="member-exit-count-hint"></div>
+            </div>
+            <div class="member-exit-privacy">整张截图将发送至 Cloudflare 视觉服务，仅用于本次识别，不保存头像或原图。</div>
+            <button id="memberExitAnalyzeBtn" class="primary-btn member-exit-analyze-btn" type="button">开始排查</button>
+            <div id="memberExitStatus" class="member-exit-status" role="status" aria-live="polite">请选择或粘贴完整截图</div>
+          </div>
+        </div>
+        <section id="memberExitResults" class="member-exit-results" aria-labelledby="memberExitResultsTitle" hidden>
+          <div class="member-exit-results-head">
+            <h3 id="memberExitResultsTitle">识别位置与锚点</h3>
+            <span id="memberExitResultsSummary"></span>
+          </div>
+          <div id="memberExitWarnings" class="member-exit-warnings"></div>
+          <div id="memberExitDetectionGrid" class="member-exit-detection-grid"></div>
+          <div id="memberExitAnalysis" class="member-exit-analysis" hidden>
+            <div class="member-exit-analysis-summary">
+              <strong id="memberExitAnalysisSummary"></strong>
+              <span id="memberExitEvidenceLevel" class="member-exit-evidence-level"></span>
+            </div>
+            <ul id="memberExitEvidenceList" class="member-exit-evidence-list"></ul>
+          </div>
+        </section>
+      </div>
+      <div class="modal-footer">
+        <button data-close="memberExitInvestigatorModal">关闭</button>
+        <div class="member-exit-footer-actions">
+          <button id="memberExitRetryBtn" type="button" hidden>重新识别</button>
+          <button id="memberExitConfirmBtn" class="primary-btn" type="button" hidden></button>
+        </div>
       </div>
     </div>
   </div>
@@ -2691,9 +3189,10 @@
         <button class="modal-close-btn" data-close="photoModal" aria-label="关闭" title="关闭">×</button>
       </div>
       <div class="modal-body photo-body">
-        <img id="photoViewer" alt="成员照片">
+        <img id="photoViewer" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="成员照片">
       </div>
       <div class="modal-footer">
+        <button id="photoFitToggleBtn" type="button" hidden>查看原始尺寸</button>
         <a id="photoDownloadBtn" class="primary-btn" href="#">下载原图</a>
       </div>
     </div>
@@ -2747,6 +3246,8 @@
     const IS_WORKER_APP = location.hostname === "badminton.choi975.workers.dev"
       || ["127.0.0.1", "localhost"].includes(location.hostname);
     const BOOTSTRAP_CACHE_KEY = "badminton-bootstrap-cache-v3";
+    const MAX_MEMBER_EXIT_COUNT = 200;
+    const EMPTY_IMAGE_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
     const SNAPSHOT_URL = new URL("./bootstrap-snapshot.json", location.href).href;
     const shouldOpenRemoteApp = location.protocol === "file:" && !new URLSearchParams(location.search).has("local");
 
@@ -2805,6 +3306,23 @@
         activeTab: "球友",
         joinNumbers: { "球友": [], "Hytronik": [] },
         special: {},
+      },
+      memberExitInvestigator: {
+        affiliation: "球友",
+        imageDataUrl: "",
+        fileName: "",
+        expectedCount: 0,
+        expectedCountAtRecognition: 0,
+        countTouched: false,
+        status: "idle",
+        detectedCount: null,
+        columns: null,
+        items: [],
+        warnings: [],
+        error: "",
+        recognitionComplete: false,
+        analysis: null,
+        requestId: 0,
       },
       paymentSortModes: { "球友": "join", "Hytronik": "join" },
       paymentGroupOverrides: {},
@@ -2914,6 +3432,32 @@
       paymentSettingsSpecialPanel: document.getElementById("paymentSettingsSpecialPanel"),
       paymentSettingsSpecialList: document.getElementById("paymentSettingsSpecialList"),
       savePaymentSettingsBtn: document.getElementById("savePaymentSettingsBtn"),
+      memberExitInvestigatorBtn: document.getElementById("memberExitInvestigatorBtn"),
+      memberExitInvestigatorModal: document.getElementById("memberExitInvestigatorModal"),
+      memberExitInvestigatorTitle: document.getElementById("memberExitInvestigatorTitle"),
+      memberExitUploadZone: document.getElementById("memberExitUploadZone"),
+      memberExitUploadEmpty: document.getElementById("memberExitUploadEmpty"),
+      memberExitImageInput: document.getElementById("memberExitImageInput"),
+      memberExitPreview: document.getElementById("memberExitPreview"),
+      memberExitUploadActions: document.getElementById("memberExitUploadActions"),
+      memberExitViewImageBtn: document.getElementById("memberExitViewImageBtn"),
+      memberExitReplaceImageBtn: document.getElementById("memberExitReplaceImageBtn"),
+      memberExitAffiliationLabel: document.getElementById("memberExitAffiliationLabel"),
+      memberExitDatabaseSummary: document.getElementById("memberExitDatabaseSummary"),
+      memberExitExpectedCount: document.getElementById("memberExitExpectedCount"),
+      memberExitCountHint: document.getElementById("memberExitCountHint"),
+      memberExitAnalyzeBtn: document.getElementById("memberExitAnalyzeBtn"),
+      memberExitStatus: document.getElementById("memberExitStatus"),
+      memberExitResults: document.getElementById("memberExitResults"),
+      memberExitResultsSummary: document.getElementById("memberExitResultsSummary"),
+      memberExitWarnings: document.getElementById("memberExitWarnings"),
+      memberExitDetectionGrid: document.getElementById("memberExitDetectionGrid"),
+      memberExitAnalysis: document.getElementById("memberExitAnalysis"),
+      memberExitAnalysisSummary: document.getElementById("memberExitAnalysisSummary"),
+      memberExitEvidenceLevel: document.getElementById("memberExitEvidenceLevel"),
+      memberExitEvidenceList: document.getElementById("memberExitEvidenceList"),
+      memberExitRetryBtn: document.getElementById("memberExitRetryBtn"),
+      memberExitConfirmBtn: document.getElementById("memberExitConfirmBtn"),
       unrecordedExitBtn: document.getElementById("unrecordedExitBtn"),
       unrecordedExitModal: document.getElementById("unrecordedExitModal"),
       unrecordedExitTitle: document.getElementById("unrecordedExitTitle"),
@@ -2921,7 +3465,10 @@
       unrecordedExitNumber: document.getElementById("unrecordedExitNumber"),
       confirmUnrecordedExitBtn: document.getElementById("confirmUnrecordedExitBtn"),
       photoModal: document.getElementById("photoModal"),
+      photoTitle: document.getElementById("photoTitle"),
+      photoBody: document.querySelector("#photoModal .photo-body"),
       photoViewer: document.getElementById("photoViewer"),
+      photoFitToggleBtn: document.getElementById("photoFitToggleBtn"),
       photoDownloadBtn: document.getElementById("photoDownloadBtn"),
       recordModal: document.getElementById("recordModal"),
       recordTitle: document.getElementById("recordTitle"),
@@ -2939,6 +3486,8 @@
       saveRecordBtn: document.getElementById("saveRecordBtn"),
       toast: document.getElementById("toast"),
     };
+    const modalStack = [];
+    const modalReturnFocus = new Map();
 
     function init() {
       if (shouldOpenRemoteApp) {
@@ -3167,8 +3716,38 @@
         tab.addEventListener("click", () => switchPaymentSettingsTab(tab.dataset.paymentSettingsTab));
       });
       els.savePaymentSettingsBtn.addEventListener("click", () => savePaymentSettings());
+      els.memberExitInvestigatorBtn.addEventListener("click", openMemberExitInvestigator);
+      els.memberExitUploadZone.addEventListener("click", () => {
+        if (state.memberExitInvestigator.imageDataUrl) openMemberExitImageViewer();
+        else els.memberExitImageInput.click();
+      });
+      els.memberExitViewImageBtn.addEventListener("click", openMemberExitImageViewer);
+      els.memberExitReplaceImageBtn.addEventListener("click", () => els.memberExitImageInput.click());
+      els.memberExitImageInput.addEventListener("change", () => {
+        const file = els.memberExitImageInput.files?.[0];
+        els.memberExitImageInput.value = "";
+        if (file) void setMemberExitImage(file);
+      });
+      els.memberExitUploadZone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+        els.memberExitUploadZone.classList.add("dragging");
+      });
+      els.memberExitUploadZone.addEventListener("dragleave", () => els.memberExitUploadZone.classList.remove("dragging"));
+      els.memberExitUploadZone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        els.memberExitUploadZone.classList.remove("dragging");
+        const file = [...(event.dataTransfer?.files || [])].find((item) => item.type.startsWith("image/"));
+        if (file) void setMemberExitImage(file);
+        else toast("请拖入 PNG、JPEG 或 WebP 图片");
+      });
+      els.memberExitExpectedCount.addEventListener("input", handleMemberExitExpectedCountChange);
+      els.memberExitAnalyzeBtn.addEventListener("click", runMemberExitRecognition);
+      els.memberExitRetryBtn.addEventListener("click", runMemberExitRecognition);
+      els.memberExitConfirmBtn.addEventListener("click", confirmMemberExitCandidate);
       els.unrecordedExitBtn.addEventListener("click", openUnrecordedExitModal);
       els.confirmUnrecordedExitBtn.addEventListener("click", confirmUnrecordedExit);
+      els.photoFitToggleBtn.addEventListener("click", togglePhotoViewerSize);
       els.unrecordedExitNumber.addEventListener("keydown", (event) => {
         if (event.key === "Enter") confirmUnrecordedExit();
       });
@@ -3190,6 +3769,7 @@
       });
 
       document.addEventListener("mouseup", endCalendarDrag);
+      document.addEventListener("paste", handleMemberExitPaste);
       els.calendarGrid.addEventListener("mousemove", handleCalendarDragMove);
       els.calendarScroll.addEventListener("scroll", handleCalendarScroll, { passive: true });
       document.addEventListener("keydown", handleGlobalKeydown);
@@ -3863,13 +4443,17 @@
         maybeCancelChainEditFlow();
         return;
       }
+      if (isAnyModalOpen()) {
+        if (event.key === "Tab") trapFocusInTopModal(event);
+        return;
+      }
       if (event.altKey && event.key.toLowerCase() === "f") {
         event.preventDefault();
         els.globalSearch.focus();
         els.globalSearch.select();
         return;
       }
-      if (isAnyModalOpen() || state.editing || isTextControl(document.activeElement)) return;
+      if (state.editing || isTextControl(document.activeElement)) return;
 
       if (state.readOnly) {
         if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key) && !event.altKey) {
@@ -4137,10 +4721,38 @@
 
     function openPlayerPhoto(player) {
       if (!player?.id || !player.photoKey) return;
+      els.photoTitle.textContent = "成员照片";
+      els.photoBody.classList.remove("full-screenshot");
+      els.photoViewer.dataset.sizeMode = "fit";
       els.photoViewer.alt = `${firstName(player.name) || "成员"}照片`;
       els.photoViewer.src = getPhotoUrl(player);
+      els.photoFitToggleBtn.hidden = true;
       els.photoDownloadBtn.href = getPhotoUrl(player, { download: true });
+      els.photoDownloadBtn.removeAttribute("download");
       openModal("photoModal");
+    }
+
+    function openMemberExitImageViewer() {
+      const investigator = state.memberExitInvestigator;
+      if (!investigator.imageDataUrl) return;
+      els.photoTitle.textContent = `${investigator.affiliation}群完整截图`;
+      els.photoBody.classList.add("full-screenshot");
+      els.photoViewer.dataset.sizeMode = "fit";
+      els.photoViewer.alt = `${investigator.affiliation}群成员完整截图`;
+      els.photoViewer.src = investigator.imageDataUrl;
+      els.photoFitToggleBtn.hidden = false;
+      els.photoFitToggleBtn.textContent = "查看原始尺寸";
+      els.photoDownloadBtn.href = investigator.imageDataUrl;
+      els.photoDownloadBtn.download = investigator.fileName || "群成员截图";
+      openModal("photoModal");
+    }
+
+    function togglePhotoViewerSize() {
+      if (els.photoFitToggleBtn.hidden) return;
+      const showActual = els.photoViewer.dataset.sizeMode !== "actual";
+      els.photoViewer.dataset.sizeMode = showActual ? "actual" : "fit";
+      els.photoFitToggleBtn.textContent = showActual ? "适合窗口" : "查看原始尺寸";
+      els.photoBody.scrollTo({ top: 0, left: 0 });
     }
 
     async function cycleCellValue(rowKey, key) {
@@ -4265,16 +4877,16 @@
       renderTable();
     }
 
-    async function deletePlayer(rowKey) {
+    async function deletePlayer(rowKey, { confirmMessage = "", skipConfirm = false } = {}) {
       if (state.readOnly) {
         toast("当前为只读模式，不能删除成员");
-        return;
+        return false;
       }
       const player = getPlayerByKey(rowKey);
-      if (!player || rowKey === "draft") return;
+      if (!player || rowKey === "draft") return false;
 
       const label = firstName(player.name) || player.name || "这个成员";
-      if (!window.confirm(`确定删除“${label}”吗？`)) return;
+      if (!skipConfirm && !window.confirm(confirmMessage || `确定删除“${label}”吗？`)) return false;
 
       const previousPlayers = [...state.players];
       state.players = state.players.filter((item) => String(item.id) !== String(player.id));
@@ -4288,14 +4900,16 @@
         setSync("已删除");
         toast(`已删除：${label}`);
         if (els.chainModal.classList.contains("open")) processChain();
+        renderTable();
+        return true;
       } catch (error) {
         state.players = previousPlayers;
         state.selected = { rowKey: String(player.id), col: 0 };
         setSync("删除失败");
         toast(`删除失败：${error.message}`);
+        renderTable();
+        return false;
       }
-
-      renderTable();
     }
 
     function replacePlayer(player) {
@@ -7528,23 +8142,821 @@
       URL.revokeObjectURL(url);
     }
 
-    function openPaymentSettingsModal() {
+    function createMemberExitInvestigatorState(affiliation) {
+      const members = getMemberExitGroupMembers(affiliation);
+      const maxJoinNumber = members.reduce((max, member) => Math.max(max, member.joinNumber), 0);
+      return {
+        affiliation,
+        imageDataUrl: "",
+        fileName: "",
+        expectedCount: maxJoinNumber || members.length || 1,
+        expectedCountAtRecognition: 0,
+        countTouched: false,
+        status: "idle",
+        detectedCount: null,
+        columns: null,
+        items: [],
+        warnings: [],
+        error: "",
+        recognitionComplete: false,
+        analysis: null,
+        requestId: (state.memberExitInvestigator?.requestId || 0) + 1,
+      };
+    }
+
+    function getMemberExitGroupMembers(affiliation = state.memberExitInvestigator.affiliation) {
+      if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation)) return [];
+      const playersById = new Map(state.players.map((player) => [Number(player.id), player]));
+      const editorEntries = state.paymentSettingsEditor.joinNumbers?.[affiliation]
+        || getJoinNumbersForEditor(affiliation);
+      return editorEntries
+        .map((entry) => {
+          const player = playersById.get(Number(entry.playerId));
+          return player && hasPlayerAffiliation(player, affiliation)
+            ? {
+                player,
+                playerId: Number(player.id),
+                joinNumber: Number(entry.joinNumber),
+                displayName: firstName(player.name) || player.name || "未命名",
+              }
+            : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => (a.joinNumber - b.joinNumber) || (a.playerId - b.playerId));
+    }
+
+    function openMemberExitInvestigator() {
       if (state.readOnly) {
-        toast("当前为只读模式，不能修改群收款设置");
+        toast("当前为只读模式，不能排查退群");
         return;
       }
-      state.paymentSettingsEditor = {
-        activeTab: "球友",
+      const affiliation = state.paymentSettingsEditor.activeTab;
+      if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation)) return;
+      if (hasUnsavedPaymentSettingsChanges()) {
+        toast("入群序号设置尚未保存，请先保存后再排查退群");
+        els.savePaymentSettingsBtn.focus();
+        return;
+      }
+      state.memberExitInvestigator = createMemberExitInvestigatorState(affiliation);
+      renderMemberExitInvestigator();
+      openModal("memberExitInvestigatorModal");
+      setTimeout(() => els.memberExitUploadZone.focus(), 0);
+    }
+
+    async function setMemberExitImage(file) {
+      const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
+      if (!file || !allowedTypes.has(String(file.type || "").toLowerCase())) {
+        toast("请选择 PNG、JPEG 或 WebP 图片");
+        return;
+      }
+      if (file.size > 6 * 1024 * 1024) {
+        toast("群成员截图不能超过6MB");
+        return;
+      }
+
+      try {
+        const imageDataUrl = await readFileAsDataUrl(file);
+        const investigator = state.memberExitInvestigator;
+        investigator.requestId += 1;
+        investigator.imageDataUrl = imageDataUrl;
+        investigator.fileName = file.name || "剪贴板截图";
+        investigator.status = "ready";
+        investigator.detectedCount = null;
+        investigator.expectedCountAtRecognition = 0;
+        investigator.columns = null;
+        investigator.items = [];
+        investigator.warnings = [];
+        investigator.error = "";
+        investigator.recognitionComplete = false;
+        investigator.analysis = null;
+        renderMemberExitInvestigator();
+      } catch (error) {
+        toast(`读取截图失败：${error.message}`);
+      }
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.addEventListener("load", () => resolve(String(reader.result || "")), { once: true });
+        reader.addEventListener("error", () => reject(reader.error || new Error("无法读取图片")), { once: true });
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function handleMemberExitPaste(event) {
+      if (!els.memberExitInvestigatorModal.classList.contains("open")) return;
+      const item = [...(event.clipboardData?.items || [])]
+        .find((candidate) => String(candidate.type || "").startsWith("image/"));
+      if (!item) return;
+      const file = item.getAsFile();
+      if (!file) return;
+      event.preventDefault();
+      void setMemberExitImage(file);
+    }
+
+    function handleMemberExitExpectedCountChange() {
+      const investigator = state.memberExitInvestigator;
+      investigator.countTouched = true;
+      investigator.expectedCount = Number(els.memberExitExpectedCount.value);
+      if (investigator.expectedCountAtRecognition
+          && investigator.expectedCount !== investigator.expectedCountAtRecognition) {
+        investigator.status = "stale";
+        investigator.recognitionComplete = false;
+        investigator.analysis = null;
+      }
+      renderMemberExitInvestigator({ preserveCountFocus: true });
+    }
+
+    async function runMemberExitRecognition() {
+      const investigator = state.memberExitInvestigator;
+      const expectedCount = Number(els.memberExitExpectedCount.value);
+      if (!investigator.imageDataUrl) {
+        toast("请先选择或粘贴完整群成员截图");
+        return;
+      }
+      if (!Number.isInteger(expectedCount) || expectedCount <= 0 || expectedCount > MAX_MEMBER_EXIT_COUNT) {
+        toast(`群成员人数需要填写1至${MAX_MEMBER_EXIT_COUNT}的整数`);
+        els.memberExitExpectedCount.focus();
+        return;
+      }
+
+      investigator.expectedCount = expectedCount;
+      investigator.expectedCountAtRecognition = expectedCount;
+      investigator.status = "loading";
+      investigator.error = "";
+      investigator.warnings = [];
+      investigator.recognitionComplete = false;
+      investigator.analysis = null;
+      const requestId = ++investigator.requestId;
+      const manualSelections = new Map(investigator.items
+        .filter((item) => item.matchSource === "manual")
+        .map((item) => [item.position, item.playerId]));
+      renderMemberExitInvestigator();
+
+      try {
+        const data = await api("/api/member-exit-ocr", {
+          method: "POST",
+          headers: { "content-type": "application/json; charset=utf-8" },
+          body: JSON.stringify({
+            imageDataUrl: investigator.imageDataUrl,
+            affiliation: investigator.affiliation,
+            expectedCount,
+          }),
+          timeout: 120000,
+        });
+        if (requestId !== state.memberExitInvestigator.requestId) return;
+        applyMemberExitOcrResponse(data, expectedCount, manualSelections);
+      } catch (error) {
+        if (requestId !== state.memberExitInvestigator.requestId) return;
+        investigator.status = "manual";
+        investigator.error = error.name === "AbortError"
+          ? "视觉识别超时"
+          : `视觉识别不可用：${error.message}`;
+        investigator.detectedCount = expectedCount;
+        investigator.columns = null;
+        investigator.recognitionComplete = true;
+        investigator.warnings = [
+          `${investigator.error}，已按你确认的${expectedCount}人切换到人工锚点模式。`,
+          "请先确认截图从第1位到最后一位连续完整，再为看得清的成员选择数据库匹配。",
+        ];
+        investigator.items = createMemberExitPositionSlots(expectedCount, [], manualSelections);
+        investigator.analysis = analyzeMemberExitAnchors();
+        renderMemberExitInvestigator();
+      }
+    }
+
+    function applyMemberExitOcrResponse(data, expectedCount, manualSelections) {
+      const investigator = state.memberExitInvestigator;
+      const rawItems = Array.isArray(data?.items) ? data.items : [];
+      const normalizedItems = rawItems.map((item, index) => ({
+        position: Number(item?.position ?? index + 1),
+        visibleName: String(item?.visibleName || "").trim(),
+        confidence: normalizeMemberExitConfidence(item?.confidence),
+      }));
+      const validPositions = new Set(normalizedItems
+        .filter((item) => Number.isInteger(item.position) && item.position >= 1 && item.position <= expectedCount)
+        .map((item) => item.position));
+      const hasDuplicatePositions = validPositions.size !== normalizedItems
+        .filter((item) => Number.isInteger(item.position) && item.position >= 1 && item.position <= expectedCount).length;
+      const detectedCount = Number(data?.detectedCount);
+      const complete = Number.isInteger(detectedCount)
+        && detectedCount === expectedCount
+        && validPositions.size === expectedCount
+        && !hasDuplicatePositions;
+
+      investigator.detectedCount = Number.isInteger(detectedCount) ? detectedCount : normalizedItems.length;
+      investigator.columns = Number.isInteger(Number(data?.columns)) ? Number(data.columns) : null;
+      investigator.items = createMemberExitPositionSlots(expectedCount, normalizedItems, manualSelections);
+      investigator.warnings = Array.isArray(data?.warnings)
+        ? data.warnings.map((warning) => String(warning || "").trim()).filter(Boolean)
+        : [];
+      if (hasDuplicatePositions) investigator.warnings.push("识别结果包含重复位置，请重新识别");
+      investigator.recognitionComplete = true;
+      investigator.status = complete ? "complete" : "manual";
+      investigator.error = complete
+        ? ""
+        : `视觉识别未覆盖完整的${expectedCount}个位置`;
+      if (!complete) {
+        investigator.warnings.unshift("已保留识别到的昵称并切换到人工锚点模式，请按原图核对位置后手动选择成员。");
+      }
+      investigator.analysis = analyzeMemberExitAnchors();
+      renderMemberExitInvestigator();
+    }
+
+    function createMemberExitPositionSlots(expectedCount, rawItems, manualSelections = new Map()) {
+      const rawByPosition = new Map();
+      rawItems.forEach((item) => {
+        if (Number.isInteger(item.position) && item.position >= 1 && item.position <= expectedCount
+            && !rawByPosition.has(item.position)) rawByPosition.set(item.position, item);
+      });
+      const members = getMemberExitGroupMembers();
+      return Array.from({ length: expectedCount }, (_, index) => {
+        const position = index + 1;
+        const raw = rawByPosition.get(position) || {};
+        const autoMatch = matchMemberExitVisibleName(raw.visibleName, raw.confidence, members);
+        const hasManualSelection = manualSelections.has(position);
+        return {
+          position,
+          visibleName: String(raw.visibleName || "").trim(),
+          confidence: normalizeMemberExitConfidence(raw.confidence),
+          autoPlayerId: autoMatch?.playerId || null,
+          autoMatchQuality: autoMatch?.quality || "",
+          playerId: hasManualSelection ? normalizePlayerId(manualSelections.get(position)) : (autoMatch?.playerId || null),
+          matchSource: hasManualSelection ? "manual" : (autoMatch ? "auto" : ""),
+        };
+      });
+    }
+
+    function normalizeMemberExitConfidence(value) {
+      if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === "high" || normalized === "高") return 0.9;
+        if (normalized === "medium" || normalized === "中") return 0.65;
+        if (normalized === "low" || normalized === "低") return 0.35;
+      }
+      const number = Number(value);
+      if (!Number.isFinite(number)) return 0;
+      return clamp(number > 1 ? number / 100 : number, 0, 1);
+    }
+
+    function matchMemberExitVisibleName(visibleName, confidenceValue, members) {
+      const raw = String(visibleName || "").normalize("NFKC").trim();
+      const truncated = /(?:\.{2,}|…+)\s*$/.test(raw);
+      const visible = normalizeAlias(raw.replace(/(?:\.{2,}|…+)\s*$/, ""));
+      const confidence = normalizeMemberExitConfidence(confidenceValue);
+      if (!visible || (/^(?:球友|海尼克|hytronik|广羽羽)[-_]?$/i.test(visible))) return null;
+
+      const candidates = new Map();
+      members.forEach((member) => {
+        splitAliases(member.player.name).forEach((alias) => {
+          const normalizedAlias = normalizeAlias(alias);
+          if (!normalizedAlias) return;
+          let score = 0;
+          let quality = "";
+          if (visible === normalizedAlias) {
+            score = 1;
+            quality = "exact";
+          } else if (truncated && visible.length >= 4 && normalizedAlias.startsWith(visible)
+              && !/^(?:球友|海尼克|hytronik|广羽羽)[-_]/i.test(visible)) {
+            score = 0.84;
+            quality = "prefix";
+          }
+          if (!score) return;
+          const current = candidates.get(member.playerId);
+          if (!current || score > current.score) candidates.set(member.playerId, { ...member, score, quality });
+        });
+      });
+
+      const ranked = [...candidates.values()].sort((a, b) => b.score - a.score);
+      if (!ranked.length || (ranked[1] && ranked[0].score === ranked[1].score)) return null;
+      const best = ranked[0];
+      const reliable = (best.quality === "exact" && visible.length >= 2 && confidence >= 0.45)
+        || (best.quality === "prefix" && confidence >= 0.85);
+      return reliable ? best : null;
+    }
+
+    function setMemberExitAnchor(position, rawPlayerId) {
+      const investigator = state.memberExitInvestigator;
+      const item = investigator.items.find((candidate) => candidate.position === position);
+      if (!item) return;
+      const modalBody = els.memberExitInvestigatorModal.querySelector(".modal-body");
+      const gridScrollTop = els.memberExitDetectionGrid.scrollTop;
+      const modalScrollTop = modalBody?.scrollTop || 0;
+      const playerId = normalizePlayerId(rawPlayerId);
+      if (playerId !== null) {
+        investigator.items.forEach((candidate) => {
+          if (candidate !== item && Number(candidate.playerId) === playerId) {
+            candidate.playerId = null;
+            candidate.matchSource = "manual";
+          }
+        });
+      }
+      item.playerId = playerId;
+      item.matchSource = "manual";
+      investigator.analysis = investigator.recognitionComplete ? analyzeMemberExitAnchors() : null;
+      renderMemberExitInvestigator();
+      requestAnimationFrame(() => {
+        els.memberExitDetectionGrid.scrollTop = gridScrollTop;
+        if (modalBody) modalBody.scrollTop = modalScrollTop;
+        els.memberExitDetectionGrid
+          .querySelector(`[data-position="${position}"] .member-exit-match-select`)
+          ?.focus({ preventScroll: true });
+      });
+    }
+
+    function analyzeMemberExitAnchors() {
+      const investigator = state.memberExitInvestigator;
+      const members = getMemberExitGroupMembers(investigator.affiliation);
+      const membersById = new Map(members.map((member) => [member.playerId, member]));
+      const membersByJoinNumber = new Map(members.map((member) => [member.joinNumber, member]));
+      const errors = [];
+      const seenPlayerIds = new Set();
+      const anchors = investigator.items
+        .filter((item) => item.playerId !== null)
+        .map((item) => {
+          const member = membersById.get(Number(item.playerId));
+          if (!member) return null;
+          if (seenPlayerIds.has(member.playerId)) errors.push(`“${member.displayName}”被匹配到了多个截图位置`);
+          seenPlayerIds.add(member.playerId);
+          return {
+            position: item.position,
+            dbJoinNumber: member.joinNumber,
+            delta: member.joinNumber - item.position,
+            member,
+            source: item.matchSource,
+            confidence: item.confidence,
+            quality: item.autoMatchQuality,
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.position - b.position);
+
+      if (!anchors.length) {
+        return {
+          valid: false,
+          errors: ["尚无可靠锚点，请在识别列表中选择至少一位能确认的成员"],
+          anchors,
+          segments: [],
+          evidence: [],
+          summary: "需要至少一个可靠锚点才能分析序号偏移。",
+          evidenceLevel: "证据不足",
+          uniqueCandidate: null,
+        };
+      }
+
+      anchors.forEach((anchor, index) => {
+        if (anchor.delta < 0) {
+          errors.push(`${anchor.member.displayName}的截图序号#${anchor.position}晚于数据库序号#${anchor.dbJoinNumber}`);
+        }
+        const previous = anchors[index - 1];
+        if (!previous) return;
+        if (anchor.dbJoinNumber <= previous.dbJoinNumber) {
+          errors.push(`${previous.member.displayName}与${anchor.member.displayName}的先后顺序和数据库不一致`);
+        } else if (anchor.delta < previous.delta) {
+          errors.push(`${anchor.member.displayName}处的累计偏移从${previous.delta}降为${anchor.delta}，不符合“新成员只加在末尾”`);
+        }
+      });
+
+      if (errors.length) {
+        return {
+          valid: false,
+          errors,
+          anchors,
+          segments: [],
+          evidence: errors,
+          summary: "锚点之间存在冲突，请核对识别结果或手动修正匹配。",
+          evidenceLevel: "证据冲突",
+          uniqueCandidate: null,
+        };
+      }
+
+      const segments = [];
+      const evidence = [];
+      let previous = { position: 0, dbJoinNumber: 0, delta: 0, member: null, source: "boundary" };
+      anchors.forEach((anchor) => {
+        const removedCount = anchor.delta - previous.delta;
+        if (removedCount > 0) {
+          const start = previous.dbJoinNumber + 1;
+          const end = anchor.dbJoinNumber - 1;
+          const candidatePositions = start <= end
+            ? Array.from({ length: end - start + 1 }, (_, index) => start + index)
+            : [];
+          if (removedCount > candidatePositions.length) {
+            errors.push(`${anchor.member.displayName}前累计少${removedCount}人，但两个锚点间只有${candidatePositions.length}个原序号`);
+          } else {
+            const segment = {
+              previous,
+              current: anchor,
+              removedCount,
+              start,
+              end,
+              candidatePositions,
+              exact: removedCount === candidatePositions.length,
+            };
+            segments.push(segment);
+            evidence.push(formatMemberExitSegmentEvidence(segment));
+          }
+        }
+        previous = anchor;
+      });
+
+      if (errors.length) {
+        return {
+          valid: false,
+          errors,
+          anchors,
+          segments,
+          evidence: [...evidence, ...errors],
+          summary: "锚点偏移无法形成有效区间，请手动修正匹配。",
+          evidenceLevel: "证据冲突",
+          uniqueCandidate: null,
+        };
+      }
+
+      const maxJoinNumber = members.reduce((max, member) => Math.max(max, member.joinNumber), 0);
+      const lastAnchor = anchors.at(-1);
+      if (lastAnchor.dbJoinNumber < maxJoinNumber) {
+        evidence.push(`数据库原序号#${lastAnchor.dbJoinNumber + 1}–#${maxJoinNumber}尚无后方锚点，不能排除该区间有人退群。`);
+      } else if (investigator.expectedCount > lastAnchor.position) {
+        evidence.push(`数据库最后一位在截图#${lastAnchor.position}；其后的${investigator.expectedCount - lastAnchor.position}位只可能是末尾新增成员。`);
+      }
+
+      const totalRemoved = segments.reduce((sum, segment) => sum + segment.removedCount, 0);
+      const allSegmentsExact = segments.length > 0 && segments.every((segment) => segment.exact);
+      const allStrongAnchors = anchors.every((anchor) => anchor.source === "manual"
+        || (anchor.quality === "exact" && anchor.confidence >= 0.8));
+      const confirmedCandidates = allSegmentsExact && allStrongAnchors
+        ? segments.flatMap((segment) => segment.candidatePositions.map((joinNumber) => {
+            const member = membersByJoinNumber.get(joinNumber);
+            return member
+              ? { type: "player", joinNumber, playerId: member.playerId, member }
+              : { type: "unrecorded", joinNumber };
+          })).sort((a, b) => b.joinNumber - a.joinNumber)
+        : [];
+      let uniqueCandidate = null;
+      if (confirmedCandidates.length === 1) uniqueCandidate = confirmedCandidates[0];
+
+      let summary = "当前可靠锚点未发现序号偏移。";
+      if (uniqueCandidate?.type === "player") {
+        summary = `可唯一确定“${uniqueCandidate.member.displayName}”已退群（数据库原序号#${uniqueCandidate.joinNumber}）。`;
+      } else if (uniqueCandidate?.type === "unrecorded") {
+        summary = `可唯一确定未录入数据库的原序号#${uniqueCandidate.joinNumber}已退群。`;
+      } else if (confirmedCandidates.length > 1) {
+        summary = `可确定原序号${confirmedCandidates.map((candidate) => `#${candidate.joinNumber}`).join("、")}共${confirmedCandidates.length}人均已退群。`;
+      } else if (segments.length === 1) {
+        const segment = segments[0];
+        summary = `可确定原序号#${segment.start}–#${segment.end}中有${segment.removedCount}人退群，尚不能唯一定位。`;
+      } else if (segments.length > 1) {
+        summary = `发现${segments.length}个序号偏移区间，共有${totalRemoved}人退群，需继续补充锚点。`;
+      }
+
+      const widestRange = segments.reduce((max, segment) => Math.max(max, segment.candidatePositions.length), 0);
+      const evidenceLevel = confirmedCandidates.length && allStrongAnchors
+        ? "高可信"
+        : (segments.length && widestRange <= 3 ? "中等可信" : (segments.length ? "范围证据" : "未见偏移"));
+
+      segments.forEach((segment) => {
+        const labels = segment.candidatePositions.map((joinNumber) => {
+          const member = membersByJoinNumber.get(joinNumber);
+          return member ? `#${joinNumber} ${member.displayName}` : `#${joinNumber} 未录入`;
+        });
+        const visibleLabels = labels.slice(0, 8).join("、");
+        evidence.push(`候选：${visibleLabels}${labels.length > 8 ? `，另${labels.length - 8}位` : ""}。`);
+      });
+
+      if (!segments.length) {
+        evidence.unshift(`可靠锚点覆盖至数据库原序号#${lastAnchor.dbJoinNumber}，累计偏移为0。`);
+      }
+
+      return {
+        valid: true,
+        errors: [],
+        anchors,
+        segments,
+        evidence,
+        summary,
+        evidenceLevel,
+        uniqueCandidate,
+        confirmedCandidates,
+      };
+    }
+
+    function formatMemberExitSegmentEvidence(segment) {
+      const before = segment.previous.member
+        ? `${segment.previous.member.displayName}：截图#${segment.previous.position}=数据库#${segment.previous.dbJoinNumber}`
+        : "群首：截图#0=数据库#0";
+      const after = `${segment.current.member.displayName}：截图#${segment.current.position}=数据库#${segment.current.dbJoinNumber}`;
+      const conclusion = segment.exact
+        ? `原序号#${segment.start}–#${segment.end}共${segment.removedCount}人全部退群`
+        : `原序号#${segment.start}–#${segment.end}中有${segment.removedCount}人退群`;
+      return `${before}；${after}。累计偏移${segment.previous.delta}→${segment.current.delta}，因此${conclusion}。`;
+    }
+
+    function renderMemberExitInvestigator({ preserveCountFocus = false } = {}) {
+      const investigator = state.memberExitInvestigator;
+      const members = getMemberExitGroupMembers(investigator.affiliation);
+      const maxJoinNumber = members.reduce((max, member) => Math.max(max, member.joinNumber), 0);
+      els.memberExitInvestigatorTitle.textContent = `${investigator.affiliation}群：截图排查退群`;
+      els.memberExitAffiliationLabel.textContent = `${investigator.affiliation}群`;
+      els.memberExitDatabaseSummary.textContent = `数据库${members.length}人 · 最大序号#${maxJoinNumber || 0}`;
+      if (!preserveCountFocus || document.activeElement !== els.memberExitExpectedCount) {
+        els.memberExitExpectedCount.value = Number.isInteger(investigator.expectedCount) && investigator.expectedCount > 0
+          ? String(investigator.expectedCount)
+          : "";
+      }
+      els.memberExitCountHint.textContent = maxJoinNumber
+        ? `默认采用数据库最大序号${maxJoinNumber}，请按截图实际人数核对。`
+        : "请填写截图中从第1位到最后一位的实际成员数。";
+
+      const hasImage = Boolean(investigator.imageDataUrl);
+      els.memberExitPreview.hidden = !hasImage;
+      els.memberExitUploadEmpty.hidden = hasImage;
+      els.memberExitUploadActions.hidden = !hasImage;
+      els.memberExitUploadZone.classList.toggle("has-preview", hasImage);
+      els.memberExitPreview.src = hasImage ? investigator.imageDataUrl : EMPTY_IMAGE_SRC;
+      els.memberExitUploadZone.setAttribute("aria-label", hasImage ? "查看群成员完整截图" : "选择群成员截图");
+      els.memberExitAnalyzeBtn.disabled = !hasImage || investigator.status === "loading";
+      els.memberExitAnalyzeBtn.textContent = investigator.status === "loading" ? "正在识别" : "开始排查";
+      els.memberExitRetryBtn.hidden = !hasImage || ["idle", "ready", "loading"].includes(investigator.status);
+      els.memberExitRetryBtn.disabled = investigator.status === "loading";
+      renderMemberExitInvestigatorStatus();
+
+      const hasResults = investigator.items.length > 0;
+      els.memberExitResults.hidden = !hasResults;
+      if (!hasResults) {
+        els.memberExitConfirmBtn.hidden = true;
+        els.memberExitAnalysis.hidden = true;
+        return;
+      }
+
+      const reliableCount = investigator.items.filter((item) => item.playerId !== null).length;
+      const detectedLabel = investigator.status === "manual"
+        ? `人工位置${investigator.expectedCount}人`
+        : (investigator.detectedCount === null ? "识别未完成" : `检测${investigator.detectedCount}人`);
+      els.memberExitResultsSummary.textContent = `${detectedLabel} · 预期${investigator.expectedCount}人 · 可靠锚点${reliableCount}个`;
+      renderMemberExitWarnings();
+      renderMemberExitDetectionGrid(members);
+      renderMemberExitAnalysis();
+    }
+
+    function renderMemberExitInvestigatorStatus() {
+      const investigator = state.memberExitInvestigator;
+      const statusMap = {
+        idle: ["请选择或粘贴完整截图", ""],
+        ready: [`已载入“${investigator.fileName || "群成员截图"}”，请核对人数后开始排查`, "success"],
+        loading: ["正在识别成员位置和可见昵称，请稍候", "working"],
+        complete: [`识别完整：检测人数与确认人数均为${investigator.expectedCount}`, "success"],
+        incomplete: [`识别不完整：检测到${investigator.detectedCount ?? 0}人，与确认的${investigator.expectedCount}人不一致，已阻止分析`, "warning"],
+        stale: ["人数已修改，请重新识别后再分析", "warning"],
+        manual: [`${investigator.error || "视觉识别不可用"}，已切换人工锚点模式`, "warning"],
+        error: [investigator.error || "识别失败，截图和人工锚点已保留", "error"],
+      };
+      const [message, tone] = statusMap[investigator.status] || statusMap.idle;
+      els.memberExitStatus.textContent = message;
+      els.memberExitStatus.dataset.tone = tone;
+    }
+
+    function renderMemberExitWarnings() {
+      const investigator = state.memberExitInvestigator;
+      const warnings = [...investigator.warnings];
+      if (investigator.status === "incomplete") {
+        warnings.unshift(`必须检测到完整的${investigator.expectedCount}个成员位置；“添加”和“收起”不能计入人数。`);
+      }
+      if (investigator.status === "error") warnings.unshift("可继续查看位置并保留人工选择，但不能处理退群；请重新识别。 ");
+      els.memberExitWarnings.replaceChildren(...warnings.map((warning) => {
+        const line = document.createElement("div");
+        line.textContent = warning;
+        return line;
+      }));
+    }
+
+    function renderMemberExitDetectionGrid(members) {
+      const investigator = state.memberExitInvestigator;
+      els.memberExitDetectionGrid.replaceChildren(...investigator.items.map((item) => {
+        const row = document.createElement("div");
+        row.className = "member-exit-detection";
+        row.dataset.position = String(item.position);
+        row.classList.toggle("reliable", item.playerId !== null);
+
+        const position = document.createElement("span");
+        position.className = "member-exit-position";
+        position.textContent = `#${item.position}`;
+
+        const detected = document.createElement("div");
+        detected.className = "member-exit-detected-name";
+        const name = document.createElement("span");
+        name.textContent = item.visibleName || "未识别昵称";
+        name.title = item.visibleName || "";
+        const confidence = document.createElement("span");
+        confidence.className = "member-exit-confidence";
+        confidence.textContent = item.confidence > 0 ? `${Math.round(item.confidence * 100)}%` : "";
+        detected.append(name, confidence);
+
+        const select = document.createElement("select");
+        select.className = "member-exit-match-select";
+        select.setAttribute("aria-label", `截图第${item.position}位匹配的数据库成员`);
+        const emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.textContent = "未匹配 / 清除锚点";
+        select.append(emptyOption, ...members.map((member) => {
+          const option = document.createElement("option");
+          option.value = String(member.playerId);
+          option.textContent = `#${member.joinNumber} ${member.displayName}`;
+          option.title = member.player.name || member.displayName;
+          return option;
+        }));
+        select.value = item.playerId === null ? "" : String(item.playerId);
+        select.addEventListener("change", () => setMemberExitAnchor(item.position, select.value));
+
+        row.append(position, detected, select);
+        return row;
+      }));
+    }
+
+    function renderMemberExitAnalysis() {
+      const investigator = state.memberExitInvestigator;
+      const analysis = investigator.recognitionComplete ? investigator.analysis : null;
+      els.memberExitAnalysis.hidden = !analysis;
+      els.memberExitConfirmBtn.hidden = true;
+      if (!analysis) return;
+
+      els.memberExitAnalysisSummary.textContent = analysis.summary;
+      els.memberExitEvidenceLevel.textContent = analysis.evidenceLevel;
+      els.memberExitEvidenceList.replaceChildren(...analysis.evidence.map((evidence) => {
+        const item = document.createElement("li");
+        item.textContent = evidence;
+        return item;
+      }));
+
+      const confirmedCandidates = analysis.valid ? (analysis.confirmedCandidates || []) : [];
+      if (!confirmedCandidates.length) return;
+      if (confirmedCandidates.length > 1) {
+        els.memberExitConfirmBtn.textContent = `确认处理${confirmedCandidates.length}位确定退群`;
+        els.memberExitConfirmBtn.hidden = false;
+        els.memberExitConfirmBtn.disabled = false;
+        return;
+      }
+      const candidate = confirmedCandidates[0];
+      if (candidate.type === "player") {
+        const player = candidate.member.player;
+        els.memberExitConfirmBtn.textContent = player.affiliation === "球友+Hytronik"
+          ? `确认退出${investigator.affiliation}群：${candidate.member.displayName}`
+          : `确认删除成员：${candidate.member.displayName}`;
+      } else {
+        els.memberExitConfirmBtn.textContent = `确认处理未录入第${candidate.joinNumber}位`;
+      }
+      els.memberExitConfirmBtn.hidden = false;
+      els.memberExitConfirmBtn.disabled = false;
+    }
+
+    async function confirmMemberExitCandidate() {
+      const investigator = state.memberExitInvestigator;
+      if (!investigator.recognitionComplete) {
+        toast("识别人数尚未通过完整性检查");
+        return;
+      }
+      investigator.analysis = analyzeMemberExitAnchors();
+      let confirmedCandidates = investigator.analysis.valid
+        ? (investigator.analysis.confirmedCandidates || [])
+        : [];
+      if (!confirmedCandidates.length) {
+        renderMemberExitInvestigator();
+        toast("当前候选范围仍有歧义，请补充人工锚点");
+        return;
+      }
+
+      const candidateSignature = getMemberExitCandidateSignature(confirmedCandidates);
+      els.memberExitConfirmBtn.disabled = true;
+      els.memberExitConfirmBtn.textContent = "正在核对最新数据";
+      try {
+        const latest = await fetchCloudBootstrap();
+        if (!els.memberExitInvestigatorModal.classList.contains("open")) return;
+        cacheBootstrap(latest);
+        applyBootstrapData(latest, "cloud", new Date().toISOString());
+        refreshPaymentSettingsEditorFromState();
+
+        investigator.analysis = analyzeMemberExitAnchors();
+        confirmedCandidates = investigator.analysis.valid
+          ? (investigator.analysis.confirmedCandidates || [])
+          : [];
+        if (getMemberExitCandidateSignature(confirmedCandidates) !== candidateSignature) {
+          renderMemberExitInvestigator();
+          toast("云端成员序号或候选已变化，已停止处理，请重新核对排查结果");
+          return;
+        }
+
+        const confirmed = window.confirm(buildMemberExitConfirmationMessage(
+          confirmedCandidates,
+          investigator.affiliation
+        ));
+        if (!confirmed) return;
+
+        els.memberExitConfirmBtn.textContent = "正在处理退群";
+        setSync("正在处理退群");
+        const data = await api("/api/member-exits/confirm", {
+          method: "POST",
+          headers: { "content-type": "application/json; charset=utf-8" },
+          body: JSON.stringify({
+            affiliation: investigator.affiliation,
+            expectedGroupJoinNumbers: (state.groupJoinNumbers[investigator.affiliation] || [])
+              .map((entry) => ({ playerId: Number(entry.playerId), joinNumber: Number(entry.joinNumber) })),
+            candidates: confirmedCandidates.map((candidate) => ({
+              type: candidate.type,
+              joinNumber: candidate.joinNumber,
+              ...(candidate.type === "player" ? { playerId: candidate.playerId } : {}),
+            })),
+          }),
+        });
+        state.players = data.players || state.players;
+        applyPaymentOrderState(data);
+        refreshPaymentSettingsEditorFromState();
+        renderTable();
+        setSync("已保存");
+        closeModal("memberExitInvestigatorModal");
+        toast(`${investigator.affiliation}群${data.handledCount || confirmedCandidates.length}位退群已处理`);
+      } catch (error) {
+        setSync("处理失败", "error");
+        toast(`处理退群失败：${error.message}`);
+      } finally {
+        if (els.memberExitInvestigatorModal.classList.contains("open")) renderMemberExitAnalysis();
+      }
+    }
+
+    function getMemberExitCandidateSignature(candidates) {
+      return (candidates || [])
+        .map((candidate) => `${candidate.type}:${candidate.joinNumber}:${candidate.playerId || ""}`)
+        .sort()
+        .join("|");
+    }
+
+    function buildMemberExitConfirmationMessage(candidates, affiliation) {
+      const lines = [`排查结果（${affiliation}群）：`];
+      let hasPermanentDeletion = false;
+      candidates.forEach((candidate) => {
+        if (candidate.type === "unrecorded") {
+          lines.push(`#${candidate.joinNumber} 未录入成员（调整后方序号）`);
+          return;
+        }
+        const player = state.players.find((item) => Number(item.id) === Number(candidate.playerId));
+        const fullName = player?.name || candidate.member?.player?.name || candidate.member?.displayName || "未命名";
+        if (player?.affiliation === "球友+Hytronik") {
+          const remainingAffiliation = affiliation === "球友" ? "Hytronik" : "球友";
+          lines.push(`#${candidate.joinNumber} ${fullName}（只退出${affiliation}群，保留${remainingAffiliation}群档案）`);
+        } else {
+          hasPermanentDeletion = true;
+          lines.push(`#${candidate.joinNumber} ${fullName}（永久删除成员档案）`);
+        }
+      });
+      lines.push("", "将按退群前序号从大到小处理，后方成员序号会自动减1。");
+      if (hasPermanentDeletion) lines.push("警告：标记为“永久删除”的成员档案删除后不能撤销。 ");
+      lines.push("", "确定继续吗？");
+      return lines.join("\n");
+    }
+
+    function createPaymentSettingsEditor(activeTab = "球友") {
+      return {
+        activeTab,
         joinNumbers: Object.fromEntries(PAYMENT_ORDER_AFFILIATIONS.map((affiliation) => [
           affiliation,
           getJoinNumbersForEditor(affiliation),
         ])),
         special: Object.fromEntries(
-          state.players
-            .filter(isSpecialPlayer)
+          state.players.filter(isSpecialPlayer)
             .map((player) => [String(player.id), player.participatesPayment !== false])
         ),
       };
+    }
+
+    function paymentSettingsEditorSignature(editor) {
+      const joinNumbers = PAYMENT_ORDER_AFFILIATIONS.flatMap((affiliation) => (
+        (editor?.joinNumbers?.[affiliation] || [])
+          .map((entry) => [affiliation, Number(entry.playerId), Number(entry.joinNumber)])
+          .sort((left, right) => (left[1] - right[1]) || (left[2] - right[2]))
+      ));
+      const special = Object.entries(editor?.special || {})
+        .map(([playerId, participates]) => [Number(playerId), participates !== false])
+        .sort((left, right) => left[0] - right[0]);
+      return JSON.stringify({ joinNumbers, special });
+    }
+
+    function hasUnsavedPaymentSettingsChanges() {
+      const baseline = createPaymentSettingsEditor(state.paymentSettingsEditor.activeTab);
+      return paymentSettingsEditorSignature(state.paymentSettingsEditor)
+        !== paymentSettingsEditorSignature(baseline);
+    }
+
+    function refreshPaymentSettingsEditorFromState() {
+      state.paymentSettingsEditor = createPaymentSettingsEditor(state.paymentSettingsEditor.activeTab);
+      renderPaymentSettings();
+    }
+
+    function openPaymentSettingsModal() {
+      if (state.readOnly) {
+        toast("当前为只读模式，不能修改群收款设置");
+        return;
+      }
+      state.paymentSettingsEditor = createPaymentSettingsEditor();
       renderPaymentSettings();
       openModal("paymentSettingsModal");
     }
@@ -7790,10 +9202,7 @@
         });
         state.players = data.players || state.players;
         applyPaymentOrderState(data);
-        state.paymentSettingsEditor.joinNumbers = Object.fromEntries(PAYMENT_ORDER_AFFILIATIONS.map((affiliation) => [
-          affiliation,
-          getJoinNumbersForEditor(affiliation),
-        ]));
+        state.paymentSettingsEditor = createPaymentSettingsEditor(state.paymentSettingsEditor.activeTab);
         setSync("已保存");
         toast(successMessage);
         if (closeAfterSave) closeModal("paymentSettingsModal");
@@ -8123,21 +9532,99 @@
     }
 
     function openModal(id) {
-      document.getElementById(id)?.classList.add("open");
+      const modal = document.getElementById(id);
+      if (!modal) return;
+      const opening = !modal.classList.contains("open");
+      if (opening) {
+        modalReturnFocus.set(id, document.activeElement instanceof HTMLElement ? document.activeElement : null);
+        modal.classList.add("open");
+        modalStack.push(id);
+      }
+      syncModalLayers();
+      if (opening) {
+        setTimeout(() => {
+          if (modalStack.at(-1) !== id || modal.contains(document.activeElement)) return;
+          getModalFocusableElements(modal)[0]?.focus();
+        }, 0);
+      }
     }
 
     function closeModal(id) {
       if (id === "trainingAnomalyModal" && !state.trainingAnomaly?.confirmed) state.trainingAnomaly = null;
-      document.getElementById(id)?.classList.remove("open");
+      const modal = document.getElementById(id);
+      if (!modal?.classList.contains("open")) return;
+      modal.classList.remove("open");
+      modal.inert = false;
+      modal.removeAttribute("aria-hidden");
+      const stackIndex = modalStack.lastIndexOf(id);
+      if (stackIndex >= 0) modalStack.splice(stackIndex, 1);
+      const returnFocus = modalReturnFocus.get(id);
+      modalReturnFocus.delete(id);
+      syncModalLayers();
+      setTimeout(() => {
+        const topModal = document.getElementById(modalStack.at(-1));
+        if (returnFocus?.isConnected && (!topModal || topModal.contains(returnFocus))) {
+          returnFocus.focus({ preventScroll: true });
+        } else {
+          getModalFocusableElements(topModal)[0]?.focus({ preventScroll: true });
+        }
+      }, 0);
     }
 
     function closeTopModal() {
-      const open = [...document.querySelectorAll(".modal-backdrop.open")].at(-1);
-      if (open) closeModal(open.id);
+      const id = modalStack.at(-1);
+      if (id) closeModal(id);
     }
 
     function isAnyModalOpen() {
-      return Boolean(document.querySelector(".modal-backdrop.open"));
+      return modalStack.length > 0;
+    }
+
+    function syncModalLayers() {
+      const openIds = modalStack.filter((id) => document.getElementById(id)?.classList.contains("open"));
+      modalStack.splice(0, modalStack.length, ...openIds);
+      const topId = modalStack.at(-1);
+      modalStack.forEach((id) => {
+        const modal = document.getElementById(id);
+        const isTop = id === topId;
+        modal.inert = !isTop;
+        if (isTop) modal.removeAttribute("aria-hidden");
+        else modal.setAttribute("aria-hidden", "true");
+      });
+      const appShell = document.querySelector(".app-shell");
+      if (appShell) {
+        appShell.inert = Boolean(topId);
+        if (topId) appShell.setAttribute("aria-hidden", "true");
+        else appShell.removeAttribute("aria-hidden");
+      }
+    }
+
+    function getModalFocusableElements(modal) {
+      if (!modal) return [];
+      return [...modal.querySelectorAll(
+        "button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
+      )].filter((element) => !element.hidden && element.getClientRects().length > 0);
+    }
+
+    function trapFocusInTopModal(event) {
+      const modal = document.getElementById(modalStack.at(-1));
+      const focusable = getModalFocusableElements(modal);
+      if (!focusable.length) {
+        event.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (!modal.contains(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
 
     function toast(message) {

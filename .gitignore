@@ -3,6 +3,7 @@ node_modules/
 .wrangler-dry-run/
 .playwright-cli/
 output/
+*.traineddata
 *.log
 .env
 .env.*
