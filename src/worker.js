@@ -2,11 +2,9 @@ import INDEX_HTML from "./index.html";
 import HTML2CANVAS_JS from "./html2canvas.txt";
 import BOOTSTRAP_SNAPSHOT from "./bootstrap-snapshot.txt";
 import BOOKING_ESTIMATOR from "./booking-estimator.txt";
+import { trainEstimatorModel } from "./estimator-core.js";
 
 const BOOKING_ESTIMATOR_DATA = JSON.parse(BOOKING_ESTIMATOR);
-const SHUTTLE_TYPES_BY_ID = new Map(
-  (BOOKING_ESTIMATOR_DATA.shuttleTypes || []).map((type) => [type.id, type]),
-);
 
 const DEFAULT_LEVEL_GUIDE_RAW = `中羽等级表格
 0.5级
@@ -138,18 +136,46 @@ function isBlockedGitHubWrite(request) {
   return request.headers.get("origin") === "https://choi975.github.io";
 }
 
+function isAdminRequest(request) {
+  const origin = request.headers.get("origin");
+  const referer = request.headers.get("referer") || "";
+  const adminOrigin = "https://badminton.choi975.workers.dev";
+  if (origin === adminOrigin || referer.startsWith(`${adminOrigin}/`)) return true;
+  return origin === "http://localhost:8787" || origin === "http://127.0.0.1:8787";
+}
+
 async function handleApi(request, env, url) {
   const { pathname } = url;
   const method = request.method.toUpperCase();
 
   if (pathname === "/api/bootstrap" && method === "GET") {
-    const [players, guide, paymentState, sessions] = await Promise.all([
+    const [players, guide, paymentState, sessions, estimator] = await Promise.all([
       listPlayers(env.DB),
       getLevelGuide(env.DB),
       getPaymentOrderState(env.DB),
       listSessions(env.DB),
+      getCurrentEstimator(env.DB),
     ]);
-    return json({ players, ...guide, ...paymentState, sessions, estimator: BOOKING_ESTIMATOR_DATA });
+    return json({ players, ...guide, ...paymentState, sessions, estimator });
+  }
+
+  if (pathname === "/api/estimator" && method === "GET") {
+    return json({ estimator: await getCurrentEstimator(env.DB) });
+  }
+
+  if (pathname === "/api/estimator/shuttle-types" && method === "POST") {
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版管理员可以登记球型号" }, 403);
+    const body = await readJson(request);
+    const name = String(body?.name || "").trim();
+    const prices = Array.isArray(body?.prices)
+      ? body.prices.map(Number).filter((price) => Number.isFinite(price) && price > 0)
+      : [Number(body?.price)].filter((price) => Number.isFinite(price) && price > 0);
+    if (!name || name.length > 40 || !prices.length || prices.some((price) => price > 1000)) {
+      return json({ error: "请填写40字以内的球型号和有效价格" }, 400);
+    }
+    const id = await createShuttleType(env.DB, name, prices, body?.fullName);
+    const estimator = await retrainEstimator(env.DB);
+    return json({ id, estimator }, 201);
   }
 
   if (pathname === "/api/players" && method === "GET") {
@@ -301,10 +327,14 @@ async function handleApi(request, env, url) {
   }
 
   if (pathname === "/api/sessions" && method === "POST") {
-    const input = normalizeSessionInput(await readJson(request), "EDC");
+    const shuttleTypes = await listShuttleTypes(env.DB);
+    const input = normalizeSessionInput(await readJson(request), "EDC", shuttleTypes);
     if (!input) return json({ error: "订场记录数据无效" }, 400);
     const session = await createSession(env.DB, input);
-    return json({ session }, 201);
+    const estimator = input.trainCourt || input.trainShuttle
+      ? await retrainEstimator(env.DB)
+      : await getCurrentEstimator(env.DB);
+    return json({ session, estimator }, 201);
   }
 
   const sessionVenueMatch = pathname.match(/^\/api\/sessions\/(\d+)\/venue$/);
@@ -326,10 +356,16 @@ async function handleApi(request, env, url) {
     const id = Number(sessionMatch[1]);
     const existing = await env.DB.prepare("SELECT id, venue FROM booking_sessions WHERE id = ?").bind(id).first();
     if (!existing) return json({ error: "找不到这个订场记录" }, 404);
-    const input = normalizeSessionInput(await readJson(request), normalizeSessionVenue(existing.venue) || "文体");
+    const shuttleTypes = await listShuttleTypes(env.DB);
+    const input = normalizeSessionInput(
+      await readJson(request),
+      normalizeSessionVenue(existing.venue) || "文体",
+      shuttleTypes,
+    );
     if (!input) return json({ error: "订场记录数据无效" }, 400);
     const session = await updateSession(env.DB, id, input);
-    return json({ session });
+    const estimator = await retrainEstimator(env.DB);
+    return json({ session, estimator });
   }
 
   if (sessionMatch && method === "DELETE") {
@@ -340,7 +376,7 @@ async function handleApi(request, env, url) {
       env.DB.prepare("DELETE FROM booking_session_players WHERE session_id = ?").bind(id),
       env.DB.prepare("DELETE FROM booking_sessions WHERE id = ?").bind(id),
     ]);
-    return json({ ok: true });
+    return json({ ok: true, estimator: await retrainEstimator(env.DB) });
   }
 
   if (pathname === "/api/payment-settings" && method === "PUT") {
@@ -412,6 +448,97 @@ async function ensureSeeded(db) {
   if (!row) {
     await saveLevelGuide(db, DEFAULT_LEVEL_GUIDE_RAW);
   }
+  const shuttleTypeRow = await db.prepare("SELECT id FROM shuttle_types LIMIT 1").first();
+  if (!shuttleTypeRow) {
+    await db.batch([
+      db.prepare("INSERT OR IGNORE INTO shuttle_types (id, name, full_name, prices_json) VALUES (?, ?, ?, ?)")
+        .bind("rsl3", "亚3", "亚狮龙3号", JSON.stringify([11, 11.3, 11.5])),
+      db.prepare("INSERT OR IGNORE INTO shuttle_types (id, name, full_name, prices_json) VALUES (?, ?, ?, ?)")
+        .bind("as05", "AS05", "尤尼克斯AS05", JSON.stringify([13.5])),
+    ]);
+  }
+}
+
+async function listShuttleTypes(db) {
+  const { results } = await db.prepare(
+    "SELECT id, name, full_name, prices_json, enabled FROM shuttle_types WHERE enabled = 1 ORDER BY CASE WHEN id = 'rsl3' THEN 0 ELSE 1 END, created_at ASC, id ASC"
+  ).all();
+  return results.map((row) => ({
+    id: String(row.id),
+    name: String(row.name),
+    fullName: String(row.full_name || row.name),
+    prices: safeJsonArray(row.prices_json).map(Number).filter((price) => Number.isFinite(price) && price >= 0),
+  }));
+}
+
+function safeJsonArray(value) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+async function getCurrentEstimator(db) {
+  const row = await db.prepare("SELECT model_json FROM booking_estimator_models WHERE id = 'current'").first();
+  if (row?.model_json) {
+    try { return JSON.parse(row.model_json); } catch (error) { /* retrain below */ }
+  }
+  return retrainEstimator(db);
+}
+
+async function retrainEstimator(db) {
+  const shuttleTypes = await listShuttleTypes(db);
+  const { results: sessionRows } = await db.prepare(
+    "SELECT id, date, court_count, train_court, train_shuttle, shuttle_price_rows, shuttle_price, shuttle_count FROM booking_sessions ORDER BY date ASC, id ASC"
+  ).all();
+  const { results: playerRows } = await db.prepare(
+    "SELECT session_id, slots FROM booking_session_players ORDER BY session_id ASC, id ASC"
+  ).all();
+  const playersBySession = new Map();
+  for (const row of playerRows) {
+    const list = playersBySession.get(Number(row.session_id)) || [];
+    list.push(row);
+    playersBySession.set(Number(row.session_id), list);
+  }
+  const sessions = sessionRows.map((row) => {
+    const shuttleCounts = {};
+    const rows = parseStoredPriceRows(row.shuttle_price_rows, true, shuttleTypes);
+    for (const shuttleRow of rows || []) {
+      if (shuttleRow.type) shuttleCounts[shuttleRow.type] = (shuttleCounts[shuttleRow.type] || 0) + Number(shuttleRow.count || 0);
+    }
+    if (!Object.keys(shuttleCounts).length && Number(row.shuttle_count) > 0) {
+      const type = shuttleTypeForPrice(Number(row.shuttle_price), shuttleTypes);
+      if (type) shuttleCounts[type.id] = Number(row.shuttle_count);
+    }
+    return {
+      id: Number(row.id),
+      date: String(row.date || ""),
+      participantCount: (playersBySession.get(Number(row.id)) || []).reduce((sum, player) => sum + Math.max(0, Number(player.slots) || 0), 0),
+      courtCount: Number(row.court_count),
+      trainCourt: Number(row.train_court) !== 0,
+      trainShuttle: Number(row.train_shuttle) !== 0,
+      shuttleCounts,
+    };
+  });
+  const model = trainEstimatorModel({ sessions, shuttleTypes });
+  await db.prepare(
+    `INSERT INTO booking_estimator_models (id, model_json, generated_at, updated_at)
+     VALUES ('current', ?, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT(id) DO UPDATE SET model_json = excluded.model_json, generated_at = excluded.generated_at, updated_at = CURRENT_TIMESTAMP`
+  ).bind(JSON.stringify(model), model.generatedAt).run();
+  return model;
+}
+
+async function createShuttleType(db, name, prices, fullName = "") {
+  const existing = await db.prepare("SELECT id FROM shuttle_types WHERE lower(name) = lower(?) LIMIT 1").bind(name).first();
+  if (existing) throw new Error("该球型号已经登记");
+  const base = `type_${Date.now().toString(36)}`;
+  await db.prepare(
+    "INSERT INTO shuttle_types (id, name, full_name, prices_json) VALUES (?, ?, ?, ?)"
+  ).bind(base, name, String(fullName || name).trim() || name, JSON.stringify(prices)).run();
+  return base;
 }
 
 async function listPlayers(db) {
@@ -420,10 +547,11 @@ async function listPlayers(db) {
 }
 
 async function listSessions(db) {
+  const shuttleTypes = await listShuttleTypes(db);
   const { results } = await db.prepare(
     `SELECT
        s.id AS session_id, s.date, s.venue, s.court_count, s.court_fee, s.shuttle_price, s.shuttle_count,
-       s.court_price_rows, s.shuttle_price_rows, s.created_at, s.updated_at,
+       s.court_price_rows, s.shuttle_price_rows, s.train_court, s.train_shuttle, s.created_at, s.updated_at,
        p.player_id, p.player_name, p.slots, p.plus_count, p.amount, p.is_female,
        p.gender_snapshot, p.level_snapshot
      FROM booking_sessions s
@@ -444,7 +572,9 @@ async function listSessions(db) {
         shuttlePrice: Number(row.shuttle_price),
         shuttleCount: Number(row.shuttle_count),
         courtPriceRows: parseStoredPriceRows(row.court_price_rows),
-        shuttlePriceRows: parseStoredPriceRows(row.shuttle_price_rows, true),
+        shuttlePriceRows: parseStoredPriceRows(row.shuttle_price_rows, true, shuttleTypes),
+        trainCourt: Number(row.train_court) !== 0,
+        trainShuttle: Number(row.train_shuttle) !== 0,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         players: [],
@@ -479,7 +609,7 @@ function normalizeSessionVenue(value) {
   return VALID_SESSION_VENUES.has(venue) ? venue : null;
 }
 
-function normalizeSessionInput(body, fallbackVenue = "EDC") {
+function normalizeSessionInput(body, fallbackVenue = "EDC", shuttleTypes = BOOKING_ESTIMATOR_DATA.shuttleTypes || []) {
   const date = String(body?.date || "").trim();
   if (!SESSION_DATE_PATTERN.test(date)) return null;
   const [year, month, day] = date.split("-").map(Number);
@@ -493,7 +623,7 @@ function normalizeSessionInput(body, fallbackVenue = "EDC") {
   }
 
   const courtPriceRows = normalizePriceRows(body?.courtPriceRows, false, false);
-  let shuttlePriceRows = normalizePriceRows(body?.shuttlePriceRows, true, true);
+  let shuttlePriceRows = normalizePriceRows(body?.shuttlePriceRows, true, true, shuttleTypes);
   if (body?.courtPriceRows !== undefined && courtPriceRows === null) return null;
   if (body?.shuttlePriceRows !== undefined && shuttlePriceRows === null) return null;
   if (courtPriceRows !== null && courtPriceRows.length === 0) return null;
@@ -517,9 +647,9 @@ function normalizeSessionInput(body, fallbackVenue = "EDC") {
   if (!Number.isFinite(shuttlePrice) || shuttlePrice < 0) return null;
   if (!Number.isInteger(shuttleCount) || shuttleCount < 0) return null;
   if (shuttlePriceRows === null && shuttleCount > 0) {
-    const type = shuttleTypeForPrice(shuttlePrice);
+    const type = shuttleTypeForPrice(shuttlePrice, shuttleTypes);
     if (!type) return null;
-    shuttlePriceRows = [{ price: shuttlePrice, count: shuttleCount, type }];
+    shuttlePriceRows = [{ price: shuttlePrice, count: shuttleCount, type: type.id }];
   }
 
   if (!Array.isArray(body?.players)) return null;
@@ -560,10 +690,13 @@ function normalizeSessionInput(body, fallbackVenue = "EDC") {
     : normalizeSessionVenue(body.venue);
   if (!venue) return null;
 
-  return { date, venue, courtCount, courtFee, shuttlePrice, shuttleCount, courtPriceRows, shuttlePriceRows, players };
+  const useForTraining = body?.useForTraining !== false;
+  const trainCourt = body?.trainCourt === undefined ? useForTraining : body.trainCourt !== false;
+  const trainShuttle = body?.trainShuttle === undefined ? useForTraining : body.trainShuttle !== false;
+  return { date, venue, courtCount, courtFee, shuttlePrice, shuttleCount, courtPriceRows, shuttlePriceRows, players, trainCourt, trainShuttle };
 }
 
-function normalizePriceRows(raw, allowEmpty, includeShuttleType) {
+function normalizePriceRows(raw, allowEmpty, includeShuttleType, shuttleTypes = []) {
   if (raw === undefined || raw === null) return null;
   if (!Array.isArray(raw)) return null;
   const rows = [];
@@ -573,8 +706,9 @@ function normalizePriceRows(raw, allowEmpty, includeShuttleType) {
     if (!Number.isFinite(price) || price < 0) return null;
     if (!Number.isInteger(count) || count <= 0) return null;
     if (includeShuttleType) {
-      const explicitType = SHUTTLE_TYPES_BY_ID.has(item?.type) ? item.type : null;
-      const type = explicitType || shuttleTypeForPrice(price);
+      const shuttleTypesById = new Map(shuttleTypes.map((type) => [type.id, type]));
+      const explicitType = shuttleTypesById.has(item?.type) ? item.type : null;
+      const type = explicitType || shuttleTypeForPrice(price, shuttleTypes)?.id;
       if (!type) return null;
       rows.push({ price, count, type });
     } else {
@@ -585,18 +719,19 @@ function normalizePriceRows(raw, allowEmpty, includeShuttleType) {
   return rows;
 }
 
-function parseStoredPriceRows(raw, includeShuttleType = false) {
+function parseStoredPriceRows(raw, includeShuttleType = false, shuttleTypes = BOOKING_ESTIMATOR_DATA.shuttleTypes || []) {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
     return parsed.map((row) => {
       if (!includeShuttleType) return row;
-      const explicitType = SHUTTLE_TYPES_BY_ID.has(row.type) ? row.type : null;
+      const shuttleTypesById = new Map(shuttleTypes.map((type) => [type.id, type]));
+      const explicitType = shuttleTypesById.has(row.type) ? row.type : null;
       return {
         price: Number(row.price),
         count: Number(row.count),
-        type: explicitType || shuttleTypeForPrice(Number(row.price)) || "unknown",
+        type: explicitType || shuttleTypeForPrice(Number(row.price), shuttleTypes)?.id || "unknown",
       };
     });
   } catch (error) {
@@ -604,10 +739,10 @@ function parseStoredPriceRows(raw, includeShuttleType = false) {
   }
 }
 
-function shuttleTypeForPrice(price) {
-  if ([11, 11.3, 11.5].some((known) => Math.abs(known - price) < 0.02)) return "rsl3";
-  if (Math.abs(13.5 - price) < 0.02) return "as05";
-  return null;
+function shuttleTypeForPrice(price, shuttleTypes = BOOKING_ESTIMATOR_DATA.shuttleTypes || []) {
+  return shuttleTypes.find((type) => (
+    (type.prices || []).some((known) => Math.abs(Number(known) - price) < 0.02)
+  )) || null;
 }
 
 function serializePriceRows(rows) {
@@ -617,8 +752,8 @@ function serializePriceRows(rows) {
 async function createSession(db, input) {
   const result = await db.prepare(
     `INSERT INTO booking_sessions
-       (date, venue, court_count, court_fee, shuttle_price, shuttle_count, court_price_rows, shuttle_price_rows, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+       (date, venue, court_count, court_fee, shuttle_price, shuttle_count, court_price_rows, shuttle_price_rows, train_court, train_shuttle, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).bind(
     input.date,
     input.venue,
@@ -627,7 +762,9 @@ async function createSession(db, input) {
     input.shuttlePrice,
     input.shuttleCount,
     serializePriceRows(input.courtPriceRows),
-    serializePriceRows(input.shuttlePriceRows)
+    serializePriceRows(input.shuttlePriceRows),
+    input.trainCourt ? 1 : 0,
+    input.trainShuttle ? 1 : 0
   ).run();
   const sessionId = Number(result.meta.last_row_id);
   await insertSessionPlayers(db, sessionId, input.players);
@@ -639,7 +776,7 @@ async function updateSession(db, id, input) {
     db.prepare(
       `UPDATE booking_sessions
        SET date = ?, venue = ?, court_count = ?, court_fee = ?, shuttle_price = ?, shuttle_count = ?,
-           court_price_rows = ?, shuttle_price_rows = ?, updated_at = CURRENT_TIMESTAMP
+            court_price_rows = ?, shuttle_price_rows = ?, train_court = ?, train_shuttle = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`
     ).bind(
       input.date,
@@ -650,6 +787,8 @@ async function updateSession(db, id, input) {
       input.shuttleCount,
       serializePriceRows(input.courtPriceRows),
       serializePriceRows(input.shuttlePriceRows),
+      input.trainCourt ? 1 : 0,
+      input.trainShuttle ? 1 : 0,
       id
     ),
     db.prepare("DELETE FROM booking_session_players WHERE session_id = ?").bind(id),

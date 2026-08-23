@@ -1039,8 +1039,9 @@
     .summary-panel {
       min-height: 0;
       display: grid;
-      grid-template-rows: auto 1fr;
-      overflow: hidden;
+      grid-template-rows: auto auto auto;
+      align-content: start;
+      overflow: visible;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
@@ -1048,18 +1049,37 @@
     }
 
     .summary-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
       padding: 7px 10px;
       border-bottom: 1px solid var(--line);
       background: #edf4f2;
       font-weight: 700;
     }
 
+    .estimator-advanced-panel {
+      padding: 10px 12px;
+      border-top: 1px solid var(--line);
+      background: #fbfefd;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .estimator-advanced-panel strong { color: var(--text); text-align: right; }
+    .estimator-advanced-row { display: flex; justify-content: space-between; gap: 10px; }
+    .estimator-type-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 6px; margin-top: 8px; }
+    .estimator-type-editor input { min-height: 30px; }
+    .estimator-type-editor button { grid-column: 1 / -1; min-height: 30px; }
+
     .stats-box {
       border: 0;
       border-radius: 0;
       background: #fff;
       padding: 10px 12px;
-      overflow: auto;
+      overflow: visible;
       line-height: 1.55;
       white-space: pre-wrap;
       box-shadow: none;
@@ -1080,6 +1100,23 @@
     .estimate-line strong {
       font-weight: 800;
     }
+
+    .estimate-shuttle-picker {
+      width: 22px;
+      min-width: 22px;
+      min-height: 24px;
+      margin-left: 2px;
+      padding: 0;
+      border: 0;
+      background-color: transparent;
+      color: transparent;
+      opacity: 0.58;
+      cursor: pointer;
+    }
+
+    .estimate-shuttle-picker:hover,
+    .estimate-shuttle-picker:focus-visible { opacity: 1; }
+    .estimate-shuttle-picker option { color: var(--text); }
 
     .fee-notice {
       color: #a23b24;
@@ -1149,6 +1186,21 @@
       grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto auto;
       align-items: center;
       gap: 6px;
+    }
+
+    .fee-advanced-row.shuttle-price-row {
+      grid-template-columns: minmax(72px, 0.9fr) minmax(0, 1fr) auto minmax(0, 0.8fr) auto auto;
+    }
+
+    .shuttle-type-select {
+      min-width: 0;
+      min-height: 32px;
+      padding: 4px 5px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      font-size: 12px;
     }
 
     .fee-advanced-row input {
@@ -2375,8 +2427,12 @@
           </section>
           <aside class="side-stack">
             <section class="summary-panel">
-              <div class="summary-head">人数统计</div>
+              <div class="summary-head">
+                <span>人数统计</span>
+                <button id="estimatorAdvancedBtn" class="fee-advanced-toggle" type="button">高级</button>
+              </div>
               <div id="chainStats" class="stats-box"></div>
+              <div id="estimatorAdvancedPanel" class="estimator-advanced-panel" hidden></div>
             </section>
             <div class="fee-box">
               <div class="fee-title-row">
@@ -2412,6 +2468,22 @@
             </div>
           </aside>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="trainingAnomalyModal" class="modal-backdrop">
+    <div class="modal medium" role="dialog" aria-modal="true" aria-labelledby="trainingAnomalyTitle">
+      <div class="modal-header">
+        <h2 id="trainingAnomalyTitle" class="modal-title">数据异常</h2>
+        <button class="modal-close-btn" data-close="trainingAnomalyModal" aria-label="关闭" title="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="trainingAnomalyMessage" class="calendar-detail-summary"></p>
+      </div>
+      <div class="modal-footer">
+        <button id="trainingSkipBtn" type="button">仅记录数据，不用于训练预估公式</button>
+        <button id="trainingAcceptBtn" class="primary-btn" type="button">记录并训练预估公式</button>
       </div>
     </div>
   </div>
@@ -2647,11 +2719,11 @@
     const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
     const DEFAULT_ESTIMATOR = {
-      version: 3,
+      version: 4,
       training: {},
       shuttleTypes: [
-        { id: "rsl3", name: "亚3", prices: [11, 11.3, 11.5], durability: 1 },
-        { id: "as05", name: "AS05", prices: [13.5], durability: 1.2 },
+        { id: "rsl3", name: "亚3", prices: [11, 11.3, 11.5], weight: 1 },
+        { id: "as05", name: "AS05", prices: [13.5], weight: 1 },
       ],
       court: {
         formula: "ceil(participantCount / peoplePerCourt)",
@@ -2660,7 +2732,8 @@
       },
       shuttle: {
         baseType: "rsl3",
-        formula: "ceil((participantCount * rsl3EquivalentPerParticipant + riskBuffer) / durability)",
+        formula: "ceil((participantCount * weightedShuttlesPerParticipant + riskBuffer) / weight)",
+        weightedShuttlesPerParticipant: 0.81,
         rsl3EquivalentPerParticipant: 0.81,
         riskQuantile: 0.7,
         riskBuffer: 0,
@@ -2733,6 +2806,9 @@
       paymentSortModes: { "球友": "join", "Hytronik": "join" },
       paymentGroupOverrides: {},
       currentPaymentRecord: null,
+      trainingAnomaly: null,
+      estimatorAdvancedOpen: false,
+      selectedEstimateShuttleTypeId: "rsl3",
       calendarDetailEntries: [],
       calendarDetailSort: { key: "playCount", dir: "desc" },
       calendar: {
@@ -2793,6 +2869,8 @@
       chainInput: document.getElementById("chainInput"),
       chainOutput: document.getElementById("chainOutput"),
       chainStats: document.getElementById("chainStats"),
+      estimatorAdvancedBtn: document.getElementById("estimatorAdvancedBtn"),
+      estimatorAdvancedPanel: document.getElementById("estimatorAdvancedPanel"),
       pasteInputBtn: document.getElementById("pasteInputBtn"),
       levelDisplayModeBtn: document.getElementById("levelDisplayModeBtn"),
       courtFeeInput: document.getElementById("courtFeeInput"),
@@ -2821,6 +2899,10 @@
       paymentLedgerAmount: document.getElementById("paymentLedgerAmount"),
       paymentWeekendNotice: document.getElementById("paymentWeekendNotice"),
       paymentReportDate: document.getElementById("paymentReportDate"),
+      trainingAnomalyModal: document.getElementById("trainingAnomalyModal"),
+      trainingAnomalyMessage: document.getElementById("trainingAnomalyMessage"),
+      trainingSkipBtn: document.getElementById("trainingSkipBtn"),
+      trainingAcceptBtn: document.getElementById("trainingAcceptBtn"),
       paymentSettingsModal: document.getElementById("paymentSettingsModal"),
       paymentSettingsTabs: [...document.querySelectorAll("[data-payment-settings-tab]")],
       paymentSettingsOrderPanel: document.getElementById("paymentSettingsOrderPanel"),
@@ -2947,6 +3029,9 @@
       state.levelDescriptions = data.levelDescriptions || {};
       state.levelGuideRaw = data.levelGuideRaw || "";
       state.estimator = normalizeEstimator(data.estimator);
+      if (!state.estimator.shuttleTypes.some((type) => type.id === state.selectedEstimateShuttleTypeId)) {
+        state.selectedEstimateShuttleTypeId = state.estimator.shuttle?.baseType || state.estimator.shuttleTypes[0]?.id || "rsl3";
+      }
       applyPaymentOrderState(data);
       state.dataSource = source;
       state.dataTimestamp = generatedAt || null;
@@ -3070,6 +3155,9 @@
       renderPaymentSortButtons();
       els.paymentCaptureBtn.addEventListener("click", copyPaymentScreenshot);
       els.paymentRecordBtn.addEventListener("click", handleRecordPayment);
+      els.estimatorAdvancedBtn.addEventListener("click", toggleEstimatorAdvancedPanel);
+      els.trainingSkipBtn.addEventListener("click", () => finishAnomalyTraining(false));
+      els.trainingAcceptBtn.addEventListener("click", () => finishAnomalyTraining(true));
       els.recordCourtFeeInput.addEventListener("input", onRecordCourtFeeChange);
       els.saveRecordBtn.addEventListener("click", saveRecordDialog);
       els.paymentSettingsTabs.forEach((tab) => {
@@ -4261,7 +4349,11 @@
         ...raw,
         training: { ...DEFAULT_ESTIMATOR.training, ...(raw.training || {}) },
         shuttleTypes: Array.isArray(raw.shuttleTypes) && raw.shuttleTypes.length
-          ? raw.shuttleTypes
+          ? raw.shuttleTypes.map((type) => ({
+              ...type,
+              prices: Array.isArray(type.prices) ? type.prices.map(Number).filter(Number.isFinite) : [],
+              weight: Number(type.weight ?? type.durability ?? 1),
+            }))
           : DEFAULT_ESTIMATOR.shuttleTypes,
         court: {
           ...DEFAULT_ESTIMATOR.court,
@@ -4283,6 +4375,8 @@
         courtFee: Number(session.courtFee) || 0,
         shuttlePrice: Number(session.shuttlePrice) || 0,
         shuttleCount: Number(session.shuttleCount) || 0,
+        trainCourt: session.trainCourt !== false,
+        trainShuttle: session.trainShuttle !== false,
         courtPriceRows: Array.isArray(session.courtPriceRows) ? session.courtPriceRows : null,
         shuttlePriceRows: Array.isArray(session.shuttlePriceRows)
           ? session.shuttlePriceRows.map((row) => ({
@@ -4774,6 +4868,13 @@
     async function savePaymentRecordDirect(courtCount) {
       const record = state.currentPaymentRecord;
       if (!record) return;
+      const anomaly = assessCurrentRecordAnomaly(record, courtCount);
+      if (anomaly.anomalous && !state.trainingAnomaly) {
+        state.trainingAnomaly = { mode: "direct", record, courtCount };
+        els.trainingAnomalyMessage.textContent = `此次数据与当前预估差异较大：场地预计${anomaly.court.predicted}个、实际${anomaly.court.actual}个；用球预计${anomaly.shuttle.predicted}颗、实际${anomaly.shuttle.actual}颗。请选择是否用于训练。`;
+        openModal("trainingAnomalyModal");
+        return;
+      }
       els.paymentRecordBtn.disabled = true;
       setSync("正在记录订场");
       try {
@@ -4785,6 +4886,8 @@
           shuttlePrice: record.shuttlePrice,
           shuttleCount: record.shuttleCount,
           players: record.players,
+          trainCourt: state.trainingAnomaly?.trainCourt ?? true,
+          trainShuttle: state.trainingAnomaly?.trainShuttle ?? true,
         };
         if (record.courtPriceRows?.length) body.courtPriceRows = record.courtPriceRows;
         if (record.shuttlePriceRows?.length) body.shuttlePriceRows = record.shuttlePriceRows;
@@ -4792,7 +4895,9 @@
           method: "POST",
           body: JSON.stringify(body),
         });
-        upsertSession(data.session);
+         upsertSession(data.session);
+         if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
+         state.trainingAnomaly = null;
         setSync("已保存");
         closeModal("paymentModal");
         renderTable();
@@ -4843,6 +4948,8 @@
       els.recordModal.dataset.editing = editing ? "1" : "0";
       els.recordModal.dataset.sessionId = editing ? String(session.id) : "";
       els.recordModal.dataset.venue = editing ? session.venue : "EDC";
+      els.recordModal.dataset.trainCourt = editing && session.trainCourt === false ? "0" : "1";
+      els.recordModal.dataset.trainShuttle = editing && session.trainShuttle === false ? "0" : "1";
       openModal("recordModal");
     }
 
@@ -4989,10 +5096,26 @@
 
       const sessionId = Number(els.recordModal.dataset.sessionId || 0);
       const editing = els.recordModal.dataset.editing === "1" && Number.isInteger(sessionId) && sessionId > 0;
+      if (!editing && state.currentPaymentRecord && !state.trainingAnomaly) {
+        const anomaly = assessCurrentRecordAnomaly({
+          ...state.currentPaymentRecord,
+          courtFee,
+          shuttlePrice,
+          shuttleCount,
+          courtPriceRows,
+          shuttlePriceRows,
+        }, courtCount);
+        if (anomaly.anomalous) {
+          state.trainingAnomaly = { mode: "dialog", courtCount };
+          els.trainingAnomalyMessage.textContent = `此次数据与当前预估差异较大：场地预计${anomaly.court.predicted}个、实际${anomaly.court.actual}个；用球预计${anomaly.shuttle.predicted}颗、实际${anomaly.shuttle.actual}颗。请选择是否用于训练。`;
+          openModal("trainingAnomalyModal");
+          return;
+        }
+      }
       els.saveRecordBtn.disabled = true;
       setSync(editing ? "正在保存订场记录" : "正在记录订场");
       try {
-        const body = {
+      const body = {
           date,
           venue: editing ? (els.recordModal.dataset.venue || "文体") : "EDC",
           courtCount,
@@ -5000,6 +5123,8 @@
           shuttlePrice,
           shuttleCount,
           players,
+          trainCourt: state.trainingAnomaly?.trainCourt ?? (editing ? els.recordModal.dataset.trainCourt !== "0" : true),
+          trainShuttle: state.trainingAnomaly?.trainShuttle ?? (editing ? els.recordModal.dataset.trainShuttle !== "0" : true),
         };
         if (courtPriceRows.length) body.courtPriceRows = courtPriceRows;
         if (shuttlePriceRows.length) body.shuttlePriceRows = shuttlePriceRows;
@@ -5007,6 +5132,8 @@
           ? await api(`/api/sessions/${sessionId}`, { method: "PATCH", body: JSON.stringify(body) })
           : await api("/api/sessions", { method: "POST", body: JSON.stringify(body) });
         upsertSession(data.session);
+        if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
+        state.trainingAnomaly = null;
         setSync("已保存");
         closeModal("recordModal");
         renderTable();
@@ -5793,8 +5920,9 @@
       if (!window.confirm(`确定删除 ${formatCalendarDate(session.date)} 的订场记录吗？`)) return;
       setSync("正在删除订场记录");
       try {
-        await api(`/api/sessions/${session.id}`, { method: "DELETE" });
+        const data = await api(`/api/sessions/${session.id}`, { method: "DELETE" });
         state.sessions = state.sessions.filter((item) => item.id !== session.id);
+        if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
         setSync("已删除");
         renderTable();
         renderCalendar();
@@ -5987,7 +6115,7 @@
     }
 
     function estimateBooking(entries) {
-      if (!entries.length) return { courts: 0, rsl3: 0, as05: 0, rsl3Equivalent: 0 };
+      if (!entries.length) return { courts: 0, rsl3: 0, as05: 0, shuttleCounts: {} };
       const estimator = state.estimator || DEFAULT_ESTIMATOR;
       const courtModel = estimator.court || DEFAULT_ESTIMATOR.court;
       const shuttleModel = estimator.shuttle || DEFAULT_ESTIMATOR.shuttle;
@@ -5999,8 +6127,8 @@
         Number(courtModel.minimum) || 1,
         Math.ceil(participantCount / peoplePerCourt),
       );
-      const perParticipant = Number(shuttleModel.rsl3EquivalentPerParticipant) >= 0
-        ? Number(shuttleModel.rsl3EquivalentPerParticipant)
+      const perParticipant = Number(shuttleModel.weightedShuttlesPerParticipant ?? shuttleModel.rsl3EquivalentPerParticipant) >= 0
+        ? Number(shuttleModel.weightedShuttlesPerParticipant ?? shuttleModel.rsl3EquivalentPerParticipant)
         : DEFAULT_ESTIMATOR.shuttle.rsl3EquivalentPerParticipant;
       const riskBuffer = Number.isFinite(Number(shuttleModel.riskBuffer))
         ? Number(shuttleModel.riskBuffer)
@@ -6009,13 +6137,23 @@
         Number(shuttleModel.minimum) || 1,
         participantCount * perParticipant + riskBuffer,
       );
-      const rsl3Type = estimator.shuttleTypes.find((type) => type.id === "rsl3") || { durability: 1 };
-      const as05Type = estimator.shuttleTypes.find((type) => type.id === "as05") || { durability: 1.2 };
+      const shuttleCounts = Object.fromEntries((estimator.shuttleTypes || []).map((type) => [
+        type.id,
+        Math.max(1, Math.ceil(rsl3Equivalent / Math.max(0.01, Number(type.weight ?? type.durability ?? 1)))),
+      ]));
+      const primary = estimator.shuttleTypes?.find((type) => type.id === state.selectedEstimateShuttleTypeId)
+        || estimator.shuttleTypes?.find((type) => type.id === shuttleModel.baseType)
+        || estimator.shuttleTypes?.[0]
+        || { id: "rsl3", name: "亚3" };
       return {
         courts,
         rsl3Equivalent,
-        rsl3: Math.max(1, Math.ceil(rsl3Equivalent / (Number(rsl3Type.durability) || 1))),
-        as05: Math.max(1, Math.ceil(rsl3Equivalent / (Number(as05Type.durability) || 1.2))),
+        shuttleCounts,
+        rsl3: shuttleCounts.rsl3 || 0,
+        as05: shuttleCounts.as05 || 0,
+        primaryShuttleId: primary.id,
+        primaryShuttleName: primary.name,
+        primaryShuttleCount: shuttleCounts[primary.id] || 0,
       };
     }
 
@@ -6024,7 +6162,8 @@
       if (!type || !estimate) return null;
       if (type.id === "rsl3") return estimate.rsl3;
       if (type.id === "as05") return estimate.as05;
-      return Math.max(1, Math.ceil(estimate.rsl3Equivalent / (Number(type.durability) || 1)));
+      return estimate.shuttleCounts?.[type.id]
+        || Math.max(1, Math.ceil(estimate.rsl3Equivalent / (Number(type.weight ?? type.durability) || 1)));
     }
 
     function updateShuttleTypeNotice() {
@@ -6047,9 +6186,37 @@
       return [];
     }
 
-    function createPriceRowElement(row, { isLast, onlyRow, onAdd, onRemove, onChanged }) {
+    function createPriceRowElement(row, { kind = "court", isLast, onlyRow, onAdd, onRemove, onChanged }) {
       const div = document.createElement("div");
-      div.className = "fee-advanced-row";
+      div.className = `fee-advanced-row${kind === "shuttle" ? " shuttle-price-row" : ""}`;
+
+      if (kind === "shuttle") {
+        const typeSelect = document.createElement("select");
+        typeSelect.className = "shuttle-type-select";
+        const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
+        const selectedType = types.find((type) => type.id === row.type)
+          || findShuttleTypeByPrice(Number(row.price))
+          || types[0];
+        row.type = selectedType?.id || "unknown";
+        types.forEach((type) => {
+          const option = document.createElement("option");
+          option.value = type.id;
+          option.textContent = type.name;
+          option.selected = type.id === selectedType?.id;
+          typeSelect.append(option);
+        });
+        typeSelect.addEventListener("change", () => {
+          row.type = typeSelect.value;
+          const type = types.find((item) => item.id === row.type);
+          if (type?.prices?.length && !Number.isFinite(Number(row.price))) row.price = Number(type.prices[0]);
+          if (type?.prices?.length && !type.prices.some((price) => Math.abs(Number(price) - Number(row.price)) < 0.02)) {
+            row.price = Number(type.prices[0]);
+            priceInput.value = formatCompactNumber(row.price);
+          }
+          onChanged?.();
+        });
+        div.append(typeSelect);
+      }
 
       const priceInput = document.createElement("input");
       priceInput.type = "number";
@@ -6099,12 +6266,14 @@
       return div;
     }
 
-    function renderPriceRows(container, rows, onChanged) {
+    function renderPriceRows(container, rows, onChanged, kind = "court") {
       container.replaceChildren(...rows.map((row, index) => createPriceRowElement(row, {
+        kind,
         isLast: index === rows.length - 1,
         onlyRow: rows.length === 1,
         onAdd: () => {
-          rows.push({ price: 0, count: 1 });
+          const firstType = kind === "shuttle" ? (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes)[0] : null;
+          rows.push({ price: Number(firstType?.prices?.[0] || 0), count: 1, ...(firstType ? { type: firstType.id } : {}) });
           renderPriceRows(container, rows, onChanged);
           onChanged?.();
         },
@@ -6120,7 +6289,7 @@
 
     function renderFeeAdvancedRows(kind) {
       const container = kind === "court" ? els.courtPriceRows : els.shuttlePriceRows;
-      renderPriceRows(container, state.advancedRows[kind], updatePaymentButton);
+      renderPriceRows(container, state.advancedRows[kind], updatePaymentButton, kind);
     }
 
     function renderAllFeeAdvancedRows() {
@@ -6129,8 +6298,8 @@
     }
 
     function renderRecordAdvancedRows() {
-      renderPriceRows(els.recordCourtPriceRows, state.recordRows.court, null);
-      renderPriceRows(els.recordShuttlePriceRows, state.recordRows.shuttle, null);
+      renderPriceRows(els.recordCourtPriceRows, state.recordRows.court, null, "court");
+      renderPriceRows(els.recordShuttlePriceRows, state.recordRows.shuttle, null, "shuttle");
     }
 
     function applyRecordFeeMode(advanced) {
@@ -6171,7 +6340,12 @@
         ? breakdown
         : [{ price: courts ? currentFee / courts : 0, count: courts || 1 }];
       const shuttleCount = Math.max(0, Math.floor(Number(els.shuttleCountInput.value) || 0));
-      const shuttleRows = [{ price: Number(els.shuttlePriceInput.value) || 0, count: shuttleCount }];
+      const firstShuttleType = (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes)[0];
+      const shuttleRows = [{
+        price: Number(els.shuttlePriceInput.value) || Number(firstShuttleType?.prices?.[0] || 0),
+        count: shuttleCount,
+        type: firstShuttleType?.id || "rsl3",
+      }];
 
       state.advancedRows = { court: courtRows, shuttle: shuttleRows };
       state.feeMode = "advanced";
@@ -6606,13 +6780,130 @@
         document.createTextNode("预计需要 "),
         createEstimateValue(String(estimate.courts)),
         document.createTextNode(" 个场地 和 "),
-        createEstimateValue(String(estimate.rsl3)),
-        document.createTextNode(" 颗亚3 或 "),
-        createEstimateValue(String(estimate.as05)),
-        document.createTextNode(" 颗AS05"),
+        createEstimateValue(String(estimate.primaryShuttleCount || estimate.rsl3 || 0)),
+        document.createTextNode(` 颗${estimate.primaryShuttleName || "亚3"}`),
       );
 
+      const shuttlePicker = document.createElement("select");
+      shuttlePicker.className = "estimate-shuttle-picker";
+      shuttlePicker.title = "选择预估球型号";
+      (state.estimator?.shuttleTypes || []).forEach((type) => {
+        const option = document.createElement("option");
+        option.value = type.id;
+        option.textContent = `×${estimate.shuttleCounts?.[type.id] || 0}颗${type.name}`;
+        option.selected = type.id === (estimate.primaryShuttleId || "rsl3");
+        shuttlePicker.append(option);
+      });
+      shuttlePicker.addEventListener("change", () => {
+        state.selectedEstimateShuttleTypeId = shuttlePicker.value;
+        estimate.primaryShuttleId = shuttlePicker.value;
+        const type = state.estimator?.shuttleTypes?.find((item) => item.id === shuttlePicker.value);
+        estimate.primaryShuttleName = type?.name || "亚3";
+        estimate.primaryShuttleCount = estimate.shuttleCounts?.[shuttlePicker.value] || 0;
+        renderChainStats(entries, estimate);
+      });
+      estimateLine.append(shuttlePicker);
+
       els.chainStats.replaceChildren(levelStats, divider, genderStats, estimateDivider, estimateLine);
+      renderEstimatorAdvancedPanel();
+    }
+
+    function toggleEstimatorAdvancedPanel() {
+      state.estimatorAdvancedOpen = !state.estimatorAdvancedOpen;
+      els.estimatorAdvancedPanel.hidden = !state.estimatorAdvancedOpen;
+      els.estimatorAdvancedBtn.textContent = state.estimatorAdvancedOpen ? "收起" : "高级";
+      renderEstimatorAdvancedPanel();
+    }
+
+    function renderEstimatorAdvancedPanel() {
+      if (!state.estimatorAdvancedOpen) return;
+      const model = state.estimator || DEFAULT_ESTIMATOR;
+      const panel = els.estimatorAdvancedPanel;
+      panel.replaceChildren();
+      const lines = [
+        `场地：每场约${formatCompactNumber(model.court?.peoplePerCourt || 0)}人，训练${model.training?.court?.sampleCount || 0}场`,
+        `用球：每人权重${formatCompactNumber(model.shuttle?.weightedShuttlesPerParticipant || model.shuttle?.rsl3EquivalentPerParticipant || 0)}，风险缓冲${formatCompactNumber(model.shuttle?.riskBuffer || 0)}`,
+      ];
+      lines.forEach((text) => {
+        const row = document.createElement("div");
+        row.className = "estimator-advanced-row";
+        row.textContent = text;
+        panel.append(row);
+      });
+      (model.shuttleTypes || []).forEach((type) => {
+        const row = document.createElement("div");
+        row.className = "estimator-advanced-row";
+        const name = document.createElement("span");
+        name.textContent = type.name;
+        const detail = document.createElement("strong");
+        detail.textContent = `权重 ${formatCompactNumber(type.weight ?? type.durability ?? 1)} · ${(type.prices || []).join("/")}元 · ${type.sampleCount || 0}场`;
+        row.append(name, detail);
+        panel.append(row);
+      });
+      if (IS_WORKER_APP && !state.readOnly) {
+        const editor = document.createElement("div");
+        editor.className = "estimator-type-editor";
+        const input = document.createElement("input");
+        input.placeholder = "新增球型号";
+        input.maxLength = 40;
+        const price = document.createElement("input");
+        price.type = "text";
+        price.inputMode = "decimal";
+        price.placeholder = "价格（多个用逗号隔开）";
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = "登记球型号";
+        button.addEventListener("click", async () => {
+          const name = input.value.trim();
+          const prices = price.value.split(/[，,\s]+/).map(Number).filter((amount) => Number.isFinite(amount) && amount > 0);
+          if (!name || !prices.length) return toast("请填写球型号和有效价格");
+          try {
+            const data = await api("/api/estimator/shuttle-types", { method: "POST", body: JSON.stringify({ name, prices }) });
+            state.estimator = normalizeEstimator(data.estimator);
+            renderEstimatorAdvancedPanel();
+            processChain();
+            toast("球型号已登记，预估公式已更新");
+          } catch (error) { toast(`登记失败：${error.message}`); }
+        });
+        editor.append(input, price, button);
+        panel.append(editor);
+      }
+    }
+
+    function assessCurrentRecordAnomaly(record, courtCount) {
+      const estimate = estimateBooking(state.chainEntries);
+      const actualCourt = Number(courtCount) || 0;
+      const shuttleRows = record.shuttlePriceRows || [];
+      const actualShuttle = shuttleRows.reduce((sum, row) => sum + (Number(row.count) || 0), 0);
+      const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
+      const typeMap = new Map(types.map((type) => [type.id, type]));
+      const actualWorkload = shuttleRows.reduce((sum, row) => {
+        const type = typeMap.get(row.type) || findShuttleTypeByPrice(Number(row.price));
+        return sum + (Number(row.count) || 0) * Number(type?.weight ?? type?.durability ?? 1);
+      }, 0);
+      const averageWeight = actualShuttle > 0 ? actualWorkload / actualShuttle : 1;
+      const predictedShuttle = actualShuttle > 0
+        ? Math.ceil((estimate.rsl3Equivalent || 0) / Math.max(0.01, averageWeight))
+        : (estimate.primaryShuttleCount || estimate.rsl3 || 0);
+      return {
+        anomalous: Math.abs(actualCourt - estimate.courts) > 1 || Math.abs(actualShuttle - predictedShuttle) > 2,
+        court: { predicted: estimate.courts, actual: actualCourt },
+        shuttle: { predicted: predictedShuttle, actual: actualShuttle },
+      };
+    }
+
+    function finishAnomalyTraining(shouldTrain) {
+      const pending = state.trainingAnomaly;
+      if (!pending) return;
+      state.trainingAnomaly = {
+        ...pending,
+        confirmed: true,
+        trainCourt: shouldTrain,
+        trainShuttle: shouldTrain,
+      };
+      closeModal("trainingAnomalyModal");
+      if (pending.mode === "dialog") void saveRecordDialog();
+      else void savePaymentRecordDirect(pending.courtCount);
     }
 
     function createEstimateValue(value) {
@@ -7504,6 +7795,7 @@
     }
 
     function closeModal(id) {
+      if (id === "trainingAnomalyModal" && !state.trainingAnomaly?.confirmed) state.trainingAnomaly = null;
       document.getElementById(id)?.classList.remove("open");
     }
 

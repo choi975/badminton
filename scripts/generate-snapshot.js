@@ -10,7 +10,7 @@ SELECT * FROM players ORDER BY id ASC;
 SELECT key, value FROM app_settings ORDER BY key ASC;
 SELECT level, description, sort_order FROM level_guides ORDER BY sort_order ASC;
 SELECT affiliation, player_id, join_number FROM group_join_numbers ORDER BY affiliation ASC, join_number ASC, player_id ASC;
-SELECT id, date, venue, court_count, court_fee, shuttle_price, shuttle_count, court_price_rows, shuttle_price_rows, created_at, updated_at FROM booking_sessions ORDER BY date ASC, id ASC;
+SELECT id, date, venue, court_count, court_fee, shuttle_price, shuttle_count, court_price_rows, shuttle_price_rows, train_court, train_shuttle, created_at, updated_at FROM booking_sessions ORDER BY date ASC, id ASC;
 SELECT id, session_id, player_id, player_name, slots, plus_count, amount, is_female, gender_snapshot, level_snapshot FROM booking_session_players ORDER BY session_id ASC, id ASC;
 `;
 
@@ -100,6 +100,8 @@ const sessions = sessionRows.map((row) => {
     shuttleCount: Number(row.shuttle_count),
     courtPriceRows: parsePriceRows(row.court_price_rows),
     shuttlePriceRows: parsePriceRows(row.shuttle_price_rows, true),
+    trainCourt: Number(row.train_court) !== 0,
+    trainShuttle: Number(row.train_shuttle) !== 0,
     players: sessionPlayersBySession.get(id) || [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,

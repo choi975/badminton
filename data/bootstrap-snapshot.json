@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T19:23:30.470Z",
+  "generatedAt": "2026-08-23T06:36:36.350Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -629,7 +629,7 @@
       },
       {
         "id": 55,
-        "name": "刘嘉欣",
+        "name": "]]]】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】",
         "gender": "女",
         "level": "不详",
         "affiliation": "球友",
@@ -637,7 +637,7 @@
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-28 02:42:21",
-        "updatedAt": "2026-08-06 15:53:59"
+        "updatedAt": "2026-08-23 04:17:37"
       },
       {
         "id": 56,
@@ -698,18 +698,6 @@
         "participatesPayment": true,
         "createdAt": "2026-07-28 02:44:09",
         "updatedAt": "2026-08-10 14:40:49"
-      },
-      {
-        "id": 61,
-        "name": "LEE Z J",
-        "gender": "男",
-        "level": "不详",
-        "affiliation": "球友",
-        "notes": "",
-        "photoKey": "",
-        "participatesPayment": true,
-        "createdAt": "2026-07-28 02:44:16",
-        "updatedAt": "2026-07-28 02:44:16"
       },
       {
         "id": 62,
@@ -1124,36 +1112,32 @@
           "joinNumber": 51
         },
         {
-          "playerId": 61,
+          "playerId": 60,
           "joinNumber": 52
         },
         {
-          "playerId": 60,
+          "playerId": 59,
           "joinNumber": 53
         },
         {
-          "playerId": 59,
-          "joinNumber": 54
-        },
-        {
           "playerId": 73,
-          "joinNumber": 56
+          "joinNumber": 55
         },
         {
           "playerId": 74,
-          "joinNumber": 57
+          "joinNumber": 56
         },
         {
           "playerId": 75,
-          "joinNumber": 58
+          "joinNumber": 57
         },
         {
           "playerId": 76,
-          "joinNumber": 59
+          "joinNumber": 58
         },
         {
           "playerId": 78,
-          "joinNumber": 60
+          "joinNumber": 59
         }
       ],
       "Hytronik": [
@@ -1299,7 +1283,6 @@
         50,
         52,
         53,
-        61,
         60,
         59,
         73,
@@ -1355,6 +1338,8 @@
             "type": "rsl3"
           }
         ],
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 15,
@@ -1441,6 +1426,8 @@
             "type": "rsl3"
           }
         ],
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 15,
@@ -1707,6 +1694,8 @@
             "type": "rsl3"
           }
         ],
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 13,
@@ -1823,6 +1812,8 @@
             "type": "rsl3"
           }
         ],
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 37,
@@ -2019,6 +2010,8 @@
             "type": "rsl3"
           }
         ],
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 9,
@@ -2095,6 +2088,8 @@
             "type": "rsl3"
           }
         ],
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 38,
@@ -2251,6 +2246,8 @@
             "type": "rsl3"
           }
         ],
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 9,
@@ -2366,6 +2363,8 @@
         "shuttleCount": 5,
         "courtPriceRows": null,
         "shuttlePriceRows": null,
+        "trainCourt": true,
+        "trainShuttle": false,
         "players": [
           {
             "playerId": 15,
@@ -2501,6 +2500,8 @@
         "shuttleCount": 8,
         "courtPriceRows": null,
         "shuttlePriceRows": null,
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 38,
@@ -2626,6 +2627,8 @@
         "shuttleCount": 8,
         "courtPriceRows": null,
         "shuttlePriceRows": null,
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 15,
@@ -2721,6 +2724,8 @@
         "shuttleCount": 12,
         "courtPriceRows": null,
         "shuttlePriceRows": null,
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 38,
@@ -2892,6 +2897,8 @@
             "type": "as05"
           }
         ],
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 37,
@@ -3068,6 +3075,8 @@
             "type": "rsl3"
           }
         ],
+        "trainCourt": false,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 15,
@@ -3184,6 +3193,8 @@
             "type": "rsl3"
           }
         ],
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 13,
@@ -3320,6 +3331,8 @@
             "type": "rsl3"
           }
         ],
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 9,
@@ -3476,6 +3489,8 @@
             "type": "rsl3"
           }
         ],
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 41,
@@ -3632,6 +3647,8 @@
             "type": "rsl3"
           }
         ],
+        "trainCourt": true,
+        "trainShuttle": true,
         "players": [
           {
             "playerId": 51,
@@ -3889,8 +3906,8 @@
       }
     ],
     "estimator": {
-      "version": 3,
-      "generatedAt": "2026-08-22T19:23:28.242Z",
+      "version": 4,
+      "generatedAt": "2026-08-23T06:36:33.380Z",
       "training": {
         "dateRange": {
           "from": "2026-07-13",
@@ -3901,28 +3918,14 @@
           "dateRange": {
             "from": "2026-07-13",
             "to": "2026-08-21"
-          },
-          "excludedSessions": [
-            {
-              "date": "2026-08-10",
-              "reason": "低水平且场地拥挤，实际订场数量不代表常规需求。"
-            }
-          ],
-          "skippedSessions": []
+          }
         },
         "shuttle": {
           "sampleCount": 16,
           "dateRange": {
             "from": "2026-07-13",
             "to": "2026-08-21"
-          },
-          "excludedSessions": [
-            {
-              "date": "2026-08-04",
-              "reason": "球友请客，实际用球数量不完整，不能作为训练样本。"
-            }
-          ],
-          "skippedSessions": []
+          }
         }
       },
       "shuttleTypes": [
@@ -3935,7 +3938,9 @@
             11.3,
             11.5
           ],
-          "durability": 1
+          "weight": 1,
+          "sampleCount": 16,
+          "weightSource": "reference"
         },
         {
           "id": "as05",
@@ -3944,7 +3949,9 @@
           "prices": [
             13.5
           ],
-          "durability": 1.2
+          "weight": 1.33,
+          "sampleCount": 1,
+          "weightSource": "learned"
         }
       ],
       "court": {
@@ -3954,8 +3961,6 @@
         "selection": {
           "strategy": "grid-search",
           "objective": "mae-then-rmse",
-          "tieBreak": "closest-to-default",
-          "defaultPeoplePerCourt": 7.5,
           "candidates": {
             "min": 6,
             "max": 9,
@@ -3963,11 +3968,9 @@
           }
         },
         "validation": {
-          "method": "rolling-origin",
+          "method": "in-sample",
           "minimumTrainingSessions": 5,
-          "firstValidationDate": "2026-07-30",
-          "lastValidationDate": "2026-08-21",
-          "folds": 11,
+          "folds": 16,
           "mae": 0,
           "rmse": 0,
           "exactRate": 1,
@@ -3978,24 +3981,28 @@
       },
       "shuttle": {
         "baseType": "rsl3",
-        "formula": "ceil((participantCount * rsl3EquivalentPerParticipant + riskBuffer) / durability)",
-        "rsl3EquivalentPerParticipant": 0.815766,
+        "formula": "ceil((participantCount * weightedShuttlesPerParticipant + riskBuffer) / weight)",
+        "weightedShuttlesPerParticipant": 0.824718,
         "riskQuantile": 0.7,
-        "riskBuffer": 0.592557,
+        "riskBuffer": 0.417993,
         "riskBufferSource": "residual-quantile",
         "minimum": 1,
+        "weightSearch": {
+          "min": 0.5,
+          "max": 2.5,
+          "step": 0.01,
+          "passes": 3,
+          "estimatedPrior": 1.33
+        },
         "validation": {
-          "method": "rolling-origin",
-          "minimumTrainingSessions": 5,
-          "firstValidationDate": "2026-07-30",
-          "lastValidationDate": "2026-08-21",
-          "folds": 11,
-          "mae": 2.073,
-          "rmse": 2.902,
-          "exactRate": 0.182,
-          "bias": 1.164,
-          "underPredictionRate": 0.273,
-          "overPredictionRate": 0.545
+          "method": "weighted-workload",
+          "folds": 16,
+          "mae": 1.955,
+          "rmse": 2.601,
+          "exactRate": 0,
+          "bias": 0.779,
+          "underPredictionRate": 0.313,
+          "overPredictionRate": 0.688
         }
       }
     }
