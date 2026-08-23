@@ -2285,6 +2285,7 @@
 
     .calendar-record-actions {
       display: flex;
+      flex: 0 0 auto;
       gap: 6px;
     }
 
@@ -2292,6 +2293,7 @@
       min-height: 28px;
       padding: 0 9px;
       font-size: 12px;
+      white-space: nowrap;
     }
 
     .calendar-record-players {
@@ -2577,7 +2579,7 @@
             <div id="recordShuttlePriceRows" class="fee-advanced-rows"></div>
           </div>
         </div>
-        <div class="record-members-head">打球成员（人数含本人，A钱为本人+所带朋友合计）</div>
+        <div class="record-members-head">归属成员（归属人数，A钱为该成员名下合计）</div>
         <div id="recordMembersList" class="record-members-list"></div>
       </div>
       <div class="modal-footer">
@@ -2705,13 +2707,13 @@
     const GENDERS = ["男", "女"];
     const AFFILIATIONS = ["球友", "Hytronik", "球友+Hytronik", "特殊"];
     const CHAIN_NUMBER_PREFIX = /^\s*\d+\s*[\.、\):：-]\s*/;
-    const PLUS_LEVEL_LABELS = [["比赛级高手", "5级"], ["新手", "2级"], ["中手", "3级"], ["高手", "4级"]];
+    const PLUS_LEVEL_LABELS = [["比赛级高手", "6级"], ["新手", "2级"], ["中手", "3级"], ["高手", "4级"]];
     const PLUS_GROUP_LEVEL_OPTIONS = [
       { label: "不详", level: "不详", text: "等级不详" },
       { label: "新手", level: "2级", text: "新手（2级）" },
       { label: "中手", level: "3级", text: "中手（3级）" },
       { label: "高手", level: "4级", text: "高手（4级）" },
-      { label: "比赛级高手", level: "5级", text: "比赛级高手（5级）" },
+      { label: "比赛级高手", level: "6级", text: "比赛级高手（6级）" },
     ];
     const FEMALE_PAYMENT_CAP = 25;
     const STANDARD_COURT_UNIT_PRICE = 70;
@@ -2798,6 +2800,7 @@
       advancedRows: { court: [], shuttle: [] },
       advancedAutoDefaults: null,
       recordRows: { court: [], shuttle: [] },
+      recordRawPlayers: [],
       paymentSettingsEditor: {
         activeTab: "球友",
         joinNumbers: { "球友": [], "Hytronik": [] },
@@ -4366,6 +4369,107 @@
       };
     }
 
+    function normalizePlayerId(value) {
+      if (value === null || value === undefined || value === "") return null;
+      const id = Number(value);
+      return Number.isInteger(id) && id > 0 ? id : null;
+    }
+
+    function getPlayerById(playerId) {
+      const id = normalizePlayerId(playerId);
+      return id === null ? null : state.players.find((player) => Number(player.id) === id) || null;
+    }
+
+    function extractCompanionOwnerName(value) {
+      const clean = removeChainAnnotations(value).replace(/[🌸🍀]/g, " ").trim();
+      const marker = clean.match(/(?:[+＋➕]\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|(?:代|加)\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+))/);
+      if (!marker || marker.index === 0) return "";
+      return clean.slice(0, marker.index).trim();
+    }
+
+    function findUniquePlayerByOwnerName(name) {
+      if (!name) return null;
+      const match = findPlayerMatchForLine(name, buildAliasIndex());
+      return match.ambiguousPlayers.length ? null : match.player;
+    }
+
+    function findUniquePlayerByExactAlias(name) {
+      const normalized = normalizeAlias(name);
+      if (!normalized) return null;
+      const players = new Map(buildAliasIndex()
+        .filter((item) => item.normalized === normalized)
+        .map((item) => [Number(item.player.id), item.player]));
+      return players.size === 1 ? [...players.values()][0] : null;
+    }
+
+    function normalizeSessionPlayer(row) {
+      const playerId = normalizePlayerId(row.playerId);
+      const playerName = String(row.playerName || "");
+      let slots = Math.max(0, Math.floor(Number(row.slots) || 0));
+      const plusCount = Math.max(0, Math.floor(Number(row.plusCount) || 0));
+      const hasCompanionFlag = Object.prototype.hasOwnProperty.call(row, "isCompanion");
+      const hasOwnerPlayerId = Object.prototype.hasOwnProperty.call(row, "ownerPlayerId");
+      const hasOwnerName = Object.prototype.hasOwnProperty.call(row, "ownerName");
+      const hasStoredOwnership = hasCompanionFlag || hasOwnerPlayerId || hasOwnerName;
+      const ownerText = extractCompanionOwnerName(playerName);
+      const exactPlayer = playerId === null
+        ? (ownerText ? findUniquePlayerByOwnerName(ownerText) : findUniquePlayerByExactAlias(playerName))
+        : null;
+      const isCompanion = hasCompanionFlag
+        ? row.isCompanion === true || row.isCompanion === 1 || row.isCompanion === "1"
+        : Boolean(ownerText || (playerId === null && exactPlayer && slots <= 1 && plusCount === 0));
+      let ownerPlayerId = normalizePlayerId(row.ownerPlayerId);
+      let ownerName = String(row.ownerName || "").trim();
+
+      if (isCompanion) {
+        if (ownerPlayerId === null && !hasOwnerPlayerId) ownerPlayerId = normalizePlayerId(exactPlayer?.id);
+        if (!ownerName && !hasOwnerName) ownerName = exactPlayer ? paymentDisplayName(exactPlayer) : ownerText;
+        if (slots <= 0) slots = 1;
+      } else {
+        if (ownerPlayerId === null && !hasOwnerPlayerId) ownerPlayerId = playerId;
+        if (!ownerName) ownerName = getPlayerById(ownerPlayerId)
+          ? paymentDisplayName(getPlayerById(ownerPlayerId))
+          : playerName;
+      }
+
+      const ownerPlayer = getPlayerById(ownerPlayerId)
+        || (!hasStoredOwnership ? findUniquePlayerByOwnerName(ownerName) : null);
+      if (ownerPlayerId === null && !hasOwnerPlayerId) ownerPlayerId = normalizePlayerId(ownerPlayer?.id);
+      if (!ownerName && ownerPlayer) ownerName = paymentDisplayName(ownerPlayer);
+
+      return {
+        playerId,
+        playerName,
+        slots,
+        plusCount,
+        amount: Number(row.amount) || 0,
+        isFemale: Boolean(row.isFemale),
+        gender: ["男", "女", "不详"].includes(row.gender)
+          ? row.gender
+          : Boolean(row.isFemale) ? "女" : "不详",
+        level: LEVELS.includes(row.level) ? row.level : "不详",
+        ownerPlayerId,
+        ownerName,
+        isCompanion,
+      };
+    }
+
+    function normalizeSessionPlayers(rawPlayers) {
+      const rows = (Array.isArray(rawPlayers) ? rawPlayers : []).map(normalizeSessionPlayer);
+      let lastOwner = null;
+      rows.forEach((row) => {
+        if (row.ownerPlayerId !== null || row.ownerName) {
+          lastOwner = { ownerPlayerId: row.ownerPlayerId, ownerName: row.ownerName };
+          return;
+        }
+        if (row.isCompanion && lastOwner) {
+          row.ownerPlayerId = lastOwner.ownerPlayerId;
+          row.ownerName = lastOwner.ownerName;
+        }
+      });
+      return rows;
+    }
+
     function normalizeSessions(rawSessions) {
       return (Array.isArray(rawSessions) ? rawSessions : []).map((session) => ({
         id: Number(session.id),
@@ -4384,33 +4488,67 @@
               type: row.type || findShuttleTypeByPrice(Number(row.price))?.id || "unknown",
             }))
           : null,
-        players: (Array.isArray(session.players) ? session.players : []).map((row) => ({
-          playerId: row.playerId === null || row.playerId === undefined ? null : Number(row.playerId),
-          playerName: String(row.playerName || ""),
-          slots: Number(row.slots) || 0,
-          plusCount: Number(row.plusCount) || 0,
-          amount: Number(row.amount) || 0,
-          isFemale: Boolean(row.isFemale),
-          gender: ["男", "女", "不详"].includes(row.gender)
-            ? row.gender
-            : Boolean(row.isFemale) ? "女" : "不详",
-          level: LEVELS.includes(row.level) ? row.level : "不详",
-        })),
+        players: normalizeSessionPlayers(session.players),
         createdAt: session.createdAt,
         updatedAt: session.updatedAt,
       }));
     }
 
+    function getSessionOwnerKey(row, fallbackIndex = 0) {
+      const ownerPlayerId = normalizePlayerId(row.ownerPlayerId);
+      if (ownerPlayerId !== null) return `player:${ownerPlayerId}`;
+      const ownerName = String(row.ownerName || (!row.isCompanion ? row.playerName : "")).trim();
+      const normalizedName = normalizeAlias(ownerName);
+      return normalizedName ? `name:${normalizedName}` : `unresolved:${fallbackIndex}`;
+    }
+
+    function projectSessionParticipants(rawPlayers) {
+      const groups = new Map();
+      (rawPlayers || []).forEach((row, index) => {
+        const key = getSessionOwnerKey(row, index);
+        const ownerPlayerId = normalizePlayerId(row.ownerPlayerId);
+        const ownerPlayer = getPlayerById(ownerPlayerId);
+        const ownerName = String(row.ownerName || ownerPlayer?.name || (!row.isCompanion ? row.playerName : "") || "未知成员");
+        const slots = Math.max(0, Math.floor(Number(row.slots) || 0));
+        const legacyGuestCount = row.isCompanion
+          ? 0
+          : Math.max(Math.max(0, Math.floor(Number(row.plusCount) || 0)), Math.max(0, slots - 1));
+        const companionCount = row.isCompanion ? Math.max(1, slots) : legacyGuestCount;
+        const current = groups.get(key) || {
+          key,
+          ownerPlayerId,
+          ownerName: ownerPlayer ? paymentDisplayName(ownerPlayer) : firstName(ownerName) || ownerName,
+          ownerPresent: false,
+          guestCount: 0,
+          participantCount: 0,
+          amount: 0,
+          rawRows: [],
+        };
+        current.ownerPresent = current.ownerPresent || (
+          !row.isCompanion && slots > Math.max(0, Math.floor(Number(row.plusCount) || 0))
+        );
+        current.guestCount += companionCount;
+        const selfPresent = !row.isCompanion && slots > Math.max(0, Math.floor(Number(row.plusCount) || 0));
+        current.participantCount += row.isCompanion
+          ? companionCount
+          : Math.max(slots, (selfPresent ? 1 : 0) + legacyGuestCount);
+        current.amount += Number(row.amount) || 0;
+        current.rawRows.push(row);
+        groups.set(key, current);
+      });
+      return [...groups.values()];
+    }
+
     function getMemberStatsMapForSessions(sessions) {
       const statsMap = new Map();
       for (const session of sessions) {
-        for (const row of session.players) {
-          if (row.playerId === null) continue;
-          const stats = statsMap.get(row.playerId) || { playCount: 0, guestCount: 0, amountTotal: 0 };
-          stats.playCount += 1;
-          stats.guestCount += row.plusCount;
-          stats.amountTotal += row.amount;
-          statsMap.set(row.playerId, stats);
+        for (const group of projectSessionParticipants(session.players)) {
+          if (group.ownerPlayerId === null) continue;
+          const stats = statsMap.get(group.ownerPlayerId) || { playCount: 0, guestCount: 0, amountTotal: 0 };
+          stats.playCount += group.ownerPresent ? 1 : 0;
+          stats.guestCount += group.guestCount;
+          stats.amountTotal += group.amount;
+          statsMap.set(group.ownerPlayerId, stats);
         }
       }
       return statsMap;
@@ -4487,19 +4625,19 @@
       const statsMap = new Map();
       for (const session of sessions) {
         const weekday = parseLocalDate(session.date).getDay();
-        for (const row of session.players) {
-          if (row.playerId === null) continue;
-          const stats = statsMap.get(row.playerId) || {
+        for (const group of projectSessionParticipants(session.players)) {
+          if (group.ownerPlayerId === null) continue;
+          const stats = statsMap.get(group.ownerPlayerId) || {
             playCount: 0,
             guestCount: 0,
             amountTotal: 0,
             weekdays: Object.fromEntries(weekdayNames.map((_, index) => [index, 0])),
           };
-          stats.playCount += 1;
-          stats.guestCount += row.plusCount;
-          stats.amountTotal += row.amount;
-          stats.weekdays[weekday] += 1;
-          statsMap.set(row.playerId, stats);
+          stats.playCount += group.ownerPresent ? 1 : 0;
+          stats.guestCount += group.guestCount;
+          stats.amountTotal += group.amount;
+          if (group.ownerPresent) stats.weekdays[weekday] += 1;
+          statsMap.set(group.ownerPlayerId, stats);
         }
       }
       return statsMap;
@@ -4509,6 +4647,7 @@
       const partnerCounts = new Map();
       for (const session of sessions) {
         const playerIds = [...new Set((session.players || [])
+          .filter((row) => !row.isCompanion && Number(row.slots) > Number(row.plusCount || 0))
           .map((row) => row.playerId)
           .filter((playerId) => playerId !== null && playerId !== undefined)
           .map(Number)
@@ -4944,7 +5083,8 @@
           : [],
       };
       applyRecordFeeMode(advanced);
-      renderRecordMembers(editing ? session.players : (source?.players || []));
+      state.recordRawPlayers = normalizeSessionPlayers(editing ? session.players : (source?.players || []));
+      renderRecordMembers(state.recordRawPlayers);
       els.recordModal.dataset.editing = editing ? "1" : "0";
       els.recordModal.dataset.sessionId = editing ? String(session.id) : "";
       els.recordModal.dataset.venue = editing ? session.venue : "EDC";
@@ -4954,30 +5094,30 @@
     }
 
     function renderRecordMembers(rows) {
-      if (!rows.length) {
+      const groups = projectSessionParticipants(rows);
+      if (!groups.length) {
         const empty = document.createElement("div");
         empty.className = "empty-hint";
         empty.textContent = "暂无成员明细";
         els.recordMembersList.replaceChildren(empty);
         return;
       }
-      els.recordMembersList.replaceChildren(...rows.map(createRecordMemberRow));
+      els.recordMembersList.replaceChildren(...groups.map(createRecordMemberRow));
     }
 
-    function createRecordMemberRow(row) {
+    function createRecordMemberRow(group) {
       const div = document.createElement("div");
       div.className = "record-member-row";
-      div.dataset.playerId = row.playerId === null || row.playerId === undefined ? "" : String(row.playerId);
-      div.dataset.isFemale = row.isFemale ? "1" : "0";
-      div.dataset.gender = ["男", "女", "不详"].includes(row.gender)
-        ? row.gender
-        : row.isFemale ? "女" : "不详";
-      div.dataset.level = LEVELS.includes(row.level) ? row.level : "不详";
+      div.dataset.ownerKey = group.key;
+      div.dataset.ownerPlayerId = group.ownerPlayerId === null ? "" : String(group.ownerPlayerId);
+      div.dataset.ownerName = group.ownerName || "";
+      div.dataset.ownerPresent = group.ownerPresent ? "1" : "0";
+      div.dataset.isCompanion = "0";
 
       const name = document.createElement("span");
       name.className = "record-member-name";
-      name.textContent = row.playerName || "未知成员";
-      name.title = row.playerName || "";
+      name.textContent = group.ownerName || "未知成员";
+      name.title = group.ownerName || "";
 
       const slotsField = document.createElement("label");
       slotsField.className = "record-member-field";
@@ -4989,14 +5129,17 @@
       slotsInput.min = "0";
       slotsInput.step = "1";
       slotsInput.inputMode = "numeric";
-      slotsInput.value = String(Math.max(0, Math.floor(Number(row.slots) || 0)));
+      slotsInput.value = String(Math.max(0, Math.floor(Number(group.participantCount) || 0)));
+      slotsInput.readOnly = true;
+      slotsInput.title = "参与人数请返回接龙助手修改";
       slotsField.append(slotsLabel, slotsInput);
 
       const plus = document.createElement("span");
       plus.className = "record-member-plus";
       const updatePlus = () => {
         const slots = Math.max(0, Math.floor(Number(slotsInput.value) || 0));
-        plus.textContent = slots > 0 ? `带${Math.max(0, slots - 1)}人` : "";
+        const ownerSlots = group.ownerPresent && slots > 0 ? 1 : 0;
+        plus.textContent = slots > 0 ? `带${Math.max(0, slots - ownerSlots)}人` : "";
       };
       slotsInput.addEventListener("input", updatePlus);
       updatePlus();
@@ -5011,11 +5154,129 @@
       amountInput.min = "0";
       amountInput.step = "any";
       amountInput.inputMode = "decimal";
-      amountInput.value = formatCompactNumber(Number(row.amount) || 0);
+      amountInput.value = formatCompactNumber(Number(group.amount) || 0);
       amountField.append(amountLabel, amountInput);
 
       div.append(name, slotsField, plus, amountField);
       return div;
+    }
+
+    function createUnknownCompanionRow(group, index) {
+      const ownerName = group.ownerName || "随行人员";
+      return {
+        playerId: null,
+        playerName: `${ownerName}+${index}`,
+        slots: 1,
+        plusCount: 0,
+        amount: 0,
+        isFemale: false,
+        gender: "不详",
+        level: "不详",
+        ownerPlayerId: normalizePlayerId(group.ownerPlayerId),
+        ownerName,
+        isCompanion: true,
+      };
+    }
+
+    function expandRecordOwnerGroup(group) {
+      let ownerRow = null;
+      const guestRows = [];
+      let generatedIndex = 1;
+      let unassignedAmount = 0;
+
+      group.rawRows.forEach((row) => {
+        const slots = Math.max(0, Math.floor(Number(row.slots) || 0));
+        if (row.isCompanion) {
+          const count = Math.max(1, slots);
+          for (let index = 0; index < count; index += 1) {
+            const guest = index === 0
+              ? { ...row }
+              : createUnknownCompanionRow(group, generatedIndex++);
+            guest.playerId = index === 0 ? normalizePlayerId(row.playerId) : null;
+            guest.playerName = index === 0 ? row.playerName : guest.playerName;
+            guest.slots = 1;
+            guest.plusCount = 0;
+            guest.amount = index === 0 ? Number(row.amount) || 0 : 0;
+            guest.ownerPlayerId = normalizePlayerId(group.ownerPlayerId);
+            guest.ownerName = group.ownerName;
+            guest.isCompanion = true;
+            guestRows.push(guest);
+          }
+          return;
+        }
+
+        const plusCount = Math.max(0, Math.floor(Number(row.plusCount) || 0));
+        const selfPresent = slots > plusCount;
+        if (selfPresent && !ownerRow) {
+          ownerRow = {
+            ...row,
+            slots: 1,
+            plusCount: 0,
+            ownerPlayerId: normalizePlayerId(group.ownerPlayerId),
+            ownerName: group.ownerName,
+            isCompanion: false,
+          };
+        } else {
+          unassignedAmount += Number(row.amount) || 0;
+          if (selfPresent) guestRows.push(createUnknownCompanionRow(group, generatedIndex++));
+        }
+
+        const implicitGuests = Math.max(plusCount, slots - (selfPresent ? 1 : 0));
+        for (let index = 0; index < implicitGuests; index += 1) {
+          guestRows.push(createUnknownCompanionRow(group, generatedIndex++));
+        }
+      });
+
+      if (unassignedAmount) {
+        const receiver = guestRows[0] || ownerRow;
+        if (receiver) receiver.amount = (Number(receiver.amount) || 0) + unassignedAmount;
+      }
+      return { ownerRow, guestRows };
+    }
+
+    function assignRecordGroupAmount(rows, targetAmount) {
+      if (!rows.length) return;
+      const amount = Math.max(0, Number(targetAmount) || 0);
+      const currentTotal = rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+      if (currentTotal <= 0) {
+        rows.forEach((row, index) => { row.amount = index === 0 ? amount : 0; });
+        return;
+      }
+      let assigned = 0;
+      rows.forEach((row, index) => {
+        if (index === rows.length - 1) {
+          row.amount = Math.max(0, amount - assigned);
+          return;
+        }
+        row.amount = Math.round((amount * (Number(row.amount) || 0) / currentTotal) * 1000000) / 1000000;
+        assigned += row.amount;
+      });
+    }
+
+    function buildRecordParticipantsFromEditor() {
+      const edits = new Map([...els.recordMembersList.querySelectorAll(".record-member-row")].map((row) => [
+        row.dataset.ownerKey,
+        {
+          participantCount: Math.max(0, Math.floor(Number(row.querySelector(".record-member-slots")?.value) || 0)),
+          amount: Math.max(0, Number(row.querySelector(".record-member-amount")?.value) || 0),
+        },
+      ]));
+
+      return projectSessionParticipants(state.recordRawPlayers).flatMap((group) => {
+        const edit = edits.get(group.key) || { participantCount: group.participantCount, amount: group.amount };
+        const expanded = expandRecordOwnerGroup(group);
+        const ownerRows = group.ownerPresent && edit.participantCount > 0 && expanded.ownerRow
+          ? [expanded.ownerRow]
+          : [];
+        const desiredGuests = Math.max(0, edit.participantCount - ownerRows.length);
+        const guestRows = expanded.guestRows.slice(0, desiredGuests);
+        while (guestRows.length < desiredGuests) {
+          guestRows.push(createUnknownCompanionRow(group, guestRows.length + 1));
+        }
+        const rows = [...ownerRows, ...guestRows];
+        assignRecordGroupAmount(rows, edit.amount);
+        return rows;
+      });
     }
 
     async function saveRecordDialog() {
@@ -5029,19 +5290,12 @@
         return;
       }
 
-      const players = [...els.recordMembersList.querySelectorAll(".record-member-row")].map((row) => {
-        const slots = Math.max(0, Math.floor(Number(row.querySelector(".record-member-slots")?.value) || 0));
-        return {
-          playerId: row.dataset.playerId ? Number(row.dataset.playerId) : null,
-          playerName: (row.querySelector(".record-member-name")?.textContent || "").trim(),
-          slots,
-          plusCount: Math.max(0, slots - 1),
-          amount: Math.max(0, Number(row.querySelector(".record-member-amount")?.value) || 0),
-          isFemale: row.dataset.isFemale === "1",
-          gender: row.dataset.gender || "不详",
-          level: row.dataset.level || "不详",
-        };
-      });
+      const players = buildRecordParticipantsFromEditor().map((row) => ({
+        ...row,
+        ownerPlayerId: normalizePlayerId(row.ownerPlayerId),
+        ownerName: String(row.ownerName || ""),
+        isCompanion: Boolean(row.isCompanion),
+      }));
 
       let courtCount;
       let courtFee;
@@ -5634,8 +5888,8 @@
     function buildCalendarSummaryLine(sessions) {
       const courtGroups = new Map();
       const shuttleGroups = new Map();
-      const perPersonValues = [];
       let totalAmount = 0;
+      let totalSlots = 0;
 
       for (const session of sessions) {
         const courtRows = session.courtPriceRows && session.courtPriceRows.length
@@ -5666,7 +5920,7 @@
         const amounts = (session.players || []).reduce((sum, row) => sum + row.amount, 0);
         const slots = (session.players || []).reduce((sum, row) => sum + (row.slots > 0 ? row.slots : 0), 0);
         totalAmount += amounts;
-        if (slots > 0) perPersonValues.push(amounts / slots);
+        totalSlots += slots;
       }
 
       const courtParts = [...courtGroups.values()]
@@ -5679,9 +5933,7 @@
         .map(([price, count]) => `${formatCompactNumber(price)}元×${count}个`);
 
       const separator = courtParts.length + shuttleParts.length <= 2 ? "，" : "；";
-      const average = perPersonValues.length
-        ? perPersonValues.reduce((sum, value) => sum + value, 0) / perPersonValues.length
-        : 0;
+      const average = totalSlots > 0 ? totalAmount / totalSlots : 0;
 
       let line = `场地 ${courtParts.join("、") || "0元×0个"}`;
       if (shuttleParts.length) line += `${separator}球 ${shuttleParts.join("、")}`;
@@ -5708,15 +5960,10 @@
 
       const titleWrap = document.createElement("div");
       const memberMap = new Map();
-      for (const session of sessions) {
-        for (const row of session.players) {
-          const key = row.playerId !== null && row.playerId !== undefined
-            ? `p:${row.playerId}`
-            : `n:${row.playerName}`;
-          const current = memberMap.get(key) || { name: row.playerName || "未知成员", amount: 0 };
-          current.amount += row.amount;
-          memberMap.set(key, current);
-        }
+      for (const group of projectSessionParticipants(sessions.flatMap((session) => session.players || []))) {
+        const current = memberMap.get(group.key) || { name: group.ownerName || "未知成员", amount: 0 };
+        current.amount += group.amount;
+        memberMap.set(group.key, current);
       }
 
       const meta = document.createElement("div");
@@ -5756,6 +6003,7 @@
       const lines = [];
       const plusOverrides = {};
       const identityCounts = new Map();
+      const guestNumbers = new Map();
       const appendLine = (line, snapshot = null) => {
         const identity = normalizeAlias(cleanChainLine(line));
         const occurrence = identityCounts.get(identity) || 0;
@@ -5764,20 +6012,49 @@
         if (snapshot) plusOverrides[`${identity}::${occurrence}`] = snapshot;
       };
       for (const row of session.players) {
-        const name = row.playerName || "未知成员";
-        if (row.playerId === null && /(?:[+＋➕]|代|加)\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)/.test(name)) {
+        const ownerName = row.ownerName || getPlayerById(row.ownerPlayerId)?.name || row.playerName || "未知成员";
+        const ownerKey = getSessionOwnerKey(row, lines.length);
+        const nextGuestNumber = () => {
+          const next = (guestNumbers.get(ownerKey) || 0) + 1;
+          guestNumbers.set(ownerKey, next);
+          return next;
+        };
+        if (row.isCompanion) {
+          const count = Math.max(1, Math.floor(Number(row.slots) || 0));
+          for (let index = 0; index < count; index += 1) {
+            const rawName = index === 0 ? row.playerName : "";
+            const guestNumber = nextGuestNumber();
+            const name = extractCompanionOwnerName(rawName)
+              ? rawName
+              : `${firstName(ownerName) || ownerName}+${guestNumber}`;
+            appendLine(name, {
+              gender: index === 0 ? (row.gender || (row.isFemale ? "女" : "不详")) : "不详",
+              levelText: index === 0 ? (row.level || "不详") : "不详",
+              levelGroupLabel: index === 0 ? getLevelGroupLabel(row.level) : "不详",
+            });
+          }
+          continue;
+        }
+
+        const name = row.playerName || firstName(ownerName) || "未知成员";
+        const plusCount = Math.max(0, Math.floor(Number(row.plusCount) || 0));
+        const slots = Math.max(0, Math.floor(Number(row.slots) || 0));
+        const selfPresent = slots > plusCount;
+        if (selfPresent) appendLine(row.isFemale ? `${name}🌸` : name);
+        const guestCount = Math.max(plusCount, slots - (selfPresent ? 1 : 0));
+        for (let index = 0; index < guestCount; index += 1) {
+          appendLine(`${firstName(ownerName) || ownerName}+${nextGuestNumber()}`, {
+            gender: "不详",
+            levelText: "不详",
+            levelGroupLabel: "不详",
+          });
+        }
+        if (!selfPresent && guestCount === 0 && name) {
           appendLine(name, {
             gender: row.gender || (row.isFemale ? "女" : "不详"),
             levelText: row.level || "不详",
             levelGroupLabel: getLevelGroupLabel(row.level),
           });
-          continue;
-        }
-        if (row.slots <= 1) {
-          appendLine(row.isFemale ? `${name}🌸` : name);
-        } else {
-          appendLine(name);
-          for (let i = 1; i < row.slots; i++) appendLine(`${name}+${i}`);
         }
       }
       return { text: lines.join("\n"), plusOverrides };
@@ -5898,13 +6175,13 @@
         empty.textContent = "未记录成员明细";
         players.append(empty);
       } else {
-        const members = [...session.players].sort((a, b) => (
-          (b.amount - a.amount) || collator.compare(a.playerName || "", b.playerName || "")
+        const members = projectSessionParticipants(session.players).sort((a, b) => (
+          (b.amount - a.amount) || collator.compare(a.ownerName || "", b.ownerName || "")
         ));
-        players.append(...members.map((row) => {
+        players.append(...members.map((group) => {
           const span = document.createElement("span");
           span.className = "calendar-record-player";
-          span.textContent = `${row.playerName || "未知成员"}（${formatMoney(row.amount)}元）`;
+          span.textContent = `${group.ownerName || "未知成员"}（${formatMoney(group.amount)}元）`;
           return span;
         }));
       }
@@ -6454,6 +6731,7 @@
         })
         .filter((entry) => entry.clean);
       normalizeRepeatedMemberEntries(entries);
+      resolveChainEntryOwnership(entries, aliasIndex);
       const activePlusKeys = new Set(entries.filter((entry) => entry.plusEntry).map((entry) => entry.overrideKey));
       Object.keys(state.plusOverrides).forEach((key) => {
         if (!activePlusKeys.has(key)) delete state.plusOverrides[key];
@@ -6466,6 +6744,44 @@
       updateFeeDefaults(entries, estimate);
       updatePaymentButton();
       resizeChainDialog(entries.length);
+    }
+
+    function resolveChainEntryOwnership(entries, aliasIndex) {
+      entries.forEach((entry) => {
+        entry.ownerPlayerId = null;
+        entry.ownerName = "";
+        entry.isCompanion = Boolean(entry.plusEntry);
+        if (entry.ownerIssue?.type === "ambiguous") return;
+
+        if (entry.ownerPlayer) {
+          entry.ownerPlayerId = normalizePlayerId(entry.ownerPlayer.id);
+          entry.ownerName = paymentDisplayName(entry.ownerPlayer);
+          return;
+        }
+
+        if (entry.plusEntry) {
+          if (entry.explicitOwnerName) {
+            const match = findPlayerMatchForLine(entry.explicitOwnerName, aliasIndex);
+            if (match.ambiguousPlayers.length) {
+              entry.ownerIssue = { type: "ambiguous", players: match.ambiguousPlayers };
+              return;
+            }
+            if (!match.player) {
+              entry.ownerIssue = { type: "missing" };
+              return;
+            }
+            entry.ownerPlayer = match.player;
+            entry.ownerPlayerId = normalizePlayerId(match.player?.id);
+            entry.ownerName = paymentDisplayName(match.player);
+            return;
+          }
+          entry.ownerIssue = { type: "missing" };
+          return;
+        }
+
+        entry.ownerPlayerId = normalizePlayerId(entry.player?.id);
+        entry.ownerName = entry.player ? paymentDisplayName(entry.player) : getChainEntryBaseName(entry);
+      });
     }
 
     function normalizeRepeatedMemberEntries(entries) {
@@ -6539,7 +6855,8 @@
 
     function parseChainLine(line, index, aliasIndex, overrideKey = "", override = null) {
       const rawClean = cleanChainLine(line);
-      const matchedPlayer = findPlayerForLine(rawClean, aliasIndex);
+      const playerMatch = findPlayerMatchForLine(rawClean, aliasIndex);
+      const matchedPlayer = playerMatch.player;
       const plusMetadata = parsePlusEntryMetadata(rawClean, matchedPlayer);
       const clean = plusMetadata.displayName;
       const player = plusMetadata.plusEntry ? null : matchedPlayer;
@@ -6569,6 +6886,10 @@
         clean,
         player,
         ownerPlayer,
+        ownerIssue: playerMatch.ambiguousPlayers.length
+          ? { type: "ambiguous", players: playerMatch.ambiguousPlayers }
+          : null,
+        explicitOwnerName: plusMetadata.explicitOwnerName || "",
         plusEntry: plusMetadata.plusEntry,
         overrideKey,
         detectedLevelText,
@@ -6735,6 +7056,7 @@
       return {
         plusEntry: true,
         displayName: cleanedDisplayName,
+        explicitOwnerName: extractCompanionOwnerName(displayName),
         levelText: levelMapping?.[1] || "不详",
         levelGroupLabel: levelMapping?.[0] || "不详",
         isFemale: displayName.includes("🌸"),
@@ -7025,6 +7347,19 @@
 
     function openPaymentModal() {
       processChain();
+      const ownerIssueEntry = state.chainEntries.find((entry) => entry.ownerIssue);
+      if (ownerIssueEntry) {
+        if (ownerIssueEntry.ownerIssue.type === "ambiguous") {
+          const names = ownerIssueEntry.ownerIssue.players
+            .map((player) => paymentDisplayName(player))
+            .filter(Boolean)
+            .join("、");
+          toast(`第${ownerIssueEntry.index + 1}行同时匹配到${names || "多个成员"}，请只保留一个完整成员名后重试`);
+        } else {
+          toast(`第${ownerIssueEntry.index + 1}行无法确认由谁带来，请改成“已登记成员名+编号”后重试`);
+        }
+        return;
+      }
       const advanced = state.feeMode === "advanced";
       let courtFee;
       let shuttlePrice;
@@ -7139,6 +7474,9 @@
           isFemale: gender === "女",
           gender,
           level: entry.levelText || player?.level || "不详",
+          ownerPlayerId: normalizePlayerId(entry.ownerPlayerId),
+          ownerName: entry.ownerName || (entry.ownerPlayer ? paymentDisplayName(entry.ownerPlayer) : getChainEntryBaseName(entry)),
+          isCompanion: Boolean(entry.isCompanion),
         };
       });
     }
@@ -7487,62 +7825,38 @@
       const groups = { friends: new Map(), heineken: new Map(), special: new Map() };
       const sharedPaymentGroup = getSharedPaymentGroup(entries);
       let nextSequence = 0;
-      let lastPayingOwner = null;
 
       for (const entry of entries) {
         const player = entry.player;
         const paymentOwner = entry.ownerPlayer || player;
-        const canonicalName = paymentOwner ? paymentDisplayName(paymentOwner) : getChainEntryBaseName(entry);
+        const canonicalName = entry.ownerName || (paymentOwner ? paymentDisplayName(paymentOwner) : getChainEntryBaseName(entry));
         if (!entry.clean) continue;
 
         if (isSpecialPlayer(player) && player.participatesPayment === false) {
-          addPaymentLine(groups.special, canonicalName, 0, "不参与A钱", 0, player.id, nextSequence++, entry.isFemale);
-          lastPayingOwner = null;
+          addPaymentLine(groups.special, canonicalName, 0, "不参与A钱", 0, player.id, nextSequence++, entry.isFemale, false);
           continue;
         }
         if (!shouldCountForPayment(entry)) continue;
 
         const entryAmount = entry.isFemale ? femalePerPerson : malePerPerson;
-        if (entry.plusEntry && paymentOwner) {
+        if (entry.isCompanion) {
           const groupName = getPaymentGroup(paymentOwner, sharedPaymentGroup);
-          const existingOwner = [...groups[groupName].values()].find((row) => Number(row.playerId) === Number(paymentOwner.id));
-          const ownerSequence = existingOwner?.sequence ?? nextSequence++;
           addPaymentLine(
             groups[groupName],
             canonicalName,
             entryAmount,
             null,
             1,
-            paymentOwner.id,
-            ownerSequence,
+            normalizePlayerId(entry.ownerPlayerId),
+            nextSequence++,
             entry.isFemale,
-          );
-          continue;
-        }
-
-        if (entry.plusEntry && lastPayingOwner) {
-          addPaymentLine(
-            groups[lastPayingOwner.groupName],
-            lastPayingOwner.name,
-            entryAmount,
-            null,
-            1,
-            lastPayingOwner.playerId,
-            lastPayingOwner.sequence,
-            entry.isFemale,
+            true,
           );
           continue;
         }
 
         const groupName = getPaymentGroup(player, sharedPaymentGroup);
-        const sequence = nextSequence++;
-        addPaymentLine(groups[groupName], canonicalName, entryAmount, null, 1, player?.id || null, sequence, entry.isFemale);
-        lastPayingOwner = {
-          name: canonicalName,
-          playerId: player?.id || null,
-          sequence,
-          groupName,
-        };
+        addPaymentLine(groups[groupName], canonicalName, entryAmount, null, 1, player?.id || null, nextSequence++, entry.isFemale, false);
       }
 
       return {
@@ -7608,7 +7922,7 @@
       return "friends";
     }
 
-    function addPaymentLine(map, name, amount, note, slots, playerId, sequence, isFemale = false) {
+    function addPaymentLine(map, name, amount, note, slots, playerId, sequence, isFemale = false, isCompanion = false) {
       const key = playerId ? `player:${playerId}` : `name:${name}`;
       const current = map.get(key) || {
         name,
@@ -7621,13 +7935,21 @@
         hasMale: false,
         femaleSlots: 0,
         maleSlots: 0,
+        guestCount: 0,
+        ownerPresent: false,
+        ownerFemale: false,
       };
       current.amount += amount;
       current.slots += slots;
-      current.hasFemale = current.hasFemale || isFemale;
-      current.hasMale = current.hasMale || !isFemale;
-      current.femaleSlots += isFemale ? slots : 0;
-      current.maleSlots += isFemale ? 0 : slots;
+      if (slots > 0) {
+        current.hasFemale = current.hasFemale || isFemale;
+        current.hasMale = current.hasMale || !isFemale;
+        current.femaleSlots += isFemale ? slots : 0;
+        current.maleSlots += isFemale ? 0 : slots;
+      }
+      current.guestCount += isCompanion ? slots : 0;
+      current.ownerPresent = current.ownerPresent || !isCompanion;
+      current.ownerFemale = current.ownerFemale || (!isCompanion && isFemale);
       if (note) current.note = note;
       if (playerId && !current.playerId) current.playerId = playerId;
       current.sequence = Math.min(current.sequence, sequence);
@@ -7651,16 +7973,20 @@
 
     function formatPaymentGroup(rows, showTotal) {
       if (!rows.length) return "";
-      const lines = rows.map((row) => `${paymentRowDisplayName(row)}：${formatMoney(row.amount)}`);
+      const lines = rows.map((row) => `${paymentRowDisplayName(row)}：${formatPaymentRowValue(row)}`);
       if (showTotal) lines.push(`总计：${formatMoney(rows.reduce((sum, row) => sum + row.amount, 0))}`);
       return lines.join("\n");
     }
 
     function formatSpecialGroup(rows) {
       if (!rows.length) return "";
-      return rows.map((row) => row.note
-        ? `${paymentRowDisplayName(row)}：${row.note}`
-        : `${paymentRowDisplayName(row)}：${formatMoney(row.amount)}`).join("\n");
+      return rows.map((row) => `${paymentRowDisplayName(row)}：${formatPaymentRowValue(row)}`).join("\n");
+    }
+
+    function formatPaymentRowValue(row) {
+      if (row.note && Number(row.amount) > 0) return `${row.note}；${formatMoney(row.amount)}元`;
+      if (row.note) return row.note;
+      return `${formatMoney(row.amount)}元`;
     }
 
     function renderPaymentGroup(container, rows, { showTotal, femaleCapApplied, group = "" }) {
@@ -7673,9 +7999,7 @@
 
         const main = document.createElement("span");
         main.className = "payment-line-main";
-        main.textContent = row.note
-          ? `${paymentRowDisplayName(row)}：${row.note}`
-          : `${paymentRowDisplayName(row)}：${formatMoney(row.amount)}`;
+        main.textContent = `${paymentRowDisplayName(row)}：${formatPaymentRowValue(row)}`;
         line.append(main);
 
         if (row.playerId && (row.dualGroup || row.hytronikOnly)) {
@@ -7730,23 +8054,18 @@
 
     function getPaymentRowHighlights(row, femaleCapApplied) {
       return {
-        companion: Number(row?.slots) > 1,
+        companion: Number(row?.guestCount) > 0,
         femaleCap: Boolean(femaleCapApplied && row?.slots > 0 && row?.hasFemale && !row?.hasMale),
       };
     }
 
     function formatPaymentComposition(row) {
-      const maleSlots = Number(row?.maleSlots) || 0;
-      const femaleSlots = Number(row?.femaleSlots) || 0;
-      return [
-        maleSlots > 0 ? `🍀x${maleSlots}` : "",
-        femaleSlots > 0 ? `🌸x${femaleSlots}` : "",
-      ].filter(Boolean).join("，");
+      return `带${Math.max(0, Math.floor(Number(row?.guestCount) || 0))}人`;
     }
 
     function paymentRowDisplayName(row) {
       const name = String(row?.name || "");
-      if (!row?.hasFemale || row?.hasMale || name.includes("🌸")) return name;
+      if (!row?.ownerPresent || !row?.ownerFemale || name.includes("🌸")) return name;
       return `${name}🌸`;
     }
 
@@ -7758,10 +8077,23 @@
       }))).filter((item) => item.normalized).sort((a, b) => b.normalized.length - a.normalized.length);
     }
 
-    function findPlayerForLine(line, aliasIndex) {
+    function findPlayerMatchForLine(line, aliasIndex) {
       const normalized = normalizeAlias(removeChainAnnotations(line));
-      const match = aliasIndex.find((item) => normalized.includes(item.normalized));
-      return match?.player || null;
+      const matches = aliasIndex.filter((item) => normalized.includes(item.normalized));
+      if (!matches.length) return { player: null, ambiguousPlayers: [] };
+      const longest = Math.max(...matches.map((item) => item.normalized.length));
+      const players = new Map();
+      matches
+        .filter((item) => item.normalized.length === longest)
+        .forEach((item) => players.set(Number(item.player.id), item.player));
+      const candidates = [...players.values()];
+      return candidates.length === 1
+        ? { player: candidates[0], ambiguousPlayers: [] }
+        : { player: null, ambiguousPlayers: candidates };
+    }
+
+    function findPlayerForLine(line, aliasIndex) {
+      return findPlayerMatchForLine(line, aliasIndex).player;
     }
 
     function removeChainAnnotations(value) {

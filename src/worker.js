@@ -552,8 +552,8 @@ async function listSessions(db) {
     `SELECT
        s.id AS session_id, s.date, s.venue, s.court_count, s.court_fee, s.shuttle_price, s.shuttle_count,
        s.court_price_rows, s.shuttle_price_rows, s.train_court, s.train_shuttle, s.created_at, s.updated_at,
-       p.player_id, p.player_name, p.slots, p.plus_count, p.amount, p.is_female,
-       p.gender_snapshot, p.level_snapshot
+       p.player_id, p.player_name, p.owner_player_id, p.owner_name_snapshot, p.is_companion,
+       p.slots, p.plus_count, p.amount, p.is_female, p.gender_snapshot, p.level_snapshot
      FROM booking_sessions s
      LEFT JOIN booking_session_players p ON p.session_id = s.id
      ORDER BY s.date ASC, s.id ASC, p.id ASC`
@@ -585,6 +585,9 @@ async function listSessions(db) {
       session.players.push({
         playerId: row.player_id === null ? null : Number(row.player_id),
         playerName: row.player_name || "",
+        ownerPlayerId: row.owner_player_id === null ? null : Number(row.owner_player_id),
+        ownerName: row.owner_name_snapshot || row.player_name || "",
+        isCompanion: Number(row.is_companion) !== 0,
         slots: Number(row.slots),
         plusCount: Number(row.plus_count),
         amount: Number(row.amount),
@@ -656,11 +659,23 @@ function normalizeSessionInput(body, fallbackVenue = "EDC", shuttleTypes = BOOKI
   const players = [];
   const seenPlayerIds = new Set();
   for (const raw of body.players) {
+    const isCompanion = raw?.isCompanion === true || raw?.isCompanion === 1;
     const hasPlayerId = raw?.playerId !== null && raw?.playerId !== undefined && raw?.playerId !== "";
     const playerId = hasPlayerId ? Number(raw.playerId) : null;
     if (playerId !== null && (!Number.isInteger(playerId) || playerId <= 0)) return null;
     if (playerId !== null && seenPlayerIds.has(playerId)) return null;
     const playerName = String(raw?.playerName || "").trim();
+    const ownerPlayerIdProvided = Object.prototype.hasOwnProperty.call(raw || {}, "ownerPlayerId");
+    const hasOwnerPlayerId = raw?.ownerPlayerId !== null
+      && raw?.ownerPlayerId !== undefined
+      && raw?.ownerPlayerId !== "";
+    let ownerPlayerId = hasOwnerPlayerId ? Number(raw.ownerPlayerId) : null;
+    if (ownerPlayerId !== null && (!Number.isInteger(ownerPlayerId) || ownerPlayerId <= 0)) return null;
+    let ownerName = String(raw?.ownerName || "").trim();
+    if (!isCompanion) {
+      if (!ownerPlayerIdProvided) ownerPlayerId = playerId;
+      if (!ownerName) ownerName = playerName;
+    }
     const slots = Number(raw?.slots);
     const plusCount = Number(raw?.plusCount);
     const amount = Number(raw?.amount);
@@ -672,10 +687,14 @@ function normalizeSessionInput(body, fallbackVenue = "EDC", shuttleTypes = BOOKI
     if (!Number.isInteger(plusCount) || plusCount < 0 || plusCount > Math.max(0, slots - 1)) return null;
     if (!Number.isFinite(amount) || amount < 0) return null;
     if (!playerName) return null;
+    if (!ownerName) return null;
     if (playerId !== null) seenPlayerIds.add(playerId);
     players.push({
       playerId,
       playerName,
+      ownerPlayerId,
+      ownerName,
+      isCompanion,
       slots,
       plusCount,
       amount,
@@ -806,12 +825,16 @@ async function insertSessionPlayers(db, sessionId, players) {
 function buildSessionPlayerStatements(db, sessionId, players) {
   return players.map((player) => db.prepare(
     `INSERT INTO booking_session_players
-       (session_id, player_id, player_name, slots, plus_count, amount, is_female, gender_snapshot, level_snapshot, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+       (session_id, player_id, player_name, owner_player_id, owner_name_snapshot, is_companion,
+        slots, plus_count, amount, is_female, gender_snapshot, level_snapshot, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).bind(
     sessionId,
     player.playerId,
     player.playerName,
+    player.ownerPlayerId,
+    player.ownerName,
+    player.isCompanion ? 1 : 0,
     player.slots,
     player.plusCount,
     player.amount,
@@ -1010,6 +1033,11 @@ async function buildPlayerDeletionStatements(db, playerId) {
   }
 
   statements.push(db.prepare("DELETE FROM payment_orders WHERE player_id = ?").bind(playerId));
+  statements.push(db.prepare(
+    `UPDATE booking_session_players
+     SET owner_player_id = NULL, updated_at = CURRENT_TIMESTAMP
+     WHERE owner_player_id = ?`
+  ).bind(playerId));
   statements.push(db.prepare("DELETE FROM players WHERE id = ?").bind(playerId));
   return statements;
 }

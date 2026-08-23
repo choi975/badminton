@@ -13,13 +13,13 @@ const players = [
 
 const paymentOrders = { "球友": [], "Hytronik": [] };
 const CHAIN_NUMBER_PREFIX = /^\s*\d+\s*[\.、\):：-]\s*/;
-const PLUS_LEVEL_LABELS = [["比赛级高手", "5级"], ["新手", "2级"], ["中手", "3级"], ["高手", "4级"]];
+const PLUS_LEVEL_LABELS = [["比赛级高手", "6级"], ["新手", "2级"], ["中手", "3级"], ["高手", "4级"]];
 const PLUS_LEVEL_OPTIONS = [
   { label: "不详", level: "不详" },
   { label: "新手", level: "2级" },
   { label: "中手", level: "3级" },
   { label: "高手", level: "4级" },
-  { label: "比赛级高手", level: "5级" },
+  { label: "比赛级高手", level: "6级" },
 ];
 const FEMALE_PAYMENT_CAP = 25;
 
@@ -461,10 +461,10 @@ if (getChainEntryDisplayName(manuallyEditedFriend).includes("🌸")) {
   throw new Error("Expected manual male override to remove the source flower from output");
 }
 const manualCompetitionOption = PLUS_LEVEL_OPTIONS.find((option) => option.label === "比赛级高手");
-if (manualCompetitionOption?.level !== "5级") throw new Error("Expected inline competition level to map to 5级");
+if (manualCompetitionOption?.level !== "6级") throw new Error("Expected inline competition level to map to 6级");
 const detectedCompetitionFriend = parseChainLine("甲乙丙+1比赛级高手", 0, buildAliasIndex());
-if (detectedCompetitionFriend.levelText !== "5级" || detectedCompetitionFriend.levelGroupLabel !== "比赛级高手") {
-  throw new Error("Expected competition friend annotation to map to 比赛级高手 / 5级");
+if (detectedCompetitionFriend.levelText !== "6级" || detectedCompetitionFriend.levelGroupLabel !== "比赛级高手") {
+  throw new Error("Expected competition friend annotation to map to 比赛级高手 / 6级");
 }
 
 const cappedEntries = [

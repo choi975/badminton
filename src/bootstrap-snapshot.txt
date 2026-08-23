@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-23T06:37:47.727Z",
+  "generatedAt": "2026-08-23T10:13:00.546Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -629,7 +629,7 @@
       },
       {
         "id": 55,
-        "name": "]]]】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】】",
+        "name": "刘嘉欣",
         "gender": "女",
         "level": "不详",
         "affiliation": "球友",
@@ -637,7 +637,7 @@
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-28 02:42:21",
-        "updatedAt": "2026-08-23 04:17:37"
+        "updatedAt": "2026-08-23 08:00:15"
       },
       {
         "id": 56,
@@ -890,6 +890,30 @@
         "participatesPayment": true,
         "createdAt": "2026-08-21 14:24:11",
         "updatedAt": "2026-08-21 14:31:25"
+      },
+      {
+        "id": 79,
+        "name": "秀秀🌸，秀秀",
+        "gender": "女",
+        "level": "不详",
+        "affiliation": "球友",
+        "notes": "",
+        "photoKey": "",
+        "participatesPayment": true,
+        "createdAt": "2026-08-23 08:02:37",
+        "updatedAt": "2026-08-23 08:03:05"
+      },
+      {
+        "id": 80,
+        "name": "诺亚建材，王13695673770",
+        "gender": "女",
+        "level": "不详",
+        "affiliation": "球友",
+        "notes": "",
+        "photoKey": "",
+        "participatesPayment": true,
+        "createdAt": "2026-08-23 08:02:53",
+        "updatedAt": "2026-08-23 08:03:06"
       }
     ],
     "levelDescriptions": {
@@ -1138,6 +1162,14 @@
         {
           "playerId": 78,
           "joinNumber": 59
+        },
+        {
+          "playerId": 79,
+          "joinNumber": 60
+        },
+        {
+          "playerId": 80,
+          "joinNumber": 61
         }
       ],
       "Hytronik": [
@@ -1289,7 +1321,9 @@
         74,
         75,
         76,
-        78
+        78,
+        79,
+        80
       ],
       "Hytronik": [
         11,
@@ -1344,6 +1378,9 @@
           {
             "playerId": 15,
             "playerName": "江涛",
+            "ownerPlayerId": 15,
+            "ownerName": "江涛",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 16.6,
@@ -1354,6 +1391,9 @@
           {
             "playerId": 13,
             "playerName": "甲乙丙",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 16.6,
@@ -1364,6 +1404,9 @@
           {
             "playerId": 41,
             "playerName": "清。",
+            "ownerPlayerId": 41,
+            "ownerName": "清。",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 16.6,
@@ -1374,6 +1417,9 @@
           {
             "playerId": 9,
             "playerName": "柚子🍀",
+            "ownerPlayerId": 9,
+            "ownerName": "柚子🍀",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 33.2,
@@ -1384,6 +1430,9 @@
           {
             "playerId": 8,
             "playerName": "阿恒",
+            "ownerPlayerId": 8,
+            "ownerName": "阿恒",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 16.6,
@@ -1394,6 +1443,9 @@
           {
             "playerId": 49,
             "playerName": "Maiko",
+            "ownerPlayerId": 49,
+            "ownerName": "Maiko",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 16.6,
@@ -1432,6 +1484,9 @@
           {
             "playerId": 15,
             "playerName": "江涛",
+            "ownerPlayerId": 15,
+            "ownerName": "江涛",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1442,6 +1497,9 @@
           {
             "playerId": 37,
             "playerName": "🎀 ～TomCat",
+            "ownerPlayerId": 37,
+            "ownerName": "🎀 ～TomCat",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1452,6 +1510,9 @@
           {
             "playerId": 39,
             "playerName": "1fan",
+            "ownerPlayerId": 39,
+            "ownerName": "1fan",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1462,6 +1523,9 @@
           {
             "playerId": 40,
             "playerName": "小孩哥",
+            "ownerPlayerId": 40,
+            "ownerName": "小孩哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1472,6 +1536,9 @@
           {
             "playerId": 9,
             "playerName": "柚子🍀",
+            "ownerPlayerId": 9,
+            "ownerName": "柚子🍀",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1482,6 +1549,9 @@
           {
             "playerId": 20,
             "playerName": "0.o",
+            "ownerPlayerId": 20,
+            "ownerName": "0.o",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1492,6 +1562,9 @@
           {
             "playerId": 45,
             "playerName": "吕教",
+            "ownerPlayerId": 45,
+            "ownerName": "吕教",
+            "isCompanion": false,
             "slots": 3,
             "plusCount": 2,
             "amount": 57.6,
@@ -1502,6 +1575,9 @@
           {
             "playerId": 46,
             "playerName": "政",
+            "ownerPlayerId": 46,
+            "ownerName": "政",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1512,6 +1588,9 @@
           {
             "playerId": 47,
             "playerName": "狗屁熊",
+            "ownerPlayerId": 47,
+            "ownerName": "狗屁熊",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1522,6 +1601,9 @@
           {
             "playerId": 10,
             "playerName": "🌹",
+            "ownerPlayerId": 10,
+            "ownerName": "🌹",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1532,6 +1614,9 @@
           {
             "playerId": 24,
             "playerName": "Hx7",
+            "ownerPlayerId": 24,
+            "ownerName": "Hx7",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1542,6 +1627,9 @@
           {
             "playerId": 14,
             "playerName": "小零",
+            "ownerPlayerId": 14,
+            "ownerName": "小零",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1552,6 +1640,9 @@
           {
             "playerId": 53,
             "playerName": "oi",
+            "ownerPlayerId": 53,
+            "ownerName": "oi",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 38.4,
@@ -1562,6 +1653,9 @@
           {
             "playerId": 11,
             "playerName": "老洪",
+            "ownerPlayerId": 11,
+            "ownerName": "老洪",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1572,6 +1666,9 @@
           {
             "playerId": 1,
             "playerName": "达哥",
+            "ownerPlayerId": 1,
+            "ownerName": "达哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1582,6 +1679,9 @@
           {
             "playerId": 5,
             "playerName": "杰哥",
+            "ownerPlayerId": 5,
+            "ownerName": "杰哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1592,6 +1692,9 @@
           {
             "playerId": 6,
             "playerName": "冯丽美",
+            "ownerPlayerId": 6,
+            "ownerName": "冯丽美",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1602,6 +1705,9 @@
           {
             "playerId": 4,
             "playerName": "何兴康",
+            "ownerPlayerId": 4,
+            "ownerName": "何兴康",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1612,6 +1718,9 @@
           {
             "playerId": 29,
             "playerName": "listen",
+            "ownerPlayerId": 29,
+            "ownerName": "listen",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1622,6 +1731,9 @@
           {
             "playerId": 31,
             "playerName": "April",
+            "ownerPlayerId": 31,
+            "ownerName": "April",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1632,6 +1744,9 @@
           {
             "playerId": 7,
             "playerName": "huangjie21",
+            "ownerPlayerId": 7,
+            "ownerName": "huangjie21",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1642,6 +1757,9 @@
           {
             "playerId": 16,
             "playerName": "ben",
+            "ownerPlayerId": 16,
+            "ownerName": "ben",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1652,6 +1770,9 @@
           {
             "playerId": 17,
             "playerName": "Baymax",
+            "ownerPlayerId": 17,
+            "ownerName": "Baymax",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1662,6 +1783,9 @@
           {
             "playerId": 51,
             "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -1700,6 +1824,9 @@
           {
             "playerId": 13,
             "playerName": "甲乙丙",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 18.4,
@@ -1710,6 +1837,9 @@
           {
             "playerId": 41,
             "playerName": "清。",
+            "ownerPlayerId": 41,
+            "ownerName": "清。",
+            "isCompanion": false,
             "slots": 3,
             "plusCount": 2,
             "amount": 55.2,
@@ -1720,6 +1850,9 @@
           {
             "playerId": 45,
             "playerName": "吕教",
+            "ownerPlayerId": 45,
+            "ownerName": "吕教",
+            "isCompanion": false,
             "slots": 5,
             "plusCount": 4,
             "amount": 92,
@@ -1730,6 +1863,9 @@
           {
             "playerId": 10,
             "playerName": "🌹",
+            "ownerPlayerId": 10,
+            "ownerName": "🌹",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 18.4,
@@ -1740,6 +1876,9 @@
           {
             "playerId": 26,
             "playerName": "威朱",
+            "ownerPlayerId": 26,
+            "ownerName": "威朱",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 18.4,
@@ -1750,6 +1889,9 @@
           {
             "playerId": 12,
             "playerName": "刘俊杰",
+            "ownerPlayerId": 12,
+            "ownerName": "刘俊杰",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 18.4,
@@ -1760,6 +1902,9 @@
           {
             "playerId": 17,
             "playerName": "Baymax",
+            "ownerPlayerId": 17,
+            "ownerName": "Baymax",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 18.4,
@@ -1770,6 +1915,9 @@
           {
             "playerId": 54,
             "playerName": "游",
+            "ownerPlayerId": 54,
+            "ownerName": "游",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 18.4,
@@ -1780,6 +1928,9 @@
           {
             "playerId": 51,
             "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 18.4,
@@ -1818,6 +1969,9 @@
           {
             "playerId": 37,
             "playerName": "🎀 ～TomCat",
+            "ownerPlayerId": 37,
+            "ownerName": "🎀 ～TomCat",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1828,6 +1982,9 @@
           {
             "playerId": 38,
             "playerName": "吴悠",
+            "ownerPlayerId": 38,
+            "ownerName": "吴悠",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 47.8,
@@ -1838,6 +1995,9 @@
           {
             "playerId": 13,
             "playerName": "甲乙丙",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1848,6 +2008,9 @@
           {
             "playerId": 39,
             "playerName": "1fan",
+            "ownerPlayerId": 39,
+            "ownerName": "1fan",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1858,6 +2021,9 @@
           {
             "playerId": 23,
             "playerName": "L",
+            "ownerPlayerId": 23,
+            "ownerName": "L",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1868,6 +2034,9 @@
           {
             "playerId": 44,
             "playerName": "黃安鋒",
+            "ownerPlayerId": 44,
+            "ownerName": "黃安鋒",
+            "isCompanion": false,
             "slots": 3,
             "plusCount": 2,
             "amount": 71.7,
@@ -1878,6 +2047,9 @@
           {
             "playerId": 19,
             "playerName": "FENG",
+            "ownerPlayerId": 19,
+            "ownerName": "FENG",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1888,6 +2060,9 @@
           {
             "playerId": 24,
             "playerName": "Hx7",
+            "ownerPlayerId": 24,
+            "ownerName": "Hx7",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1898,6 +2073,9 @@
           {
             "playerId": 11,
             "playerName": "老洪",
+            "ownerPlayerId": 11,
+            "ownerName": "老洪",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1908,6 +2086,9 @@
           {
             "playerId": 5,
             "playerName": "杰哥",
+            "ownerPlayerId": 5,
+            "ownerName": "杰哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1918,6 +2099,9 @@
           {
             "playerId": 6,
             "playerName": "冯丽美",
+            "ownerPlayerId": 6,
+            "ownerName": "冯丽美",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1928,6 +2112,9 @@
           {
             "playerId": 4,
             "playerName": "何兴康",
+            "ownerPlayerId": 4,
+            "ownerName": "何兴康",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1938,6 +2125,9 @@
           {
             "playerId": 31,
             "playerName": "April",
+            "ownerPlayerId": 31,
+            "ownerName": "April",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1948,6 +2138,9 @@
           {
             "playerId": 7,
             "playerName": "huangjie21",
+            "ownerPlayerId": 7,
+            "ownerName": "huangjie21",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1958,6 +2151,9 @@
           {
             "playerId": 16,
             "playerName": "ben",
+            "ownerPlayerId": 16,
+            "ownerName": "ben",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1968,6 +2164,9 @@
           {
             "playerId": 17,
             "playerName": "Baymax",
+            "ownerPlayerId": 17,
+            "ownerName": "Baymax",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -1978,6 +2177,9 @@
           {
             "playerId": 51,
             "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 23.9,
@@ -2016,6 +2218,9 @@
           {
             "playerId": 9,
             "playerName": "柚子🍀",
+            "ownerPlayerId": 9,
+            "ownerName": "柚子🍀",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 34.8,
@@ -2026,6 +2231,9 @@
           {
             "playerId": 10,
             "playerName": "🌹",
+            "ownerPlayerId": 10,
+            "ownerName": "🌹",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 17.4,
@@ -2036,6 +2244,9 @@
           {
             "playerId": 24,
             "playerName": "Hx7",
+            "ownerPlayerId": 24,
+            "ownerName": "Hx7",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 17.4,
@@ -2046,6 +2257,9 @@
           {
             "playerId": 33,
             "playerName": "朱薛陈",
+            "ownerPlayerId": 33,
+            "ownerName": "朱薛陈",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 17.4,
@@ -2056,6 +2270,9 @@
           {
             "playerId": 51,
             "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 17.4,
@@ -2094,6 +2311,9 @@
           {
             "playerId": 38,
             "playerName": "吴悠",
+            "ownerPlayerId": 38,
+            "ownerName": "吴悠",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 24.5,
@@ -2104,6 +2324,9 @@
           {
             "playerId": 44,
             "playerName": "黃安鋒",
+            "ownerPlayerId": 44,
+            "ownerName": "黃安鋒",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 49,
@@ -2114,6 +2337,9 @@
           {
             "playerId": 24,
             "playerName": "Hx7",
+            "ownerPlayerId": 24,
+            "ownerName": "Hx7",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 24.5,
@@ -2124,6 +2350,9 @@
           {
             "playerId": 53,
             "playerName": "oi",
+            "ownerPlayerId": 53,
+            "ownerName": "oi",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 49,
@@ -2134,6 +2363,9 @@
           {
             "playerId": 11,
             "playerName": "老洪",
+            "ownerPlayerId": 11,
+            "ownerName": "老洪",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 24.5,
@@ -2144,6 +2376,9 @@
           {
             "playerId": 26,
             "playerName": "威朱",
+            "ownerPlayerId": 26,
+            "ownerName": "威朱",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 49,
@@ -2154,6 +2389,9 @@
           {
             "playerId": 1,
             "playerName": "达哥",
+            "ownerPlayerId": 1,
+            "ownerName": "达哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 24.5,
@@ -2164,6 +2402,9 @@
           {
             "playerId": 12,
             "playerName": "刘俊杰",
+            "ownerPlayerId": 12,
+            "ownerName": "刘俊杰",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 24.5,
@@ -2174,6 +2415,9 @@
           {
             "playerId": 33,
             "playerName": "朱薛陈",
+            "ownerPlayerId": 33,
+            "ownerName": "朱薛陈",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 24.5,
@@ -2184,6 +2428,9 @@
           {
             "playerId": 2,
             "playerName": "Benny",
+            "ownerPlayerId": 2,
+            "ownerName": "Benny",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 24.5,
@@ -2194,6 +2441,9 @@
           {
             "playerId": 16,
             "playerName": "ben",
+            "ownerPlayerId": 16,
+            "ownerName": "ben",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 24.5,
@@ -2204,6 +2454,9 @@
           {
             "playerId": 17,
             "playerName": "Baymax",
+            "ownerPlayerId": 17,
+            "ownerName": "Baymax",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 24.5,
@@ -2214,6 +2467,9 @@
           {
             "playerId": 51,
             "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 24.5,
@@ -2252,6 +2508,9 @@
           {
             "playerId": 9,
             "playerName": "柚子🍀",
+            "ownerPlayerId": 9,
+            "ownerName": "柚子🍀",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 30.4,
@@ -2262,6 +2521,9 @@
           {
             "playerId": 19,
             "playerName": "FENG",
+            "ownerPlayerId": 19,
+            "ownerName": "FENG",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 15.2,
@@ -2272,6 +2534,9 @@
           {
             "playerId": 45,
             "playerName": "吕教",
+            "ownerPlayerId": 45,
+            "ownerName": "吕教",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 15.2,
@@ -2282,6 +2547,9 @@
           {
             "playerId": 10,
             "playerName": "🌹",
+            "ownerPlayerId": 10,
+            "ownerName": "🌹",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 15.2,
@@ -2292,6 +2560,9 @@
           {
             "playerId": 53,
             "playerName": "oi",
+            "ownerPlayerId": 53,
+            "ownerName": "oi",
+            "isCompanion": false,
             "slots": 3,
             "plusCount": 2,
             "amount": 45.6,
@@ -2302,6 +2573,9 @@
           {
             "playerId": 73,
             "playerName": "果花",
+            "ownerPlayerId": 73,
+            "ownerName": "果花",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 15.2,
@@ -2312,6 +2586,9 @@
           {
             "playerId": 1,
             "playerName": "达哥",
+            "ownerPlayerId": 1,
+            "ownerName": "达哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 15.2,
@@ -2322,6 +2599,9 @@
           {
             "playerId": 27,
             "playerName": "孙子城",
+            "ownerPlayerId": 27,
+            "ownerName": "孙子城",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 15.2,
@@ -2332,6 +2612,9 @@
           {
             "playerId": 29,
             "playerName": "listen",
+            "ownerPlayerId": 29,
+            "ownerName": "listen",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 15.2,
@@ -2342,6 +2625,9 @@
           {
             "playerId": 51,
             "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 15.2,
@@ -2369,6 +2655,9 @@
           {
             "playerId": 15,
             "playerName": "江涛",
+            "ownerPlayerId": 15,
+            "ownerName": "江涛",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 14.1,
@@ -2379,6 +2668,9 @@
           {
             "playerId": 37,
             "playerName": "🎀 ～TomCat",
+            "ownerPlayerId": 37,
+            "ownerName": "🎀 ～TomCat",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 14.1,
@@ -2389,6 +2681,9 @@
           {
             "playerId": 13,
             "playerName": "甲乙丙",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": false,
             "slots": 5,
             "plusCount": 4,
             "amount": 70.5,
@@ -2399,6 +2694,9 @@
           {
             "playerId": 39,
             "playerName": "1fan",
+            "ownerPlayerId": 39,
+            "ownerName": "1fan",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 14.1,
@@ -2409,6 +2707,9 @@
           {
             "playerId": 41,
             "playerName": "清。",
+            "ownerPlayerId": 41,
+            "ownerName": "清。",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 14.1,
@@ -2419,6 +2720,9 @@
           {
             "playerId": 9,
             "playerName": "柚子🍀",
+            "ownerPlayerId": 9,
+            "ownerName": "柚子🍀",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 14.1,
@@ -2429,6 +2733,9 @@
           {
             "playerId": 8,
             "playerName": "阿恒",
+            "ownerPlayerId": 8,
+            "ownerName": "阿恒",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 14.1,
@@ -2439,6 +2746,9 @@
           {
             "playerId": 1,
             "playerName": "达哥",
+            "ownerPlayerId": 1,
+            "ownerName": "达哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 14.1,
@@ -2449,6 +2759,9 @@
           {
             "playerId": 45,
             "playerName": "吕教",
+            "ownerPlayerId": 45,
+            "ownerName": "吕教",
+            "isCompanion": false,
             "slots": 3,
             "plusCount": 2,
             "amount": 42.3,
@@ -2459,6 +2772,9 @@
           {
             "playerId": 10,
             "playerName": "🌹",
+            "ownerPlayerId": 10,
+            "ownerName": "🌹",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 28.2,
@@ -2469,6 +2785,9 @@
           {
             "playerId": 24,
             "playerName": "Hx7",
+            "ownerPlayerId": 24,
+            "ownerName": "Hx7",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 14.1,
@@ -2479,6 +2798,9 @@
           {
             "playerId": 60,
             "playerName": "Pony boy",
+            "ownerPlayerId": 60,
+            "ownerName": "Pony boy",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 14.1,
@@ -2506,6 +2828,9 @@
           {
             "playerId": 38,
             "playerName": "吴悠",
+            "ownerPlayerId": 38,
+            "ownerName": "吴悠",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21,
@@ -2516,6 +2841,9 @@
           {
             "playerId": 24,
             "playerName": "Hx7",
+            "ownerPlayerId": 24,
+            "ownerName": "Hx7",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21,
@@ -2526,6 +2854,9 @@
           {
             "playerId": 73,
             "playerName": "果花",
+            "ownerPlayerId": 73,
+            "ownerName": "果花",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21,
@@ -2536,6 +2867,9 @@
           {
             "playerId": 11,
             "playerName": "老洪",
+            "ownerPlayerId": 11,
+            "ownerName": "老洪",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21,
@@ -2546,6 +2880,9 @@
           {
             "playerId": 26,
             "playerName": "威朱",
+            "ownerPlayerId": 26,
+            "ownerName": "威朱",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21,
@@ -2556,6 +2893,9 @@
           {
             "playerId": 5,
             "playerName": "杰哥",
+            "ownerPlayerId": 5,
+            "ownerName": "杰哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21,
@@ -2566,6 +2906,9 @@
           {
             "playerId": 12,
             "playerName": "刘俊杰",
+            "ownerPlayerId": 12,
+            "ownerName": "刘俊杰",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21,
@@ -2576,6 +2919,9 @@
           {
             "playerId": 7,
             "playerName": "huangjie21",
+            "ownerPlayerId": 7,
+            "ownerName": "huangjie21",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21,
@@ -2586,6 +2932,9 @@
           {
             "playerId": 17,
             "playerName": "Baymax",
+            "ownerPlayerId": 17,
+            "ownerName": "Baymax",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21,
@@ -2596,6 +2945,9 @@
           {
             "playerId": 54,
             "playerName": "游",
+            "ownerPlayerId": 54,
+            "ownerName": "游",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21,
@@ -2606,6 +2958,9 @@
           {
             "playerId": 51,
             "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21,
@@ -2633,6 +2988,9 @@
           {
             "playerId": 15,
             "playerName": "江涛",
+            "ownerPlayerId": 15,
+            "ownerName": "江涛",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -2643,6 +3001,9 @@
           {
             "playerId": 13,
             "playerName": "甲乙丙",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": false,
             "slots": 4,
             "plusCount": 3,
             "amount": 76.8,
@@ -2653,6 +3014,9 @@
           {
             "playerId": 40,
             "playerName": "小孩哥",
+            "ownerPlayerId": 40,
+            "ownerName": "小孩哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -2663,6 +3027,9 @@
           {
             "playerId": 1,
             "playerName": "达哥",
+            "ownerPlayerId": 1,
+            "ownerName": "达哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -2673,6 +3040,9 @@
           {
             "playerId": 20,
             "playerName": "0.o",
+            "ownerPlayerId": 20,
+            "ownerName": "0.o",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -2683,6 +3053,9 @@
           {
             "playerId": 45,
             "playerName": "吕教",
+            "ownerPlayerId": 45,
+            "ownerName": "吕教",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 38.4,
@@ -2693,6 +3066,9 @@
           {
             "playerId": 10,
             "playerName": "🌹",
+            "ownerPlayerId": 10,
+            "ownerName": "🌹",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -2703,6 +3079,9 @@
           {
             "playerId": 24,
             "playerName": "Hx7",
+            "ownerPlayerId": 24,
+            "ownerName": "Hx7",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.2,
@@ -2730,6 +3109,9 @@
           {
             "playerId": 38,
             "playerName": "吴悠",
+            "ownerPlayerId": 38,
+            "ownerName": "吴悠",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2740,6 +3122,9 @@
           {
             "playerId": 20,
             "playerName": "0.o",
+            "ownerPlayerId": 20,
+            "ownerName": "0.o",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2750,6 +3135,9 @@
           {
             "playerId": 19,
             "playerName": "FENG",
+            "ownerPlayerId": 19,
+            "ownerName": "FENG",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2760,6 +3148,9 @@
           {
             "playerId": 24,
             "playerName": "Hx7",
+            "ownerPlayerId": 24,
+            "ownerName": "Hx7",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2770,6 +3161,9 @@
           {
             "playerId": 11,
             "playerName": "老洪",
+            "ownerPlayerId": 11,
+            "ownerName": "老洪",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2780,6 +3174,9 @@
           {
             "playerId": 26,
             "playerName": "威朱",
+            "ownerPlayerId": 26,
+            "ownerName": "威朱",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2790,6 +3187,9 @@
           {
             "playerId": 1,
             "playerName": "达哥",
+            "ownerPlayerId": 1,
+            "ownerName": "达哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2800,6 +3200,9 @@
           {
             "playerId": 5,
             "playerName": "杰哥",
+            "ownerPlayerId": 5,
+            "ownerName": "杰哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2810,6 +3213,9 @@
           {
             "playerId": 6,
             "playerName": "冯丽美",
+            "ownerPlayerId": 6,
+            "ownerName": "冯丽美",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2820,6 +3226,9 @@
           {
             "playerId": 4,
             "playerName": "何兴康",
+            "ownerPlayerId": 4,
+            "ownerName": "何兴康",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2830,6 +3239,9 @@
           {
             "playerId": 31,
             "playerName": "April",
+            "ownerPlayerId": 31,
+            "ownerName": "April",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2840,6 +3252,9 @@
           {
             "playerId": 16,
             "playerName": "ben",
+            "ownerPlayerId": 16,
+            "ownerName": "ben",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2850,6 +3265,9 @@
           {
             "playerId": 17,
             "playerName": "Baymax",
+            "ownerPlayerId": 17,
+            "ownerName": "Baymax",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2860,6 +3278,9 @@
           {
             "playerId": 51,
             "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 19.7,
@@ -2903,6 +3324,9 @@
           {
             "playerId": 37,
             "playerName": "🎀 ～TomCat",
+            "ownerPlayerId": 37,
+            "ownerName": "🎀 ～TomCat",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 8.9,
@@ -2913,6 +3337,9 @@
           {
             "playerId": 13,
             "playerName": "甲乙丙",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": false,
             "slots": 8,
             "plusCount": 7,
             "amount": 71.2,
@@ -2923,6 +3350,9 @@
           {
             "playerId": 39,
             "playerName": "1fan",
+            "ownerPlayerId": 39,
+            "ownerName": "1fan",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 8.9,
@@ -2933,6 +3363,9 @@
           {
             "playerId": 1,
             "playerName": "达哥",
+            "ownerPlayerId": 1,
+            "ownerName": "达哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 8.9,
@@ -2943,6 +3376,9 @@
           {
             "playerId": 11,
             "playerName": "老洪",
+            "ownerPlayerId": 11,
+            "ownerName": "老洪",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 8.9,
@@ -2953,6 +3389,9 @@
           {
             "playerId": 20,
             "playerName": "0.o",
+            "ownerPlayerId": 20,
+            "ownerName": "0.o",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 8.9,
@@ -2963,6 +3402,9 @@
           {
             "playerId": 44,
             "playerName": "黃安鋒",
+            "ownerPlayerId": 44,
+            "ownerName": "黃安鋒",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 8.9,
@@ -2973,6 +3415,9 @@
           {
             "playerId": 19,
             "playerName": "FENG",
+            "ownerPlayerId": 19,
+            "ownerName": "FENG",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 8.9,
@@ -2983,6 +3428,9 @@
           {
             "playerId": 45,
             "playerName": "吕教",
+            "ownerPlayerId": 45,
+            "ownerName": "吕教",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 17.8,
@@ -2993,6 +3441,9 @@
           {
             "playerId": 10,
             "playerName": "🌹",
+            "ownerPlayerId": 10,
+            "ownerName": "🌹",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 17.8,
@@ -3003,6 +3454,9 @@
           {
             "playerId": 4,
             "playerName": "何兴康",
+            "ownerPlayerId": 4,
+            "ownerName": "何兴康",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 8.9,
@@ -3013,6 +3467,9 @@
           {
             "playerId": 24,
             "playerName": "Hx7",
+            "ownerPlayerId": 24,
+            "ownerName": "Hx7",
+            "isCompanion": false,
             "slots": 3,
             "plusCount": 2,
             "amount": 26.700000000000003,
@@ -3023,6 +3480,9 @@
           {
             "playerId": 73,
             "playerName": "果花",
+            "ownerPlayerId": 73,
+            "ownerName": "果花",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 17.8,
@@ -3033,6 +3493,9 @@
           {
             "playerId": 74,
             "playerName": "稻草人",
+            "ownerPlayerId": 74,
+            "ownerName": "稻草人",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 8.9,
@@ -3043,6 +3506,9 @@
           {
             "playerId": 51,
             "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 8.9,
@@ -3081,6 +3547,9 @@
           {
             "playerId": 15,
             "playerName": "江涛",
+            "ownerPlayerId": 15,
+            "ownerName": "江涛",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 11.6,
@@ -3091,6 +3560,9 @@
           {
             "playerId": 41,
             "playerName": "清。",
+            "ownerPlayerId": 41,
+            "ownerName": "清。",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 11.6,
@@ -3101,6 +3573,9 @@
           {
             "playerId": 42,
             "playerName": "珠珠",
+            "ownerPlayerId": 42,
+            "ownerName": "珠珠",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 11.6,
@@ -3111,6 +3586,9 @@
           {
             "playerId": 24,
             "playerName": "Hx7",
+            "ownerPlayerId": 24,
+            "ownerName": "Hx7",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 11.6,
@@ -3121,6 +3599,9 @@
           {
             "playerId": 60,
             "playerName": "Pony boy",
+            "ownerPlayerId": 60,
+            "ownerName": "Pony boy",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 23.2,
@@ -3131,6 +3612,9 @@
           {
             "playerId": 74,
             "playerName": "稻草人",
+            "ownerPlayerId": 74,
+            "ownerName": "稻草人",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 11.6,
@@ -3141,6 +3625,9 @@
           {
             "playerId": 33,
             "playerName": "朱薛陈",
+            "ownerPlayerId": 33,
+            "ownerName": "朱薛陈",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 11.6,
@@ -3151,6 +3638,9 @@
           {
             "playerId": 54,
             "playerName": "游",
+            "ownerPlayerId": 54,
+            "ownerName": "游",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 11.6,
@@ -3161,6 +3651,9 @@
           {
             "playerId": 51,
             "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 11.6,
@@ -3199,6 +3692,9 @@
           {
             "playerId": 13,
             "playerName": "甲乙丙",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": false,
             "slots": 3,
             "plusCount": 2,
             "amount": 64.19999999999999,
@@ -3209,6 +3705,9 @@
           {
             "playerId": 9,
             "playerName": "柚子🍀",
+            "ownerPlayerId": 9,
+            "ownerName": "柚子🍀",
+            "isCompanion": false,
             "slots": 2,
             "plusCount": 1,
             "amount": 42.8,
@@ -3219,6 +3718,9 @@
           {
             "playerId": 8,
             "playerName": "阿恒",
+            "ownerPlayerId": 8,
+            "ownerName": "阿恒",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.4,
@@ -3229,6 +3731,9 @@
           {
             "playerId": 1,
             "playerName": "达哥",
+            "ownerPlayerId": 1,
+            "ownerName": "达哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.4,
@@ -3239,6 +3744,9 @@
           {
             "playerId": 19,
             "playerName": "FENG",
+            "ownerPlayerId": 19,
+            "ownerName": "FENG",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.4,
@@ -3249,6 +3757,9 @@
           {
             "playerId": 10,
             "playerName": "🌹",
+            "ownerPlayerId": 10,
+            "ownerName": "🌹",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.4,
@@ -3259,6 +3770,9 @@
           {
             "playerId": 49,
             "playerName": "Maiko",
+            "ownerPlayerId": 49,
+            "ownerName": "Maiko",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.4,
@@ -3269,6 +3783,9 @@
           {
             "playerId": 59,
             "playerName": "俊",
+            "ownerPlayerId": 59,
+            "ownerName": "俊",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.4,
@@ -3279,6 +3796,9 @@
           {
             "playerId": 26,
             "playerName": "威朱",
+            "ownerPlayerId": 26,
+            "ownerName": "威朱",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.4,
@@ -3289,6 +3809,9 @@
           {
             "playerId": 5,
             "playerName": "杰哥",
+            "ownerPlayerId": 5,
+            "ownerName": "杰哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.4,
@@ -3299,6 +3822,9 @@
           {
             "playerId": 16,
             "playerName": "ben",
+            "ownerPlayerId": 16,
+            "ownerName": "ben",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.4,
@@ -3337,6 +3863,9 @@
           {
             "playerId": 9,
             "playerName": "柚子🍀",
+            "ownerPlayerId": 9,
+            "ownerName": "柚子🍀",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.3,
@@ -3347,6 +3876,9 @@
           {
             "playerId": 8,
             "playerName": "阿恒",
+            "ownerPlayerId": 8,
+            "ownerName": "阿恒",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.3,
@@ -3357,6 +3889,9 @@
           {
             "playerId": 11,
             "playerName": "老洪",
+            "ownerPlayerId": 11,
+            "ownerName": "老洪",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.3,
@@ -3367,6 +3902,9 @@
           {
             "playerId": 19,
             "playerName": "FENG",
+            "ownerPlayerId": 19,
+            "ownerName": "FENG",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.3,
@@ -3377,6 +3915,9 @@
           {
             "playerId": 45,
             "playerName": "吕教",
+            "ownerPlayerId": 45,
+            "ownerName": "吕教",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.3,
@@ -3387,6 +3928,9 @@
           {
             "playerId": 10,
             "playerName": "🌹",
+            "ownerPlayerId": 10,
+            "ownerName": "🌹",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.3,
@@ -3397,6 +3941,9 @@
           {
             "playerId": 49,
             "playerName": "Maiko",
+            "ownerPlayerId": 49,
+            "ownerName": "Maiko",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.3,
@@ -3407,6 +3954,9 @@
           {
             "playerId": 73,
             "playerName": "果花",
+            "ownerPlayerId": 73,
+            "ownerName": "果花",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.3,
@@ -3417,6 +3967,9 @@
           {
             "playerId": 74,
             "playerName": "稻草人",
+            "ownerPlayerId": 74,
+            "ownerName": "稻草人",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.3,
@@ -3427,6 +3980,9 @@
           {
             "playerId": 75,
             "playerName": "春玲",
+            "ownerPlayerId": 75,
+            "ownerName": "春玲",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.3,
@@ -3437,6 +3993,9 @@
           {
             "playerId": 76,
             "playerName": "严迪",
+            "ownerPlayerId": 76,
+            "ownerName": "严迪",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.3,
@@ -3447,6 +4006,9 @@
           {
             "playerId": 26,
             "playerName": "威朱",
+            "ownerPlayerId": 26,
+            "ownerName": "威朱",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.3,
@@ -3457,6 +4019,9 @@
           {
             "playerId": 51,
             "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 21.3,
@@ -3495,6 +4060,9 @@
           {
             "playerId": 41,
             "playerName": "清。",
+            "ownerPlayerId": 41,
+            "ownerName": "清。",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 20.4,
@@ -3505,6 +4073,9 @@
           {
             "playerId": 1,
             "playerName": "达哥",
+            "ownerPlayerId": 1,
+            "ownerName": "达哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 20.4,
@@ -3515,6 +4086,9 @@
           {
             "playerId": 19,
             "playerName": "FENG",
+            "ownerPlayerId": 19,
+            "ownerName": "FENG",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 20.4,
@@ -3525,6 +4099,9 @@
           {
             "playerId": 53,
             "playerName": "oi",
+            "ownerPlayerId": 53,
+            "ownerName": "oi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 20.4,
@@ -3535,6 +4112,9 @@
           {
             "playerId": 74,
             "playerName": "稻草人",
+            "ownerPlayerId": 74,
+            "ownerName": "稻草人",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 20.4,
@@ -3545,6 +4125,9 @@
           {
             "playerId": null,
             "playerName": "oi +1",
+            "ownerPlayerId": 53,
+            "ownerName": "oi",
+            "isCompanion": true,
             "slots": 1,
             "plusCount": 0,
             "amount": 20.4,
@@ -3555,6 +4138,9 @@
           {
             "playerId": 11,
             "playerName": "老洪",
+            "ownerPlayerId": 11,
+            "ownerName": "老洪",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 20.4,
@@ -3565,6 +4151,9 @@
           {
             "playerId": 5,
             "playerName": "杰哥",
+            "ownerPlayerId": 5,
+            "ownerName": "杰哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 20.4,
@@ -3575,6 +4164,9 @@
           {
             "playerId": 12,
             "playerName": "刘俊杰",
+            "ownerPlayerId": 12,
+            "ownerName": "刘俊杰",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 20.4,
@@ -3585,6 +4177,9 @@
           {
             "playerId": 4,
             "playerName": "何兴康",
+            "ownerPlayerId": 4,
+            "ownerName": "何兴康",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 20.4,
@@ -3595,6 +4190,9 @@
           {
             "playerId": 16,
             "playerName": "ben",
+            "ownerPlayerId": 16,
+            "ownerName": "ben",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 20.4,
@@ -3605,6 +4203,9 @@
           {
             "playerId": 17,
             "playerName": "Baymax",
+            "ownerPlayerId": 17,
+            "ownerName": "Baymax",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 20.4,
@@ -3615,6 +4216,9 @@
           {
             "playerId": 51,
             "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 20.4,
@@ -3653,6 +4257,9 @@
           {
             "playerId": 51,
             "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3663,6 +4270,9 @@
           {
             "playerId": 31,
             "playerName": "April",
+            "ownerPlayerId": 31,
+            "ownerName": "April",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3673,6 +4283,9 @@
           {
             "playerId": 45,
             "playerName": "吕教",
+            "ownerPlayerId": 45,
+            "ownerName": "吕教",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3683,6 +4296,9 @@
           {
             "playerId": 7,
             "playerName": "huangjie21",
+            "ownerPlayerId": 7,
+            "ownerName": "huangjie21",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3693,6 +4309,9 @@
           {
             "playerId": 19,
             "playerName": "FENG",
+            "ownerPlayerId": 19,
+            "ownerName": "FENG",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3703,6 +4322,9 @@
           {
             "playerId": 10,
             "playerName": "🌹",
+            "ownerPlayerId": 10,
+            "ownerName": "🌹",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3713,6 +4335,9 @@
           {
             "playerId": 17,
             "playerName": "Baymax",
+            "ownerPlayerId": 17,
+            "ownerName": "Baymax",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3723,6 +4348,9 @@
           {
             "playerId": 75,
             "playerName": "春玲",
+            "ownerPlayerId": 75,
+            "ownerName": "春玲",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3733,6 +4361,9 @@
           {
             "playerId": 12,
             "playerName": "刘俊杰",
+            "ownerPlayerId": 12,
+            "ownerName": "刘俊杰",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3743,6 +4374,9 @@
           {
             "playerId": null,
             "playerName": "🌹 +1",
+            "ownerPlayerId": 10,
+            "ownerName": "🌹",
+            "isCompanion": true,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3753,6 +4387,9 @@
           {
             "playerId": 5,
             "playerName": "杰哥",
+            "ownerPlayerId": 5,
+            "ownerName": "杰哥",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3763,6 +4400,9 @@
           {
             "playerId": 1,
             "playerName": "阿达",
+            "ownerPlayerId": 1,
+            "ownerName": "阿达",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3773,6 +4413,9 @@
           {
             "playerId": 11,
             "playerName": "老洪",
+            "ownerPlayerId": 11,
+            "ownerName": "老洪",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3783,6 +4426,9 @@
           {
             "playerId": 9,
             "playerName": "柚子🍀",
+            "ownerPlayerId": 9,
+            "ownerName": "柚子🍀",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3793,6 +4439,9 @@
           {
             "playerId": null,
             "playerName": "春玲 +1",
+            "ownerPlayerId": 75,
+            "ownerName": "春玲",
+            "isCompanion": true,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3803,6 +4452,9 @@
           {
             "playerId": null,
             "playerName": "🍭 甲乙丙（过阵子打） 代1",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": true,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3813,6 +4465,9 @@
           {
             "playerId": null,
             "playerName": "🍭 甲乙丙（过阵子打） 代2",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": true,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3823,6 +4478,9 @@
           {
             "playerId": null,
             "playerName": "🍭 甲乙丙（过阵子打） 代3",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": true,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3833,6 +4491,9 @@
           {
             "playerId": null,
             "playerName": "🍭 甲乙丙（过阵子打） 代4",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": true,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3843,6 +4504,9 @@
           {
             "playerId": null,
             "playerName": "🍭 甲乙丙（过阵子打） 代5",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": true,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3853,6 +4517,9 @@
           {
             "playerId": null,
             "playerName": "🍭 甲乙丙（过阵子打） 代6",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": true,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3863,6 +4530,9 @@
           {
             "playerId": 24,
             "playerName": "Hx7",
+            "ownerPlayerId": 24,
+            "ownerName": "Hx7",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3873,6 +4543,9 @@
           {
             "playerId": null,
             "playerName": "🍭 甲乙丙（过阵子打） 代7",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": true,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3883,6 +4556,9 @@
           {
             "playerId": 78,
             "playerName": "Scor.唐🤡",
+            "ownerPlayerId": 78,
+            "ownerName": "Scor.唐🤡",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3893,6 +4569,9 @@
           {
             "playerId": 43,
             "playerName": "A 明🐴到成功",
+            "ownerPlayerId": 43,
+            "ownerName": "A 明🐴到成功",
+            "isCompanion": false,
             "slots": 1,
             "plusCount": 0,
             "amount": 22.3,
@@ -3907,7 +4586,7 @@
     ],
     "estimator": {
       "version": 4,
-      "generatedAt": "2026-08-23T06:37:45.124Z",
+      "generatedAt": "2026-08-23T10:12:57.143Z",
       "training": {
         "dateRange": {
           "from": "2026-07-13",
