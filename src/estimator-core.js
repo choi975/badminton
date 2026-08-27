@@ -240,7 +240,7 @@ export function assessEstimatorAnomaly({ estimator, participantCount, courtCount
     : primaryPrediction;
   const shuttleDifference = Math.abs(actualCount - predictedMixedCount);
   return {
-    anomalous: courtDifference > 1 || shuttleDifference > 2,
+    anomalous: courtDifference > 1 || shuttleDifference >= 2,
     court: { predicted: prediction.courts, actual: Number(courtCount) || 0, difference: courtDifference },
     shuttle: { predicted: predictedMixedCount, actual: actualCount, difference: shuttleDifference },
   };

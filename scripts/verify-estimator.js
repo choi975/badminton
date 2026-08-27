@@ -146,7 +146,7 @@ await check("历史回放维持合理误差", () => {
   assert.ok(mae(shuttleErrors) <= 6);
 });
 
-await check("异常阈值为场地超过1个或用球超过2颗", () => {
+await check("异常阈值为场地超过1个或用球达到2颗", () => {
   const prediction = predictEstimator(model, 10);
   const normal = assessEstimatorAnomaly({
     estimator: model,
@@ -155,13 +155,20 @@ await check("异常阈值为场地超过1个或用球超过2颗", () => {
     shuttleRows: [{ type: "rsl3", count: prediction.shuttleCounts.rsl3 }],
   });
   assert.equal(normal.anomalous, false);
-  const abnormal = assessEstimatorAnomaly({
+  const shuttleBoundary = assessEstimatorAnomaly({
+    estimator: model,
+    participantCount: 10,
+    courtCount: prediction.courts,
+    shuttleRows: [{ type: "rsl3", count: prediction.shuttleCounts.rsl3 + 2 }],
+  });
+  assert.equal(shuttleBoundary.anomalous, true);
+  const courtAbnormal = assessEstimatorAnomaly({
     estimator: model,
     participantCount: 10,
     courtCount: prediction.courts + 2,
-    shuttleRows: [{ type: "rsl3", count: prediction.shuttleCounts.rsl3 + 3 }],
+    shuttleRows: [{ type: "rsl3", count: prediction.shuttleCounts.rsl3 }],
   });
-  assert.equal(abnormal.anomalous, true);
+  assert.equal(courtAbnormal.anomalous, true);
 });
 
 console.log(`\n${checks.filter(Boolean).length}/${checks.length} estimator checks passed`);

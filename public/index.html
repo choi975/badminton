@@ -2205,6 +2205,10 @@
       width: min(760px, 100%);
     }
 
+    #trainingAnomalyModal {
+      z-index: 80;
+    }
+
     #recordModal {
       z-index: 60;
     }
@@ -4430,6 +4434,18 @@
     }
 
     function handleGlobalKeydown(event) {
+      const shortcutUrls = {
+        "1": "https://todo.choi975.workers.dev/",
+        "2": "https://badminton.choi975.workers.dev/",
+        "3": "https://wenti.choi975.workers.dev/",
+        "4": "https://sien-day.choi975.workers.dev/",
+        "5": "https://choi975.github.io/xizang/",
+      };
+      if (event.altKey && shortcutUrls[event.key]) {
+        event.preventDefault();
+        location.assign(shortcutUrls[event.key]);
+        return;
+      }
       if (event.key === "Escape") {
         if (document.querySelector(".multi-filter-menu:not([hidden])")) {
           closeMultiFilterMenus();
@@ -7822,7 +7838,7 @@
         ? Math.ceil((estimate.rsl3Equivalent || 0) / Math.max(0.01, averageWeight))
         : (estimate.primaryShuttleCount || estimate.rsl3 || 0);
       return {
-        anomalous: Math.abs(actualCourt - estimate.courts) > 1 || Math.abs(actualShuttle - predictedShuttle) > 2,
+        anomalous: Math.abs(actualCourt - estimate.courts) > 1 || Math.abs(actualShuttle - predictedShuttle) >= 2,
         court: { predicted: estimate.courts, actual: actualCourt },
         shuttle: { predicted: predictedShuttle, actual: actualShuttle },
       };
