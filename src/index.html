@@ -386,6 +386,11 @@
       font-weight: 700;
     }
 
+    th[draggable="true"] { cursor: grab; }
+    th[draggable="true"]:active { cursor: grabbing; }
+    th.dragging { opacity: 0.55; }
+    th.drag-over { background: #d9e8e4; }
+
     .header-line {
       display: flex;
       align-items: center;
@@ -1120,22 +1125,31 @@
       font-weight: 800;
     }
 
-    .estimate-shuttle-picker {
-      width: 22px;
-      min-width: 22px;
-      min-height: 24px;
+    .estimate-shuttle-select {
+      display: inline-flex;
+      align-items: center;
       margin-left: 2px;
-      padding: 0;
+      padding: 0 2px;
       border: 0;
-      background-color: transparent;
-      color: transparent;
-      opacity: 0.58;
+      border-radius: 4px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-weight: 800;
       cursor: pointer;
+      appearance: auto;
     }
 
-    .estimate-shuttle-picker:hover,
-    .estimate-shuttle-picker:focus-visible { opacity: 1; }
-    .estimate-shuttle-picker option { color: var(--text); }
+    .estimate-shuttle-select:hover,
+    .estimate-shuttle-select:focus-visible { background: #edf4f2; }
+    .estimate-shuttle-select option { color: var(--text); font-weight: 400; }
+
+    .estimate-average {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
 
     .fee-notice {
       color: #a23b24;
@@ -2609,6 +2623,9 @@
     }
 
     .calendar-detail-table th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
       background: var(--panel-soft);
       color: var(--text);
       font-size: 13px;
@@ -3270,6 +3287,15 @@
       { key: "notes", label: "备注", width: "18%", filter: "text", sortable: false },
     ];
 
+    const CALENDAR_DETAIL_COLUMNS = [
+      { key: "name", label: "成员", numeric: false },
+      { key: "playCount", label: "打球次数", numeric: true, sortKey: "playCount" },
+      { key: "guestCount", label: "带人数", numeric: true, sortKey: "guestCount" },
+      { key: "bestPartners", label: "最佳拍档", numeric: false },
+      { key: "weekdays", label: "打球日分布", numeric: false },
+      { key: "change", label: "较上期变化", numeric: true, sortKey: "change" },
+    ];
+
     const DEFAULT_DRAFT = Object.freeze({
       id: null,
       name: "",
@@ -3294,6 +3320,7 @@
       dataTimestamp: null,
       filters: {},
       hiddenColumns: new Set(["photo", "notes", "playCount", "guestCount", "amountTotal"]),
+      mainColumnOrder: COLUMNS.map((column) => column.key),
       sort: { key: "friendsJoinNumber", dir: "asc" },
       selected: { rowKey: "draft", col: 0 },
       editing: null,
@@ -3335,6 +3362,7 @@
       estimatorAdvancedOpen: false,
       selectedEstimateShuttleTypeId: "rsl3",
       calendarDetailEntries: [],
+      calendarDetailColumnOrder: CALENDAR_DETAIL_COLUMNS.map((column) => column.key),
       calendarDetailSort: { key: "playCount", dir: "desc" },
       calendar: {
         year: null,
@@ -3490,6 +3518,8 @@
       saveRecordBtn: document.getElementById("saveRecordBtn"),
       toast: document.getElementById("toast"),
     };
+    let draggedMainColumnKey = null;
+    let draggedCalendarDetailColumnKey = null;
     const modalStack = [];
     const modalReturnFocus = new Map();
 
@@ -3694,8 +3724,8 @@
           }
         });
         input.addEventListener("input", () => {
-          if (input === els.shuttlePriceInput) processChain();
-          else updatePaymentButton();
+          if (input === els.shuttlePriceInput) applyShuttlePriceSelection();
+          processChain();
         });
       });
       els.shuttlePriceInput.addEventListener("change", () => {
@@ -3813,9 +3843,15 @@
         : (text.includes("中") || text.includes("正在") || text.includes("打开") ? "working" : "success"));
     }
 
+    function getOrderedColumns() {
+      const columnByKey = new Map(COLUMNS.map((column) => [column.key, column]));
+      return state.mainColumnOrder.map((key) => columnByKey.get(key)).filter(Boolean);
+    }
+
     function getVisibleColumns() {
-      return COLUMNS
-        .map((column, index) => ({ column, index }))
+      const indexByKey = new Map(COLUMNS.map((column, index) => [column.key, index]));
+      return getOrderedColumns()
+        .map((column) => ({ column, index: indexByKey.get(column.key) }))
         .filter(({ column }) => !state.hiddenColumns.has(column.key));
     }
 
@@ -3880,6 +3916,42 @@
       visibleColumns.forEach(({ column }) => {
         const th = document.createElement("th");
         th.style.width = `${Number.parseFloat(column.width) / totalWidth * 100}%`;
+        th.draggable = true;
+        th.dataset.columnKey = column.key;
+        th.title = `${column.label}（可拖动调整列顺序）`;
+        th.addEventListener("dragstart", (event) => {
+          draggedMainColumnKey = column.key;
+          event.dataTransfer.effectAllowed = "move";
+          event.currentTarget.classList.add("dragging");
+        });
+        th.addEventListener("dragend", (event) => {
+          draggedMainColumnKey = null;
+          document.querySelectorAll("#playerTable th.drag-over, #playerTable th.dragging").forEach((node) => {
+            node.classList.remove("drag-over", "dragging");
+          });
+        });
+        th.addEventListener("dragover", (event) => {
+          if (!draggedMainColumnKey) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          event.currentTarget.classList.add("drag-over");
+        });
+        th.addEventListener("dragleave", (event) => {
+          event.currentTarget.classList.remove("drag-over");
+        });
+        th.addEventListener("drop", (event) => {
+          event.preventDefault();
+          event.currentTarget.classList.remove("drag-over");
+          if (!draggedMainColumnKey || draggedMainColumnKey === column.key) return;
+          const from = state.mainColumnOrder.indexOf(draggedMainColumnKey);
+          const to = state.mainColumnOrder.indexOf(column.key);
+          if (from < 0 || to < 0) return;
+          state.mainColumnOrder.splice(from, 1);
+          state.mainColumnOrder.splice(to, 0, draggedMainColumnKey);
+          draggedMainColumnKey = null;
+          renderHeader();
+          renderTable();
+        });
         const headerLine = document.createElement("div");
         headerLine.className = "header-line";
         const label = document.createElement("span");
@@ -5433,6 +5505,11 @@
       return button;
     }
 
+    function getOrderedCalendarDetailColumns() {
+      const columnByKey = new Map(CALENDAR_DETAIL_COLUMNS.map((column) => [column.key, column]));
+      return state.calendarDetailColumnOrder.map((key) => columnByKey.get(key)).filter(Boolean);
+    }
+
     function renderCalendarDetailTable(entries) {
       const wrap = els.calendarDetailTableWrap;
       wrap.replaceChildren();
@@ -5449,16 +5526,44 @@
       table.className = "calendar-detail-table";
       const thead = document.createElement("thead");
       const headerRow = document.createElement("tr");
-      const columns = [
-        { label: "成员", numeric: false },
-        { label: "打球次数", numeric: true, sortKey: "playCount" },
-        { label: "带人数", numeric: true, sortKey: "guestCount" },
-        { label: "最佳拍档", numeric: false },
-        { label: "打球日分布", numeric: false },
-        { label: "较上期变化", numeric: true, sortKey: "change" },
-      ];
+      const columns = getOrderedCalendarDetailColumns();
       columns.forEach((column) => {
         const th = document.createElement("th");
+        th.draggable = true;
+        th.dataset.columnKey = column.key;
+        th.title = `${column.label}（可拖动调整列顺序）`;
+        th.addEventListener("dragstart", (event) => {
+          draggedCalendarDetailColumnKey = column.key;
+          event.dataTransfer.effectAllowed = "move";
+          event.currentTarget.classList.add("dragging");
+        });
+        th.addEventListener("dragend", (event) => {
+          draggedCalendarDetailColumnKey = null;
+          document.querySelectorAll("#calendarDetailModal th.drag-over, #calendarDetailModal th.dragging").forEach((node) => {
+            node.classList.remove("drag-over", "dragging");
+          });
+        });
+        th.addEventListener("dragover", (event) => {
+          if (!draggedCalendarDetailColumnKey) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          event.currentTarget.classList.add("drag-over");
+        });
+        th.addEventListener("dragleave", (event) => {
+          event.currentTarget.classList.remove("drag-over");
+        });
+        th.addEventListener("drop", (event) => {
+          event.preventDefault();
+          event.currentTarget.classList.remove("drag-over");
+          if (!draggedCalendarDetailColumnKey || draggedCalendarDetailColumnKey === column.key) return;
+          const from = state.calendarDetailColumnOrder.indexOf(draggedCalendarDetailColumnKey);
+          const to = state.calendarDetailColumnOrder.indexOf(column.key);
+          if (from < 0 || to < 0) return;
+          state.calendarDetailColumnOrder.splice(from, 1);
+          state.calendarDetailColumnOrder.splice(to, 0, draggedCalendarDetailColumnKey);
+          draggedCalendarDetailColumnKey = null;
+          renderCalendarDetailTable(entries);
+        });
         if (column.sortKey) th.append(createCalendarDetailSortButton(column.label, column.sortKey));
         else th.textContent = column.label;
         if (column.numeric) th.className = "num";
@@ -5469,25 +5574,28 @@
       const tbody = document.createElement("tbody");
       sortCalendarDetailEntries(entries).forEach((entry) => {
         const tr = document.createElement("tr");
-        const nameTd = document.createElement("td");
-        nameTd.textContent = entry.name;
+        columns.forEach((column) => tr.append(createCalendarDetailCell(entry, column)));
+        tbody.append(tr);
+      });
 
-        const playTd = document.createElement("td");
-        playTd.className = "num";
-        playTd.textContent = String(entry.playCount);
+      table.append(thead, tbody);
+      wrap.append(table);
+    }
 
-        const guestTd = document.createElement("td");
-        guestTd.className = "num";
-        guestTd.textContent = String(entry.guestCount);
-
-        const partnerTd = document.createElement("td");
-        partnerTd.textContent = entry.bestPartners.join("，") || "—";
-
-        const weekdayTd = document.createElement("td");
-        weekdayTd.append(createCalendarDetailHeatmap(entry.weekdays));
-
-        const changeTd = document.createElement("td");
-        changeTd.className = "num";
+    function createCalendarDetailCell(entry, column) {
+      const td = document.createElement("td");
+      if (column.numeric) td.className = "num";
+      if (column.key === "name") {
+        td.textContent = entry.name;
+      } else if (column.key === "playCount") {
+        td.textContent = String(entry.playCount);
+      } else if (column.key === "guestCount") {
+        td.textContent = String(entry.guestCount);
+      } else if (column.key === "bestPartners") {
+        td.textContent = entry.bestPartners.join("，") || "—";
+      } else if (column.key === "weekdays") {
+        td.append(createCalendarDetailHeatmap(entry.weekdays));
+      } else if (column.key === "change") {
         const changeText = formatCalendarDetailChange(entry.playCount, entry.previousPlayCount);
         const change = document.createElement("span");
         change.className = `calendar-detail-change ${getCalendarDetailChangeClass(changeText)}`;
@@ -5495,14 +5603,9 @@
         const previous = document.createElement("span");
         previous.className = "calendar-detail-change-prev";
         previous.textContent = `上期 ${entry.previousPlayCount} 次`;
-        changeTd.append(change, previous);
-
-        tr.append(nameTd, playTd, guestTd, partnerTd, weekdayTd, changeTd);
-        tbody.append(tr);
-      });
-
-      table.append(thead, tbody);
-      wrap.append(table);
+        td.append(change, previous);
+      }
+      return td;
     }
 
     function openCalendarDetailModal(sessions, title) {
@@ -5558,6 +5661,13 @@
       if (fee % 70 === 0) candidates.add(fee / 70);
       if (fee % 80 === 0) candidates.add(fee / 80);
       return [...candidates].sort((a, b) => a - b);
+    }
+
+    function inferPreferredCourtCount(fee) {
+      if (!Number.isFinite(fee) || fee <= 0) return null;
+      if (fee % 70 === 0) return fee / 70;
+      if (fee % 80 === 0) return fee / 80;
+      return null;
     }
 
     function makeCourtCountHint(fee, candidates) {
@@ -7370,8 +7480,8 @@
       state.chainEntries = entries;
       const estimate = estimateBooking(entries);
       renderChainOutput(sorted);
-      renderChainStats(sorted, estimate);
       updateFeeDefaults(entries, estimate);
+      renderChainStats(sorted, estimate);
       updatePaymentButton();
       resizeChainDialog(entries.length);
     }
@@ -7693,6 +7803,59 @@
       };
     }
 
+    function formatEstimateAverage(payment) {
+      if (!payment?.payerCount) return "预计人均 0 元";
+      if (payment.femaleCapApplied) {
+        return `预计人均 男 ${formatMoney(payment.malePerPerson)} 元 / 女 ${formatMoney(payment.femalePerPerson)} 元`;
+      }
+      return `预计人均 ${formatMoney(payment.perPerson)} 元`;
+    }
+
+    function getFeeDisplayEstimate(entries, estimate) {
+      const courtFeeRaw = els.courtFeeInput.value.trim();
+      const shuttlePriceRaw = els.shuttlePriceInput.value.trim();
+      const shuttleCountRaw = els.shuttleCountInput.value.trim();
+      const courtFee = courtFeeRaw === "" ? null : Number(courtFeeRaw);
+      const shuttlePrice = shuttlePriceRaw === "" ? null : Number(shuttlePriceRaw);
+      const shuttleCount = shuttleCountRaw === "" ? null : Number(shuttleCountRaw);
+      const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
+      const typeByPrice = findShuttleTypeByPrice(shuttlePrice);
+      const type = typeByPrice
+        || types.find((item) => item.id === state.selectedEstimateShuttleTypeId)
+        || types[0]
+        || { id: "rsl3", name: "亚3" };
+
+      let courts = estimate?.courts || 0;
+      if (Number.isFinite(courtFee) && courtFee > 0) {
+        courts = inferPreferredCourtCount(courtFee) ?? "?";
+      }
+
+      const shuttle = Number.isInteger(shuttleCount) && shuttleCount >= 0
+        ? shuttleCount
+        : (estimate?.shuttleCounts?.[type.id] || estimate?.primaryShuttleCount || 0);
+
+      const payment = calculatePayment(
+        entries,
+        Number.isFinite(courtFee) ? courtFee : 0,
+        Number.isFinite(shuttlePrice) ? shuttlePrice : 0,
+        Number.isInteger(shuttleCount) && shuttleCount >= 0 ? shuttleCount : 0,
+      );
+
+      return { courts, shuttle, type, averageText: formatEstimateAverage(payment) };
+    }
+
+    function applyShuttlePriceSelection() {
+      if (!state.chainEntries.length) return;
+      const price = Number(els.shuttlePriceInput.value);
+      const type = findShuttleTypeByPrice(price);
+      if (!type) return;
+      const estimate = estimateBooking(state.chainEntries);
+      const predicted = estimate.shuttleCounts?.[type.id] || estimate.primaryShuttleCount || 0;
+      state.selectedEstimateShuttleTypeId = type.id;
+      els.shuttleCountInput.value = String(predicted);
+      els.shuttleCountInput.dataset.defaultValue = String(predicted);
+    }
+
     function renderChainStats(entries, estimate) {
       if (!entries.length) {
         els.chainStats.replaceChildren();
@@ -7726,37 +7889,50 @@
       estimateDivider.className = "stats-divider";
       estimateDivider.setAttribute("role", "separator");
 
+      const displayEstimate = getFeeDisplayEstimate(entries, estimate);
       const estimateLine = document.createElement("div");
       estimateLine.className = "estimate-line";
       estimateLine.append(
         document.createTextNode("预计需要 "),
-        createEstimateValue(String(estimate.courts)),
+        createEstimateValue(String(displayEstimate.courts)),
         document.createTextNode(" 个场地 和 "),
-        createEstimateValue(String(estimate.primaryShuttleCount || estimate.rsl3 || 0)),
-        document.createTextNode(` 颗${estimate.primaryShuttleName || "亚3"}`),
       );
 
       const shuttlePicker = document.createElement("select");
-      shuttlePicker.className = "estimate-shuttle-picker";
+      shuttlePicker.className = "estimate-shuttle-select";
       shuttlePicker.title = "选择预估球型号";
-      (state.estimator?.shuttleTypes || []).forEach((type) => {
+      (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes).forEach((type) => {
         const option = document.createElement("option");
         option.value = type.id;
-        option.textContent = `×${estimate.shuttleCounts?.[type.id] || 0}颗${type.name}`;
-        option.selected = type.id === (estimate.primaryShuttleId || "rsl3");
+        const count = type.id === displayEstimate.type.id
+          ? displayEstimate.shuttle
+          : (estimate.shuttleCounts?.[type.id] || 0);
+        option.textContent = `${count}颗${type.name}`;
+        option.selected = type.id === displayEstimate.type.id;
         shuttlePicker.append(option);
       });
       shuttlePicker.addEventListener("change", () => {
-        state.selectedEstimateShuttleTypeId = shuttlePicker.value;
-        estimate.primaryShuttleId = shuttlePicker.value;
         const type = state.estimator?.shuttleTypes?.find((item) => item.id === shuttlePicker.value);
-        estimate.primaryShuttleName = type?.name || "亚3";
-        estimate.primaryShuttleCount = estimate.shuttleCounts?.[shuttlePicker.value] || 0;
-        renderChainStats(entries, estimate);
+        state.selectedEstimateShuttleTypeId = shuttlePicker.value;
+        if (type?.prices?.length) {
+          els.shuttlePriceInput.value = String(type.prices[0]);
+          els.shuttlePriceInput.dataset.defaultValue = String(type.prices[0]);
+        }
+        const predicted = estimate.shuttleCounts?.[shuttlePicker.value] || 0;
+        els.shuttleCountInput.value = String(predicted);
+        els.shuttleCountInput.dataset.defaultValue = String(predicted);
+        processChain();
       });
       estimateLine.append(shuttlePicker);
 
-      els.chainStats.replaceChildren(levelStats, divider, genderStats, estimateDivider, estimateLine);
+      const averageLine = document.createElement("div");
+      averageLine.className = "estimate-average";
+      averageLine.textContent = displayEstimate.averageText;
+      const estimateSection = document.createElement("div");
+      estimateSection.className = "estimate-section";
+      estimateSection.append(estimateLine, averageLine);
+
+      els.chainStats.replaceChildren(levelStats, divider, genderStats, estimateDivider, estimateSection);
       renderEstimatorAdvancedPanel();
     }
 
@@ -8074,7 +8250,9 @@
       els.paymentLedgerAmount.textContent = formatMoney(calculateLedgerAmount(result.groups, courtFee));
       const reportDate = state.pendingSessionEdit ? state.pendingSessionEdit.date : getLocalDateString();
       const reportWeekday = parseLocalDate(reportDate).getDay();
-      els.paymentWeekendNotice.hidden = reportWeekday !== 5 && reportWeekday !== 6;
+      const isWeekend = reportWeekday === 5 || reportWeekday === 6;
+      const feeIsEightyMultiple = Number.isFinite(courtFee) && courtFee > 0 && courtFee % 80 === 0;
+      els.paymentWeekendNotice.hidden = !(isWeekend && feeIsEightyMultiple);
       els.paymentReportDate.textContent = formatPaymentDate(reportDate);
       state.currentPaymentRecord = {
         courtFee,
