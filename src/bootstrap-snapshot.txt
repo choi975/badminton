@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T02:59:48.235Z",
+  "generatedAt": "2026-08-29T03:09:32.567Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -679,13 +679,13 @@
         "id": 59,
         "name": "俊",
         "gender": "男",
-        "level": "不详",
+        "level": "3.5级",
         "affiliation": "球友",
         "notes": "",
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-28 02:43:57",
-        "updatedAt": "2026-07-28 02:44:01"
+        "updatedAt": "2026-08-29 03:09:28"
       },
       {
         "id": 60,
@@ -5458,7 +5458,7 @@
     ],
     "estimator": {
       "version": 4,
-      "generatedAt": "2026-08-29T02:59:45.325Z",
+      "generatedAt": "2026-08-29T03:09:29.064Z",
       "training": {
         "dateRange": {
           "from": "2026-07-13",

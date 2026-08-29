@@ -1129,6 +1129,7 @@
       position: relative;
       display: inline-flex;
       align-items: center;
+      gap: 0.25em;
       margin-left: 2px;
       border-radius: 4px;
       cursor: pointer;
@@ -7930,9 +7931,11 @@
 
       const shuttleTrigger = document.createElement("span");
       shuttleTrigger.className = "estimate-shuttle-trigger";
+      const shuttleName = document.createElement("span");
+      shuttleName.textContent = `颗${displayEstimate.type.name}`;
       shuttleTrigger.append(
         createEstimateValue(String(displayEstimate.shuttle)),
-        document.createTextNode(` 颗${displayEstimate.type.name}`),
+        shuttleName,
       );
 
       const shuttlePicker = document.createElement("select");
