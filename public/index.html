@@ -1125,31 +1125,42 @@
       font-weight: 800;
     }
 
-    .estimate-shuttle-select {
+    .estimate-shuttle-trigger {
+      position: relative;
       display: inline-flex;
       align-items: center;
       margin-left: 2px;
-      padding: 0 2px;
-      border: 0;
       border-radius: 4px;
-      background: transparent;
-      color: inherit;
-      font: inherit;
-      font-weight: 800;
       cursor: pointer;
-      appearance: auto;
     }
 
-    .estimate-shuttle-select:hover,
-    .estimate-shuttle-select:focus-visible { background: #edf4f2; }
-    .estimate-shuttle-select option { color: var(--text); font-weight: 400; }
+    .estimate-shuttle-trigger:hover,
+    .estimate-shuttle-trigger:focus-within { background: #edf4f2; }
+
+    .estimate-shuttle-overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      opacity: 0;
+      cursor: pointer;
+      appearance: none;
+    }
+
+    .estimate-shuttle-overlay option { color: var(--text); font-weight: 400; }
 
     .estimate-average {
       margin-top: 4px;
-      color: var(--muted);
-      font-size: 12px;
+      color: #173f38;
+      font-weight: 400;
       white-space: nowrap;
     }
+
+    .estimate-average strong { font-weight: 800; }
 
     .fee-notice {
       color: #a23b24;
@@ -7803,14 +7814,6 @@
       };
     }
 
-    function formatEstimateAverage(payment) {
-      if (!payment?.payerCount) return "预计人均 0 元";
-      if (payment.femaleCapApplied) {
-        return `预计人均 男 ${formatMoney(payment.malePerPerson)} 元 / 女 ${formatMoney(payment.femalePerPerson)} 元`;
-      }
-      return `预计人均 ${formatMoney(payment.perPerson)} 元`;
-    }
-
     function getFeeDisplayEstimate(entries, estimate) {
       const courtFeeRaw = els.courtFeeInput.value.trim();
       const shuttlePriceRaw = els.shuttlePriceInput.value.trim();
@@ -7841,7 +7844,7 @@
         Number.isInteger(shuttleCount) && shuttleCount >= 0 ? shuttleCount : 0,
       );
 
-      return { courts, shuttle, type, averageText: formatEstimateAverage(payment) };
+      return { courts, shuttle, type, payment };
     }
 
     function applyShuttlePriceSelection() {
@@ -7854,6 +7857,33 @@
       state.selectedEstimateShuttleTypeId = type.id;
       els.shuttleCountInput.value = String(predicted);
       els.shuttleCountInput.dataset.defaultValue = String(predicted);
+    }
+
+    function createEstimateAverageLine(payment) {
+      const line = document.createElement("div");
+      line.className = "estimate-average";
+      if (!payment?.payerCount) {
+        line.append(
+          document.createTextNode("预计人均 "),
+          createEstimateValue("0"),
+          document.createTextNode(" 元"),
+        );
+      } else if (payment.femaleCapApplied) {
+        line.append(
+          document.createTextNode("预计人均 男 "),
+          createEstimateValue(formatMoney(payment.malePerPerson)),
+          document.createTextNode(" 元 / 女 "),
+          createEstimateValue(formatMoney(payment.femalePerPerson)),
+          document.createTextNode(" 元"),
+        );
+      } else {
+        line.append(
+          document.createTextNode("预计人均 "),
+          createEstimateValue(formatMoney(payment.perPerson)),
+          document.createTextNode(" 元"),
+        );
+      }
+      return line;
     }
 
     function renderChainStats(entries, estimate) {
@@ -7898,8 +7928,15 @@
         document.createTextNode(" 个场地 和 "),
       );
 
+      const shuttleTrigger = document.createElement("span");
+      shuttleTrigger.className = "estimate-shuttle-trigger";
+      shuttleTrigger.append(
+        createEstimateValue(String(displayEstimate.shuttle)),
+        document.createTextNode(` 颗${displayEstimate.type.name}`),
+      );
+
       const shuttlePicker = document.createElement("select");
-      shuttlePicker.className = "estimate-shuttle-select";
+      shuttlePicker.className = "estimate-shuttle-overlay";
       shuttlePicker.title = "选择预估球型号";
       (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes).forEach((type) => {
         const option = document.createElement("option");
@@ -7923,14 +7960,12 @@
         els.shuttleCountInput.dataset.defaultValue = String(predicted);
         processChain();
       });
-      estimateLine.append(shuttlePicker);
+      shuttleTrigger.append(shuttlePicker);
+      estimateLine.append(shuttleTrigger);
 
-      const averageLine = document.createElement("div");
-      averageLine.className = "estimate-average";
-      averageLine.textContent = displayEstimate.averageText;
       const estimateSection = document.createElement("div");
       estimateSection.className = "estimate-section";
-      estimateSection.append(estimateLine, averageLine);
+      estimateSection.append(estimateLine, createEstimateAverageLine(displayEstimate.payment));
 
       els.chainStats.replaceChildren(levelStats, divider, genderStats, estimateDivider, estimateSection);
       renderEstimatorAdvancedPanel();
