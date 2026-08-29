@@ -525,6 +525,30 @@ async function handleApi(request, env, url) {
     return json({ estimator: await getCurrentEstimator(env.DB) });
   }
 
+  if (pathname === "/api/short-term-rules" && method === "GET") {
+    const today = url.searchParams.get("today") || getUtcDateString();
+    if (!SESSION_DATE_PATTERN.test(today)) return json({ error: "日期无效" }, 400);
+    await deleteExpiredShortTermRules(env.DB, today);
+    return json({ rules: await listShortTermRules(env.DB) });
+  }
+
+  if (pathname === "/api/short-term-rules" && method === "POST") {
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以创建摇人短期规则" }, 403);
+    const input = normalizeShortTermRuleInput(await readJson(request));
+    if (!input) return json({ error: "短期规则格式无效" }, 400);
+    const result = await env.DB.prepare(
+      `INSERT INTO short_term_rules (player_id, rule_type, rule_json, expires_on, raw_text, updated_at)
+       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+    ).bind(
+      input.playerId,
+      input.ruleType,
+      JSON.stringify(input.rule),
+      input.expiresOn || null,
+      input.rawText,
+    ).run();
+    return json({ rule: await getShortTermRuleById(env.DB, Number(result.meta.last_row_id)) }, 201);
+  }
+
   if (pathname === "/api/member-exits/confirm" && method === "POST") {
     if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以处理退群" }, 403);
     return handleMemberExitConfirmation(request, env);
@@ -807,6 +831,16 @@ async function handleApi(request, env, url) {
     return json(await getLevelGuide(env.DB));
   }
 
+  const shortTermRuleMatch = pathname.match(/^\/api\/short-term-rules\/(\d+)$/);
+  if (shortTermRuleMatch && method === "DELETE") {
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以删除摇人短期规则" }, 403);
+    const id = Number(shortTermRuleMatch[1]);
+    const existing = await env.DB.prepare("SELECT id FROM short_term_rules WHERE id = ?").bind(id).first();
+    if (!existing) return json({ error: "找不到这条短期规则" }, 404);
+    await env.DB.prepare("DELETE FROM short_term_rules WHERE id = ?").bind(id).run();
+    return json({ ok: true });
+  }
+
   return json({ error: "接口不存在" }, 404);
 }
 
@@ -845,6 +879,85 @@ function safeJsonArray(value) {
   } catch (error) {
     return [];
   }
+}
+
+function getUtcDateString(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+async function listShortTermRules(db) {
+  const { results } = await db.prepare(
+    "SELECT id, player_id, rule_type, rule_json, expires_on, raw_text, created_at, updated_at FROM short_term_rules ORDER BY created_at ASC, id ASC"
+  ).all();
+  return results.map(mapShortTermRuleRow);
+}
+
+async function getShortTermRuleById(db, id) {
+  const row = await db.prepare(
+    "SELECT id, player_id, rule_type, rule_json, expires_on, raw_text, created_at, updated_at FROM short_term_rules WHERE id = ?"
+  ).bind(id).first();
+  return row ? mapShortTermRuleRow(row) : null;
+}
+
+function mapShortTermRuleRow(row) {
+  let rule = {};
+  try {
+    rule = JSON.parse(row.rule_json || "{}");
+  } catch (error) {
+    rule = {};
+  }
+  return {
+    id: Number(row.id),
+    playerId: Number(row.player_id),
+    type: String(row.rule_type || ""),
+    rule,
+    expiresOn: row.expires_on || null,
+    rawText: String(row.raw_text || ""),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+async function deleteExpiredShortTermRules(db, today) {
+  await db.prepare(
+    "DELETE FROM short_term_rules WHERE expires_on IS NOT NULL AND expires_on < ?"
+  ).bind(today).run();
+}
+
+function normalizeShortTermRuleInput(body) {
+  const playerId = Number(body?.playerId);
+  const rawText = String(body?.rawText || "").trim();
+  const type = String(body?.type || "").trim();
+  const rule = body?.rule && typeof body.rule === "object" ? body.rule : {};
+  const expiresOn = body?.expiresOn ? String(body.expiresOn).trim() : null;
+  if (!Number.isInteger(playerId) || playerId <= 0 || !rawText || rawText.length > 200) return null;
+
+  const allowedTypes = new Set(["only_days", "not_days", "not_before_days", "not_within_days", "not_before_next_week"]);
+  if (!allowedTypes.has(type)) return null;
+
+  if (type === "only_days" || type === "not_days") {
+    if (!Array.isArray(rule.weekdays) || !rule.weekdays.length) return null;
+    const validWeekdays = rule.weekdays.every((day) => Number.isInteger(day) && day >= 0 && day <= 6);
+    if (!validWeekdays) return null;
+  }
+
+  if (type === "not_before_days" || type === "not_within_days") {
+    if (!Number.isInteger(rule.days) || rule.days <= 0 || rule.days > 3660) return null;
+    if (!SESSION_DATE_PATTERN.test(expiresOn || "")) return null;
+  }
+
+  if (type === "not_before_next_week") {
+    if (!SESSION_DATE_PATTERN.test(expiresOn || "")) return null;
+  }
+
+  if (expiresOn && !SESSION_DATE_PATTERN.test(expiresOn)) return null;
+  return {
+    playerId,
+    rawText,
+    type,
+    rule,
+    expiresOn,
+  };
 }
 
 async function getCurrentEstimator(db) {

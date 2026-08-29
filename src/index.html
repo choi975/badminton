@@ -883,6 +883,128 @@
       color: var(--text);
     }
 
+    .modal-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .shake-people-dialog {
+      max-height: min(80vh, 760px);
+    }
+
+    .short-rule-dialog {
+      width: min(560px, 100%);
+    }
+
+    .shake-people-summary {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .shake-people-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .shake-person-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .shake-person-name {
+      font-weight: 700;
+    }
+
+    .shake-person-meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .shake-reason {
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #e8f2ef;
+      color: #245b50;
+    }
+
+    .short-rule-divider {
+      height: 1px;
+      margin: 16px 0;
+      background: var(--line);
+    }
+
+    .short-rule-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .short-rule-head h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .short-rule-hint {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .short-term-rules-list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .short-rule-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    .short-rule-row button {
+      min-height: 28px;
+      padding: 0 8px;
+    }
+
+    .short-rule-help {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .short-rule-input {
+      width: 100%;
+      min-height: 88px;
+      resize: vertical;
+      padding: 9px 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      line-height: 1.6;
+    }
+
     .guide-body {
       display: grid;
       min-height: 0;
@@ -2879,7 +3001,10 @@
           <section class="chain-panel">
             <div class="chain-head">
               <span>接龙人员</span>
-              <button id="pasteInputBtn"><span class="icon-text">▤ 一键粘贴</span></button>
+              <div class="chain-head-actions">
+                <button id="pasteInputBtn"><span class="icon-text">▤ 一键粘贴</span></button>
+                <button id="shakePeopleBtn" type="button">🎲 摇人</button>
+              </div>
             </div>
             <textarea id="chainInput" class="chain-textarea" placeholder=""></textarea>
           </section>
@@ -3217,6 +3342,48 @@
     </div>
   </div>
 
+  <div id="shakePeopleModal" class="modal-backdrop">
+    <div class="modal medium shake-people-dialog" role="dialog" aria-modal="true" aria-labelledby="shakePeopleTitle">
+      <div class="modal-header">
+        <h2 id="shakePeopleTitle" class="modal-title">摇人</h2>
+        <div class="modal-header-actions">
+          <button id="newShortRuleBtn" type="button">新建</button>
+          <button class="modal-close-btn" data-close="shakePeopleModal" aria-label="关闭" title="关闭">×</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p id="shakePeopleSummary" class="shake-people-summary"></p>
+        <div id="shakePeopleList" class="shake-people-list"></div>
+        <div class="short-rule-divider"></div>
+        <div class="short-rule-head">
+          <h3>短期规则</h3>
+          <span class="short-rule-hint">规则对所有设备共享，过期后自动清理</span>
+        </div>
+        <div id="shortTermRulesList" class="short-term-rules-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button data-close="shakePeopleModal">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="shortRuleModal" class="modal-backdrop">
+    <div class="modal short-rule-dialog" role="dialog" aria-modal="true" aria-labelledby="shortRuleTitle">
+      <div class="modal-header">
+        <h2 id="shortRuleTitle" class="modal-title">新建短期规则</h2>
+        <button class="modal-close-btn" data-close="shortRuleModal" aria-label="关闭" title="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="short-rule-help">格式：成员名 时间 动作，例如“清 周五、周六、周日 不打”。</p>
+        <textarea id="shortRuleInput" class="short-rule-input" rows="4" placeholder="例如：果花 三天后再打"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button data-close="shortRuleModal">取消</button>
+        <button id="saveShortRuleBtn" class="primary-btn" type="button">保存</button>
+      </div>
+    </div>
+  </div>
+
   <div id="photoModal" class="modal-backdrop">
     <div class="modal photo-dialog" role="dialog" aria-modal="true" aria-labelledby="photoTitle">
       <div class="modal-header">
@@ -3372,6 +3539,7 @@
       paymentSortModes: { "球友": "join", "Hytronik": "join" },
       paymentGroupOverrides: {},
       currentPaymentRecord: null,
+      shortTermRules: [],
       trainingAnomaly: null,
       estimatorAdvancedOpen: false,
       selectedEstimateShuttleTypeId: "rsl3",
@@ -3439,6 +3607,15 @@
       estimatorAdvancedBtn: document.getElementById("estimatorAdvancedBtn"),
       estimatorAdvancedPanel: document.getElementById("estimatorAdvancedPanel"),
       pasteInputBtn: document.getElementById("pasteInputBtn"),
+      shakePeopleBtn: document.getElementById("shakePeopleBtn"),
+      shakePeopleModal: document.getElementById("shakePeopleModal"),
+      shakePeopleSummary: document.getElementById("shakePeopleSummary"),
+      shakePeopleList: document.getElementById("shakePeopleList"),
+      shortTermRulesList: document.getElementById("shortTermRulesList"),
+      newShortRuleBtn: document.getElementById("newShortRuleBtn"),
+      shortRuleModal: document.getElementById("shortRuleModal"),
+      shortRuleInput: document.getElementById("shortRuleInput"),
+      saveShortRuleBtn: document.getElementById("saveShortRuleBtn"),
       levelDisplayModeBtn: document.getElementById("levelDisplayModeBtn"),
       courtFeeInput: document.getElementById("courtFeeInput"),
       shuttlePriceInput: document.getElementById("shuttlePriceInput"),
@@ -3585,6 +3762,11 @@
         const data = await fetchCloudBootstrap();
         cacheBootstrap(data);
         applyBootstrapData(data, "cloud", new Date().toISOString());
+        try {
+          await loadShortTermRules();
+        } catch (error) {
+          // 摇人规则加载失败不阻断其他数据加载
+        }
       } catch (error) {
         if (!state.players.length) {
           const fallback = await loadFallbackBootstrap();
@@ -3685,12 +3867,18 @@
       els.paymentRecordBtn.hidden = readOnly;
       els.guideEditor.readOnly = readOnly;
       els.saveGuideBtn.hidden = readOnly;
+      updateShakePeopleButtonVisibility();
       els.readOnlyBanner.hidden = IS_GITHUB_PAGES || !readOnly || !state.players.length;
       if (!els.readOnlyBanner.hidden) {
         els.readOnlyBanner.textContent = IS_GITHUB_PAGES
           ? "GitHub 备用版为只读。接龙助手、群收款、搜索、筛选、导出和截图均可正常使用；修改数据库请打开 Cloudflare 管理版。"
           : "当前无法连接云端，正在使用只读备用数据。恢复连接后才可修改数据库。";
       }
+    }
+
+    function updateShakePeopleButtonVisibility() {
+      if (!els.shakePeopleBtn) return;
+      els.shakePeopleBtn.hidden = state.readOnly || Boolean(state.pendingSessionEdit);
     }
 
     function updateDatabaseToggleButton() {
@@ -3725,6 +3913,7 @@
       els.calendarTodayBtn.addEventListener("click", goToCalendarToday);
       els.chainBtn.addEventListener("click", () => {
         syncAutoCourtFeeForActivityDate();
+        updateShakePeopleButtonVisibility();
         openModal("chainModal");
         processChain();
         setTimeout(() => els.chainInput.focus(), 0);
@@ -3800,6 +3989,12 @@
         if (event.key === "Enter") confirmUnrecordedExit();
       });
       els.pasteInputBtn.addEventListener("click", pasteChainInput);
+      els.shakePeopleBtn.addEventListener("click", openShakePeopleModal);
+      els.newShortRuleBtn.addEventListener("click", openShortRuleModal);
+      els.saveShortRuleBtn.addEventListener("click", saveShortRule);
+      els.shortRuleInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) saveShortRule();
+      });
       if (!IS_GITHUB_PAGES) els.levelDisplayModeBtn.addEventListener("click", toggleChainLevelMode);
 
       document.addEventListener("click", (event) => {
@@ -6836,6 +7031,7 @@
       }
       state.pendingSessionEdit = { id: session.id, date: session.date, venue: session.venue };
       state.returnToCalendar = true;
+      updateShakePeopleButtonVisibility();
       const chainInput = buildChainInputFromSession(session);
       els.chainInput.value = chainInput.text;
       state.plusOverrides = chainInput.plusOverrides;
@@ -6877,6 +7073,7 @@
       }
       state.pendingSessionEdit = { id: null, date: dateString };
       state.returnToCalendar = true;
+      updateShakePeopleButtonVisibility();
       els.chainInput.value = "";
       state.plusOverrides = {};
       state.feeMode = "basic";
@@ -6902,6 +7099,7 @@
       if (state.returnToCalendar && state.pendingSessionEdit && !els.chainModal.classList.contains("open")) {
         state.pendingSessionEdit = null;
         state.returnToCalendar = false;
+        updateShakePeopleButtonVisibility();
         openModal("calendarModal");
         renderCalendar();
       }
@@ -9777,6 +9975,317 @@
         toast("已粘贴");
       } catch (error) {
         toast("浏览器没有允许读取剪贴板");
+      }
+    }
+
+    function getBeijingDateString(date = new Date()) {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Shanghai",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(date).split("-");
+      return `${parts[0]}-${parts[1]}-${parts[2]}`;
+    }
+
+    function addDaysToIsoDate(dateString, days) {
+      const [year, month, day] = String(dateString || "").split("-").map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day));
+      date.setUTCDate(date.getUTCDate() + days);
+      return date.toISOString().slice(0, 10);
+    }
+
+    function getBeijingWeekday(dateString) {
+      return new Date(`${dateString}T00:00:00+08:00`).getUTCDay();
+    }
+
+    function getNextMondayIso(dateString) {
+      const weekday = getBeijingWeekday(dateString);
+      return addDaysToIsoDate(dateString, (8 - weekday) % 7);
+    }
+
+    function parseChineseSmallNumber(value) {
+      const text = String(value || "").trim();
+      if (/^\d+$/.test(text)) return Number(text);
+      const map = { "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10 };
+      if (text.length === 1) return map[text] || null;
+      return null;
+    }
+
+    function parseWeekdayNames(text) {
+      const map = { "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "日": 0, "天": 0 };
+      const matches = [...String(text || "").matchAll(/周([一二三四五六日天])/g)];
+      return [...new Set(matches.map((match) => map[match[1]])).values()].sort((a, b) => a - b);
+    }
+
+    function formatWeekdayNames(weekdays) {
+      const labels = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+      return [...new Set((weekdays || []).map((day) => labels[day]).filter(Boolean))].join("、");
+    }
+
+    function findPlayerForShortRule(rawText) {
+      const aliasIndex = buildAliasIndex();
+      const match = findPlayerMatchForLine(rawText, aliasIndex);
+      if (!match.player) {
+        return { error: match.ambiguousPlayers.length ? "短期规则同时匹配到多个成员，请写更完整的别名" : "找不到这个成员" };
+      }
+      const normalizedRaw = normalizeAlias(rawText);
+      const matchingAliases = aliasIndex.filter((item) => (
+        normalizedRaw.includes(item.normalized) && Number(item.player.id) === Number(match.player.id)
+      ));
+      const longest = Math.max(...matchingAliases.map((item) => item.normalized.length));
+      const alias = matchingAliases.find((item) => item.normalized.length === longest);
+      const rawStart = rawText.indexOf(alias.alias);
+      const remainder = rawStart >= 0
+        ? rawText.slice(rawStart + alias.alias.length)
+        : normalizedRaw.slice(normalizedRaw.indexOf(alias.normalized) + alias.normalized.length);
+      return { player: match.player, remainder: remainder.trim() };
+    }
+
+    function parseShortRuleText(rawText, today) {
+      const found = findPlayerForShortRule(rawText);
+      if (found.error) return { error: found.error };
+      const text = found.remainder.replace(/\s+/g, " ").trim();
+      const playerId = Number(found.player.id);
+      let type = "";
+      let rule = {};
+      let expiresOn = null;
+
+      if (/^下周(?:一)?再打$/.test(text)) {
+        type = "not_before_next_week";
+        expiresOn = addDaysToIsoDate(getNextMondayIso(today), -1);
+      } else {
+        const afterMatch = text.match(/^([0-9]+|[一二两三四五六七八九十]+)天后再打$/);
+        const withinMatch = text.match(/^([0-9]+|[一二两三四五六七八九十]+)天内不打$/);
+        const onlyMatch = text.match(/^只打(.+)$/);
+        const notMatch = text.match(/^(.+)不打$/);
+
+        if (afterMatch) {
+          const days = parseChineseSmallNumber(afterMatch[1]);
+          if (!days) return { error: "天数无法识别" };
+          type = "not_before_days";
+          rule = { days };
+          expiresOn = addDaysToIsoDate(today, days - 1);
+        } else if (withinMatch) {
+          const days = parseChineseSmallNumber(withinMatch[1]);
+          if (!days) return { error: "天数无法识别" };
+          type = "not_within_days";
+          rule = { days };
+          expiresOn = addDaysToIsoDate(today, days - 1);
+        } else if (onlyMatch) {
+          const weekdays = parseWeekdayNames(onlyMatch[1]);
+          if (!weekdays.length) return { error: "只打的时间格式无法识别" };
+          type = "only_days";
+          rule = { weekdays };
+        } else if (notMatch) {
+          const weekdays = parseWeekdayNames(notMatch[1]);
+          if (!weekdays.length) return { error: "不打的时间格式无法识别" };
+          type = "not_days";
+          rule = { weekdays };
+        }
+      }
+
+      if (!type) return { error: "短期规则格式无法识别" };
+      return {
+        playerId,
+        rawText,
+        type,
+        rule,
+        expiresOn,
+      };
+    }
+
+    function ruleBlocksPlayerToday(rule, playerId, today) {
+      if (Number(rule.playerId) !== Number(playerId)) return false;
+      const weekday = getBeijingWeekday(today);
+      if (rule.type === "only_days") return !(rule.rule?.weekdays || []).includes(weekday);
+      if (rule.type === "not_days") return (rule.rule?.weekdays || []).includes(weekday);
+      if (["not_before_days", "not_within_days", "not_before_next_week"].includes(rule.type)) {
+        return Boolean(rule.expiresOn) && today <= rule.expiresOn;
+      }
+      return false;
+    }
+
+    async function loadShortTermRules() {
+      const today = getBeijingDateString();
+      const data = await api(`/api/short-term-rules?today=${encodeURIComponent(today)}`);
+      state.shortTermRules = Array.isArray(data.rules) ? data.rules : [];
+    }
+
+    function getJoinedPlayerIds() {
+      return new Set(state.chainEntries
+        .map((entry) => Number(entry.ownerPlayer?.id || entry.player?.id))
+        .filter((id) => Number.isInteger(id) && id > 0));
+    }
+
+    function buildShakePeopleRecommendations(today) {
+      const joinedIds = getJoinedPlayerIds();
+      const bestPartnerMap = getBestPartnerIdsMap(state.sessions);
+      const bestPartnerBoost = new Set();
+      joinedIds.forEach((playerId) => {
+        (bestPartnerMap.get(playerId) || []).forEach((partnerId) => bestPartnerBoost.add(Number(partnerId)));
+      });
+      const hasLowLevelJoined = [...joinedIds].some((playerId) => {
+        const player = getPlayerById(playerId);
+        const rank = levelRank(player?.level);
+        return rank >= 0 && rank < 3;
+      });
+      const stats = getMemberStatsMap();
+
+      return state.players
+        .filter((player) => {
+          const playerId = Number(player.id);
+          if (!Number.isInteger(playerId) || playerId <= 0 || joinedIds.has(playerId)) return false;
+          return !state.shortTermRules.some((rule) => ruleBlocksPlayerToday(rule, playerId, today));
+        })
+        .map((player) => {
+          const playerId = Number(player.id);
+          const rank = levelRank(player.level);
+          return {
+            player,
+            playCount: stats.get(playerId)?.playCount || 0,
+            isBestPartner: bestPartnerBoost.has(playerId),
+            isLowLevelMatch: hasLowLevelJoined && rank >= 0 && rank < 3,
+          };
+        })
+        .sort((a, b) => (
+          (b.playCount - a.playCount)
+          || ((b.isBestPartner ? 1 : 0) - (a.isBestPartner ? 1 : 0))
+          || ((b.isLowLevelMatch ? 1 : 0) - (a.isLowLevelMatch ? 1 : 0))
+          || collator.compare(firstName(a.player.name), firstName(b.player.name))
+        ));
+    }
+
+    function renderShakePeopleList(recommendations) {
+      els.shakePeopleList.replaceChildren();
+      if (!recommendations.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-hint";
+        empty.textContent = "暂时没有合适的人可摇";
+        els.shakePeopleList.append(empty);
+        return;
+      }
+      recommendations.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "shake-person-row";
+        const name = document.createElement("span");
+        name.className = "shake-person-name";
+        name.textContent = firstName(item.player.name);
+        const meta = document.createElement("div");
+        meta.className = "shake-person-meta";
+        const badges = [];
+        badges.push(`打球 ${item.playCount} 次`);
+        if (item.isBestPartner) badges.push("最佳拍档");
+        if (item.isLowLevelMatch) badges.push("水平相近");
+        if (item.player.level && item.player.level !== "不详") badges.push(item.player.level);
+        badges.forEach((text) => {
+          const badge = document.createElement("span");
+          badge.className = "shake-reason";
+          badge.textContent = text;
+          meta.append(badge);
+        });
+        row.append(name, meta);
+        els.shakePeopleList.append(row);
+      });
+    }
+
+    function shortRuleDescription(rule) {
+      if (rule.type === "only_days") return `只打${formatWeekdayNames(rule.rule?.weekdays)}`;
+      if (rule.type === "not_days") return `${formatWeekdayNames(rule.rule?.weekdays)}不打`;
+      if (rule.type === "not_before_days") return `${rule.rule?.days}天后再打`;
+      if (rule.type === "not_within_days") return `${rule.rule?.days}天内不打`;
+      if (rule.type === "not_before_next_week") return "下周再打";
+      return "短期规则";
+    }
+
+    function renderShortTermRulesList() {
+      els.shortTermRulesList.replaceChildren();
+      const today = getBeijingDateString();
+      const rules = state.shortTermRules.filter((rule) => !rule.expiresOn || rule.expiresOn >= today);
+      if (!rules.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-hint";
+        empty.textContent = "暂无短期规则";
+        els.shortTermRulesList.append(empty);
+        return;
+      }
+      rules.forEach((rule) => {
+        const player = getPlayerById(rule.playerId);
+        const row = document.createElement("div");
+        row.className = "short-rule-row";
+        const text = document.createElement("span");
+        text.textContent = `${player ? firstName(player.name) : `#${rule.playerId}`} · ${shortRuleDescription(rule)}`;
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.textContent = "删除";
+        deleteButton.addEventListener("click", () => deleteShortRule(rule.id));
+        row.append(text, deleteButton);
+        els.shortTermRulesList.append(row);
+      });
+    }
+
+    function renderShakePeopleModal() {
+      const today = getBeijingDateString();
+      const recommendations = buildShakePeopleRecommendations(today);
+      els.shakePeopleSummary.textContent = `北京时间今天：${today}。按打球次数、最佳拍档、水平相近依次排序。`;
+      renderShakePeopleList(recommendations);
+      renderShortTermRulesList();
+    }
+
+    async function openShakePeopleModal() {
+      if (state.readOnly) return;
+      processChain();
+      try {
+        await loadShortTermRules();
+      } catch (error) {
+        toast(`摇人规则加载失败：${error.message}`);
+      }
+      renderShakePeopleModal();
+      openModal("shakePeopleModal");
+    }
+
+    function openShortRuleModal() {
+      els.shortRuleInput.value = "";
+      openModal("shortRuleModal");
+      setTimeout(() => els.shortRuleInput.focus(), 0);
+    }
+
+    async function saveShortRule() {
+      const rawText = els.shortRuleInput.value.trim();
+      if (!rawText) {
+        toast("请填写短期规则");
+        return;
+      }
+      const parsed = parseShortRuleText(rawText, getBeijingDateString());
+      if (parsed.error) {
+        toast(parsed.error);
+        return;
+      }
+      els.saveShortRuleBtn.disabled = true;
+      try {
+        const data = await api("/api/short-term-rules", {
+          method: "POST",
+          body: JSON.stringify(parsed),
+        });
+        state.shortTermRules.push(data.rule);
+        closeModal("shortRuleModal");
+        if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
+        toast("短期规则已保存");
+      } catch (error) {
+        toast(`保存失败：${error.message}`);
+      } finally {
+        els.saveShortRuleBtn.disabled = false;
+      }
+    }
+
+    async function deleteShortRule(ruleId) {
+      try {
+        await api(`/api/short-term-rules/${ruleId}`, { method: "DELETE" });
+        state.shortTermRules = state.shortTermRules.filter((rule) => rule.id !== ruleId);
+        renderShakePeopleModal();
+        toast("短期规则已删除");
+      } catch (error) {
+        toast(`删除失败：${error.message}`);
       }
     }
 

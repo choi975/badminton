@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T03:22:19.075Z",
+  "generatedAt": "2026-08-29T16:25:22.244Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -938,6 +938,18 @@
         "participatesPayment": true,
         "createdAt": "2026-08-27 13:17:59",
         "updatedAt": "2026-08-28 16:28:28"
+      },
+      {
+        "id": 84,
+        "name": "顺",
+        "gender": "男",
+        "level": "不详",
+        "affiliation": "球友",
+        "notes": "",
+        "photoKey": "",
+        "participatesPayment": true,
+        "createdAt": "2026-08-29 15:42:54",
+        "updatedAt": "2026-08-29 15:42:54"
       }
     ],
     "levelDescriptions": {
@@ -1202,6 +1214,10 @@
         {
           "playerId": 83,
           "joinNumber": 63
+        },
+        {
+          "playerId": 84,
+          "joinNumber": 64
         }
       ],
       "Hytronik": [
@@ -1357,7 +1373,8 @@
         79,
         80,
         82,
-        83
+        83,
+        84
       ],
       "Hytronik": [
         11,
@@ -5064,9 +5081,9 @@
         "updatedAt": "2026-08-27 08:24:24"
       },
       {
-        "id": 26,
-        "date": "2026-08-29",
-        "venue": "EDC",
+        "id": 27,
+        "date": "2026-08-28",
+        "venue": "文体",
         "courtCount": 4,
         "courtFee": 280,
         "shuttlePrice": 11.3,
@@ -5153,6 +5170,19 @@
             "level": "3级"
           },
           {
+            "playerId": 13,
+            "playerName": "甲乙丙",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.1,
+            "isFemale": true,
+            "gender": "女",
+            "level": "3.5级"
+          },
+          {
             "playerId": null,
             "playerName": "🍭 甲乙丙 代1",
             "ownerPlayerId": 13,
@@ -5176,7 +5206,7 @@
             "amount": 18.1,
             "isFemale": true,
             "gender": "女",
-            "level": "2.5级"
+            "level": "3级"
           },
           {
             "playerId": null,
@@ -5187,6 +5217,32 @@
             "slots": 1,
             "plusCount": 0,
             "amount": 18.1,
+            "isFemale": true,
+            "gender": "女",
+            "level": "2.5级"
+          },
+          {
+            "playerId": null,
+            "playerName": "🍭 甲乙丙 代4",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": true,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.1,
+            "isFemale": true,
+            "gender": "女",
+            "level": "2.5级"
+          },
+          {
+            "playerId": null,
+            "playerName": "🍭 甲乙丙 代5",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": true,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.099999999999994,
             "isFemale": true,
             "gender": "女",
             "level": "3级"
@@ -5205,19 +5261,6 @@
             "level": "3.5级"
           },
           {
-            "playerId": null,
-            "playerName": "oi +1",
-            "ownerPlayerId": 53,
-            "ownerName": "oi",
-            "isCompanion": true,
-            "slots": 1,
-            "plusCount": 0,
-            "amount": 18.1,
-            "isFemale": false,
-            "gender": "男",
-            "level": "2.5级"
-          },
-          {
             "playerId": 53,
             "playerName": "oi",
             "ownerPlayerId": 53,
@@ -5232,13 +5275,26 @@
           },
           {
             "playerId": null,
-            "playerName": "oi +2",
+            "playerName": "oi +1",
             "ownerPlayerId": 53,
             "ownerName": "oi",
             "isCompanion": true,
             "slots": 1,
             "plusCount": 0,
             "amount": 18.1,
+            "isFemale": false,
+            "gender": "男",
+            "level": "2.5级"
+          },
+          {
+            "playerId": null,
+            "playerName": "oi +2",
+            "ownerPlayerId": 53,
+            "ownerName": "oi",
+            "isCompanion": true,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.099999999999994,
             "isFemale": false,
             "gender": "男",
             "level": "2.5级"
@@ -5255,19 +5311,6 @@
             "isFemale": false,
             "gender": "男",
             "level": "4.5级"
-          },
-          {
-            "playerId": null,
-            "playerName": "🍭 甲乙丙 代4",
-            "ownerPlayerId": 13,
-            "ownerName": "甲乙丙",
-            "isCompanion": true,
-            "slots": 1,
-            "plusCount": 0,
-            "amount": 18.1,
-            "isFemale": true,
-            "gender": "女",
-            "level": "2.5级"
           },
           {
             "playerId": 28,
@@ -5296,19 +5339,6 @@
             "level": "4级"
           },
           {
-            "playerId": null,
-            "playerName": "🍭 甲乙丙 代5",
-            "ownerPlayerId": 13,
-            "ownerName": "甲乙丙",
-            "isCompanion": true,
-            "slots": 1,
-            "plusCount": 0,
-            "amount": 18.1,
-            "isFemale": true,
-            "gender": "女",
-            "level": "2.5级"
-          },
-          {
             "playerId": 37,
             "playerName": "🎀 ～TomCat",
             "ownerPlayerId": 37,
@@ -5333,19 +5363,6 @@
             "isFemale": false,
             "gender": "男",
             "level": "4.5级"
-          },
-          {
-            "playerId": 13,
-            "playerName": "甲乙丙",
-            "ownerPlayerId": 13,
-            "ownerName": "甲乙丙",
-            "isCompanion": false,
-            "slots": 1,
-            "plusCount": 0,
-            "amount": 18.1,
-            "isFemale": true,
-            "gender": "女",
-            "level": "3.5级"
           },
           {
             "playerId": 14,
@@ -5452,30 +5469,30 @@
             "level": "5级"
           }
         ],
-        "createdAt": "2026-08-28 16:31:50",
-        "updatedAt": "2026-08-28 16:31:50"
+        "createdAt": "2026-08-29 09:22:46",
+        "updatedAt": "2026-08-29 09:23:15"
       }
     ],
     "estimator": {
       "version": 4,
-      "generatedAt": "2026-08-29T03:22:16.021Z",
+      "generatedAt": "2026-08-29T16:25:18.902Z",
       "training": {
         "dateRange": {
           "from": "2026-07-13",
-          "to": "2026-08-29"
+          "to": "2026-08-28"
         },
         "court": {
           "sampleCount": 18,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-08-29"
+            "to": "2026-08-28"
           }
         },
         "shuttle": {
           "sampleCount": 18,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-08-29"
+            "to": "2026-08-28"
           }
         }
       },
