@@ -2312,6 +2312,7 @@
       width: min(1100px, 100%);
       height: auto;
       max-height: calc(100vh - 32px);
+      grid-template-rows: auto auto auto;
     }
 
     .calendar-dialog .modal-body {
@@ -2391,8 +2392,8 @@
     }
 
     .calendar-scroll {
-      flex: 1 1 auto;
-      min-height: 220px;
+      flex: 0 0 auto;
+      min-height: 0;
       height: auto;
       margin-bottom: 14px;
       overflow-y: auto;
@@ -2622,7 +2623,8 @@
 
     .calendar-detail-table {
       width: max-content;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0;
       font-size: 14px;
     }
 
@@ -6236,6 +6238,7 @@
       };
       openModal("calendarModal");
       renderCalendar({ resetRange: true, preserveScroll: false });
+      resizeCalendarToActiveMonth();
       requestAnimationFrame(() => scrollCalendarToMonth(state.calendar.year, state.calendar.month, "auto"));
     }
 
@@ -6247,6 +6250,7 @@
       setCalendarActiveMonth(target.year, target.month, { refreshDetails: false });
       refreshCalendarSelection();
       ensureCalendarMonthRendered(target.year, target.month);
+      resizeCalendarToActiveMonth();
       scrollCalendarToMonth(target.year, target.month, "smooth");
     }
 
@@ -6257,6 +6261,7 @@
       setCalendarActiveMonth(today.getFullYear(), today.getMonth() + 1, { refreshDetails: false });
       refreshCalendarSelection();
       ensureCalendarMonthRendered(state.calendar.year, state.calendar.month);
+      resizeCalendarToActiveMonth();
       scrollCalendarToMonth(state.calendar.year, state.calendar.month, "smooth");
     }
 
@@ -6473,6 +6478,18 @@
         current.setDate(current.getDate() + 1);
       }
       return fragment;
+    }
+
+    function resizeCalendarToActiveMonth() {
+      const activeKey = calendarMonthKey(state.calendar.year, state.calendar.month);
+      const buttons = [...els.calendarGrid.querySelectorAll(`[data-month="${activeKey}"]`)];
+      if (!buttons.length) return;
+      const first = buttons[0];
+      const last = buttons.at(-1);
+      const contentTop = first.getBoundingClientRect().top;
+      const contentBottom = last.getBoundingClientRect().bottom;
+      const padding = 14;
+      els.calendarScroll.style.height = `${Math.max(1, Math.ceil(contentBottom - contentTop + padding))}px`;
     }
 
     function renderCalendar({ resetRange = false, preserveScroll = true } = {}) {
