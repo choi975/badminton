@@ -992,6 +992,15 @@
       line-height: 1.5;
     }
 
+    .short-rule-help p {
+      margin: 0 0 4px;
+    }
+
+    .short-rule-help ul {
+      margin: 0 0 6px;
+      padding-left: 20px;
+    }
+
     .short-rule-input {
       width: 100%;
       min-height: 88px;
@@ -3002,8 +3011,8 @@
             <div class="chain-head">
               <span>接龙人员</span>
               <div class="chain-head-actions">
-                <button id="pasteInputBtn"><span class="icon-text">▤ 一键粘贴</span></button>
                 <button id="shakePeopleBtn" type="button">🎲 摇人</button>
+                <button id="pasteInputBtn"><span class="icon-text">▤ 一键粘贴</span></button>
               </div>
             </div>
             <textarea id="chainInput" class="chain-textarea" placeholder=""></textarea>
@@ -3354,12 +3363,6 @@
       <div class="modal-body">
         <p id="shakePeopleSummary" class="shake-people-summary"></p>
         <div id="shakePeopleList" class="shake-people-list"></div>
-        <div class="short-rule-divider"></div>
-        <div class="short-rule-head">
-          <h3>短期规则</h3>
-          <span class="short-rule-hint">规则对所有设备共享，过期后自动清理</span>
-        </div>
-        <div id="shortTermRulesList" class="short-term-rules-list"></div>
       </div>
       <div class="modal-footer">
         <button data-close="shakePeopleModal">关闭</button>
@@ -3374,8 +3377,24 @@
         <button class="modal-close-btn" data-close="shortRuleModal" aria-label="关闭" title="关闭">×</button>
       </div>
       <div class="modal-body">
-        <p class="short-rule-help">格式：成员名 时间 动作，例如“清 周五、周六、周日 不打”。</p>
-        <textarea id="shortRuleInput" class="short-rule-input" rows="4" placeholder="例如：果花 三天后再打"></textarea>
+        <div class="short-rule-help">
+          <p>格式：成员名 时间 动作</p>
+          <p>支持格式：</p>
+          <ul>
+            <li>成员名 周五、周六、周日 不打</li>
+            <li>成员名 只打周五、周六</li>
+            <li>成员名 三天后再打</li>
+            <li>成员名 三天内不打</li>
+            <li>成员名 下周再打 / 下周一再打</li>
+          </ul>
+        </div>
+        <textarea id="shortRuleInput" class="short-rule-input" rows="4" placeholder="例如：成员名 三天后再打"></textarea>
+        <div class="short-rule-divider"></div>
+        <div class="short-rule-head">
+          <h3>现有短期规则</h3>
+          <span class="short-rule-hint">规则对所有设备共享，过期后自动清理</span>
+        </div>
+        <div id="shortTermRulesList" class="short-term-rules-list"></div>
       </div>
       <div class="modal-footer">
         <button data-close="shortRuleModal">取消</button>
@@ -10177,7 +10196,6 @@
         badges.push(`打球 ${item.playCount} 次`);
         if (item.isBestPartner) badges.push("最佳拍档");
         if (item.isLowLevelMatch) badges.push("水平相近");
-        if (item.player.level && item.player.level !== "不详") badges.push(item.player.level);
         badges.forEach((text) => {
           const badge = document.createElement("span");
           badge.className = "shake-reason";
@@ -10229,7 +10247,6 @@
       const recommendations = buildShakePeopleRecommendations(today);
       els.shakePeopleSummary.textContent = `北京时间今天：${today}。按打球次数、最佳拍档、水平相近依次排序。`;
       renderShakePeopleList(recommendations);
-      renderShortTermRulesList();
     }
 
     async function openShakePeopleModal() {
@@ -10246,6 +10263,7 @@
 
     function openShortRuleModal() {
       els.shortRuleInput.value = "";
+      renderShortTermRulesList();
       openModal("shortRuleModal");
       setTimeout(() => els.shortRuleInput.focus(), 0);
     }
@@ -10282,7 +10300,8 @@
       try {
         await api(`/api/short-term-rules/${ruleId}`, { method: "DELETE" });
         state.shortTermRules = state.shortTermRules.filter((rule) => rule.id !== ruleId);
-        renderShakePeopleModal();
+        if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
+        if (els.shortRuleModal.classList.contains("open")) renderShortTermRulesList();
         toast("短期规则已删除");
       } catch (error) {
         toast(`删除失败：${error.message}`);
