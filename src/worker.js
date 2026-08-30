@@ -541,7 +541,7 @@ async function handleApi(request, env, url) {
        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
     ).bind(
       input.playerId,
-      input.ruleType,
+      input.type,
       JSON.stringify(input.rule),
       input.expiresOn || null,
       input.rawText,
