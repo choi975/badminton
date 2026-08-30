@@ -10187,6 +10187,8 @@
       recommendations.forEach((item) => {
         const row = document.createElement("div");
         row.className = "shake-person-row";
+        row.title = "双击快速创建该成员的短期规则";
+        row.addEventListener("dblclick", () => openShortRuleModal(`${firstName(item.player.name)} `));
         const name = document.createElement("span");
         name.className = "shake-person-name";
         name.textContent = firstName(item.player.name);
@@ -10261,11 +10263,14 @@
       openModal("shakePeopleModal");
     }
 
-    function openShortRuleModal() {
-      els.shortRuleInput.value = "";
+    function openShortRuleModal(prefill = "") {
+      els.shortRuleInput.value = prefill;
       renderShortTermRulesList();
       openModal("shortRuleModal");
-      setTimeout(() => els.shortRuleInput.focus(), 0);
+      setTimeout(() => {
+        els.shortRuleInput.focus();
+        els.shortRuleInput.setSelectionRange(els.shortRuleInput.value.length, els.shortRuleInput.value.length);
+      }, 0);
     }
 
     async function saveShortRule() {
