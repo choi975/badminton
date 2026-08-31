@@ -90,6 +90,13 @@ const memberExitRateWindows = new Map();
 const SESSION_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const VALID_SESSION_VENUES = new Set(["文体", "EDC"]);
 const VALID_PARTICIPANT_GENDERS = new Set(["男", "女", "不详"]);
+const EXPIRING_SHORT_TERM_RULE_TYPES = new Set([
+  "not_before_days",
+  "not_within_days",
+  "not_before_next_week",
+  "not_before_date",
+]);
+const WEEKLY_SHORT_TERM_RULE_TYPES = new Set(["only_days", "not_days"]);
 
 const LEVEL_PATTERN = /^(\d+(?:\.5)?级)$/;
 
@@ -536,17 +543,38 @@ async function handleApi(request, env, url) {
     if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以创建摇人短期规则" }, 403);
     const input = normalizeShortTermRuleInput(await readJson(request));
     if (!input) return json({ error: "短期规则格式无效" }, 400);
-    const result = await env.DB.prepare(
-      `INSERT INTO short_term_rules (player_id, rule_type, rule_json, expires_on, raw_text, updated_at)
-       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
-    ).bind(
-      input.playerId,
-      input.type,
-      JSON.stringify(input.rule),
-      input.expiresOn || null,
-      input.rawText,
-    ).run();
-    return json({ rule: await getShortTermRuleById(env.DB, Number(result.meta.last_row_id)) }, 201);
+    if (EXPIRING_SHORT_TERM_RULE_TYPES.has(input.type)) {
+      const earlySession = await findEarlyReturnSession(env.DB, input);
+      if (earlySession) {
+        return json({ error: `该成员已在${formatShortDate(earlySession.date)}的订场记录中，这条规则未保存` }, 409);
+      }
+      const results = await env.DB.batch([
+        env.DB.prepare(
+          "DELETE FROM short_term_rules WHERE player_id = ? AND expires_on IS NOT NULL"
+        ).bind(input.playerId),
+        buildShortTermRuleInsert(env.DB, input),
+      ]);
+      const deletedCount = Number(results[0]?.meta?.changes) || 0;
+      const insertedId = Number(results[1]?.meta?.last_row_id);
+      const rule = await getShortTermRuleById(env.DB, insertedId);
+      return json({
+        rule,
+        rules: await listShortTermRules(env.DB),
+        message: deletedCount ? "新的日期规则已保存，并替换原有日期规则" : "短期规则已保存",
+      }, 201);
+    }
+
+    const duplicate = await findDuplicateWeeklyShortTermRule(env.DB, input);
+    if (duplicate) {
+      return json({
+        rule: duplicate,
+        rules: await listShortTermRules(env.DB),
+        message: "相同的星期规则已经存在",
+      });
+    }
+    const result = await buildShortTermRuleInsert(env.DB, input).run();
+    const rule = await getShortTermRuleById(env.DB, Number(result.meta.last_row_id));
+    return json({ rule, rules: await listShortTermRules(env.DB), message: "短期规则已保存" }, 201);
   }
 
   if (pathname === "/api/member-exits/confirm" && method === "POST") {
@@ -722,10 +750,11 @@ async function handleApi(request, env, url) {
     const input = normalizeSessionInput(await readJson(request), "EDC", shuttleTypes);
     if (!input) return json({ error: "订场记录数据无效" }, 400);
     const session = await createSession(env.DB, input);
+    const removedShortRuleCount = await deleteShortTermRulesForEarlyReturn(env.DB, input.date, input.players);
     const estimator = input.trainCourt || input.trainShuttle
       ? await retrainEstimator(env.DB)
       : await getCurrentEstimator(env.DB);
-    return json({ session, estimator }, 201);
+    return json({ session, estimator, removedShortRuleCount }, 201);
   }
 
   const sessionVenueMatch = pathname.match(/^\/api\/sessions\/(\d+)\/venue$/);
@@ -755,8 +784,9 @@ async function handleApi(request, env, url) {
     );
     if (!input) return json({ error: "订场记录数据无效" }, 400);
     const session = await updateSession(env.DB, id, input);
+    const removedShortRuleCount = await deleteShortTermRulesForEarlyReturn(env.DB, input.date, input.players);
     const estimator = await retrainEstimator(env.DB);
-    return json({ session, estimator });
+    return json({ session, estimator, removedShortRuleCount });
   }
 
   if (sessionMatch && method === "DELETE") {
@@ -885,16 +915,39 @@ function getUtcDateString(date = new Date()) {
   return date.toISOString().slice(0, 10);
 }
 
+function addDaysToDateString(dateString, days) {
+  const [year, month, day] = String(dateString || "").split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function isValidDateString(dateString) {
+  if (!SESSION_DATE_PATTERN.test(String(dateString || ""))) return false;
+  const [year, month, day] = dateString.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year
+    && parsed.getUTCMonth() === month - 1
+    && parsed.getUTCDate() === day;
+}
+
+function formatShortDate(dateString) {
+  const [, month, day] = String(dateString || "").split("-").map(Number);
+  return Number.isInteger(month) && Number.isInteger(day) ? `${month}.${day}` : dateString;
+}
+
 async function listShortTermRules(db) {
   const { results } = await db.prepare(
-    "SELECT id, player_id, rule_type, rule_json, expires_on, raw_text, created_at, updated_at FROM short_term_rules ORDER BY created_at ASC, id ASC"
+    `SELECT id, player_id, rule_type, rule_json, starts_on, expires_on, raw_text, created_at, updated_at
+     FROM short_term_rules
+     ORDER BY CASE WHEN expires_on IS NULL THEN 0 ELSE 1 END ASC, expires_on ASC, created_at ASC, id ASC`
   ).all();
   return results.map(mapShortTermRuleRow);
 }
 
 async function getShortTermRuleById(db, id) {
   const row = await db.prepare(
-    "SELECT id, player_id, rule_type, rule_json, expires_on, raw_text, created_at, updated_at FROM short_term_rules WHERE id = ?"
+    "SELECT id, player_id, rule_type, rule_json, starts_on, expires_on, raw_text, created_at, updated_at FROM short_term_rules WHERE id = ?"
   ).bind(id).first();
   return row ? mapShortTermRuleRow(row) : null;
 }
@@ -911,6 +964,7 @@ function mapShortTermRuleRow(row) {
     playerId: Number(row.player_id),
     type: String(row.rule_type || ""),
     rule,
+    startsOn: row.starts_on || null,
     expiresOn: row.expires_on || null,
     rawText: String(row.raw_text || ""),
     createdAt: row.created_at,
@@ -924,38 +978,129 @@ async function deleteExpiredShortTermRules(db, today) {
   ).bind(today).run();
 }
 
+function buildShortTermRuleInsert(db, input) {
+  return db.prepare(
+    `INSERT INTO short_term_rules (player_id, rule_type, rule_json, starts_on, expires_on, raw_text, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+  ).bind(
+    input.playerId,
+    input.type,
+    JSON.stringify(input.rule),
+    input.startsOn,
+    input.expiresOn || null,
+    input.rawText,
+  );
+}
+
+async function findEarlyReturnSession(db, input) {
+  if (!input.expiresOn) return null;
+  return db.prepare(
+    `SELECT s.date
+     FROM booking_sessions s
+     JOIN booking_session_players p ON p.session_id = s.id
+     WHERE p.player_id = ?
+       AND COALESCE(p.is_companion, 0) = 0
+       AND s.date >= ?
+       AND s.date <= ?
+     ORDER BY s.date ASC, s.id ASC
+     LIMIT 1`
+  ).bind(input.playerId, input.startsOn, input.expiresOn).first();
+}
+
+function normalizedWeekdays(rule) {
+  return [...new Set((rule?.weekdays || []).map(Number))].sort((a, b) => (a || 7) - (b || 7));
+}
+
+async function findDuplicateWeeklyShortTermRule(db, input) {
+  if (!WEEKLY_SHORT_TERM_RULE_TYPES.has(input.type)) return null;
+  const { results } = await db.prepare(
+    `SELECT id, player_id, rule_type, rule_json, starts_on, expires_on, raw_text, created_at, updated_at
+     FROM short_term_rules
+     WHERE player_id = ? AND rule_type = ? AND expires_on IS NULL
+     ORDER BY id ASC`
+  ).bind(input.playerId, input.type).all();
+  const expectedWeekdays = normalizedWeekdays(input.rule).join(",");
+  const expectedNote = String(input.rule.note || "");
+  return results
+    .map(mapShortTermRuleRow)
+    .find((item) => (
+      normalizedWeekdays(item.rule).join(",") === expectedWeekdays
+      && String(item.rule.note || "") === expectedNote
+    )) || null;
+}
+
+async function deleteShortTermRulesForEarlyReturn(db, sessionDate, players) {
+  const playerIds = [...new Set((players || [])
+    .filter((player) => !player.isCompanion)
+    .map((player) => Number(player.playerId))
+    .filter((playerId) => Number.isInteger(playerId) && playerId > 0))];
+  if (!playerIds.length) return 0;
+  const placeholders = playerIds.map(() => "?").join(", ");
+  const result = await db.prepare(
+    `DELETE FROM short_term_rules
+     WHERE expires_on IS NOT NULL
+       AND starts_on IS NOT NULL
+       AND starts_on <= ?
+       AND expires_on >= ?
+       AND player_id IN (${placeholders})`
+  ).bind(sessionDate, sessionDate, ...playerIds).run();
+  return Number(result.meta?.changes) || 0;
+}
+
 function normalizeShortTermRuleInput(body) {
   const playerId = Number(body?.playerId);
   const rawText = String(body?.rawText || "").trim();
   const type = String(body?.type || "").trim();
-  const rule = body?.rule && typeof body.rule === "object" ? body.rule : {};
+  const submittedRule = body?.rule && typeof body.rule === "object" ? body.rule : {};
+  const startsOn = String(body?.startsOn || "").trim();
   const expiresOn = body?.expiresOn ? String(body.expiresOn).trim() : null;
   if (!Number.isInteger(playerId) || playerId <= 0 || !rawText || rawText.length > 200) return null;
+  if (!isValidDateString(startsOn)) return null;
 
-  const allowedTypes = new Set(["only_days", "not_days", "not_before_days", "not_within_days", "not_before_next_week"]);
+  const allowedTypes = new Set([...WEEKLY_SHORT_TERM_RULE_TYPES, ...EXPIRING_SHORT_TERM_RULE_TYPES]);
   if (!allowedTypes.has(type)) return null;
+  const note = String(submittedRule.note || "").replace(/\s+/g, " ").trim();
+  if (note.length > 200) return null;
+  let rule = { note };
 
-  if (type === "only_days" || type === "not_days") {
-    if (!Array.isArray(rule.weekdays) || !rule.weekdays.length) return null;
-    const validWeekdays = rule.weekdays.every((day) => Number.isInteger(day) && day >= 0 && day <= 6);
+  if (EXPIRING_SHORT_TERM_RULE_TYPES.has(type)) {
+    if (!isValidDateString(expiresOn) || expiresOn < startsOn) return null;
+  }
+
+  if (WEEKLY_SHORT_TERM_RULE_TYPES.has(type)) {
+    if (!Array.isArray(submittedRule.weekdays) || !submittedRule.weekdays.length || expiresOn) return null;
+    const weekdays = normalizedWeekdays(submittedRule);
+    const validWeekdays = weekdays.every((day) => Number.isInteger(day) && day >= 0 && day <= 6);
     if (!validWeekdays) return null;
+    rule = { weekdays, note };
   }
 
   if (type === "not_before_days" || type === "not_within_days") {
-    if (!Number.isInteger(rule.days) || rule.days <= 0 || rule.days > 3660) return null;
-    if (!SESSION_DATE_PATTERN.test(expiresOn || "")) return null;
+    const days = Number(submittedRule.days);
+    if (!Number.isInteger(days) || days <= 0 || days > 3660) return null;
+    rule = { days, resumeOn: addDaysToDateString(expiresOn, 1), note };
   }
 
   if (type === "not_before_next_week") {
-    if (!SESSION_DATE_PATTERN.test(expiresOn || "")) return null;
+    const weekday = Number(submittedRule.weekday);
+    if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) return null;
+    rule = { weekday, resumeOn: addDaysToDateString(expiresOn, 1), note };
   }
 
-  if (expiresOn && !SESSION_DATE_PATTERN.test(expiresOn)) return null;
+  if (type === "not_before_date") {
+    rule = { resumeOn: addDaysToDateString(expiresOn, 1), note };
+  }
+
+  if (EXPIRING_SHORT_TERM_RULE_TYPES.has(type)) {
+    const submittedResumeOn = String(submittedRule.resumeOn || "").trim();
+    if (submittedResumeOn && submittedResumeOn !== rule.resumeOn) return null;
+  }
   return {
     playerId,
     rawText,
     type,
     rule,
+    startsOn,
     expiresOn,
   };
 }

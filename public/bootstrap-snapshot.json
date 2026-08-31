@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30T02:29:02.277Z",
+  "generatedAt": "2026-08-31T01:48:53.900Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -950,6 +950,18 @@
         "participatesPayment": true,
         "createdAt": "2026-08-29 15:42:54",
         "updatedAt": "2026-08-29 15:42:54"
+      },
+      {
+        "id": 85,
+        "name": "北新",
+        "gender": "男",
+        "level": "不详",
+        "affiliation": "球友",
+        "notes": "",
+        "photoKey": "",
+        "participatesPayment": true,
+        "createdAt": "2026-08-30 09:36:38",
+        "updatedAt": "2026-08-30 09:36:38"
       }
     ],
     "levelDescriptions": {
@@ -1218,6 +1230,10 @@
         {
           "playerId": 84,
           "joinNumber": 64
+        },
+        {
+          "playerId": 85,
+          "joinNumber": 65
         }
       ],
       "Hytronik": [
@@ -1374,7 +1390,8 @@
         80,
         82,
         83,
-        84
+        84,
+        85
       ],
       "Hytronik": [
         11,
@@ -5475,7 +5492,7 @@
     ],
     "estimator": {
       "version": 4,
-      "generatedAt": "2026-08-30T02:29:00.095Z",
+      "generatedAt": "2026-08-31T01:48:51.502Z",
       "training": {
         "dateRange": {
           "from": "2026-07-13",

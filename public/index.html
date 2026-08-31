@@ -983,6 +983,12 @@
     .short-rule-row button {
       min-height: 28px;
       padding: 0 8px;
+      flex: 0 0 auto;
+    }
+
+    .short-rule-row span {
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     .short-rule-help {
@@ -3378,21 +3384,22 @@
       </div>
       <div class="modal-body">
         <div class="short-rule-help">
-          <p>格式：成员名 时间 动作</p>
+          <p>格式：成员名 时间 再打/不打 备注（备注可不写）</p>
           <p>支持格式：</p>
           <ul>
             <li>成员名 周五、周六、周日 不打</li>
-            <li>成员名 只打周五、周六</li>
-            <li>成员名 三天后再打</li>
-            <li>成员名 三天内不打</li>
-            <li>成员名 下周再打 / 下周一再打</li>
+            <li>成员名 只打 周五、周六</li>
+            <li>成员名 15天后 再打 军训</li>
+            <li>成员名 三天内 不打 培训</li>
+            <li>成员名 下周二 再打 加班</li>
+            <li>成员名 9.10 再打</li>
           </ul>
         </div>
-        <textarea id="shortRuleInput" class="short-rule-input" rows="4" placeholder="例如：成员名 三天后再打"></textarea>
+        <textarea id="shortRuleInput" class="short-rule-input" rows="4" placeholder="例如：果花 三天内 不打 培训"></textarea>
         <div class="short-rule-divider"></div>
         <div class="short-rule-head">
           <h3>现有短期规则</h3>
-          <span class="short-rule-hint">规则对所有设备共享，过期后自动清理</span>
+          <span class="short-rule-hint">星期规则长期有效，日期规则到期后自动清理</span>
         </div>
         <div id="shortTermRulesList" class="short-term-rules-list"></div>
       </div>
@@ -6004,11 +6011,14 @@
         });
          upsertSession(data.session);
          if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
+         if (data.removedShortRuleCount) await loadShortTermRules();
          state.trainingAnomaly = null;
         setSync("已保存");
         closeModal("paymentModal");
         renderTable();
-        toast("订场记录已保存");
+        toast(data.removedShortRuleCount
+          ? `订场记录已保存，已删除${data.removedShortRuleCount}条提前返场规则`
+          : "订场记录已保存");
       } catch (error) {
         setSync("保存失败");
         toast(`保存订场记录失败：${error.message}`);
@@ -6355,6 +6365,7 @@
           : await api("/api/sessions", { method: "POST", body: JSON.stringify(body) });
         upsertSession(data.session);
         if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
+        if (data.removedShortRuleCount) await loadShortTermRules();
         state.trainingAnomaly = null;
         setSync("已保存");
         closeModal("recordModal");
@@ -6369,7 +6380,10 @@
         } else if (els.calendarModal.classList.contains("open")) {
           renderCalendar();
         }
-        toast(editing ? "订场记录已更新" : "订场记录已保存");
+        const savedMessage = editing ? "订场记录已更新" : "订场记录已保存";
+        toast(data.removedShortRuleCount
+          ? `${savedMessage}，已删除${data.removedShortRuleCount}条提前返场规则`
+          : savedMessage);
       } catch (error) {
         setSync("保存失败");
         toast(`保存订场记录失败：${error.message}`);
@@ -10015,26 +10029,63 @@
     }
 
     function getBeijingWeekday(dateString) {
-      return new Date(`${dateString}T00:00:00+08:00`).getUTCDay();
+      const [year, month, day] = String(dateString || "").split("-").map(Number);
+      return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
     }
 
     function getNextMondayIso(dateString) {
       const weekday = getBeijingWeekday(dateString);
-      return addDaysToIsoDate(dateString, (8 - weekday) % 7);
+      return addDaysToIsoDate(dateString, weekday === 1 ? 7 : (8 - weekday) % 7);
     }
 
-    function parseChineseSmallNumber(value) {
+    function getNextWeekdayIso(dateString, weekday) {
+      const nextMonday = getNextMondayIso(dateString);
+      return addDaysToIsoDate(nextMonday, weekday === 0 ? 6 : weekday - 1);
+    }
+
+    function isValidIsoDate(dateString) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateString || ""))) return false;
+      const [year, month, day] = dateString.split("-").map(Number);
+      const parsed = new Date(Date.UTC(year, month - 1, day));
+      return parsed.getUTCFullYear() === year
+        && parsed.getUTCMonth() === month - 1
+        && parsed.getUTCDate() === day;
+    }
+
+    function getNextMonthDayIso(month, day, today) {
+      const startYear = Number(String(today).slice(0, 4));
+      for (let year = startYear; year <= startYear + 8; year += 1) {
+        const candidate = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        if (isValidIsoDate(candidate) && candidate > today) return candidate;
+      }
+      return null;
+    }
+
+    function parseChineseNumber(value) {
       const text = String(value || "").trim();
       if (/^\d+$/.test(text)) return Number(text);
-      const map = { "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10 };
-      if (text.length === 1) return map[text] || null;
-      return null;
+      if (!/^[零〇一二两三四五六七八九十百千]+$/.test(text)) return null;
+      const digits = { "零": 0, "〇": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9 };
+      const units = { "十": 10, "百": 100, "千": 1000 };
+      let total = 0;
+      let current = 0;
+      for (const char of text) {
+        if (Object.prototype.hasOwnProperty.call(digits, char)) {
+          current = digits[char];
+          continue;
+        }
+        const unit = units[char];
+        if (!unit) return null;
+        total += (current || 1) * unit;
+        current = 0;
+      }
+      return total + current || null;
     }
 
     function parseWeekdayNames(text) {
       const map = { "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "日": 0, "天": 0 };
       const matches = [...String(text || "").matchAll(/周([一二三四五六日天])/g)];
-      return [...new Set(matches.map((match) => map[match[1]])).values()].sort((a, b) => a - b);
+      return [...new Set(matches.map((match) => map[match[1]])).values()].sort((a, b) => (a || 7) - (b || 7));
     }
 
     function formatWeekdayNames(weekdays) {
@@ -10042,23 +10093,31 @@
       return [...new Set((weekdays || []).map((day) => labels[day]).filter(Boolean))].join("、");
     }
 
+    function formatShortRuleDate(dateString) {
+      const [, month, day] = String(dateString || "").split("-").map(Number);
+      return Number.isInteger(month) && Number.isInteger(day) ? `${month}.${day}` : "日期未知";
+    }
+
+    function normalizeShortRuleNote(value) {
+      return String(value || "").replace(/\s+/g, " ").trim();
+    }
+
     function findPlayerForShortRule(rawText) {
       const aliasIndex = buildAliasIndex();
-      const match = findPlayerMatchForLine(rawText, aliasIndex);
-      if (!match.player) {
-        return { error: match.ambiguousPlayers.length ? "短期规则同时匹配到多个成员，请写更完整的别名" : "找不到这个成员" };
-      }
-      const normalizedRaw = normalizeAlias(rawText);
-      const matchingAliases = aliasIndex.filter((item) => (
-        normalizedRaw.includes(item.normalized) && Number(item.player.id) === Number(match.player.id)
-      ));
-      const longest = Math.max(...matchingAliases.map((item) => item.normalized.length));
-      const alias = matchingAliases.find((item) => item.normalized.length === longest);
-      const rawStart = rawText.indexOf(alias.alias);
-      const remainder = rawStart >= 0
-        ? rawText.slice(rawStart + alias.alias.length)
-        : normalizedRaw.slice(normalizedRaw.indexOf(alias.normalized) + alias.normalized.length);
-      return { player: match.player, remainder: remainder.trim() };
+      const collapsed = String(rawText || "").normalize("NFKC").replace(/\s+/g, " ").trim();
+      const lowered = collapsed.toLocaleLowerCase();
+      const matches = aliasIndex.filter((item) => {
+        const alias = String(item.alias || "").normalize("NFKC").replace(/\s+/g, " ").trim();
+        const normalizedAlias = alias.toLocaleLowerCase();
+        return lowered === normalizedAlias || lowered.startsWith(`${normalizedAlias} `);
+      });
+      if (!matches.length) return { error: "请把成员名写在规则最前面，并使用已有姓名或别名" };
+      const longestLength = Math.max(...matches.map((item) => String(item.alias || "").normalize("NFKC").replace(/\s+/g, " ").trim().length));
+      const longestMatches = matches.filter((item) => String(item.alias || "").normalize("NFKC").replace(/\s+/g, " ").trim().length === longestLength);
+      const playerIds = new Set(longestMatches.map((item) => Number(item.player.id)));
+      if (playerIds.size > 1) return { error: "这个成员名匹配到多人，请写更完整的别名" };
+      const alias = String(longestMatches[0].alias || "").normalize("NFKC").replace(/\s+/g, " ").trim();
+      return { player: longestMatches[0].player, remainder: collapsed.slice(alias.length).trim() };
     }
 
     function parseShortRuleText(rawText, today) {
@@ -10069,47 +10128,66 @@
       let type = "";
       let rule = {};
       let expiresOn = null;
+      let note = "";
+      const weekdayList = "((?:周[一二三四五六日天])(?:\\s*[、,，]\\s*周[一二三四五六日天])*)";
+      const nextWeekMatch = text.match(/^下周([一二三四五六日天])?\s+再打(?:\s+(.+))?$/);
+      const afterMatch = text.match(/^([0-9]+|[零〇一二两三四五六七八九十百千]+)\s*天后\s+再打(?:\s+(.+))?$/);
+      const withinMatch = text.match(/^([0-9]+|[零〇一二两三四五六七八九十百千]+)\s*天内\s+不打(?:\s+(.+))?$/);
+      const absoluteMatch = text.match(/^(\d{1,4})[.．](\d{1,2})(?:[.．](\d{1,2}))?\s+再打(?:\s+(.+))?$/);
+      const onlyMatch = text.match(new RegExp(`^只打\\s+${weekdayList}(?:\\s+(.+))?$`));
+      const notMatch = text.match(new RegExp(`^${weekdayList}\\s+不打(?:\\s+(.+))?$`));
 
-      if (/^下周(?:一)?再打$/.test(text)) {
+      if (nextWeekMatch) {
+        const weekdays = parseWeekdayNames(nextWeekMatch[1] ? `周${nextWeekMatch[1]}` : "周一");
+        const resumeOn = getNextWeekdayIso(today, weekdays[0]);
         type = "not_before_next_week";
-        expiresOn = addDaysToIsoDate(getNextMondayIso(today), -1);
-      } else {
-        const afterMatch = text.match(/^([0-9]+|[一二两三四五六七八九十]+)天后再打$/);
-        const withinMatch = text.match(/^([0-9]+|[一二两三四五六七八九十]+)天内不打$/);
-        const onlyMatch = text.match(/^只打(.+)$/);
-        const notMatch = text.match(/^(.+)不打$/);
-
-        if (afterMatch) {
-          const days = parseChineseSmallNumber(afterMatch[1]);
-          if (!days) return { error: "天数无法识别" };
-          type = "not_before_days";
-          rule = { days };
-          expiresOn = addDaysToIsoDate(today, days - 1);
-        } else if (withinMatch) {
-          const days = parseChineseSmallNumber(withinMatch[1]);
-          if (!days) return { error: "天数无法识别" };
-          type = "not_within_days";
-          rule = { days };
-          expiresOn = addDaysToIsoDate(today, days - 1);
-        } else if (onlyMatch) {
-          const weekdays = parseWeekdayNames(onlyMatch[1]);
-          if (!weekdays.length) return { error: "只打的时间格式无法识别" };
-          type = "only_days";
-          rule = { weekdays };
-        } else if (notMatch) {
-          const weekdays = parseWeekdayNames(notMatch[1]);
-          if (!weekdays.length) return { error: "不打的时间格式无法识别" };
-          type = "not_days";
-          rule = { weekdays };
-        }
+        note = normalizeShortRuleNote(nextWeekMatch[2]);
+        rule = { weekday: weekdays[0], resumeOn, note };
+        expiresOn = addDaysToIsoDate(resumeOn, -1);
+      } else if (afterMatch || withinMatch) {
+        const match = afterMatch || withinMatch;
+        const days = parseChineseNumber(match[1]);
+        if (!Number.isInteger(days) || days <= 0 || days > 3660) return { error: "天数应为1至3660，可使用数字或中文数字" };
+        const resumeOn = addDaysToIsoDate(today, days);
+        type = afterMatch ? "not_before_days" : "not_within_days";
+        note = normalizeShortRuleNote(match[2]);
+        rule = { days, resumeOn, note };
+        expiresOn = addDaysToIsoDate(resumeOn, -1);
+      } else if (absoluteMatch) {
+        const hasYear = Boolean(absoluteMatch[3]);
+        const year = hasYear ? Number(absoluteMatch[1]) : null;
+        const month = hasYear ? Number(absoluteMatch[2]) : Number(absoluteMatch[1]);
+        const day = hasYear ? Number(absoluteMatch[3]) : Number(absoluteMatch[2]);
+        const resumeOn = hasYear
+          ? `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+          : getNextMonthDayIso(month, day, today);
+        if (!resumeOn || !isValidIsoDate(resumeOn)) return { error: "日期无效，请使用9.10或2027.9.10这样的格式" };
+        if (resumeOn <= today) return { error: "再打日期必须晚于今天" };
+        type = "not_before_date";
+        note = normalizeShortRuleNote(absoluteMatch[4]);
+        rule = { resumeOn, note };
+        expiresOn = addDaysToIsoDate(resumeOn, -1);
+      } else if (onlyMatch) {
+        const weekdays = parseWeekdayNames(onlyMatch[1]);
+        if (!weekdays.length) return { error: "请在“只打”后填写周一至周日" };
+        note = normalizeShortRuleNote(onlyMatch[2]);
+        type = "only_days";
+        rule = { weekdays, note };
+      } else if (notMatch) {
+        const weekdays = parseWeekdayNames(notMatch[1]);
+        if (!weekdays.length) return { error: "请在“不打”前填写周一至周日" };
+        note = normalizeShortRuleNote(notMatch[2]);
+        type = "not_days";
+        rule = { weekdays, note };
       }
 
-      if (!type) return { error: "短期规则格式无法识别" };
+      if (!type) return { error: "格式无法识别，请按“成员名 时间 再打/不打 备注”填写" };
       return {
         playerId,
         rawText,
         type,
         rule,
+        startsOn: today,
         expiresOn,
       };
     }
@@ -10119,9 +10197,7 @@
       const weekday = getBeijingWeekday(today);
       if (rule.type === "only_days") return !(rule.rule?.weekdays || []).includes(weekday);
       if (rule.type === "not_days") return (rule.rule?.weekdays || []).includes(weekday);
-      if (["not_before_days", "not_within_days", "not_before_next_week"].includes(rule.type)) {
-        return Boolean(rule.expiresOn) && today <= rule.expiresOn;
-      }
+      if (rule.expiresOn) return today <= rule.expiresOn;
       return false;
     }
 
@@ -10210,18 +10286,24 @@
     }
 
     function shortRuleDescription(rule) {
-      if (rule.type === "only_days") return `只打${formatWeekdayNames(rule.rule?.weekdays)}`;
-      if (rule.type === "not_days") return `${formatWeekdayNames(rule.rule?.weekdays)}不打`;
-      if (rule.type === "not_before_days") return `${rule.rule?.days}天后再打`;
-      if (rule.type === "not_within_days") return `${rule.rule?.days}天内不打`;
-      if (rule.type === "not_before_next_week") return "下周再打";
+      const note = normalizeShortRuleNote(rule.rule?.note);
+      const suffix = note ? ` ${note}` : "";
+      if (rule.type === "only_days") return `只打 ${formatWeekdayNames(rule.rule?.weekdays)}${suffix}`;
+      if (rule.type === "not_days") return `${formatWeekdayNames(rule.rule?.weekdays)} 不打${suffix}`;
+      if (rule.expiresOn) return `${formatShortRuleDate(addDaysToIsoDate(rule.expiresOn, 1))} 再打${suffix}`;
       return "短期规则";
     }
 
     function renderShortTermRulesList() {
       els.shortTermRulesList.replaceChildren();
       const today = getBeijingDateString();
-      const rules = state.shortTermRules.filter((rule) => !rule.expiresOn || rule.expiresOn >= today);
+      const rules = state.shortTermRules
+        .filter((rule) => !rule.expiresOn || rule.expiresOn >= today)
+        .sort((a, b) => {
+          if (Boolean(a.expiresOn) !== Boolean(b.expiresOn)) return a.expiresOn ? 1 : -1;
+          if (a.expiresOn && b.expiresOn && a.expiresOn !== b.expiresOn) return a.expiresOn.localeCompare(b.expiresOn);
+          return Number(a.id) - Number(b.id);
+        });
       if (!rules.length) {
         const empty = document.createElement("div");
         empty.className = "empty-hint";
@@ -10234,7 +10316,7 @@
         const row = document.createElement("div");
         row.className = "short-rule-row";
         const text = document.createElement("span");
-        text.textContent = `${player ? firstName(player.name) : `#${rule.playerId}`} · ${shortRuleDescription(rule)}`;
+        text.textContent = `${player ? firstName(player.name) : `#${rule.playerId}`} ${shortRuleDescription(rule)}`;
         const deleteButton = document.createElement("button");
         deleteButton.type = "button";
         deleteButton.textContent = "删除";
@@ -10290,10 +10372,10 @@
           method: "POST",
           body: JSON.stringify(parsed),
         });
-        state.shortTermRules.push(data.rule);
+        state.shortTermRules = Array.isArray(data.rules) ? data.rules : [...state.shortTermRules, data.rule];
         closeModal("shortRuleModal");
         if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
-        toast("短期规则已保存");
+        toast(data.message || "短期规则已保存");
       } catch (error) {
         toast(`保存失败：${error.message}`);
       } finally {
