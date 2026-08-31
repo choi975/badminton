@@ -889,6 +889,23 @@
       gap: 8px;
     }
 
+    .modal-add-btn {
+      width: 36px;
+      min-width: 36px;
+      min-height: 36px;
+      padding: 0;
+      border-color: var(--line-strong);
+      background: #fff;
+      color: var(--accent-dark);
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .modal-add-btn:hover {
+      border-color: var(--accent);
+      background: #e8f2ef;
+    }
+
     .shake-people-dialog {
       max-height: min(80vh, 760px);
     }
@@ -3362,16 +3379,13 @@
       <div class="modal-header">
         <h2 id="shakePeopleTitle" class="modal-title">摇人</h2>
         <div class="modal-header-actions">
-          <button id="newShortRuleBtn" type="button">新建</button>
+          <button id="newShortRuleBtn" class="modal-add-btn" type="button" aria-label="新建短期规则" title="新建短期规则">+</button>
           <button class="modal-close-btn" data-close="shakePeopleModal" aria-label="关闭" title="关闭">×</button>
         </div>
       </div>
       <div class="modal-body">
         <p id="shakePeopleSummary" class="shake-people-summary"></p>
         <div id="shakePeopleList" class="shake-people-list"></div>
-      </div>
-      <div class="modal-footer">
-        <button data-close="shakePeopleModal">关闭</button>
       </div>
     </div>
   </div>
@@ -4016,7 +4030,7 @@
       });
       els.pasteInputBtn.addEventListener("click", pasteChainInput);
       els.shakePeopleBtn.addEventListener("click", openShakePeopleModal);
-      els.newShortRuleBtn.addEventListener("click", openShortRuleModal);
+      els.newShortRuleBtn.addEventListener("click", () => openShortRuleModal());
       els.saveShortRuleBtn.addEventListener("click", saveShortRule);
       els.shortRuleInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) saveShortRule();

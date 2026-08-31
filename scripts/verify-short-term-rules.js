@@ -60,6 +60,15 @@ globalThis.shortRuleApi = { parseShortRuleText, parseChineseNumber, shortRuleDes
 const { parseShortRuleText, parseChineseNumber, shortRuleDescription } = context.shortRuleApi;
 const today = "2026-08-31";
 
+const shakePeopleSection = indexHtml.slice(
+  indexHtml.indexOf('<div id="shakePeopleModal"'),
+  indexHtml.indexOf('<div id="shortRuleModal"'),
+);
+assert.match(shakePeopleSection, /id="newShortRuleBtn"[^>]*aria-label="新建短期规则"[^>]*>\+<\/button>/);
+assert.doesNotMatch(shakePeopleSection, /modal-footer/);
+assert.match(indexHtml, /newShortRuleBtn\.addEventListener\("click", \(\) => openShortRuleModal\(\)\)/);
+assert.doesNotMatch(indexHtml, /newShortRuleBtn\.addEventListener\("click", openShortRuleModal\)/);
+
 const within = parseShortRuleText("果花 三天内 不打 培训", today);
 assert.equal(within.type, "not_within_days");
 assert.equal(within.startsOn, today);
