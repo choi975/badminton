@@ -2,6 +2,8 @@
 
 这是一个用于组织羽毛球局的单页应用。前端入口是 `index.html`，数据保存在 Cloudflare D1，并提供 GitHub Pages 只读备用入口。
 
+接龙助手会根据当前名单、星期、短期及长期规则、体力、成员共场关系和随行人员历史，估算今天与明天达到 6 人的概率。摇人列表按候选人的预计到场概率与反事实成局提升排序。Cloudflare 管理版会在后台保存去重后的接龙状态；试算模式和 GitHub 只读版不会进入学习数据。模型口径见 `docs/group-formation-probability.md`。
+
 ## 线上地址
 
 - 管理版：https://badminton.choi975.workers.dev
@@ -58,3 +60,7 @@ npm run deploy
 - `scripts/verify-participant-ownership.js`: 随行人员归属、统计投影及字段贯穿的可执行契约测试。
 - `scripts/verify-member-exit-analysis.js`: 截图退群排查的锚点算法、候选范围和 OCR 接口契约测试。
 - `scripts/verify-estimator.js`: 验证 v4 公式、独立球型号权重、异常阈值、模型快照同步和历史回放。
+- `group-probability.js`: 可在浏览器和 Node 中运行的组局概率与摇人排序核心。
+- `migrations/0017_group_attempt_tracking.sql`: 接龙尝试、状态快照和短期规则历史。
+- `scripts/verify-group-probability.js`: 验证星期基线、截止时间、体力、大局门槛、随行人员、明日预测和反事实排序。
+- `scripts/verify-group-attempts.js`: 验证追踪校验、去重、试算隔离、自动结算和订场对账。

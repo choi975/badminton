@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-03T15:38:28.215Z",
+  "generatedAt": "2026-09-03T18:26:46.263Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -6135,7 +6135,7 @@
     ],
     "estimator": {
       "version": 4,
-      "generatedAt": "2026-09-03T15:38:24.604Z",
+      "generatedAt": "2026-09-03T18:26:43.169Z",
       "training": {
         "dateRange": {
           "from": "2026-07-13",
@@ -6233,6 +6233,410 @@
           "overPredictionRate": 0.7
         }
       }
-    }
+    },
+    "shortTermRules": [
+      {
+        "id": 6,
+        "playerId": 6,
+        "type": "only_days",
+        "rule": {
+          "weekdays": [
+            5,
+            6
+          ]
+        },
+        "startsOn": "2026-08-30",
+        "expiresOn": null,
+        "rawText": "F+ 只打周五、周六",
+        "createdAt": "2026-08-30 02:10:11",
+        "updatedAt": "2026-08-30 02:10:11"
+      },
+      {
+        "id": 19,
+        "playerId": 31,
+        "type": "only_days",
+        "rule": {
+          "weekdays": [
+            5
+          ]
+        },
+        "startsOn": "2026-08-30",
+        "expiresOn": null,
+        "rawText": "April 只打周五",
+        "createdAt": "2026-08-30 02:34:20",
+        "updatedAt": "2026-08-30 02:34:20"
+      },
+      {
+        "id": 20,
+        "playerId": 54,
+        "type": "only_days",
+        "rule": {
+          "weekdays": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "startsOn": "2026-08-30",
+        "expiresOn": null,
+        "rawText": "游 只打周一、周二、周三、周四",
+        "createdAt": "2026-08-30 02:34:34",
+        "updatedAt": "2026-08-30 02:34:34"
+      },
+      {
+        "id": 22,
+        "playerId": 7,
+        "type": "only_days",
+        "rule": {
+          "weekdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        "startsOn": "2026-08-30",
+        "expiresOn": null,
+        "rawText": "huangjie21 只打周一、周二、周三、周四、周五",
+        "createdAt": "2026-08-30 02:40:32",
+        "updatedAt": "2026-08-30 02:40:32"
+      },
+      {
+        "id": 24,
+        "playerId": 41,
+        "type": "only_days",
+        "rule": {
+          "weekdays": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "note": ""
+        },
+        "startsOn": "2026-08-31",
+        "expiresOn": null,
+        "rawText": "清。 只打 周一、周二、周三、周四",
+        "createdAt": "2026-08-31 02:00:08",
+        "updatedAt": "2026-08-31 02:00:08"
+      },
+      {
+        "id": 25,
+        "playerId": 60,
+        "type": "only_days",
+        "rule": {
+          "weekdays": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "note": ""
+        },
+        "startsOn": "2026-08-31",
+        "expiresOn": null,
+        "rawText": "Pony boy 只打 周一、周二、周三、周四",
+        "createdAt": "2026-08-31 02:00:27",
+        "updatedAt": "2026-08-31 02:00:27"
+      },
+      {
+        "id": 33,
+        "playerId": 85,
+        "type": "only_days",
+        "rule": {
+          "weekdays": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "note": ""
+        },
+        "startsOn": "2026-09-02",
+        "expiresOn": null,
+        "rawText": "北新 只打 周一、周二、周三、周四",
+        "createdAt": "2026-09-02 04:05:17",
+        "updatedAt": "2026-09-02 04:05:17"
+      },
+      {
+        "id": 34,
+        "playerId": 75,
+        "type": "only_days",
+        "rule": {
+          "weekdays": [
+            6,
+            0
+          ],
+          "note": "晚上要带娃"
+        },
+        "startsOn": "2026-09-02",
+        "expiresOn": null,
+        "rawText": "春玲 只打 周六、周日 晚上要带娃",
+        "createdAt": "2026-09-02 04:05:22",
+        "updatedAt": "2026-09-02 04:05:22"
+      },
+      {
+        "id": 36,
+        "playerId": 73,
+        "type": "not_before_date",
+        "rule": {
+          "resumeOn": "2026-09-06",
+          "note": "回老家"
+        },
+        "startsOn": "2026-09-02",
+        "expiresOn": "2026-09-05",
+        "rawText": "果花 9.6 再打 回老家",
+        "createdAt": "2026-09-02 04:13:31",
+        "updatedAt": "2026-09-02 04:13:31"
+      },
+      {
+        "id": 35,
+        "playerId": 15,
+        "type": "not_before_next_week",
+        "rule": {
+          "weekday": 1,
+          "resumeOn": "2026-09-07",
+          "note": "手腕受伤"
+        },
+        "startsOn": "2026-09-02",
+        "expiresOn": "2026-09-06",
+        "rawText": "江涛 下周 再打 手腕受伤",
+        "createdAt": "2026-09-02 04:06:00",
+        "updatedAt": "2026-09-02 04:06:00"
+      },
+      {
+        "id": 37,
+        "playerId": 41,
+        "type": "not_before_next_week",
+        "rule": {
+          "weekday": 1,
+          "resumeOn": "2026-09-07",
+          "note": ""
+        },
+        "startsOn": "2026-09-03",
+        "expiresOn": "2026-09-06",
+        "rawText": "清。 下周 再打",
+        "createdAt": "2026-09-03 04:00:26",
+        "updatedAt": "2026-09-03 04:00:26"
+      },
+      {
+        "id": 38,
+        "playerId": 60,
+        "type": "not_before_next_week",
+        "rule": {
+          "weekday": 1,
+          "resumeOn": "2026-09-07",
+          "note": ""
+        },
+        "startsOn": "2026-09-03",
+        "expiresOn": "2026-09-06",
+        "rawText": "Pony boy  下周 再打",
+        "createdAt": "2026-09-03 04:00:35",
+        "updatedAt": "2026-09-03 04:00:35"
+      },
+      {
+        "id": 39,
+        "playerId": 85,
+        "type": "not_before_next_week",
+        "rule": {
+          "weekday": 1,
+          "resumeOn": "2026-09-07",
+          "note": ""
+        },
+        "startsOn": "2026-09-03",
+        "expiresOn": "2026-09-06",
+        "rawText": "北新  下周 再打",
+        "createdAt": "2026-09-03 04:00:45",
+        "updatedAt": "2026-09-03 04:00:45"
+      },
+      {
+        "id": 27,
+        "playerId": 24,
+        "type": "not_before_days",
+        "rule": {
+          "days": 7,
+          "resumeOn": "2026-09-09",
+          "note": "旅游"
+        },
+        "startsOn": "2026-09-02",
+        "expiresOn": "2026-09-08",
+        "rawText": "Hx7 7天后 再打 旅游",
+        "createdAt": "2026-09-02 02:20:42",
+        "updatedAt": "2026-09-02 02:20:42"
+      },
+      {
+        "id": 31,
+        "playerId": 20,
+        "type": "not_before_date",
+        "rule": {
+          "resumeOn": "2026-09-14",
+          "note": "军训"
+        },
+        "startsOn": "2026-09-02",
+        "expiresOn": "2026-09-13",
+        "rawText": "0.o 9.14 再打 军训",
+        "createdAt": "2026-09-02 02:23:50",
+        "updatedAt": "2026-09-02 02:23:50"
+      }
+    ],
+    "shakeLongTermLists": [],
+    "groupAttemptOutcomes": [
+      {
+        "activityDate": "2026-07-13",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-07-17",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-07-21",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-07-24",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-07-26",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-07-30",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-01",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-04",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-05",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-06",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-07",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-08",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-10",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-13",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-16",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-19",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-21",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-23",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-25",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-08-28",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-09-01",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      },
+      {
+        "activityDate": "2026-09-02",
+        "outcome": "success",
+        "trainingState": "excluded",
+        "source": "booking_backfill",
+        "hasEligibleSnapshots": false
+      }
+    ]
   }
 }

@@ -6,6 +6,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b5d56'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='17' fill='white'%3E羽%3C/text%3E%3C/svg%3E">
   <title>羽球助手</title>
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js" crossorigin="anonymous"></script>
+  <script src="./group-probability.js"></script>
   <style>
     :root {
       --bg: #f2f6f5;
@@ -912,6 +913,9 @@
       max-height: min(80vh, 760px);
     }
 
+    #shakePeopleModal { z-index: 100; }
+    #shortRuleModal { z-index: 110; }
+
     .short-rule-dialog {
       width: min(560px, 100%);
     }
@@ -922,6 +926,38 @@
       font-size: 13px;
     }
 
+    .shake-people-summary-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .shake-people-summary-row .shake-people-summary { margin: 0; }
+
+    .attempt-trial-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .attempt-trial-toggle input {
+      width: 16px;
+      height: 16px;
+      min-height: 0;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .attempt-trial-toggle[hidden] { display: none; }
+
     .shake-people-list {
       display: grid;
       gap: 8px;
@@ -929,15 +965,17 @@
 
     .shake-person-row {
       position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) auto;
+      align-items: start;
       gap: 10px;
-      padding: 8px 10px;
+      padding: 9px 34px 9px 10px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
     }
+
+    .shake-person-primary { min-width: 0; }
 
     .shake-person-skip {
       position: absolute;
@@ -966,11 +1004,30 @@
       font-weight: 700;
     }
 
+    .shake-person-score {
+      display: flex;
+      align-items: baseline;
+      justify-content: flex-end;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .shake-person-score strong {
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .shake-person-impact strong { color: var(--accent-dark); }
+
     .shake-person-meta {
       display: flex;
       flex-wrap: wrap;
-      justify-content: flex-end;
+      justify-content: flex-start;
       gap: 5px;
+      margin-top: 5px;
       color: var(--muted);
       font-size: 12px;
     }
@@ -980,6 +1037,11 @@
       border-radius: 999px;
       background: #e8f2ef;
       color: #245b50;
+    }
+
+    .shake-reason.risk {
+      background: var(--amber-soft);
+      color: var(--amber);
     }
 
     .short-rule-divider {
@@ -1193,9 +1255,101 @@
     }
 
     .chain-head-actions {
+      position: relative;
+      z-index: 5;
       display: flex;
       align-items: center;
       gap: 6px;
+    }
+
+    .chain-icon-btn {
+      width: 36px;
+      min-width: 36px;
+      height: 36px;
+      min-height: 36px;
+      display: inline-grid;
+      place-items: center;
+      padding: 0;
+      background: #fff;
+    }
+
+    .chain-icon-btn svg {
+      width: 17px;
+      height: 17px;
+      stroke-width: 2;
+    }
+
+    .chain-icon-btn.active {
+      border-color: #d59a47;
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+
+    .chain-icon-btn[hidden] { display: none; }
+
+    .group-probability-wrap {
+      position: relative;
+      z-index: 5;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .group-probability-wrap[hidden] { display: none; }
+
+    .group-probability {
+      min-width: 48px;
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 5px;
+      border-radius: 6px;
+      color: var(--accent-dark);
+      font-size: 14px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      cursor: help;
+      white-space: nowrap;
+    }
+
+    .group-probability[data-tone="low"] { color: var(--danger); }
+    .group-probability[data-tone="medium"] { color: var(--amber); }
+    .group-probability[data-tone="loading"] { color: var(--muted); }
+
+    .group-probability:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 1px;
+    }
+
+    .group-probability-tooltip {
+      position: absolute;
+      top: calc(100% + 7px);
+      right: 0;
+      width: max-content;
+      max-width: min(290px, calc(100vw - 24px));
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #172522;
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(18, 38, 33, 0.2);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.65;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-3px);
+      transition: opacity 0.14s ease, transform 0.14s ease, visibility 0.14s;
+      pointer-events: none;
+    }
+
+    .group-probability-tooltip span { display: block; }
+
+    .group-probability-wrap:hover .group-probability-tooltip,
+    .group-probability-wrap:focus-within .group-probability-tooltip,
+    .group-probability-wrap.tooltip-open .group-probability-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
     }
 
     .chain-mode-btn {
@@ -2429,6 +2583,14 @@
       .chain-head { align-items: flex-start; flex-direction: column; }
       .chain-head-actions { width: 100%; flex-wrap: wrap; }
       .chain-head-actions button { flex: 1; }
+      .chain-head.chain-head--input { align-items: center; flex-direction: row; }
+      .chain-head--input .chain-head-actions { width: auto; flex-wrap: nowrap; margin-left: auto; }
+      .chain-head--input .chain-head-actions button { flex: 0 0 36px; }
+      .chain-head--input .group-probability-wrap { position: static; }
+      .chain-head--input .group-probability-tooltip { right: 0; left: auto; }
+      .shake-people-summary-row { align-items: flex-start; flex-direction: column; }
+      .shake-person-row { grid-template-columns: 1fr; }
+      .shake-person-score { justify-content: flex-start; }
       .payment-settings-tabs { grid-template-columns: 1fr; }
       .payment-settings-tab + .payment-settings-tab { border-left: 0; border-top: 1px solid var(--line-strong); }
       .payment-settings-order-toolbar { align-items: flex-start; }
@@ -3551,11 +3713,19 @@
       <div class="modal-body">
         <div class="chain-grid">
           <section class="chain-panel">
-            <div class="chain-head">
+            <div class="chain-head chain-head--input">
               <span>接龙人员</span>
               <div class="chain-head-actions">
-                <button id="shakePeopleBtn" type="button">🎲 摇人</button>
-                <button id="pasteInputBtn"><span class="icon-text">▤ 一键粘贴</span></button>
+                <button id="attemptTrialModeBtn" class="chain-icon-btn" type="button" aria-label="试算模式" aria-pressed="false" title="开启后，后续名单不计入学习"><i data-lucide="flask-conical"></i></button>
+                <div id="groupProbabilityWrap" class="group-probability-wrap">
+                  <output id="groupProbability" class="group-probability" tabindex="0" data-tone="loading" aria-label="正在计算组局成功概率" aria-describedby="groupProbabilityTooltip">--%</output>
+                  <div id="groupProbabilityTooltip" class="group-probability-tooltip" role="tooltip">
+                    <span id="todayProbabilityText">今天组局成功的概率：--%</span>
+                    <span id="tomorrowProbabilityText">明天组局成功的概率：--%</span>
+                  </div>
+                </div>
+                <button id="shakePeopleBtn" class="chain-icon-btn" type="button" aria-label="摇人" title="摇人"><i data-lucide="dices"></i></button>
+                <button id="pasteInputBtn" class="chain-icon-btn" type="button" aria-label="一键粘贴" title="一键粘贴"><i data-lucide="clipboard-paste"></i></button>
               </div>
             </div>
             <textarea id="chainInput" class="chain-textarea" placeholder=""></textarea>
@@ -3904,7 +4074,13 @@
         </div>
       </div>
       <div class="modal-body">
-        <p id="shakePeopleSummary" class="shake-people-summary"></p>
+        <div class="shake-people-summary-row">
+          <p id="shakePeopleSummary" class="shake-people-summary"></p>
+          <label id="attemptTrialToggleLabel" class="attempt-trial-toggle" hidden>
+            <input id="attemptTrialToggle" type="checkbox">
+            <span>后续名单为试算</span>
+          </label>
+        </div>
         <div id="shakePeopleList" class="shake-people-list"></div>
         <div class="shake-rule-accordions">
           <details id="shakeLongTermRulesBlock" class="shake-rule-accordion">
@@ -3943,7 +4119,7 @@
         <div class="short-rule-divider"></div>
         <div class="short-rule-head">
           <h3>现有规则</h3>
-          <span class="short-rule-hint">星期规则归入长期规则，日期规则到期后自动清理</span>
+          <span class="short-rule-hint">星期规则归入长期规则，日期规则到期后自动失效</span>
         </div>
         <div id="shortTermRulesList" class="short-term-rules-list"></div>
       </div>
@@ -4113,6 +4289,11 @@
       currentPaymentRecord: null,
       shortTermRules: [],
       longTermMemberLists: {},
+      groupAttemptOutcomes: [],
+      groupForecast: null,
+      groupAttempt: null,
+      attemptTrialRequested: false,
+      chainInputUserOwned: false,
       trainingAnomaly: null,
       estimatorAdvancedOpen: false,
       selectedEstimateShuttleTypeId: "rsl3",
@@ -4134,6 +4315,17 @@
       pendingSessionEdit: null,
       returnToCalendar: false,
     };
+
+    let groupForecastCacheKey = "";
+    let groupForecastRenderTimer = null;
+    let attemptTrackingTimer = null;
+    let attemptTrackingTrigger = "input";
+    let attemptTrackingObservation = null;
+    let attemptTrackingQueue = Promise.resolve();
+    let lastAttemptSnapshotKey = "";
+    let lastAttemptSnapshotAt = 0;
+    let attemptLoadedDate = "";
+    let activeGroupDate = getBeijingDateString();
 
     const els = {
       syncState: document.getElementById("syncState"),
@@ -4179,6 +4371,12 @@
       chainStats: document.getElementById("chainStats"),
       estimatorAdvancedBtn: document.getElementById("estimatorAdvancedBtn"),
       estimatorAdvancedPanel: document.getElementById("estimatorAdvancedPanel"),
+      groupProbabilityWrap: document.getElementById("groupProbabilityWrap"),
+      groupProbability: document.getElementById("groupProbability"),
+      groupProbabilityTooltip: document.getElementById("groupProbabilityTooltip"),
+      todayProbabilityText: document.getElementById("todayProbabilityText"),
+      tomorrowProbabilityText: document.getElementById("tomorrowProbabilityText"),
+      attemptTrialModeBtn: document.getElementById("attemptTrialModeBtn"),
       pasteInputBtn: document.getElementById("pasteInputBtn"),
       shakePeopleBtn: document.getElementById("shakePeopleBtn"),
       shakePeopleModal: document.getElementById("shakePeopleModal"),
@@ -4189,6 +4387,8 @@
       shakeShortTermRulesBlock: document.getElementById("shakeShortTermRulesBlock"),
       shakeLongTermRulesList: document.getElementById("shakeLongTermRulesList"),
       shakeShortTermRulesList: document.getElementById("shakeShortTermRulesList"),
+      attemptTrialToggleLabel: document.getElementById("attemptTrialToggleLabel"),
+      attemptTrialToggle: document.getElementById("attemptTrialToggle"),
       newShortRuleBtn: document.getElementById("newShortRuleBtn"),
       shortRuleModal: document.getElementById("shortRuleModal"),
       shortRuleInput: document.getElementById("shortRuleInput"),
@@ -4302,6 +4502,12 @@
       renderColumnVisibilityMenu();
       wireEvents();
       void loadBootstrap();
+      setInterval(() => {
+        if (document.visibilityState === "visible") refreshTimeSensitiveGroupForecast();
+      }, 60000);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") refreshTimeSensitiveGroupForecast();
+      });
     }
 
     function applyHostLayout() {
@@ -4345,6 +4551,9 @@
         } catch (error) {
           // 摇人规则加载失败不阻断其他数据加载
         }
+        groupForecastCacheKey = "";
+        renderGroupForecast({ force: true });
+        await loadCurrentGroupAttempt();
       } catch (error) {
         if (!state.players.length) {
           const fallback = await loadFallbackBootstrap();
@@ -4389,6 +4598,14 @@
       state.levelDescriptions = data.levelDescriptions || {};
       state.levelGuideRaw = data.levelGuideRaw || "";
       state.estimator = normalizeEstimator(data.estimator);
+      state.shortTermRules = Array.isArray(data.shortTermRules) ? data.shortTermRules : state.shortTermRules;
+      state.groupAttemptOutcomes = Array.isArray(data.groupAttemptOutcomes) ? data.groupAttemptOutcomes : state.groupAttemptOutcomes;
+      if (Array.isArray(data.shakeLongTermLists)) {
+        state.longTermMemberLists = Object.fromEntries(data.shakeLongTermLists.map((list) => [list.key, {
+          label: list.label,
+          members: Array.isArray(list.members) ? list.members : [],
+        }]));
+      }
       if (!state.estimator.shuttleTypes.some((type) => type.id === state.selectedEstimateShuttleTypeId)) {
         state.selectedEstimateShuttleTypeId = state.estimator.shuttle?.baseType || state.estimator.shuttleTypes[0]?.id || "rsl3";
       }
@@ -4396,6 +4613,7 @@
       state.dataSource = source;
       state.dataTimestamp = generatedAt || null;
       state.readOnly = IS_GITHUB_PAGES || source !== "cloud";
+      groupForecastCacheKey = "";
       applyReadOnlyUi();
       updateDataStatus();
       renderTable();
@@ -4446,6 +4664,7 @@
       els.guideEditor.readOnly = readOnly;
       els.saveGuideBtn.hidden = readOnly;
       updateShakePeopleButtonVisibility();
+      syncAttemptTrialToggle();
       els.readOnlyBanner.hidden = IS_GITHUB_PAGES || !readOnly || !state.players.length;
       if (!els.readOnlyBanner.hidden) {
         els.readOnlyBanner.textContent = IS_GITHUB_PAGES
@@ -4457,6 +4676,9 @@
     function updateShakePeopleButtonVisibility() {
       if (!els.shakePeopleBtn) return;
       els.shakePeopleBtn.hidden = state.readOnly || Boolean(state.pendingSessionEdit);
+      els.attemptTrialModeBtn.hidden = state.readOnly || Boolean(state.pendingSessionEdit);
+      els.groupProbabilityWrap.hidden = Boolean(state.pendingSessionEdit);
+      syncAttemptTrialToggle();
     }
 
     function updateDatabaseToggleButton() {
@@ -4496,7 +4718,11 @@
         processChain();
         setTimeout(() => els.chainInput.focus(), 0);
       });
-      els.chainInput.addEventListener("input", processChain);
+      els.chainInput.addEventListener("input", () => {
+        state.chainInputUserOwned = true;
+        processChain();
+        scheduleGroupAttemptSnapshot("input");
+      });
       [els.courtFeeInput, els.shuttlePriceInput, els.shuttleCountInput].forEach((input) => {
         input.addEventListener("focus", () => {
           if (input.value === input.dataset.defaultValue) {
@@ -4568,6 +4794,12 @@
       });
       els.pasteInputBtn.addEventListener("click", pasteChainInput);
       els.shakePeopleBtn.addEventListener("click", openShakePeopleModal);
+      els.attemptTrialToggle.addEventListener("change", handleAttemptTrialToggle);
+      els.attemptTrialModeBtn.addEventListener("click", () => setAttemptTrialMode(!state.attemptTrialRequested));
+      els.groupProbability.addEventListener("click", (event) => {
+        event.stopPropagation();
+        els.groupProbabilityWrap.classList.toggle("tooltip-open");
+      });
       els.newShortRuleBtn.addEventListener("click", () => openShortRuleModal());
       els.saveShortRuleBtn.addEventListener("click", saveShortRule);
       els.shortRuleInput.addEventListener("keydown", (event) => {
@@ -4579,6 +4811,7 @@
       if (!IS_GITHUB_PAGES) els.levelDisplayModeBtn.addEventListener("click", toggleChainLevelMode);
 
       document.addEventListener("click", (event) => {
+        if (!event.target.closest("#groupProbabilityWrap")) els.groupProbabilityWrap.classList.remove("tooltip-open");
         if (!event.target.closest(".column-menu-wrap")) closeColumnVisibilityMenu();
         if (!event.target.closest(".filter-menu-wrap")) closeMultiFilterMenus();
         const closeId = event.target.closest("[data-close]")?.dataset.close;
@@ -6569,10 +6802,11 @@
           method: "POST",
           body: JSON.stringify(body),
         });
-         upsertSession(data.session);
-         if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
-         if (data.removedShortRuleCount) await loadShortTermRules();
-         state.trainingAnomaly = null;
+        upsertSession(data.session);
+        if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
+        if (data.removedShortRuleCount) await loadShortTermRules();
+        applyGroupAttemptResponse(data.groupAttempt);
+        state.trainingAnomaly = null;
         setSync("已保存");
         closeModal("paymentModal");
         renderTable();
@@ -6926,6 +7160,7 @@
         upsertSession(data.session);
         if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
         if (data.removedShortRuleCount) await loadShortTermRules();
+        applyGroupAttemptResponse(data.groupAttempt);
         state.trainingAnomaly = null;
         setSync("已保存");
         closeModal("recordModal");
@@ -7626,6 +7861,7 @@
       state.returnToCalendar = true;
       updateShakePeopleButtonVisibility();
       const chainInput = buildChainInputFromSession(session);
+      state.chainInputUserOwned = false;
       els.chainInput.value = chainInput.text;
       state.plusOverrides = chainInput.plusOverrides;
       const courtRows = Array.isArray(session.courtPriceRows) ? session.courtPriceRows : [];
@@ -7667,6 +7903,7 @@
       state.pendingSessionEdit = { id: null, date: dateString };
       state.returnToCalendar = true;
       updateShakePeopleButtonVisibility();
+      state.chainInputUserOwned = false;
       els.chainInput.value = "";
       state.plusOverrides = {};
       state.feeMode = "basic";
@@ -7760,6 +7997,7 @@
         const data = await api(`/api/sessions/${session.id}`, { method: "DELETE" });
         state.sessions = state.sessions.filter((item) => item.id !== session.id);
         if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
+        applyGroupAttemptResponse(data.groupAttempt);
         setSync("已删除");
         renderTable();
         renderCalendar();
@@ -8278,6 +8516,367 @@
       };
     }
 
+    function probabilityPercent(value) {
+      return Math.max(0, Math.min(100, Math.round((Number(value) || 0) * 100)));
+    }
+
+    function forecastDisplayPercent(value, settled = false) {
+      const percent = probabilityPercent(value);
+      return settled ? percent : Math.max(1, Math.min(99, percent));
+    }
+
+    function formatProbabilityPointLift(value) {
+      const points = Math.max(0, Math.min(100, (Number(value) || 0) * 100));
+      if (points === 0) return "0";
+      if (points < 10) return points.toFixed(1).replace(/\.0$/, "");
+      return String(Math.round(points));
+    }
+
+    function setProbabilityDisplay(todayPercent, tomorrowPercent) {
+      const ready = Number.isFinite(todayPercent) && Number.isFinite(tomorrowPercent);
+      const todayText = ready ? `${todayPercent}%` : "--%";
+      const tomorrowText = ready ? `${tomorrowPercent}%` : "--%";
+      els.groupProbability.value = todayText;
+      els.groupProbability.textContent = todayText;
+      els.todayProbabilityText.textContent = `今天组局成功的概率：${todayText}`;
+      els.tomorrowProbabilityText.textContent = `明天组局成功的概率：${tomorrowText}`;
+      els.groupProbability.dataset.tone = !ready
+        ? "loading"
+        : todayPercent < 40 ? "low" : todayPercent < 70 ? "medium" : "high";
+      els.groupProbability.setAttribute(
+        "aria-label",
+        ready
+          ? `今天组局成功的概率：${todayText}；明天组局成功的概率：${tomorrowText}`
+          : "正在计算组局成功概率",
+      );
+    }
+
+    function getProbabilityTargetDate() {
+      return state.pendingSessionEdit?.date || getBeijingDateString();
+    }
+
+    function groupForecastKey(targetDate, includeCandidates) {
+      const entries = state.chainEntries.map((entry) => [
+        Number(entry.player?.id) || null,
+        Number(entry.ownerPlayerId) || null,
+        Boolean(entry.isCompanion),
+        entry.gender,
+        entry.levelText,
+      ]);
+      const rules = state.shortTermRules.map((rule) => [
+        rule.id,
+        rule.playerId,
+        rule.type,
+        rule.startsOn,
+        rule.expiresOn,
+        rule.rule,
+      ]);
+      const lastSession = state.sessions.at(-1);
+      return JSON.stringify([
+        targetDate,
+        includeCandidates,
+        Math.floor(Date.now() / 60000),
+        state.players.length,
+        state.sessions.length,
+        lastSession?.updatedAt || lastSession?.date || "",
+        state.groupAttemptOutcomes,
+        entries,
+        rules,
+        state.longTermMemberLists,
+      ]);
+    }
+
+    function renderGroupForecast({ force = false, includeCandidates = false } = {}) {
+      const engine = globalThis.BadmintonGroupProbability;
+      if (!engine?.estimate || !state.players.length) {
+        state.groupForecast = null;
+        setProbabilityDisplay(null, null);
+        return null;
+      }
+      if (state.pendingSessionEdit) {
+        state.groupForecast = null;
+        setProbabilityDisplay(null, null);
+        return null;
+      }
+
+      const targetDate = getProbabilityTargetDate();
+      const cacheKey = groupForecastKey(targetDate, includeCandidates);
+      if (!force && cacheKey === groupForecastCacheKey && state.groupForecast) return state.groupForecast;
+
+      try {
+        const forecast = engine.estimate({
+          players: state.players,
+          sessions: state.sessions,
+          groupAttempts: state.groupAttemptOutcomes,
+          entries: state.chainEntries,
+          shortTermRules: state.shortTermRules,
+          longTermLists: state.longTermMemberLists,
+          targetDate,
+          now: new Date(),
+          includeCandidates,
+        });
+        state.groupForecast = forecast;
+        groupForecastCacheKey = cacheKey;
+        setProbabilityDisplay(
+          forecastDisplayPercent(forecast.todayProbability, forecast.today?.settled),
+          forecastDisplayPercent(forecast.tomorrowProbability),
+        );
+        return forecast;
+      } catch (error) {
+        console.error("Group probability calculation failed", error);
+        state.groupForecast = null;
+        setProbabilityDisplay(null, null);
+        return null;
+      }
+    }
+
+    function scheduleGroupForecastRender(delay = 90) {
+      clearTimeout(groupForecastRenderTimer);
+      groupForecastRenderTimer = setTimeout(() => {
+        groupForecastRenderTimer = null;
+        renderGroupForecast();
+      }, delay);
+    }
+
+    function createClientEventId() {
+      if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+        const value = Math.floor(Math.random() * 16);
+        return (character === "x" ? value : (value & 0x3) | 0x8).toString(16);
+      });
+    }
+
+    function getPlayerIdByListedName(name) {
+      const normalized = normalizeAlias(name);
+      if (!normalized) return null;
+      const player = state.players.find((item) => splitAliases(item.name).some((alias) => normalizeAlias(alias) === normalized));
+      return normalizePlayerId(player?.id);
+    }
+
+    function getActiveAttemptConstraints(date) {
+      const constraints = new Map();
+      state.shortTermRules.forEach((rule) => {
+        const playerId = normalizePlayerId(rule.playerId);
+        const started = !rule.startsOn || rule.startsOn <= date;
+        const active = started && (!rule.expiresOn || rule.expiresOn >= date);
+        if (!playerId || !active || !ruleBlocksPlayerToday(rule, playerId, date)) return;
+        constraints.set(`${playerId}:${rule.type}`, { playerId, type: rule.type });
+      });
+      LONG_TERM_MEMBER_LIST_DEFINITIONS.forEach((definition) => {
+        getVisibleLongTermListValue(definition.key).forEach((name) => {
+          const playerId = getPlayerIdByListedName(name);
+          if (playerId) constraints.set(`${playerId}:${definition.key}`, { playerId, type: definition.key });
+        });
+      });
+      return [...constraints.values()].sort((left, right) => left.playerId - right.playerId || left.type.localeCompare(right.type));
+    }
+
+    function buildAttemptSnapshotPayload(observation) {
+      const forecast = state.groupForecast || renderGroupForecast({ force: true });
+      if (!forecast) return null;
+      const knownPlayerIds = new Set();
+      const companionsByOwner = new Map();
+      let unresolvedCount = 0;
+
+      state.chainEntries.forEach((entry) => {
+        if (entry.isCompanion) {
+          const ownerId = normalizePlayerId(entry.ownerPlayerId);
+          if (ownerId) companionsByOwner.set(ownerId, (companionsByOwner.get(ownerId) || 0) + 1);
+          else unresolvedCount += 1;
+          return;
+        }
+        const playerId = normalizePlayerId(entry.player?.id);
+        if (playerId) knownPlayerIds.add(playerId);
+        else unresolvedCount += 1;
+      });
+
+      const activityDate = observation.activityDate;
+      return {
+        activityDate,
+        clientEventId: createClientEventId(),
+        observedAt: observation.observedAt,
+        trigger: observation.trigger,
+        trainingState: observation.trainingState,
+        participantCount: state.chainEntries.length,
+        knownPlayerIds: [...knownPlayerIds].sort((a, b) => a - b),
+        companionsByOwner: [...companionsByOwner.entries()]
+          .map(([ownerPlayerId, count]) => ({ ownerPlayerId, count }))
+          .sort((left, right) => left.ownerPlayerId - right.ownerPlayerId),
+        unresolvedCount,
+        activeConstraints: getActiveAttemptConstraints(activityDate),
+        probabilityToday: forecast.todayProbability,
+        probabilityTomorrow: forecast.tomorrowProbability,
+        modelVersion: forecast.modelVersion || "group-probability-v0",
+        features: {
+          currentParticipantCount: state.chainEntries.length,
+          expectedFinalCount: forecast.today?.expectedFinalCount || 0,
+          weekdayBaselineToday: forecast.weekdayBaseline?.today || 0,
+          weekdayBaselineTomorrow: forecast.weekdayBaseline?.tomorrow || 0,
+          rankingMode: forecast.rankingMode || "",
+        },
+      };
+    }
+
+    function attemptSnapshotKey(payload) {
+      return JSON.stringify([
+        payload.activityDate,
+        payload.participantCount,
+        payload.knownPlayerIds,
+        payload.companionsByOwner,
+        payload.unresolvedCount,
+        payload.activeConstraints,
+        payload.probabilityToday,
+        payload.probabilityTomorrow,
+        payload.trainingState,
+      ]);
+    }
+
+    function syncAttemptTrialToggle() {
+      const visible = !state.readOnly && !state.pendingSessionEdit;
+      els.attemptTrialToggleLabel.hidden = !visible;
+      els.attemptTrialToggle.checked = state.attemptTrialRequested;
+      els.attemptTrialModeBtn.classList.toggle("active", state.attemptTrialRequested);
+      els.attemptTrialModeBtn.setAttribute("aria-pressed", String(state.attemptTrialRequested));
+      els.attemptTrialModeBtn.title = state.attemptTrialRequested ? "试算模式已开启，后续名单不计入学习" : "开启后，后续名单不计入学习";
+      els.attemptTrialModeBtn.setAttribute("aria-label", state.attemptTrialRequested ? "试算模式已开启" : "试算模式");
+    }
+
+    async function loadCurrentGroupAttempt() {
+      if (state.readOnly || state.pendingSessionEdit) {
+        syncAttemptTrialToggle();
+        return;
+      }
+      const date = getBeijingDateString();
+      if (attemptLoadedDate === date) {
+        syncAttemptTrialToggle();
+        return;
+      }
+      try {
+        const data = await api(`/api/group-attempts/current?date=${encodeURIComponent(date)}`);
+        const latest = Array.isArray(data.snapshots) ? data.snapshots.at(-1) : null;
+        if (data.attempt) {
+          applyGroupAttemptResponse(data.attempt, {
+            hasEligibleSnapshots: Array.isArray(data.snapshots)
+              && data.snapshots.some((snapshot) => snapshot.trainingState === "eligible"),
+          });
+        } else {
+          state.groupAttempt = null;
+        }
+        if (latest) lastAttemptSnapshotAt = new Date(latest.observedAt || latest.receivedAt || 0).getTime() || 0;
+        attemptLoadedDate = date;
+      } catch (error) {
+        console.warn("Could not load today's group attempt", error);
+      }
+      syncAttemptTrialToggle();
+    }
+
+    function refreshTimeSensitiveGroupForecast() {
+      const date = getBeijingDateString();
+      if (activeGroupDate !== date) {
+        activeGroupDate = date;
+        state.groupAttempt = null;
+        state.attemptTrialRequested = false;
+        state.chainInputUserOwned = false;
+        state.plusOverrides = {};
+        els.chainInput.value = "";
+        attemptLoadedDate = "";
+        lastAttemptSnapshotKey = "";
+        lastAttemptSnapshotAt = 0;
+        processChain();
+        void loadCurrentGroupAttempt();
+      }
+      groupForecastCacheKey = "";
+      renderGroupForecast({ force: true });
+      if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
+    }
+
+    function setAttemptTrialMode(enabled) {
+      state.attemptTrialRequested = Boolean(enabled);
+      if (attemptTrackingTimer && attemptTrackingObservation) {
+        attemptTrackingObservation.trainingState = state.attemptTrialRequested ? "excluded" : "eligible";
+      }
+      syncAttemptTrialToggle();
+      toast(state.attemptTrialRequested ? "试算模式已开启，不计入学习" : "试算模式已关闭");
+    }
+
+    function applyGroupAttemptResponse(attempt, { hasEligibleSnapshots } = {}) {
+      if (!attempt?.activityDate) return;
+      const existingOutcome = state.groupAttemptOutcomes.find((item) => item.activityDate === attempt.activityDate);
+      const nextOutcome = {
+        activityDate: attempt.activityDate,
+        outcome: attempt.outcome,
+        trainingState: attempt.trainingState,
+        source: attempt.source,
+        hasEligibleSnapshots: hasEligibleSnapshots ?? existingOutcome?.hasEligibleSnapshots ?? false,
+      };
+      state.groupAttemptOutcomes = [
+        ...state.groupAttemptOutcomes.filter((item) => item.activityDate !== attempt.activityDate),
+        nextOutcome,
+      ].sort((left, right) => left.activityDate.localeCompare(right.activityDate));
+      groupForecastCacheKey = "";
+      scheduleGroupForecastRender();
+      if (attempt.activityDate !== getBeijingDateString()) return;
+      state.groupAttempt = attempt;
+      attemptLoadedDate = attempt.activityDate;
+      syncAttemptTrialToggle();
+    }
+
+    function handleAttemptTrialToggle() {
+      setAttemptTrialMode(els.attemptTrialToggle.checked);
+    }
+
+    async function saveGroupAttemptSnapshot(observation) {
+      if (state.readOnly || state.pendingSessionEdit || !state.chainInputUserOwned) return;
+      const payload = buildAttemptSnapshotPayload(observation);
+      if (!payload || (!payload.participantCount && !state.groupAttempt)) return;
+      const snapshotKey = attemptSnapshotKey(payload);
+      const now = Date.now();
+      if (snapshotKey === lastAttemptSnapshotKey && now - lastAttemptSnapshotAt < 30 * 60 * 1000) return;
+
+      try {
+        const data = await api("/api/group-attempts/snapshots", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        applyGroupAttemptResponse(data.attempt || state.groupAttempt, {
+          hasEligibleSnapshots: payload.trainingState === "eligible"
+            || state.groupAttemptOutcomes.find((item) => item.activityDate === payload.activityDate)?.hasEligibleSnapshots,
+        });
+        if (payload.activityDate === getBeijingDateString()) {
+          attemptLoadedDate = payload.activityDate;
+          lastAttemptSnapshotKey = snapshotKey;
+          lastAttemptSnapshotAt = now;
+          syncAttemptTrialToggle();
+        }
+      } catch (error) {
+        console.warn("Could not save group-attempt snapshot", error);
+      }
+    }
+
+    function scheduleGroupAttemptSnapshot(trigger = "input") {
+      if (state.readOnly || state.pendingSessionEdit || !state.chainInputUserOwned) return;
+      attemptTrackingTrigger = trigger;
+      attemptTrackingObservation = {
+        trigger,
+        activityDate: getBeijingDateString(),
+        observedAt: new Date().toISOString(),
+        trainingState: state.attemptTrialRequested ? "excluded" : "eligible",
+      };
+      clearTimeout(attemptTrackingTimer);
+      attemptTrackingTimer = setTimeout(() => {
+        attemptTrackingTimer = null;
+        const observation = attemptTrackingObservation || {
+          trigger: attemptTrackingTrigger,
+          activityDate: getBeijingDateString(),
+          observedAt: new Date().toISOString(),
+          trainingState: state.attemptTrialRequested ? "excluded" : "eligible",
+        };
+        attemptTrackingQueue = attemptTrackingQueue
+          .catch(() => undefined)
+          .then(() => saveGroupAttemptSnapshot(observation));
+      }, 1500);
+    }
+
     function processChain() {
       const aliasIndex = buildAliasIndex();
       const identityCounts = new Map();
@@ -8304,6 +8903,7 @@
       renderChainStats(sorted, estimate);
       updatePaymentButton();
       resizeChainDialog(entries.length);
+      scheduleGroupForecastRender();
     }
 
     function resolveChainEntryOwnership(entries, aliasIndex) {
@@ -8568,7 +9168,9 @@
         levelGroupLabel: entry.levelGroupLabel,
         gender,
       };
+      state.chainInputUserOwned = true;
       processChain();
+      scheduleGroupAttemptSnapshot("companion");
     }
 
     function setInlinePlusLevel(overrideKey, label) {
@@ -8580,7 +9182,9 @@
         levelGroupLabel: getLevelGroupLabel(option.level),
         gender: entry.gender,
       };
+      state.chainInputUserOwned = true;
       processChain();
+      scheduleGroupAttemptSnapshot("companion");
     }
 
     function getMemberLineSuffix(value, player) {
@@ -10564,7 +11168,9 @@
     async function pasteChainInput() {
       try {
         els.chainInput.value = await navigator.clipboard.readText();
+        state.chainInputUserOwned = true;
         processChain();
+        scheduleGroupAttemptSnapshot("paste");
         toast("已粘贴");
       } catch (error) {
         toast("浏览器没有允许读取剪贴板");
@@ -10804,6 +11410,7 @@
       const today = getBeijingDateString();
       const data = await api(`/api/short-term-rules?today=${encodeURIComponent(today)}`);
       state.shortTermRules = Array.isArray(data.rules) ? data.rules : [];
+      groupForecastCacheKey = "";
     }
 
     function getJoinedPlayerIds() {
@@ -10814,6 +11421,24 @@
 
     function buildShakePeopleRecommendations(today) {
       const joinedIds = getJoinedPlayerIds();
+      const forecast = renderGroupForecast({ includeCandidates: true });
+      if (Array.isArray(forecast?.candidates)) {
+        const joinedSelfIds = new Set(state.chainEntries
+          .filter((entry) => !entry.isCompanion)
+          .map((entry) => normalizePlayerId(entry.player?.id))
+          .filter(Boolean));
+        return forecast.candidates
+          .map((candidate) => ({
+            ...candidate,
+            player: getPlayerById(candidate.playerId),
+          }))
+          .filter((candidate) => (
+            candidate.player
+            && candidate.eligible !== false
+            && !joinedSelfIds.has(Number(candidate.player.id))
+          ));
+      }
+
       const bestPartnerMap = getBestPartnerIdsMap(state.sessions);
       const bestPartnerBoost = new Set();
       joinedIds.forEach((playerId) => {
@@ -10926,6 +11551,7 @@
           members: Array.isArray(list.members) ? list.members : [],
         };
       });
+      groupForecastCacheKey = "";
     }
 
     function getVisibleLongTermListValue(key) {
@@ -10943,6 +11569,9 @@
         label: data.list?.label || label,
         members: data.list?.members || members,
       };
+      groupForecastCacheKey = "";
+      renderGroupForecast({ force: true });
+      scheduleGroupAttemptSnapshot("rule_change");
       if (els.shakePeopleModal.classList.contains("open")) renderShakeLongTermRules();
     }
 
@@ -10960,20 +11589,49 @@
         row.className = "shake-person-row";
         row.title = "双击快速创建该成员的短期规则";
         row.addEventListener("dblclick", () => openShortRuleModal(`${firstName(item.player.name)} `));
+
+        const primary = document.createElement("div");
+        primary.className = "shake-person-primary";
         const name = document.createElement("span");
         name.className = "shake-person-name";
         name.textContent = firstName(item.player.name);
         const meta = document.createElement("div");
         meta.className = "shake-person-meta";
-        const badges = [];
-        if (item.isBestPartner) badges.push("最佳拍档");
-        if (item.isLowLevelMatch) badges.push("水平相近");
-        badges.forEach((text) => {
-          const badge = document.createElement("span");
-          badge.className = "shake-reason";
-          badge.textContent = text;
-          meta.append(badge);
+        const badges = [
+          ...(Array.isArray(item.reasons) ? item.reasons.slice(0, 2).map((text) => ({ text, risk: false })) : []),
+          ...(Array.isArray(item.risks) ? item.risks.slice(0, 2).map((text) => ({ text, risk: true })) : []),
+        ].slice(0, 2);
+        if (!badges.length && item.isBestPartner) badges.push({ text: "最佳拍档", risk: false });
+        if (badges.length < 2 && item.isLowLevelMatch) badges.push({ text: "水平相近", risk: false });
+        badges.forEach((itemBadge) => {
+          const badgeElement = document.createElement("span");
+          badgeElement.className = `shake-reason${itemBadge.risk ? " risk" : ""}`;
+          badgeElement.textContent = itemBadge.text;
+          meta.append(badgeElement);
         });
+        primary.append(name);
+        if (badges.length) primary.append(meta);
+
+        const score = document.createElement("div");
+        score.className = "shake-person-score";
+        if (Number.isFinite(Number(item.attendanceProbability))) {
+          const attendance = document.createElement("span");
+          attendance.append(document.createTextNode("预计到场 "));
+          const value = document.createElement("strong");
+          value.textContent = `${probabilityPercent(item.attendanceProbability)}%`;
+          attendance.append(value);
+          score.append(attendance);
+        }
+        if (Number.isFinite(Number(item.uplift))) {
+          const impact = document.createElement("span");
+          impact.className = "shake-person-impact";
+          impact.append(document.createTextNode("成局 "));
+          const value = document.createElement("strong");
+          value.textContent = `+${formatProbabilityPointLift(item.uplift)}个百分点`;
+          impact.append(value);
+          score.append(impact);
+        }
+
         const skipButton = document.createElement("button");
         skipButton.type = "button";
         skipButton.className = "shake-person-skip";
@@ -10984,7 +11642,9 @@
           event.stopPropagation();
           createQuickTodayRule(item.player);
         });
-        row.append(name, meta, skipButton);
+        row.append(primary);
+        if (score.childElementCount) row.append(score);
+        row.append(skipButton);
         els.shakePeopleList.append(row);
       });
     }
@@ -11019,9 +11679,9 @@
       els.shakeLongTermRulesList.replaceChildren();
       const longRules = [
         "只推荐未接龙的人；已接龙的人不推荐。",
-        "优先推荐打球次数多的人。",
-        "优先推荐已接龙人员的最佳拍档。",
-        "已有3级以下成员接龙时，优先推荐其他3级以下成员（不含“不详”）。",
+        "按预计到场概率与对成局概率的提升综合排序。",
+        "综合历史出勤、随行人员、同场关系、水平、星期和体力。",
+        "短期明确不打的人排除；偏好大局的判断按历史样本量降权。",
       ];
       const fixedHeading = document.createElement("div");
       fixedHeading.className = "long-term-rule-heading";
@@ -11119,8 +11779,13 @@
 
     function renderShakePeopleModal() {
       const today = getBeijingDateString();
+      renderGroupForecast({ includeCandidates: true });
       const recommendations = buildShakePeopleRecommendations(today);
-      els.shakePeopleSummary.textContent = `北京时间今天：${today}。按打球次数、最佳拍档、水平相近依次排序。`;
+      const todayPercent = state.groupForecast
+        ? forecastDisplayPercent(state.groupForecast.todayProbability, state.groupForecast.today?.settled)
+        : 0;
+      els.shakePeopleSummary.textContent = `${today} · 当前成局 ${todayPercent}% · 推荐 ${recommendations.length} 人`;
+      syncAttemptTrialToggle();
       renderShakePeopleList(recommendations);
       renderShakeLongTermRules();
       renderShakeShortTermRules();
@@ -11167,8 +11832,11 @@
           ? data.rules
           : upsertShortRule(state.shortTermRules, data.rule);
       }
+      groupForecastCacheKey = "";
+      renderGroupForecast({ force: true });
       if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
       if (els.shortRuleModal.classList.contains("open")) renderShortTermRulesList();
+      scheduleGroupAttemptSnapshot("rule_change");
       return true;
     }
 
@@ -11205,6 +11873,9 @@
       try {
         await api(`/api/short-term-rules/${ruleId}`, { method: "DELETE" });
         state.shortTermRules = state.shortTermRules.filter((rule) => rule.id !== ruleId);
+        groupForecastCacheKey = "";
+        renderGroupForecast({ force: true });
+        scheduleGroupAttemptSnapshot("rule_change");
         if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
         if (els.shortRuleModal.classList.contains("open")) renderShortTermRulesList();
         toast("短期规则已删除");
@@ -11534,6 +12205,10 @@
       }
 
       function seedChainFromLatestSession() {
+        if (!location.pathname.includes("/badminton-navigation-homepage/")) {
+          seededChain = true;
+          return;
+        }
         if (seededChain || !state.players.length || !state.sessions.length || !els.chainInput) return;
         if (els.chainInput.value.trim()) {
           seededChain = true;
@@ -11544,6 +12219,7 @@
         const built = buildChainInputFromSession(latest);
         if (!built?.text) return;
         const lines = String(built.text).split(/\r?\n/).filter(Boolean);
+        state.chainInputUserOwned = false;
         els.chainInput.value = lines.map((line, index) => `${index + 1}. ${line}`).join("\n");
         state.plusOverrides = built.plusOverrides || {};
         seededChain = true;

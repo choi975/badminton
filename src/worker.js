@@ -2,6 +2,7 @@ import INDEX_HTML from "./index.html";
 import HTML2CANVAS_JS from "./html2canvas.txt";
 import BOOTSTRAP_SNAPSHOT from "./bootstrap-snapshot.txt";
 import BOOKING_ESTIMATOR from "./booking-estimator.txt";
+import GROUP_PROBABILITY_JS from "./group-probability.txt";
 import { trainEstimatorModel } from "./estimator-core.js";
 
 const BOOKING_ESTIMATOR_DATA = JSON.parse(BOOKING_ESTIMATOR);
@@ -102,6 +103,22 @@ const SHAKE_LONG_TERM_LIST_KEYS = new Set([
   "twoDayStreak",
   "onlyLargeSessions",
 ]);
+const GROUP_ATTEMPT_KEY = "main";
+const GROUP_ATTEMPT_SUCCESS_COUNT = 6;
+const GROUP_ATTEMPT_DEDUPE_SECONDS = 5 * 60;
+const GROUP_ATTEMPT_MAX_PARTICIPANTS = 100;
+const GROUP_ATTEMPT_MAX_CONSTRAINTS = 500;
+const GROUP_ATTEMPT_MAX_JSON_BYTES = 16 * 1024;
+const GROUP_ATTEMPT_MAX_SNAPSHOTS = 200;
+const GROUP_ATTEMPT_CLOCK_SKEW_MS = 10 * 60 * 1000;
+const GROUP_ATTEMPT_TRIGGERS = new Set(["paste", "input", "companion", "rule_change"]);
+const GROUP_ATTEMPT_RANKING_MODES = new Set(["attendanceProbability", "attendanceProbabilityTimesUplift"]);
+const GROUP_ATTEMPT_CONSTRAINT_TYPES = new Set([
+  ...EXPIRING_SHORT_TERM_RULE_TYPES,
+  ...WEEKLY_SHORT_TERM_RULE_TYPES,
+  ...SHAKE_LONG_TERM_LIST_KEYS,
+]);
+const CLIENT_EVENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const LEVEL_PATTERN = /^(\d+(?:\.5)?级)$/;
 
@@ -141,6 +158,15 @@ export default {
         });
       }
 
+      if (url.pathname === "/group-probability.js") {
+        return new Response(GROUP_PROBABILITY_JS, {
+          headers: {
+            "content-type": "text/javascript; charset=utf-8",
+            "cache-control": "no-cache",
+          },
+        });
+      }
+
       if (url.pathname === "/bootstrap-snapshot.json") {
         return new Response(BOOTSTRAP_SNAPSHOT, {
           headers: {
@@ -154,6 +180,11 @@ export default {
     } catch (error) {
       return json({ error: error.message || "服务器错误" }, 500);
     }
+  },
+
+  async scheduled(controller, env, context) {
+    const now = new Date(Number(controller?.scheduledTime) || Date.now());
+    context.waitUntil(settleDueGroupAttempts(env.DB, now));
   },
 };
 
@@ -169,6 +200,13 @@ function isAdminRequest(request) {
   const adminOrigin = "https://badminton.choi975.workers.dev";
   if (origin === adminOrigin || referer.startsWith(`${adminOrigin}/`)) return true;
   return origin === "http://localhost:8787" || origin === "http://127.0.0.1:8787";
+}
+
+async function consumeGroupAttemptRateLimit(request, env) {
+  if (!env.GROUP_ATTEMPT_RATE_LIMITER) return true;
+  const key = request.headers.get("cf-connecting-ip") || "unknown";
+  const result = await env.GROUP_ATTEMPT_RATE_LIMITER.limit({ key });
+  return result?.success === true;
 }
 
 function isAllowedMemberExitOrigin(request) {
@@ -523,24 +561,74 @@ async function handleApi(request, env, url) {
   const method = request.method.toUpperCase();
 
   if (pathname === "/api/bootstrap" && method === "GET") {
-    const [players, guide, paymentState, sessions, estimator] = await Promise.all([
+    const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes] = await Promise.all([
       listPlayers(env.DB),
       getLevelGuide(env.DB),
       getPaymentOrderState(env.DB),
       listSessions(env.DB),
       getCurrentEstimator(env.DB),
+      listGroupAttemptOutcomes(env.DB),
     ]);
-    return json({ players, ...guide, ...paymentState, sessions, estimator });
+    return json({ players, ...guide, ...paymentState, sessions, estimator, groupAttemptOutcomes });
   }
 
   if (pathname === "/api/estimator" && method === "GET") {
     return json({ estimator: await getCurrentEstimator(env.DB) });
   }
 
+  if (pathname === "/api/group-attempts/current" && method === "GET") {
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以读取接龙追踪数据" }, 403);
+    const date = url.searchParams.get("date") || getBeijingDateString();
+    if (!isValidDateString(date)) return json({ error: "日期无效" }, 400);
+    const attempt = await getGroupAttemptByDate(env.DB, date);
+    return json({
+      attempt,
+      snapshots: attempt ? await listGroupAttemptSnapshots(env.DB, attempt.id) : [],
+    });
+  }
+
+  if (pathname === "/api/group-attempts/snapshots" && method === "POST") {
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以记录接龙变化" }, 403);
+    if (!await consumeGroupAttemptRateLimit(request, env)) return json({ error: "接龙变化记录过于频繁，请稍后重试" }, 429);
+    const input = normalizeGroupAttemptSnapshotInput(await readJson(request));
+    if (!input) return json({ error: "接龙追踪数据无效" }, 400);
+    if (input.participantCount === 0 && !await getGroupAttemptByDate(env.DB, input.activityDate)) {
+      return json({ error: "当天接龙尚未开始，空名单不会创建追踪记录" }, 409);
+    }
+    const invalidPlayerIds = await findMissingGroupAttemptPlayerIds(env.DB, input);
+    if (invalidPlayerIds.length) return json({ error: "接龙追踪包含不存在的成员" }, 400);
+    const result = await saveGroupAttemptSnapshot(env.DB, input);
+    if (result.limitExceeded) return json({ error: "当天接龙变化记录已达到200条上限" }, 429);
+    return json(result, result.created ? 201 : 200);
+  }
+
+  const groupAttemptMatch = pathname.match(/^\/api\/group-attempts\/(\d+)$/);
+  if (groupAttemptMatch && method === "PATCH") {
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以修改接龙追踪数据" }, 403);
+    if (!await consumeGroupAttemptRateLimit(request, env)) return json({ error: "接龙追踪修改过于频繁，请稍后重试" }, 429);
+    const id = Number(groupAttemptMatch[1]);
+    const body = await readJson(request);
+    const keys = body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : [];
+    if (keys.length !== 1 || keys[0] !== "trainingState" || !["eligible", "excluded"].includes(body.trainingState)) {
+      return json({ error: "训练状态无效" }, 400);
+    }
+    const existing = await getGroupAttemptById(env.DB, id);
+    if (!existing) return json({ error: "找不到这次接龙尝试" }, 404);
+    if (body.trainingState === "eligible") {
+      const eligibleSnapshot = await env.DB.prepare(
+        "SELECT id FROM group_attempt_snapshots WHERE attempt_id = ? AND training_state = 'eligible' LIMIT 1"
+      ).bind(id).first();
+      if (!eligibleSnapshot) return json({ error: "这次接龙没有可用于学习的真实快照" }, 409);
+    }
+    await env.DB.prepare(
+      "UPDATE group_attempts SET training_state = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+    ).bind(body.trainingState, id).run();
+    return json({ attempt: await getGroupAttemptById(env.DB, id) });
+  }
+
   if (pathname === "/api/short-term-rules" && method === "GET") {
     const today = url.searchParams.get("today") || getUtcDateString();
     if (!SESSION_DATE_PATTERN.test(today)) return json({ error: "日期无效" }, 400);
-    await deleteExpiredShortTermRules(env.DB, today);
     return json({ rules: await listShortTermRules(env.DB) });
   }
 
@@ -756,10 +844,11 @@ async function handleApi(request, env, url) {
     if (!input) return json({ error: "订场记录数据无效" }, 400);
     const session = await createSession(env.DB, input);
     const removedShortRuleCount = await deleteShortTermRulesForEarlyReturn(env.DB, input.date, input.players);
+    const groupAttempt = await safelyReconcileGroupAttemptOutcome(env.DB, input.date);
     const estimator = input.trainCourt || input.trainShuttle
       ? await retrainEstimator(env.DB)
       : await getCurrentEstimator(env.DB);
-    return json({ session, estimator, removedShortRuleCount }, 201);
+    return json({ session, estimator, removedShortRuleCount, groupAttempt }, 201);
   }
 
   const sessionVenueMatch = pathname.match(/^\/api\/sessions\/(\d+)\/venue$/);
@@ -779,7 +868,7 @@ async function handleApi(request, env, url) {
   const sessionMatch = pathname.match(/^\/api\/sessions\/(\d+)$/);
   if (sessionMatch && method === "PATCH") {
     const id = Number(sessionMatch[1]);
-    const existing = await env.DB.prepare("SELECT id, venue FROM booking_sessions WHERE id = ?").bind(id).first();
+    const existing = await env.DB.prepare("SELECT id, date, venue FROM booking_sessions WHERE id = ?").bind(id).first();
     if (!existing) return json({ error: "找不到这个订场记录" }, 404);
     const shuttleTypes = await listShuttleTypes(env.DB);
     const input = normalizeSessionInput(
@@ -790,19 +879,22 @@ async function handleApi(request, env, url) {
     if (!input) return json({ error: "订场记录数据无效" }, 400);
     const session = await updateSession(env.DB, id, input);
     const removedShortRuleCount = await deleteShortTermRulesForEarlyReturn(env.DB, input.date, input.players);
+    if (existing.date !== input.date) await safelyReconcileGroupAttemptOutcome(env.DB, existing.date);
+    const groupAttempt = await safelyReconcileGroupAttemptOutcome(env.DB, input.date);
     const estimator = await retrainEstimator(env.DB);
-    return json({ session, estimator, removedShortRuleCount });
+    return json({ session, estimator, removedShortRuleCount, groupAttempt });
   }
 
   if (sessionMatch && method === "DELETE") {
     const id = Number(sessionMatch[1]);
-    const existing = await env.DB.prepare("SELECT id FROM booking_sessions WHERE id = ?").bind(id).first();
+    const existing = await env.DB.prepare("SELECT id, date FROM booking_sessions WHERE id = ?").bind(id).first();
     if (!existing) return json({ error: "找不到这个订场记录" }, 404);
     await env.DB.batch([
       env.DB.prepare("DELETE FROM booking_session_players WHERE session_id = ?").bind(id),
       env.DB.prepare("DELETE FROM booking_sessions WHERE id = ?").bind(id),
     ]);
-    return json({ ok: true, estimator: await retrainEstimator(env.DB) });
+    const groupAttempt = await safelyReconcileGroupAttemptOutcome(env.DB, existing.date);
+    return json({ ok: true, estimator: await retrainEstimator(env.DB), groupAttempt });
   }
 
   if (pathname === "/api/payment-settings" && method === "PUT") {
@@ -1034,10 +1126,679 @@ function mapShakeLongTermListRow(row) {
   };
 }
 
-async function deleteExpiredShortTermRules(db, today) {
+function getBeijingDateString(date = new Date()) {
+  return new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function getGroupAttemptSettlementCutoffDate(now = new Date()) {
+  const beijing = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  const today = beijing.toISOString().slice(0, 10);
+  const minuteOfDay = beijing.getUTCHours() * 60 + beijing.getUTCMinutes();
+  return addDaysToDateString(today, minuteOfDay >= 12 * 60 + 5 ? -1 : -2);
+}
+
+function isGroupAttemptDue(activityDate, now = new Date()) {
+  return isValidDateString(activityDate)
+    && activityDate <= getGroupAttemptSettlementCutoffDate(now);
+}
+
+function isPlainJsonObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function jsonByteLength(value) {
+  try {
+    return new TextEncoder().encode(JSON.stringify(value)).byteLength;
+  } catch (error) {
+    return Number.POSITIVE_INFINITY;
+  }
+}
+
+function stableJsonValue(value) {
+  if (Array.isArray(value)) return value.map(stableJsonValue);
+  if (!isPlainJsonObject(value)) return value;
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableJsonValue(value[key])]));
+}
+
+function stableJsonStringify(value) {
+  return JSON.stringify(stableJsonValue(value));
+}
+
+function normalizeGroupAttemptFeatures(features, participantCount) {
+  if (!isPlainJsonObject(features)) return null;
+  const expectedKeys = [
+    "currentParticipantCount",
+    "expectedFinalCount",
+    "weekdayBaselineToday",
+    "weekdayBaselineTomorrow",
+    "rankingMode",
+  ];
+  const keys = Object.keys(features);
+  if (keys.length !== expectedKeys.length || keys.some((key) => !expectedKeys.includes(key))) return null;
+  const currentParticipantCount = features.currentParticipantCount;
+  const expectedFinalCount = features.expectedFinalCount;
+  const weekdayBaselineToday = features.weekdayBaselineToday;
+  const weekdayBaselineTomorrow = features.weekdayBaselineTomorrow;
+  const rankingMode = features.rankingMode;
+  if (!Number.isInteger(currentParticipantCount)
+    || currentParticipantCount !== participantCount
+    || currentParticipantCount < 0
+    || currentParticipantCount > GROUP_ATTEMPT_MAX_PARTICIPANTS) return null;
+  if (!Number.isFinite(expectedFinalCount)
+    || expectedFinalCount < 0
+    || expectedFinalCount > GROUP_ATTEMPT_MAX_PARTICIPANTS * 2) return null;
+  if (!Number.isFinite(weekdayBaselineToday) || weekdayBaselineToday < 0 || weekdayBaselineToday > 1) return null;
+  if (!Number.isFinite(weekdayBaselineTomorrow) || weekdayBaselineTomorrow < 0 || weekdayBaselineTomorrow > 1) return null;
+  if (typeof rankingMode !== "string" || !GROUP_ATTEMPT_RANKING_MODES.has(rankingMode)) return null;
+  return {
+    currentParticipantCount,
+    expectedFinalCount,
+    weekdayBaselineToday,
+    weekdayBaselineTomorrow,
+    rankingMode,
+  };
+}
+
+function normalizeGroupAttemptSnapshotInput(body, now = new Date()) {
+  if (!isPlainJsonObject(body)) return null;
+  const allowedKeys = new Set([
+    "activityDate",
+    "groupKey",
+    "clientEventId",
+    "observedAt",
+    "trigger",
+    "trainingState",
+    "participantCount",
+    "knownPlayerIds",
+    "companionsByOwner",
+    "unresolvedCount",
+    "activeConstraints",
+    "probabilityToday",
+    "probabilityTomorrow",
+    "modelVersion",
+    "features",
+  ]);
+  if (Object.keys(body).some((key) => !allowedKeys.has(key))) return null;
+
+  const activityDate = String(body.activityDate || "").trim();
+  const groupKey = body.groupKey === undefined ? GROUP_ATTEMPT_KEY : String(body.groupKey).trim();
+  const clientEventId = String(body.clientEventId || "").trim().toLowerCase();
+  const observedAtRaw = String(body.observedAt || "").trim();
+  const trigger = String(body.trigger || "").trim();
+  const trainingState = String(body.trainingState || "").trim();
+  const participantCount = body.participantCount;
+  const unresolvedCount = body.unresolvedCount;
+  const probabilityToday = body.probabilityToday;
+  const probabilityTomorrow = body.probabilityTomorrow;
+  const modelVersion = String(body.modelVersion || "").trim();
+  if (!isValidDateString(activityDate) || groupKey !== GROUP_ATTEMPT_KEY) return null;
+  if (!CLIENT_EVENT_ID_PATTERN.test(clientEventId) || !GROUP_ATTEMPT_TRIGGERS.has(trigger)) return null;
+  if (!["eligible", "excluded"].includes(trainingState)) return null;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(observedAtRaw)) return null;
+  const observedDate = new Date(observedAtRaw);
+  if (Number.isNaN(observedDate.getTime()) || getBeijingDateString(observedDate) !== activityDate) return null;
+  const receivedDate = now instanceof Date ? now : new Date(now);
+  if (Number.isNaN(receivedDate.getTime())
+    || Math.abs(observedDate.getTime() - receivedDate.getTime()) > GROUP_ATTEMPT_CLOCK_SKEW_MS) return null;
+  if (!Number.isInteger(participantCount) || participantCount < 0 || participantCount > GROUP_ATTEMPT_MAX_PARTICIPANTS) return null;
+  if (!Number.isInteger(unresolvedCount) || unresolvedCount < 0 || unresolvedCount > participantCount) return null;
+  if (!Number.isFinite(probabilityToday) || probabilityToday < 0 || probabilityToday > 1) return null;
+  if (!Number.isFinite(probabilityTomorrow) || probabilityTomorrow < 0 || probabilityTomorrow > 1) return null;
+  if (!/^[A-Za-z0-9._:-]{1,80}$/.test(modelVersion)) return null;
+
+  if (!Array.isArray(body.knownPlayerIds) || body.knownPlayerIds.length > participantCount) return null;
+  const knownPlayerIds = [...body.knownPlayerIds];
+  if (knownPlayerIds.some((id) => !Number.isInteger(id) || id <= 0)) return null;
+  if (new Set(knownPlayerIds).size !== knownPlayerIds.length) return null;
+  knownPlayerIds.sort((a, b) => a - b);
+
+  if (!Array.isArray(body.companionsByOwner) || body.companionsByOwner.length > GROUP_ATTEMPT_MAX_PARTICIPANTS) return null;
+  const companionOwners = new Set();
+  const companionsByOwner = [];
+  let companionCount = 0;
+  for (const item of body.companionsByOwner) {
+    if (!isPlainJsonObject(item) || Object.keys(item).some((key) => !["ownerPlayerId", "count"].includes(key))) return null;
+    const ownerPlayerId = item.ownerPlayerId;
+    const count = item.count;
+    if (!Number.isInteger(ownerPlayerId) || ownerPlayerId <= 0 || !Number.isInteger(count) || count <= 0) return null;
+    if (companionOwners.has(ownerPlayerId)) return null;
+    companionOwners.add(ownerPlayerId);
+    companionCount += count;
+    if (companionCount > GROUP_ATTEMPT_MAX_PARTICIPANTS) return null;
+    companionsByOwner.push({ ownerPlayerId, count });
+  }
+  companionsByOwner.sort((a, b) => a.ownerPlayerId - b.ownerPlayerId);
+  if (knownPlayerIds.length + companionCount + unresolvedCount !== participantCount) return null;
+
+  if (!Array.isArray(body.activeConstraints) || body.activeConstraints.length > GROUP_ATTEMPT_MAX_CONSTRAINTS) return null;
+  const constraintKeys = new Set();
+  const activeConstraints = [];
+  for (const item of body.activeConstraints) {
+    if (!isPlainJsonObject(item) || Object.keys(item).some((key) => !["playerId", "type"].includes(key))) return null;
+    const playerId = item.playerId;
+    const type = String(item.type || "").trim();
+    const key = `${playerId}:${type}`;
+    if (!Number.isInteger(playerId) || playerId <= 0 || !GROUP_ATTEMPT_CONSTRAINT_TYPES.has(type) || constraintKeys.has(key)) return null;
+    constraintKeys.add(key);
+    activeConstraints.push({ playerId, type });
+  }
+  activeConstraints.sort((a, b) => a.playerId - b.playerId || a.type.localeCompare(b.type));
+
+  const features = normalizeGroupAttemptFeatures(body.features, participantCount);
+  if (!features) return null;
+  if (jsonByteLength(activeConstraints) > GROUP_ATTEMPT_MAX_JSON_BYTES) return null;
+  return {
+    activityDate,
+    groupKey,
+    clientEventId,
+    observedAt: observedDate.toISOString(),
+    trigger,
+    trainingState,
+    participantCount,
+    knownPlayerIds,
+    companionsByOwner,
+    unresolvedCount,
+    activeConstraints,
+    probabilityToday,
+    probabilityTomorrow,
+    modelVersion,
+    features,
+  };
+}
+
+async function sha256Hex(value) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function findMissingGroupAttemptPlayerIds(db, input) {
+  const playerIds = [...new Set([
+    ...input.knownPlayerIds,
+    ...input.companionsByOwner.map((item) => item.ownerPlayerId),
+    ...input.activeConstraints.map((item) => item.playerId),
+  ])];
+  if (!playerIds.length) return [];
+  const found = new Set();
+  for (let offset = 0; offset < playerIds.length; offset += 90) {
+    const chunk = playerIds.slice(offset, offset + 90);
+    const placeholders = chunk.map(() => "?").join(", ");
+    const { results } = await db.prepare(
+      `SELECT id FROM players WHERE id IN (${placeholders})`
+    ).bind(...chunk).all();
+    results.forEach((row) => found.add(Number(row.id)));
+  }
+  return playerIds.filter((playerId) => !found.has(playerId));
+}
+
+function parseJsonObject(value) {
+  try {
+    const parsed = JSON.parse(value || "{}");
+    return isPlainJsonObject(parsed) ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function mapGroupAttemptRow(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id),
+    activityDate: String(row.activity_date),
+    groupKey: String(row.group_key),
+    outcome: String(row.outcome),
+    trainingState: String(row.training_state),
+    source: String(row.source),
+    firstObservedAt: row.first_observed_at || null,
+    lastObservedAt: row.last_observed_at || null,
+    settledAt: row.settled_at || null,
+    outcomeSource: row.outcome_source || null,
+    qualifyingSessionId: row.qualifying_session_id === null ? null : Number(row.qualifying_session_id),
+    actualParticipantCount: Number(row.actual_participant_count) || 0,
+    maxObservedCount: Number(row.max_observed_count) || 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapGroupAttemptSnapshotRow(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id),
+    attemptId: Number(row.attempt_id),
+    clientEventId: String(row.client_event_id),
+    observedAt: row.observed_at,
+    receivedAt: row.received_at,
+    trigger: String(row.trigger_type),
+    trainingState: String(row.training_state),
+    rosterHash: String(row.roster_hash),
+    contextHash: String(row.context_hash),
+    participantCount: Number(row.participant_count),
+    knownPlayerIds: safeJsonArray(row.known_player_ids_json).map(Number),
+    companionsByOwner: safeJsonArray(row.companions_by_owner_json),
+    unresolvedCount: Number(row.unresolved_count) || 0,
+    activeConstraints: safeJsonArray(row.active_constraints_json),
+    probabilityToday: Number(row.probability_today),
+    probabilityTomorrow: Number(row.probability_tomorrow),
+    modelVersion: String(row.model_version),
+    features: parseJsonObject(row.features_json),
+    createdAt: row.created_at,
+  };
+}
+
+async function getGroupAttemptById(db, id) {
+  const row = await db.prepare(
+    "SELECT * FROM group_attempts WHERE id = ?"
+  ).bind(id).first();
+  return mapGroupAttemptRow(row);
+}
+
+async function getGroupAttemptByDate(db, activityDate) {
+  const row = await db.prepare(
+    "SELECT * FROM group_attempts WHERE activity_date = ? AND group_key = ?"
+  ).bind(activityDate, GROUP_ATTEMPT_KEY).first();
+  return mapGroupAttemptRow(row);
+}
+
+async function listGroupAttemptSnapshots(db, attemptId) {
+  const { results } = await db.prepare(
+    "SELECT * FROM group_attempt_snapshots WHERE attempt_id = ? ORDER BY observed_at ASC, id ASC"
+  ).bind(attemptId).all();
+  return results.map(mapGroupAttemptSnapshotRow);
+}
+
+async function listGroupAttemptOutcomes(db) {
+  const { results } = await db.prepare(
+    `SELECT
+       a.activity_date,
+       a.outcome,
+       a.training_state,
+       a.source,
+       EXISTS (
+         SELECT 1
+         FROM group_attempt_snapshots snapshot
+         WHERE snapshot.attempt_id = a.id AND snapshot.training_state = 'eligible'
+       ) AS has_eligible_snapshots
+     FROM group_attempts a
+     WHERE a.group_key = ?
+     ORDER BY a.activity_date ASC, a.id ASC`
+  ).bind(GROUP_ATTEMPT_KEY).all();
+  return results.map((row) => ({
+    activityDate: String(row.activity_date),
+    outcome: String(row.outcome),
+    trainingState: String(row.training_state),
+    source: String(row.source),
+    hasEligibleSnapshots: Number(row.has_eligible_snapshots) !== 0,
+  }));
+}
+
+async function getGroupAttemptSnapshotByEventId(db, clientEventId) {
+  const row = await db.prepare(
+    "SELECT * FROM group_attempt_snapshots WHERE client_event_id = ?"
+  ).bind(clientEventId).first();
+  return mapGroupAttemptSnapshotRow(row);
+}
+
+async function saveGroupAttemptSnapshot(db, input) {
+  const existingEvent = await getGroupAttemptSnapshotByEventId(db, input.clientEventId);
+  if (existingEvent) {
+    return {
+      attempt: await getGroupAttemptById(db, existingEvent.attemptId),
+      snapshot: existingEvent,
+      created: false,
+      deduplicated: true,
+    };
+  }
+
+  const rosterJson = stableJsonStringify({
+    knownPlayerIds: input.knownPlayerIds,
+    companionsByOwner: input.companionsByOwner,
+    unresolvedCount: input.unresolvedCount,
+    participantCount: input.participantCount,
+  });
+  const contextJson = stableJsonStringify({
+    activeConstraints: input.activeConstraints,
+    features: input.features,
+    modelVersion: input.modelVersion,
+    trainingState: input.trainingState,
+  });
+  const [rosterHash, contextHash] = await Promise.all([
+    sha256Hex(rosterJson),
+    sha256Hex(contextJson),
+  ]);
+
+  let attempt = await getGroupAttemptByDate(db, input.activityDate);
+  if (attempt) {
+    const duplicateRow = await db.prepare(
+      `SELECT * FROM group_attempt_snapshots
+       WHERE attempt_id = ? AND roster_hash = ? AND context_hash = ?
+         AND ABS((julianday(observed_at) - julianday(?)) * 86400) <= ?
+       ORDER BY ABS((julianday(observed_at) - julianday(?)) * 86400) ASC, id ASC
+       LIMIT 1`
+    ).bind(
+      attempt.id,
+      rosterHash,
+      contextHash,
+      input.observedAt,
+      GROUP_ATTEMPT_DEDUPE_SECONDS,
+      input.observedAt,
+    ).first();
+    if (duplicateRow) {
+      return {
+        attempt,
+        snapshot: mapGroupAttemptSnapshotRow(duplicateRow),
+        created: false,
+        deduplicated: true,
+      };
+    }
+
+    const countRow = await db.prepare(
+      "SELECT COUNT(*) AS snapshot_count FROM group_attempt_snapshots WHERE attempt_id = ?"
+    ).bind(attempt.id).first();
+    if (Number(countRow?.snapshot_count) >= GROUP_ATTEMPT_MAX_SNAPSHOTS) {
+      return { attempt, snapshot: null, created: false, deduplicated: false, limitExceeded: true };
+    }
+  }
+
   await db.prepare(
-    "DELETE FROM short_term_rules WHERE expires_on IS NOT NULL AND expires_on < ?"
-  ).bind(today).run();
+    `INSERT INTO group_attempts
+       (activity_date, group_key, outcome, training_state, source, first_observed_at,
+        last_observed_at, max_observed_count, updated_at)
+     VALUES (?, ?, 'pending', ?, 'tracked', ?, ?, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT(activity_date, group_key) DO NOTHING`
+  ).bind(
+    input.activityDate,
+    input.groupKey,
+    input.trainingState,
+    input.observedAt,
+    input.observedAt,
+    input.participantCount,
+  ).run();
+  attempt = await getGroupAttemptByDate(db, input.activityDate);
+
+  const result = await db.prepare(
+    `INSERT OR IGNORE INTO group_attempt_snapshots
+       (attempt_id, client_event_id, observed_at, trigger_type, training_state, roster_hash, context_hash,
+        participant_count, known_player_ids_json, companions_by_owner_json, unresolved_count,
+        active_constraints_json, probability_today, probability_tomorrow, model_version, features_json)
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+     WHERE (SELECT COUNT(*) FROM group_attempt_snapshots WHERE attempt_id = ?) < ?`
+  ).bind(
+    attempt.id,
+    input.clientEventId,
+    input.observedAt,
+    input.trigger,
+    input.trainingState,
+    rosterHash,
+    contextHash,
+    input.participantCount,
+    JSON.stringify(input.knownPlayerIds),
+    JSON.stringify(input.companionsByOwner),
+    input.unresolvedCount,
+    JSON.stringify(input.activeConstraints),
+    input.probabilityToday,
+    input.probabilityTomorrow,
+    input.modelVersion,
+    JSON.stringify(input.features),
+    attempt.id,
+    GROUP_ATTEMPT_MAX_SNAPSHOTS,
+  ).run();
+  const snapshot = await getGroupAttemptSnapshotByEventId(db, input.clientEventId);
+  if (!snapshot) {
+    return { attempt, snapshot: null, created: false, deduplicated: false, limitExceeded: true };
+  }
+  await db.prepare(
+    `UPDATE group_attempts
+     SET training_state = CASE
+           WHEN training_state = 'eligible' OR ? = 'eligible' THEN 'eligible'
+           ELSE 'excluded'
+         END,
+         source = 'tracked',
+         first_observed_at = CASE
+           WHEN first_observed_at IS NULL OR ? < first_observed_at THEN ?
+           ELSE first_observed_at
+         END,
+         last_observed_at = CASE
+           WHEN last_observed_at IS NULL OR ? > last_observed_at THEN ?
+           ELSE last_observed_at
+         END,
+         max_observed_count = MAX(max_observed_count, ?),
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`
+  ).bind(
+    snapshot.trainingState,
+    snapshot.observedAt,
+    snapshot.observedAt,
+    snapshot.observedAt,
+    snapshot.observedAt,
+    snapshot.participantCount,
+    attempt.id,
+  ).run();
+  attempt = await getGroupAttemptById(db, attempt.id);
+  const reconciledAttempt = await safelyReconcileGroupAttemptOutcome(db, input.activityDate);
+  return {
+    attempt: reconciledAttempt || attempt,
+    snapshot,
+    created: Number(result.meta?.changes) > 0,
+    deduplicated: Number(result.meta?.changes) === 0,
+  };
+}
+
+async function getLargestBookingForDate(db, activityDate) {
+  const row = await db.prepare(
+    `SELECT
+       s.id,
+       s.created_at,
+       s.updated_at,
+       COALESCE(SUM(CASE WHEN p.slots > 0 THEN p.slots ELSE 0 END), 0) AS participant_count
+     FROM booking_sessions s
+     LEFT JOIN booking_session_players p ON p.session_id = s.id
+     WHERE s.date = ?
+     GROUP BY s.id, s.created_at, s.updated_at
+     ORDER BY participant_count DESC, s.id ASC
+     LIMIT 1`
+  ).bind(activityDate).first();
+  return row ? {
+    id: Number(row.id),
+    participantCount: Number(row.participant_count) || 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  } : null;
+}
+
+async function reconcileGroupAttemptOutcome(db, activityDate, now = new Date()) {
+  if (!isValidDateString(activityDate)) return null;
+  const booking = await getLargestBookingForDate(db, activityDate);
+  const attempt = await getGroupAttemptByDate(db, activityDate);
+  if (!attempt && !booking) return null;
+
+  const success = Boolean(booking && booking.participantCount >= GROUP_ATTEMPT_SUCCESS_COUNT);
+  const due = isGroupAttemptDue(activityDate, now);
+  const outcome = success ? "success" : due ? "failure" : "pending";
+  const outcomeSource = success
+    ? "booking"
+    : due
+      ? (booking ? "booking_below_threshold" : "auto_no_qualifying_booking")
+      : null;
+  const qualifyingSessionId = success ? booking.id : null;
+  const actualParticipantCount = booking?.participantCount || 0;
+
+  if (!attempt) {
+    await db.prepare(
+      `INSERT INTO group_attempts
+         (activity_date, group_key, outcome, training_state, source, first_observed_at,
+          last_observed_at, settled_at, outcome_source, qualifying_session_id,
+          actual_participant_count, max_observed_count, updated_at)
+       VALUES (?, ?, ?, 'excluded', 'booking_backfill', ?, ?,
+          CASE WHEN ? = 'pending' THEN NULL ELSE CURRENT_TIMESTAMP END,
+          ?, ?, ?, 0, CURRENT_TIMESTAMP)`
+    ).bind(
+      activityDate,
+      GROUP_ATTEMPT_KEY,
+      outcome,
+      booking.createdAt,
+      booking.updatedAt,
+      outcome,
+      outcomeSource,
+      qualifyingSessionId,
+      actualParticipantCount,
+    ).run();
+    return getGroupAttemptByDate(db, activityDate);
+  }
+
+  await db.prepare(
+    `UPDATE group_attempts
+     SET outcome = ?,
+         settled_at = CASE
+           WHEN ? = 'pending' THEN NULL
+           WHEN outcome = ? AND settled_at IS NOT NULL THEN settled_at
+           ELSE CURRENT_TIMESTAMP
+         END,
+         outcome_source = ?,
+         qualifying_session_id = ?,
+         actual_participant_count = ?,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`
+  ).bind(
+    outcome,
+    outcome,
+    outcome,
+    outcomeSource,
+    qualifyingSessionId,
+    actualParticipantCount,
+    attempt.id,
+  ).run();
+  return getGroupAttemptById(db, attempt.id);
+}
+
+async function safelyReconcileGroupAttemptOutcome(db, activityDate, now = new Date()) {
+  try {
+    return await reconcileGroupAttemptOutcome(db, activityDate, now);
+  } catch (error) {
+    console.error("Could not reconcile group-attempt outcome", { activityDate, error });
+    return null;
+  }
+}
+
+async function settleDueGroupAttempts(db, now = new Date()) {
+  const cutoffDate = getGroupAttemptSettlementCutoffDate(now);
+  const backfillResult = await db.prepare(
+    `WITH session_counts AS (
+       SELECT
+         s.id,
+         s.date,
+         s.created_at,
+         s.updated_at,
+         COALESCE(SUM(CASE WHEN p.slots > 0 THEN p.slots ELSE 0 END), 0) AS participant_count
+       FROM booking_sessions s
+       LEFT JOIN booking_session_players p ON p.session_id = s.id
+       WHERE s.date <= ?
+       GROUP BY s.id, s.date, s.created_at, s.updated_at
+     ), date_counts AS (
+       SELECT
+         date,
+         MIN(created_at) AS first_observed_at,
+         MAX(updated_at) AS last_observed_at,
+         MAX(participant_count) AS actual_participant_count
+       FROM session_counts
+       GROUP BY date
+     )
+     INSERT OR IGNORE INTO group_attempts (
+       activity_date, group_key, outcome, training_state, source,
+       first_observed_at, last_observed_at, settled_at, outcome_source,
+       qualifying_session_id, actual_participant_count, max_observed_count, updated_at
+     )
+     SELECT
+       counts.date,
+       'main',
+       CASE WHEN counts.actual_participant_count >= 6 THEN 'success' ELSE 'failure' END,
+       'excluded',
+       'booking_backfill',
+       counts.first_observed_at,
+       counts.last_observed_at,
+       CURRENT_TIMESTAMP,
+       CASE WHEN counts.actual_participant_count >= 6 THEN 'booking' ELSE 'booking_below_threshold' END,
+       (
+         SELECT candidate.id
+         FROM session_counts candidate
+         WHERE candidate.date = counts.date AND candidate.participant_count >= 6
+         ORDER BY candidate.participant_count DESC, candidate.id ASC
+         LIMIT 1
+       ),
+       counts.actual_participant_count,
+       0,
+       CURRENT_TIMESTAMP
+     FROM date_counts counts`
+  ).bind(cutoffDate).run();
+
+  const reconcileResult = await db.prepare(
+    `WITH session_counts AS (
+       SELECT
+         s.id,
+         s.date,
+         COALESCE(SUM(CASE WHEN p.slots > 0 THEN p.slots ELSE 0 END), 0) AS participant_count
+       FROM booking_sessions s
+       LEFT JOIN booking_session_players p ON p.session_id = s.id
+       WHERE s.date <= ?
+       GROUP BY s.id, s.date
+     ), date_counts AS (
+       SELECT
+         date,
+         MAX(participant_count) AS actual_participant_count,
+         (
+           SELECT candidate.id
+           FROM session_counts candidate
+           WHERE candidate.date = grouped.date AND candidate.participant_count >= 6
+           ORDER BY candidate.participant_count DESC, candidate.id ASC
+           LIMIT 1
+         ) AS qualifying_session_id
+       FROM session_counts grouped
+       GROUP BY date
+     )
+     UPDATE group_attempts AS attempt
+     SET outcome = CASE
+           WHEN COALESCE((
+             SELECT counts.actual_participant_count FROM date_counts counts
+             WHERE counts.date = attempt.activity_date
+           ), 0) >= 6 THEN 'success'
+           ELSE 'failure'
+         END,
+         settled_at = CASE
+           WHEN attempt.settled_at IS NOT NULL AND attempt.outcome = CASE
+             WHEN COALESCE((
+               SELECT counts.actual_participant_count FROM date_counts counts
+               WHERE counts.date = attempt.activity_date
+             ), 0) >= 6 THEN 'success'
+             ELSE 'failure'
+           END THEN attempt.settled_at
+           ELSE CURRENT_TIMESTAMP
+         END,
+         outcome_source = CASE
+           WHEN COALESCE((
+             SELECT counts.actual_participant_count FROM date_counts counts
+             WHERE counts.date = attempt.activity_date
+           ), 0) >= 6 THEN 'booking'
+           WHEN EXISTS (
+             SELECT 1 FROM date_counts counts WHERE counts.date = attempt.activity_date
+           ) THEN 'booking_below_threshold'
+           ELSE 'auto_no_qualifying_booking'
+         END,
+         qualifying_session_id = (
+           SELECT counts.qualifying_session_id FROM date_counts counts
+           WHERE counts.date = attempt.activity_date
+         ),
+         actual_participant_count = COALESCE((
+           SELECT counts.actual_participant_count FROM date_counts counts
+           WHERE counts.date = attempt.activity_date
+         ), 0),
+         updated_at = CURRENT_TIMESTAMP
+     WHERE attempt.group_key = ? AND attempt.activity_date <= ?`
+  ).bind(cutoffDate, GROUP_ATTEMPT_KEY, cutoffDate).run();
+
+  return {
+    cutoffDate,
+    backfilledCount: Number(backfillResult.meta?.changes) || 0,
+    reconciledCount: Number(reconcileResult.meta?.changes) || 0,
+  };
 }
 
 function buildShortTermRuleInsert(db, input) {
