@@ -2982,13 +2982,17 @@
     .nav-preview-brand-mark {
       width: 36px;
       height: 36px;
+      min-height: 36px;
       flex: 0 0 36px;
       display: grid;
       place-items: center;
+      padding: 0;
       border-radius: 8px;
       background: var(--accent-dark);
       color: #fff;
       font-size: 18px;
+      line-height: 1;
+      text-align: center;
       font-weight: 700;
       border: 0;
       cursor: pointer;
@@ -2996,13 +3000,16 @@
 
     .nav-preview-brand-copy {
       min-width: 0;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
       overflow: hidden;
       white-space: nowrap;
     }
 
     .nav-preview-brand-copy strong {
       display: block;
-      font-size: 15px;
+      font-size: 17px;
       line-height: 1.2;
     }
 
@@ -3107,6 +3114,8 @@
       padding-left: 10px;
       border-left: 1px solid var(--line);
     }
+
+    .nav-preview-sublist[hidden] { display: none !important; }
 
     .nav-preview-subitem {
       min-height: 34px;
@@ -3232,6 +3241,25 @@
       display: none;
     }
 
+    .nav-preview .modal-backdrop.nav-page .guide-dialog {
+      grid-template-rows: minmax(0, 1fr) auto;
+    }
+
+    .nav-preview .modal-backdrop.nav-page .guide-dialog .guide-body {
+      display: block;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      padding: 10px;
+    }
+
+    .nav-preview .modal-backdrop.nav-page .guide-dialog .guide-editor {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+    }
+
     .nav-preview .modal-backdrop.nav-page .modal-body {
       min-height: 0;
     }
@@ -3329,7 +3357,7 @@
   <aside class="nav-preview-sidebar" aria-label="主要导航">
     <div class="nav-preview-brand">
       <button id="navPreviewBrand" class="nav-preview-brand-mark" type="button" title="展开导航" aria-label="展开导航">羽</button>
-      <div class="nav-preview-brand-copy"><strong>羽球助手</strong><span>俱乐部运营工作台</span></div>
+      <div class="nav-preview-brand-copy"><strong>羽球助手</strong></div>
       <button id="navPreviewCollapse" class="nav-preview-collapse" type="button" title="收起侧栏" aria-label="收起侧栏">‹</button>
     </div>
     <nav class="nav-preview-list">
@@ -11068,7 +11096,7 @@
         });
         const inSettings = ["payment-settings", "guide", "export"].includes(page);
         navSettings.classList.toggle("active", inSettings);
-        if (inSettings) navSublist.hidden = false;
+        if (inSettings) setSettingsExpanded(true);
       }
 
       function updateHeader(page) {
@@ -11170,18 +11198,19 @@
 
       navBrand.addEventListener("click", expandNavigation);
 
+      function setSettingsExpanded(expanded) {
+        navSublist.hidden = !expanded;
+        navSettings.setAttribute("aria-expanded", String(expanded));
+        navSettings.querySelector(".nav-preview-caret")?.classList.toggle("open", expanded);
+      }
+
       navSettings.addEventListener("click", () => {
         if (document.body.classList.contains("nav-collapsed")) {
           expandNavigation();
-          navSublist.hidden = false;
-          navSettings.setAttribute("aria-expanded", "true");
-          navSettings.querySelector(".nav-preview-caret")?.classList.add("open");
+          setSettingsExpanded(true);
           return;
         }
-        const opening = navSublist.hidden;
-        navSublist.hidden = !opening;
-        navSettings.setAttribute("aria-expanded", String(opening));
-        navSettings.querySelector(".nav-preview-caret")?.classList.toggle("open", opening);
+        setSettingsExpanded(navSublist.hidden);
       });
 
       document.querySelectorAll("[data-nav-page]").forEach((button) => {
