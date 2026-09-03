@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b5d56'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='17' fill='white'%3E羽%3C/text%3E%3C/svg%3E">
   <title>羽球助手</title>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js" crossorigin="anonymous"></script>
   <style>
     :root {
       --bg: #f2f6f5;
@@ -2942,9 +2944,412 @@
         text-align: left;
       }
     }
+
+    /* Navigation preview shell. The page content below remains the original
+       application markup and styles; these rules only provide a persistent
+       navigation frame and turn the existing primary modals into workspaces. */
+    body.nav-preview {
+      --nav-width: 220px;
+      min-width: 1120px;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    body.nav-preview.nav-collapsed { --nav-width: 68px; }
+
+    .nav-preview-sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 90;
+      width: var(--nav-width);
+      display: flex;
+      flex-direction: column;
+      padding: 18px 12px 14px;
+      overflow: hidden;
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      transition: width .18s ease;
+    }
+
+    .nav-preview-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      padding: 0 4px;
+    }
+
+    .nav-preview-brand-mark {
+      width: 36px;
+      height: 36px;
+      flex: 0 0 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--accent-dark);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .nav-preview-brand-copy {
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .nav-preview-brand-copy strong {
+      display: block;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .nav-preview-brand-copy span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.2;
+    }
+
+    .nav-preview-collapse {
+      width: 30px;
+      min-width: 30px;
+      min-height: 30px;
+      margin-left: auto;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      border-color: var(--line);
+      background: #fff;
+      color: var(--text);
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .nav-preview-collapse:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+    }
+
+    body.nav-collapsed .nav-preview-collapse { display: none; }
+
+    .nav-preview-list {
+      display: grid;
+      gap: 4px;
+      margin-top: 28px;
+    }
+
+    .nav-preview-item,
+    .nav-preview-subitem {
+      width: 100%;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--muted);
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .nav-preview-item {
+      padding: 0 10px;
+      font-weight: 700;
+    }
+
+    .nav-preview-item:hover,
+    .nav-preview-subitem:hover {
+      background: var(--panel-soft);
+      color: var(--text);
+    }
+
+    .nav-preview-item.active {
+      background: var(--accent-dark);
+      color: #fff;
+    }
+
+    .nav-preview-icon {
+      width: 18px;
+      min-width: 18px;
+      display: inline-grid;
+      place-items: center;
+      font-size: 17px;
+      line-height: 1;
+    }
+
+    .nav-preview-label {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .nav-preview-caret {
+      margin-left: auto;
+      font-size: 15px;
+      line-height: 1;
+      transform: rotate(0deg);
+      transition: transform .16s ease;
+    }
+
+    .nav-preview-caret.open { transform: rotate(90deg); }
+
+    .nav-preview-sublist {
+      display: grid;
+      gap: 3px;
+      margin: 1px 0 3px 22px;
+      padding-left: 10px;
+      border-left: 1px solid var(--line);
+    }
+
+    .nav-preview-subitem {
+      min-height: 34px;
+      padding: 0 8px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .nav-preview-subitem.active {
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+    }
+
+    .nav-preview-status {
+      margin-top: auto;
+      padding: 11px 8px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .nav-preview-status-dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 8px;
+      margin-top: 3px;
+      border-radius: 50%;
+      background: #1a8b65;
+    }
+
+    .nav-preview-status-dot.offline { background: var(--amber); }
+
+    .nav-preview-main {
+      width: calc(100% - var(--nav-width));
+      height: 100vh;
+      margin-left: var(--nav-width);
+      transition: width .18s ease, margin-left .18s ease;
+    }
+
+    .nav-preview-header {
+      height: 58px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nav-preview-header h1 {
+      margin: 0;
+      color: var(--text);
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .nav-preview-header p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.25;
+    }
+
+    .nav-preview-header-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .nav-preview .app-shell {
+      width: 100%;
+      height: calc(100vh - 58px);
+      margin: 0;
+      padding: 10px;
+      display: block;
+      overflow: hidden;
+      background: var(--panel-soft);
+    }
+
+    .nav-preview .app-shell > .topbar { display: none; }
+
+    .nav-preview #databaseArea {
+      height: 100%;
+      min-height: 0;
+    }
+
+    .nav-preview #databaseArea[hidden] { display: none; }
+
+    .nav-preview .modal-backdrop.nav-page {
+      position: fixed;
+      inset: 58px 0 0 var(--nav-width);
+      z-index: 45;
+      align-items: stretch;
+      justify-content: stretch;
+      padding: 10px;
+      background: var(--panel-soft);
+      backdrop-filter: none;
+    }
+
+    .nav-preview .modal-backdrop.nav-page .modal {
+      width: 100%;
+      max-width: none;
+      height: 100%;
+      max-height: none;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(23, 37, 34, .04);
+    }
+
+    .nav-preview .modal-backdrop.nav-page .modal-close-btn {
+      display: none;
+    }
+
+    .nav-preview .modal-backdrop.nav-page .modal-header {
+      display: none;
+    }
+
+    .nav-preview .modal-backdrop.nav-page .modal-body {
+      min-height: 0;
+    }
+
+    .nav-preview .modal-backdrop.nav-page .chain-dialog {
+      width: 100%;
+      min-height: 0;
+      height: 100% !important;
+    }
+
+    .nav-preview .modal-backdrop.nav-page .chain-dialog .modal-body {
+      height: 100%;
+      overflow: hidden;
+      padding: 10px;
+    }
+
+    .nav-preview .modal-backdrop.nav-page .chain-grid {
+      width: 100%;
+      height: 100%;
+      grid-template-columns: 300px minmax(560px, 1fr) 320px;
+    }
+
+    .nav-preview .modal-backdrop.nav-page .calendar-dialog .modal-body,
+    .nav-preview .modal-backdrop.nav-page .guide-dialog .modal-body,
+    .nav-preview .modal-backdrop.nav-page .payment-settings-dialog .modal-body {
+      overflow: auto;
+    }
+
+    .nav-preview .modal-backdrop.nav-page .export-grid {
+      max-width: 900px;
+    }
+
+    .nav-preview .modal-backdrop.nav-page .modal-footer {
+      display: flex;
+    }
+
+    .nav-preview #readOnlyBanner {
+      margin-bottom: 10px;
+    }
+
+    .nav-preview .preview-readonly-note {
+      display: block;
+      margin: 0 0 10px;
+      padding: 7px 10px;
+      border: 1px solid #e8c58d;
+      border-radius: 6px;
+      background: #fff8e8;
+      color: #744500;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    body.nav-collapsed .nav-preview-brand-copy,
+    body.nav-collapsed .nav-preview-label,
+    body.nav-collapsed .nav-preview-caret,
+    body.nav-collapsed .nav-preview-sublist,
+    body.nav-collapsed .nav-preview-status-copy,
+    body.nav-collapsed .nav-preview-header p {
+      display: none;
+    }
+
+    body.nav-collapsed .nav-preview-brand { justify-content: center; }
+    body.nav-collapsed .nav-preview-collapse { margin-left: 0; }
+    body.nav-collapsed .nav-preview-item { justify-content: center; padding-inline: 0; }
+    body.nav-collapsed .nav-preview-status { justify-content: center; }
+    body.nav-collapsed .nav-preview-header { padding-inline: 16px; }
+
+    @media (max-width: 1320px) {
+      body.nav-preview { min-width: 980px; }
+      .nav-preview .modal-backdrop.nav-page .chain-grid {
+        grid-template-columns: 280px minmax(500px, 1fr) 300px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body.nav-preview { min-width: 760px; --nav-width: 68px; }
+      .nav-preview-sidebar { width: 68px; }
+      .nav-preview-main { width: calc(100% - 68px); margin-left: 68px; }
+      .nav-preview-brand-copy,
+      .nav-preview-label,
+      .nav-preview-caret,
+      .nav-preview-sublist,
+      .nav-preview-status-copy,
+      .nav-preview-header p { display: none; }
+      .nav-preview-brand { justify-content: center; }
+      .nav-preview-collapse { margin-left: 0; }
+      .nav-preview-item { justify-content: center; padding-inline: 0; }
+      .nav-preview-status { justify-content: center; }
+      .nav-preview .modal-backdrop.nav-page { left: 68px; }
+      .nav-preview .modal-backdrop.nav-page .chain-grid { min-width: 1080px; }
+    }
   </style>
 </head>
-<body>
+<body class="nav-preview">
+  <aside class="nav-preview-sidebar" aria-label="主要导航">
+    <div class="nav-preview-brand">
+      <button id="navPreviewBrand" class="nav-preview-brand-mark" type="button" title="展开导航" aria-label="展开导航">羽</button>
+      <div class="nav-preview-brand-copy"><strong>羽球助手</strong><span>俱乐部运营工作台</span></div>
+      <button id="navPreviewCollapse" class="nav-preview-collapse" type="button" title="收起侧栏" aria-label="收起侧栏">‹</button>
+    </div>
+    <nav class="nav-preview-list">
+      <button class="nav-preview-item active" type="button" data-nav-page="chain" title="接龙助手"><i class="nav-preview-icon" data-lucide="list-checks"></i><span class="nav-preview-label">接龙助手</span></button>
+      <button class="nav-preview-item" type="button" data-nav-page="calendar" title="订场日历"><i class="nav-preview-icon" data-lucide="calendar-days"></i><span class="nav-preview-label">订场日历</span></button>
+      <button class="nav-preview-item" type="button" data-nav-page="database" title="数据库"><i class="nav-preview-icon" data-lucide="database"></i><span class="nav-preview-label">数据库</span></button>
+      <button id="navPreviewSettings" class="nav-preview-item" type="button" title="设置" aria-expanded="true"><i class="nav-preview-icon" data-lucide="settings-2"></i><span class="nav-preview-label">设置</span><span class="nav-preview-caret open">›</span></button>
+      <div id="navPreviewSublist" class="nav-preview-sublist">
+        <button class="nav-preview-subitem" type="button" data-nav-page="payment-settings"><i class="nav-preview-icon" data-lucide="wallet-cards"></i><span class="nav-preview-label">群收款设置</span></button>
+        <button class="nav-preview-subitem" type="button" data-nav-page="guide"><i class="nav-preview-icon" data-lucide="book-open-text"></i><span class="nav-preview-label">等级介绍</span></button>
+        <button class="nav-preview-subitem" type="button" data-nav-page="export"><i class="nav-preview-icon" data-lucide="file-down"></i><span class="nav-preview-label">导出表格</span></button>
+      </div>
+    </nav>
+    <div class="nav-preview-status"><span id="navPreviewStatusDot" class="nav-preview-status-dot"></span><div id="navPreviewStatusCopy" class="nav-preview-status-copy">正在连接<br>预览模式</div></div>
+  </aside>
+  <div class="nav-preview-main">
+    <header class="nav-preview-header">
+      <div><h1 id="navPreviewTitle">接龙助手</h1><p id="navPreviewSubtitle">整理名单、计算费用并准备群收款</p></div>
+      <div class="nav-preview-header-status"><span id="navPreviewHeaderStatus">预览模式</span></div>
+    </header>
   <main class="app-shell">
     <header class="topbar">
       <div class="brand">
@@ -2989,8 +3394,9 @@
       </section>
     </div>
   </main>
+  </div>
 
-  <div id="guideModal" class="modal-backdrop">
+  <div id="guideModal" class="modal-backdrop nav-page">
     <div class="modal wide guide-dialog" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
       <div class="modal-header">
         <h2 id="guideTitle" class="modal-title">等级介绍</h2>
@@ -3006,7 +3412,7 @@
     </div>
   </div>
 
-  <div id="exportModal" class="modal-backdrop">
+  <div id="exportModal" class="modal-backdrop nav-page">
     <div class="modal medium" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
       <div class="modal-header">
         <h2 id="exportTitle" class="modal-title">导出表格</h2>
@@ -3022,7 +3428,7 @@
     </div>
   </div>
 
-  <div id="chainModal" class="modal-backdrop">
+  <div id="chainModal" class="modal-backdrop nav-page">
     <div class="modal wide chain-dialog" role="dialog" aria-modal="true" aria-labelledby="chainTitle">
       <div class="modal-header">
         <h2 id="chainTitle" class="modal-title">接龙助手</h2>
@@ -3211,7 +3617,7 @@
     </div>
   </div>
 
-  <div id="calendarModal" class="modal-backdrop">
+  <div id="calendarModal" class="modal-backdrop nav-page">
     <div class="modal wide calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="calendarTitle">
       <div class="modal-header">
         <h2 id="calendarTitle" class="modal-title">订场日历</h2>
@@ -3257,7 +3663,7 @@
     </div>
   </div>
 
-  <div id="paymentSettingsModal" class="modal-backdrop">
+  <div id="paymentSettingsModal" class="modal-backdrop nav-page">
     <div class="modal medium payment-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="paymentSettingsTitle">
       <div class="modal-header">
         <h2 id="paymentSettingsTitle" class="modal-title">群收款设置</h2>
@@ -3483,6 +3889,8 @@
         minimum: 1,
       },
     };
+    // Preview copy: keep API requests same-origin so the bundled snapshot is used
+    // when this file is served from the design preview server.
     const REMOTE_API_BASE = "https://badminton.choi975.workers.dev";
     const IS_GITHUB_PAGES = location.hostname === "choi975.github.io" && location.pathname.startsWith("/badminton");
     const IS_WORKER_APP = location.hostname === "badminton.choi975.workers.dev"
@@ -10617,6 +11025,210 @@
     }
 
     init();
+  </script>
+  <script>
+    // Navigation layer for the preview copy. All page content and behavior are
+    // inherited from the original source above; this layer only changes how
+    // those existing screens are reached.
+    (() => {
+      const pageMeta = {
+        chain: ["接龙助手", "整理名单、计算费用并准备群收款"],
+        calendar: ["订场日历", "查看订场记录与成员出勤"],
+        database: ["数据库", "管理成员资料、等级和历史统计"],
+        "payment-settings": ["群收款设置", "维护群内顺序与特殊成员规则"],
+        guide: ["等级介绍", "查看并维护中羽等级说明"],
+        export: ["导出表格", "选择字段并导出成员数据"],
+      };
+      const primaryModalIds = ["chainModal", "calendarModal", "paymentSettingsModal", "guideModal", "exportModal"];
+      const navTitle = document.getElementById("navPreviewTitle");
+      const navSubtitle = document.getElementById("navPreviewSubtitle");
+      const navHeaderStatus = document.getElementById("navPreviewHeaderStatus");
+      const navStatusCopy = document.getElementById("navPreviewStatusCopy");
+      const navStatusDot = document.getElementById("navPreviewStatusDot");
+      const navSettings = document.getElementById("navPreviewSettings");
+      const navSublist = document.getElementById("navPreviewSublist");
+      const navCollapse = document.getElementById("navPreviewCollapse");
+      const navBrand = document.getElementById("navPreviewBrand");
+      const databaseArea = document.getElementById("databaseArea");
+      let currentPage = "chain";
+      let seededChain = false;
+
+      function closePrimaryPages() {
+        primaryModalIds.forEach((id) => {
+          const modal = document.getElementById(id);
+          if (modal?.classList.contains("open")) closeModal(id);
+        });
+      }
+
+      function setActive(page) {
+        document.querySelectorAll("[data-nav-page]").forEach((button) => {
+          const active = button.dataset.navPage === page;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-current", active ? "page" : "false");
+        });
+        const inSettings = ["payment-settings", "guide", "export"].includes(page);
+        navSettings.classList.toggle("active", inSettings);
+        if (inSettings) navSublist.hidden = false;
+      }
+
+      function updateHeader(page) {
+        const [title, subtitle] = pageMeta[page] || pageMeta.chain;
+        navTitle.textContent = title;
+        navSubtitle.textContent = subtitle;
+        currentPage = page;
+        setActive(page);
+      }
+
+      function openPageModal(id) {
+        databaseArea.hidden = true;
+        openModal(id);
+      }
+
+      function openPaymentSettingsPreview() {
+        // The source app intentionally blocks writes when using its snapshot.
+        // We still render the complete editor so its layout and controls can be
+        // reviewed without changing the database.
+        state.paymentSettingsEditor = createPaymentSettingsEditor();
+        renderPaymentSettings();
+        if (location.pathname.includes("/badminton-navigation-homepage/") && els.savePaymentSettingsBtn) {
+          els.savePaymentSettingsBtn.disabled = true;
+          els.savePaymentSettingsBtn.title = "预览模式不会保存到数据库";
+        }
+        openPageModal("paymentSettingsModal");
+      }
+
+      function showPage(page) {
+        closePrimaryPages();
+        databaseArea.hidden = page !== "database";
+        updateHeader(page);
+        if (page === "database") {
+          renderTable();
+          return;
+        }
+        if (page === "chain") {
+          syncAutoCourtFeeForActivityDate();
+          openPageModal("chainModal");
+          processChain();
+          return;
+        }
+        if (page === "calendar") {
+          openCalendarModal();
+          return;
+        }
+        if (page === "payment-settings") {
+          openPaymentSettingsPreview();
+          return;
+        }
+        if (page === "guide") {
+          openGuideModal();
+          return;
+        }
+        if (page === "export") {
+          openExportModal();
+        }
+      }
+
+      function updateConnectionLabel() {
+        const source = state.dataSource;
+        const isCloud = source === "cloud";
+        const isWorking = source === "loading";
+        navHeaderStatus.textContent = isCloud ? "Cloudflare 已连接" : isWorking ? "正在读取数据" : "只读预览数据";
+        navStatusCopy.innerHTML = `${isCloud ? "Cloudflare 已连接" : isWorking ? "正在读取数据" : "使用本地快照"}<br>${isCloud ? "实时数据" : "不会写入数据库"}`;
+        navStatusDot.classList.toggle("offline", !isCloud);
+      }
+
+      function seedChainFromLatestSession() {
+        if (seededChain || !state.players.length || !state.sessions.length || !els.chainInput) return;
+        if (els.chainInput.value.trim()) {
+          seededChain = true;
+          return;
+        }
+        const latest = state.sessions.at(-1);
+        if (!latest || typeof buildChainInputFromSession !== "function") return;
+        const built = buildChainInputFromSession(latest);
+        if (!built?.text) return;
+        const lines = String(built.text).split(/\r?\n/).filter(Boolean);
+        els.chainInput.value = lines.map((line, index) => `${index + 1}. ${line}`).join("\n");
+        state.plusOverrides = built.plusOverrides || {};
+        seededChain = true;
+        processChain();
+      }
+
+      navCollapse.addEventListener("click", () => {
+        const collapsed = document.body.classList.toggle("nav-collapsed");
+        navCollapse.textContent = collapsed ? "›" : "‹";
+        navCollapse.title = collapsed ? "展开侧栏" : "收起侧栏";
+        navCollapse.setAttribute("aria-label", navCollapse.title);
+      });
+
+      function expandNavigation() {
+        document.body.classList.remove("nav-collapsed");
+        navCollapse.textContent = "‹";
+        navCollapse.title = "收起侧栏";
+        navCollapse.setAttribute("aria-label", navCollapse.title);
+      }
+
+      navBrand.addEventListener("click", expandNavigation);
+
+      navSettings.addEventListener("click", () => {
+        if (document.body.classList.contains("nav-collapsed")) {
+          expandNavigation();
+          navSublist.hidden = false;
+          navSettings.setAttribute("aria-expanded", "true");
+          navSettings.querySelector(".nav-preview-caret")?.classList.add("open");
+          return;
+        }
+        const opening = navSublist.hidden;
+        navSublist.hidden = !opening;
+        navSettings.setAttribute("aria-expanded", String(opening));
+        navSettings.querySelector(".nav-preview-caret")?.classList.toggle("open", opening);
+      });
+
+      document.querySelectorAll("[data-nav-page]").forEach((button) => {
+        button.addEventListener("click", () => showPage(button.dataset.navPage));
+      });
+
+      // Snapshot mode hides the source shake button. Keep the original action
+      // visible in this review shell and invoke its renderer without writes.
+      const sourceShakeButton = document.getElementById("shakePeopleBtn");
+      if (sourceShakeButton) {
+        sourceShakeButton.hidden = false;
+        sourceShakeButton.addEventListener("click", () => {
+          if (!state.readOnly) return;
+          processChain();
+          renderShakePeopleModal();
+          openModal("shakePeopleModal");
+        });
+        const shakeObserver = new MutationObserver(() => {
+          if (state.readOnly) sourceShakeButton.hidden = false;
+        });
+        shakeObserver.observe(sourceShakeButton, { attributes: true, attributeFilter: ["hidden"] });
+      }
+
+      const syncNode = document.getElementById("syncState");
+      if (syncNode) {
+        const observer = new MutationObserver(updateConnectionLabel);
+        observer.observe(syncNode, { childList: true, characterData: true, subtree: true, attributes: true });
+      }
+
+      const dataObserver = new MutationObserver(() => {
+        updateConnectionLabel();
+        seedChainFromLatestSession();
+        if (sourceShakeButton && state.readOnly) sourceShakeButton.hidden = false;
+      });
+      dataObserver.observe(document.getElementById("syncState") || document.body, { childList: true, characterData: true, subtree: true });
+
+      // Make the original primary page the first view once the source script
+      // has wired all event handlers.
+      window.lucide?.createIcons({ attrs: { "aria-hidden": "true" } });
+      updateConnectionLabel();
+      setTimeout(() => {
+        seedChainFromLatestSession();
+        showPage("chain");
+        seedChainFromLatestSession();
+        window.lucide?.createIcons({ attrs: { "aria-hidden": "true" } });
+      }, 0);
+    })();
   </script>
 </body>
 </html>
