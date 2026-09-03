@@ -3,7 +3,10 @@ import HTML2CANVAS_JS from "./html2canvas.txt";
 import BOOTSTRAP_SNAPSHOT from "./bootstrap-snapshot.txt";
 import BOOKING_ESTIMATOR from "./booking-estimator.txt";
 import GROUP_PROBABILITY_JS from "./group-probability.txt";
-import { trainEstimatorModel } from "./estimator-core.js";
+import {
+  expandEstimatorParticipants,
+  trainEstimatorModel,
+} from "./estimator-core.js";
 
 const BOOKING_ESTIMATOR_DATA = JSON.parse(BOOKING_ESTIMATOR);
 
@@ -1929,20 +1932,38 @@ function normalizeShortTermRuleInput(body) {
 }
 
 async function getCurrentEstimator(db) {
-  const row = await db.prepare("SELECT model_json FROM booking_estimator_models WHERE id = 'current'").first();
+  const [row, trainingRevision] = await Promise.all([
+    db.prepare("SELECT model_json FROM booking_estimator_models WHERE id = 'current'").first(),
+    getEstimatorTrainingRevision(db),
+  ]);
   if (row?.model_json) {
-    try { return JSON.parse(row.model_json); } catch (error) { /* retrain below */ }
+    try {
+      const model = JSON.parse(row.model_json);
+      const typeIds = (model?.shuttleTypes || []).map((type) => type.id);
+      const hasCompleteTypeModels = typeIds.length > 0
+        && typeIds.every((typeId) => model?.shuttle?.models?.[typeId]);
+      if (model?.version === 5 && hasCompleteTypeModels && Number(model.trainingRevision) === trainingRevision) return model;
+    } catch (error) { /* retrain below */ }
   }
   return retrainEstimator(db);
 }
 
-async function retrainEstimator(db) {
+async function getEstimatorTrainingRevision(db) {
+  const row = await db.prepare(
+    "SELECT revision FROM booking_estimator_training_state WHERE id = 'current'"
+  ).first();
+  return Math.max(0, Number(row?.revision) || 0);
+}
+
+async function retrainEstimator(db, attempt = 0) {
+  const startingRevision = await getEstimatorTrainingRevision(db);
   const shuttleTypes = await listShuttleTypes(db);
   const { results: sessionRows } = await db.prepare(
-    "SELECT id, date, court_count, train_court, train_shuttle, shuttle_price_rows, shuttle_price, shuttle_count FROM booking_sessions ORDER BY date ASC, id ASC"
+    "SELECT id, date, court_count, train_court, train_shuttle, actual_shuttle_confirmed, shuttle_price_rows, shuttle_price, shuttle_count FROM booking_sessions ORDER BY date ASC, id ASC"
   ).all();
   const { results: playerRows } = await db.prepare(
-    "SELECT session_id, slots FROM booking_session_players ORDER BY session_id ASC, id ASC"
+    `SELECT session_id, player_id, is_companion, slots, plus_count, gender_snapshot, level_snapshot, profile_snapshot_reliable
+     FROM booking_session_players ORDER BY session_id ASC, id ASC`
   ).all();
   const playersBySession = new Map();
   for (const row of playerRows) {
@@ -1954,28 +1975,42 @@ async function retrainEstimator(db) {
     const shuttleCounts = {};
     const rows = parseStoredPriceRows(row.shuttle_price_rows, true, shuttleTypes);
     for (const shuttleRow of rows || []) {
-      if (shuttleRow.type) shuttleCounts[shuttleRow.type] = (shuttleCounts[shuttleRow.type] || 0) + Number(shuttleRow.count || 0);
+      const typeId = shuttleRow.type || "unknown";
+      shuttleCounts[typeId] = (shuttleCounts[typeId] || 0) + Number(shuttleRow.count || 0);
     }
     if (!Object.keys(shuttleCounts).length && Number(row.shuttle_count) > 0) {
       const type = shuttleTypeForPrice(Number(row.shuttle_price), shuttleTypes);
-      if (type) shuttleCounts[type.id] = Number(row.shuttle_count);
+      shuttleCounts[type?.id || "unknown"] = Number(row.shuttle_count);
     }
+    const participants = expandEstimatorParticipants(playersBySession.get(Number(row.id)) || []);
     return {
       id: Number(row.id),
       date: String(row.date || ""),
-      participantCount: (playersBySession.get(Number(row.id)) || []).reduce((sum, player) => sum + Math.max(0, Number(player.slots) || 0), 0),
+      participants,
+      participantCount: participants.length,
       courtCount: Number(row.court_count),
       trainCourt: Number(row.train_court) !== 0,
       trainShuttle: Number(row.train_shuttle) !== 0,
+      actualShuttleConfirmed: Number(row.actual_shuttle_confirmed) !== 0,
       shuttleCounts,
     };
   });
-  const model = trainEstimatorModel({ sessions, shuttleTypes });
+  const trainingRevision = await getEstimatorTrainingRevision(db);
+  if (trainingRevision !== startingRevision) {
+    if (attempt >= 2) throw new Error("Estimator training data changed repeatedly during retraining");
+    return retrainEstimator(db, attempt + 1);
+  }
+  const model = trainEstimatorModel({ sessions, shuttleTypes, trainingRevision });
   await db.prepare(
     `INSERT INTO booking_estimator_models (id, model_json, generated_at, updated_at)
      VALUES ('current', ?, ?, CURRENT_TIMESTAMP)
      ON CONFLICT(id) DO UPDATE SET model_json = excluded.model_json, generated_at = excluded.generated_at, updated_at = CURRENT_TIMESTAMP`
   ).bind(JSON.stringify(model), model.generatedAt).run();
+  const storedRevision = await getEstimatorTrainingRevision(db);
+  if (storedRevision !== trainingRevision) {
+    if (attempt >= 2) throw new Error("Estimator training data changed repeatedly while saving the model");
+    return retrainEstimator(db, attempt + 1);
+  }
   return model;
 }
 
@@ -1999,9 +2034,9 @@ async function listSessions(db) {
   const { results } = await db.prepare(
     `SELECT
        s.id AS session_id, s.date, s.venue, s.court_count, s.court_fee, s.shuttle_price, s.shuttle_count,
-       s.court_price_rows, s.shuttle_price_rows, s.train_court, s.train_shuttle, s.created_at, s.updated_at,
+       s.court_price_rows, s.shuttle_price_rows, s.train_court, s.train_shuttle, s.actual_shuttle_confirmed, s.created_at, s.updated_at,
        p.player_id, p.player_name, p.owner_player_id, p.owner_name_snapshot, p.is_companion,
-       p.slots, p.plus_count, p.amount, p.is_female, p.gender_snapshot, p.level_snapshot
+       p.slots, p.plus_count, p.amount, p.is_female, p.gender_snapshot, p.level_snapshot, p.profile_snapshot_reliable
      FROM booking_sessions s
      LEFT JOIN booking_session_players p ON p.session_id = s.id
      ORDER BY s.date ASC, s.id ASC, p.id ASC`
@@ -2023,6 +2058,7 @@ async function listSessions(db) {
         shuttlePriceRows: parseStoredPriceRows(row.shuttle_price_rows, true, shuttleTypes),
         trainCourt: Number(row.train_court) !== 0,
         trainShuttle: Number(row.train_shuttle) !== 0,
+        actualShuttleConfirmed: Number(row.actual_shuttle_confirmed) !== 0,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         players: [],
@@ -2042,6 +2078,7 @@ async function listSessions(db) {
         isFemale: Number(row.is_female) !== 0,
         gender: VALID_PARTICIPANT_GENDERS.has(row.gender_snapshot) ? row.gender_snapshot : "不详",
         level: VALID_LEVELS.has(row.level_snapshot) ? row.level_snapshot : "不详",
+        profileSnapshotReliable: Number(row.profile_snapshot_reliable) !== 0,
       });
     }
   }
@@ -2131,6 +2168,9 @@ function normalizeSessionInput(body, fallbackVenue = "EDC", shuttleTypes = BOOKI
       ? raw.gender
       : Boolean(raw?.isFemale) ? "女" : "不详";
     const level = VALID_LEVELS.has(raw?.level) ? raw.level : "不详";
+    const profileSnapshotReliable = raw?.profileSnapshotReliable === true
+      || raw?.profileSnapshotReliable === 1
+      || raw?.profileSnapshotReliable === "1";
     if (!Number.isInteger(slots) || slots < 0) return null;
     if (!Number.isInteger(plusCount) || plusCount < 0 || plusCount > Math.max(0, slots - 1)) return null;
     if (!Number.isFinite(amount) || amount < 0) return null;
@@ -2149,6 +2189,7 @@ function normalizeSessionInput(body, fallbackVenue = "EDC", shuttleTypes = BOOKI
       isFemale: gender === "女",
       gender,
       level,
+      profileSnapshotReliable,
     });
   }
 
@@ -2160,7 +2201,23 @@ function normalizeSessionInput(body, fallbackVenue = "EDC", shuttleTypes = BOOKI
   const useForTraining = body?.useForTraining !== false;
   const trainCourt = body?.trainCourt === undefined ? useForTraining : body.trainCourt !== false;
   const trainShuttle = body?.trainShuttle === undefined ? useForTraining : body.trainShuttle !== false;
-  return { date, venue, courtCount, courtFee, shuttlePrice, shuttleCount, courtPriceRows, shuttlePriceRows, players, trainCourt, trainShuttle };
+  const actualShuttleConfirmed = body?.actualShuttleConfirmed === true
+    || body?.actualShuttleConfirmed === 1
+    || body?.actualShuttleConfirmed === "1";
+  return {
+    date,
+    venue,
+    courtCount,
+    courtFee,
+    shuttlePrice,
+    shuttleCount,
+    courtPriceRows,
+    shuttlePriceRows,
+    players,
+    trainCourt,
+    trainShuttle,
+    actualShuttleConfirmed,
+  };
 }
 
 function normalizePriceRows(raw, allowEmpty, includeShuttleType, shuttleTypes = []) {
@@ -2207,9 +2264,10 @@ function parseStoredPriceRows(raw, includeShuttleType = false, shuttleTypes = BO
 }
 
 function shuttleTypeForPrice(price, shuttleTypes = BOOKING_ESTIMATOR_DATA.shuttleTypes || []) {
-  return shuttleTypes.find((type) => (
+  const matches = shuttleTypes.filter((type) => (
     (type.prices || []).some((known) => Math.abs(Number(known) - price) < 0.02)
-  )) || null;
+  ));
+  return matches.length === 1 ? matches[0] : null;
 }
 
 function serializePriceRows(rows) {
@@ -2219,8 +2277,8 @@ function serializePriceRows(rows) {
 async function createSession(db, input) {
   const result = await db.prepare(
     `INSERT INTO booking_sessions
-       (date, venue, court_count, court_fee, shuttle_price, shuttle_count, court_price_rows, shuttle_price_rows, train_court, train_shuttle, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+       (date, venue, court_count, court_fee, shuttle_price, shuttle_count, court_price_rows, shuttle_price_rows, train_court, train_shuttle, actual_shuttle_confirmed, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).bind(
     input.date,
     input.venue,
@@ -2231,7 +2289,8 @@ async function createSession(db, input) {
     serializePriceRows(input.courtPriceRows),
     serializePriceRows(input.shuttlePriceRows),
     input.trainCourt ? 1 : 0,
-    input.trainShuttle ? 1 : 0
+    input.trainShuttle ? 1 : 0,
+    input.actualShuttleConfirmed ? 1 : 0
   ).run();
   const sessionId = Number(result.meta.last_row_id);
   await insertSessionPlayers(db, sessionId, input.players);
@@ -2243,7 +2302,7 @@ async function updateSession(db, id, input) {
     db.prepare(
       `UPDATE booking_sessions
        SET date = ?, venue = ?, court_count = ?, court_fee = ?, shuttle_price = ?, shuttle_count = ?,
-            court_price_rows = ?, shuttle_price_rows = ?, train_court = ?, train_shuttle = ?, updated_at = CURRENT_TIMESTAMP
+            court_price_rows = ?, shuttle_price_rows = ?, train_court = ?, train_shuttle = ?, actual_shuttle_confirmed = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`
     ).bind(
       input.date,
@@ -2256,6 +2315,7 @@ async function updateSession(db, id, input) {
       serializePriceRows(input.shuttlePriceRows),
       input.trainCourt ? 1 : 0,
       input.trainShuttle ? 1 : 0,
+      input.actualShuttleConfirmed ? 1 : 0,
       id
     ),
     db.prepare("DELETE FROM booking_session_players WHERE session_id = ?").bind(id),
@@ -2274,8 +2334,8 @@ function buildSessionPlayerStatements(db, sessionId, players) {
   return players.map((player) => db.prepare(
     `INSERT INTO booking_session_players
        (session_id, player_id, player_name, owner_player_id, owner_name_snapshot, is_companion,
-        slots, plus_count, amount, is_female, gender_snapshot, level_snapshot, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+        slots, plus_count, amount, is_female, gender_snapshot, level_snapshot, profile_snapshot_reliable, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).bind(
     sessionId,
     player.playerId,
@@ -2288,7 +2348,8 @@ function buildSessionPlayerStatements(db, sessionId, players) {
     player.amount,
     player.isFemale ? 1 : 0,
     player.gender,
-    player.level
+    player.level,
+    player.profileSnapshotReliable ? 1 : 0
   ));
 }
 

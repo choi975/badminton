@@ -59,7 +59,7 @@ npm run deploy
 - `scripts/verify-chain.js`: 使用需求里的示例验证接龙和群收款规则。
 - `scripts/verify-participant-ownership.js`: 随行人员归属、统计投影及字段贯穿的可执行契约测试。
 - `scripts/verify-member-exit-analysis.js`: 截图退群排查的锚点算法、候选范围和 OCR 接口契约测试。
-- `scripts/verify-estimator.js`: 验证 v4 公式、独立球型号权重、异常阈值、模型快照同步和历史回放。
+- `scripts/verify-estimator.js`: 验证 v5 逐型号分层公式、性别/等级/成员差异、异常阈值、模型快照同步和历史回放。
 - `group-probability.js`: 可在浏览器和 Node 中运行的组局概率与摇人排序核心。
 - `migrations/0017_group_attempt_tracking.sql`: 接龙尝试、状态快照和短期规则历史。
 - `scripts/verify-group-probability.js`: 验证星期基线、截止时间、体力、大局门槛、随行人员、明日预测和反事实排序。

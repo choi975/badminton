@@ -1,6 +1,7 @@
 {
-  "version": 4,
-  "generatedAt": "2026-09-03T18:26:43.169Z",
+  "version": 5,
+  "generatedAt": "2026-09-03T20:01:21.346Z",
+  "trainingRevision": 200,
   "training": {
     "dateRange": {
       "from": "2026-07-13",
@@ -14,10 +15,28 @@
       }
     },
     "shuttle": {
-      "sampleCount": 20,
-      "dateRange": {
-        "from": "2026-07-13",
-        "to": "2026-09-02"
+      "sampleCount": 19,
+      "eligibleSessionCount": 20,
+      "unconfirmedExcludedCount": 0,
+      "mixedExcludedCount": 1,
+      "unknownTypeExcludedCount": 0,
+      "byType": {
+        "rsl3": {
+          "sampleCount": 19,
+          "mixedExcludedCount": 1,
+          "dateRange": {
+            "from": "2026-07-13",
+            "to": "2026-09-02"
+          }
+        },
+        "as05": {
+          "sampleCount": 0,
+          "mixedExcludedCount": 1,
+          "dateRange": {
+            "from": null,
+            "to": null
+          }
+        }
       }
     }
   },
@@ -31,9 +50,8 @@
         11.3,
         11.5
       ],
-      "weight": 1,
-      "sampleCount": 20,
-      "weightSource": "reference"
+      "sampleCount": 19,
+      "trainingMode": "global-only"
     },
     {
       "id": "as05",
@@ -42,9 +60,8 @@
       "prices": [
         13.5
       ],
-      "weight": 1.33,
-      "sampleCount": 1,
-      "weightSource": "learned"
+      "sampleCount": 0,
+      "trainingMode": "cold-start"
     }
   ],
   "court": {
@@ -73,29 +90,158 @@
     }
   },
   "shuttle": {
-    "baseType": "rsl3",
-    "formula": "ceil((participantCount * weightedShuttlesPerParticipant + riskBuffer) / weight)",
-    "weightedShuttlesPerParticipant": 0.814071,
-    "riskQuantile": 0.7,
-    "riskBuffer": 0.880178,
-    "riskBufferSource": "residual-quantile",
+    "formula": "ceil(rawExpected + riskScale * sqrt(max(rawExpected, 1)))",
+    "participantRateFormula": "baseRate * exp(genderEffect + genderLevelEffect + memberEffect)",
+    "hierarchy": [
+      "type",
+      "gender",
+      "genderLevel",
+      "member"
+    ],
     "minimum": 1,
-    "weightSearch": {
-      "min": 0.5,
-      "max": 2.5,
-      "step": 0.01,
-      "passes": 3,
-      "estimatedPrior": 1.33
-    },
-    "validation": {
-      "method": "weighted-workload",
-      "folds": 20,
-      "mae": 2.149,
-      "rmse": 2.707,
-      "exactRate": 0,
-      "bias": 1.099,
-      "underPredictionRate": 0.3,
-      "overPredictionRate": 0.7
+    "riskQuantile": 0.7,
+    "minimumHierarchyTrainingSessions": 8,
+    "maximumTrainingSessionsPerType": 120,
+    "models": {
+      "rsl3": {
+        "typeId": "rsl3",
+        "trainingMode": "global-only",
+        "formula": "ceil(rawExpected + riskScale * sqrt(max(rawExpected, 1)))",
+        "baseRate": 0.81087,
+        "riskQuantile": 0.7,
+        "riskScale": 0.20928,
+        "effects": {
+          "gender": {},
+          "genderLevel": {},
+          "member": {}
+        },
+        "training": {
+          "sampleCount": 19,
+          "availableSampleCount": 19,
+          "olderExcludedCount": 0,
+          "mixedExcludedCount": 1,
+          "dateRange": {
+            "from": "2026-07-13",
+            "to": "2026-09-02"
+          }
+        },
+        "regularization": {
+          "selectedKind": "global-only",
+          "scale": null,
+          "multipliers": {
+            "gender": 1,
+            "genderLevel": 2,
+            "member": 4
+          },
+          "candidates": [
+            0.001,
+            0.01,
+            0.1
+          ],
+          "source": "time-holdout-conservative-grid-search",
+          "baselineMae": 1.982,
+          "requiredImprovement": 0.25
+        },
+        "validation": {
+          "method": "time-holdout",
+          "folds": 5,
+          "mae": 1.982,
+          "rmse": 2.144,
+          "exactRate": 0,
+          "bias": 0.2,
+          "underPredictionRate": 0.6,
+          "overPredictionRate": 0.4
+        },
+        "riskCalibration": {
+          "method": "time-holdout",
+          "sampleCount": 5,
+          "priorStrength": 5,
+          "maximumScale": 2,
+          "folds": 5,
+          "mae": 2,
+          "rmse": 2.608,
+          "exactRate": 0.2,
+          "bias": 1.6,
+          "underPredictionRate": 0.2,
+          "overPredictionRate": 0.6
+        },
+        "fit": {
+          "method": "global-rate",
+          "folds": 19,
+          "mae": 2.368,
+          "rmse": 2.911,
+          "exactRate": 0.053,
+          "bias": 1.526,
+          "underPredictionRate": 0.263,
+          "overPredictionRate": 0.684
+        }
+      },
+      "as05": {
+        "typeId": "as05",
+        "trainingMode": "cold-start",
+        "formula": "ceil(rawExpected + riskScale * sqrt(max(rawExpected, 1)))",
+        "baseRate": 0.81,
+        "riskQuantile": 0.7,
+        "riskScale": 0,
+        "effects": {
+          "gender": {},
+          "genderLevel": {},
+          "member": {}
+        },
+        "training": {
+          "sampleCount": 0,
+          "availableSampleCount": 0,
+          "mixedExcludedCount": 1,
+          "dateRange": {
+            "from": null,
+            "to": null
+          }
+        },
+        "regularization": {
+          "selectedKind": "cold-start",
+          "scale": null,
+          "multipliers": {
+            "gender": 1,
+            "genderLevel": 2,
+            "member": 4
+          },
+          "candidates": [
+            0.001,
+            0.01,
+            0.1
+          ],
+          "source": "cold-start"
+        },
+        "validation": {
+          "method": "time-holdout",
+          "raw": {
+            "folds": 0,
+            "mae": null,
+            "rmse": null,
+            "exactRate": null,
+            "bias": null,
+            "underPredictionRate": null,
+            "overPredictionRate": null
+          },
+          "folds": 0,
+          "mae": null,
+          "rmse": null,
+          "exactRate": null,
+          "bias": null,
+          "underPredictionRate": null,
+          "overPredictionRate": null
+        },
+        "fit": {
+          "method": "cold-start",
+          "folds": 0,
+          "mae": null,
+          "rmse": null,
+          "exactRate": null,
+          "bias": null,
+          "underPredictionRate": null,
+          "overPredictionRate": null
+        }
+      }
     }
   }
 }

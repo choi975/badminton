@@ -1488,8 +1488,8 @@
       line-height: 1.5;
     }
 
-    .estimator-advanced-panel strong { color: var(--text); text-align: right; }
-    .estimator-advanced-row { display: flex; justify-content: space-between; gap: 10px; }
+    .estimator-advanced-panel strong { min-width: 0; color: var(--text); text-align: right; overflow-wrap: anywhere; }
+    .estimator-advanced-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; }
     .estimator-type-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 6px; margin-top: 8px; }
     .estimator-type-editor input { min-height: 30px; }
     .estimator-type-editor button { grid-column: 1 / -1; min-height: 30px; }
@@ -4168,11 +4168,11 @@
     const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
     const DEFAULT_ESTIMATOR = {
-      version: 4,
+      version: 5,
       training: {},
       shuttleTypes: [
-        { id: "rsl3", name: "亚3", prices: [11, 11.3, 11.5], weight: 1 },
-        { id: "as05", name: "AS05", prices: [13.5], weight: 1 },
+        { id: "rsl3", name: "亚3", prices: [11, 11.3, 11.5], sampleCount: 0, trainingMode: "cold-start" },
+        { id: "as05", name: "AS05", prices: [13.5], sampleCount: 0, trainingMode: "cold-start" },
       ],
       court: {
         formula: "ceil(participantCount / peoplePerCourt)",
@@ -4180,13 +4180,15 @@
         minimum: 1,
       },
       shuttle: {
-        baseType: "rsl3",
-        formula: "ceil((participantCount * weightedShuttlesPerParticipant + riskBuffer) / weight)",
-        weightedShuttlesPerParticipant: 0.81,
-        rsl3EquivalentPerParticipant: 0.81,
+        formula: "ceil(rawExpected + riskScale * sqrt(max(rawExpected, 1)))",
+        participantRateFormula: "baseRate * exp(genderEffect + genderLevelEffect + memberEffect)",
+        hierarchy: ["type", "gender", "genderLevel", "member"],
         riskQuantile: 0.7,
-        riskBuffer: 0,
         minimum: 1,
+        models: {
+          rsl3: { typeId: "rsl3", trainingMode: "cold-start", baseRate: 0.81, riskScale: 0, effects: { gender: {}, genderLevel: {}, member: {} }, training: { sampleCount: 0, mixedExcludedCount: 0 } },
+          as05: { typeId: "as05", trainingMode: "cold-start", baseRate: 0.81, riskScale: 0, effects: { gender: {}, genderLevel: {}, member: {} }, training: { sampleCount: 0, mixedExcludedCount: 0 } },
+        },
       },
     };
     // Preview copy: keep API requests same-origin so the bundled snapshot is used
@@ -4195,7 +4197,7 @@
     const IS_GITHUB_PAGES = location.hostname === "choi975.github.io" && location.pathname.startsWith("/badminton");
     const IS_WORKER_APP = location.hostname === "badminton.choi975.workers.dev"
       || ["127.0.0.1", "localhost"].includes(location.hostname);
-    const BOOTSTRAP_CACHE_KEY = "badminton-bootstrap-cache-v3";
+    const BOOTSTRAP_CACHE_KEY = "badminton-bootstrap-cache-v4";
     const MAX_MEMBER_EXIT_COUNT = 200;
     const EMPTY_IMAGE_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
     const SNAPSHOT_URL = new URL("./bootstrap-snapshot.json", location.href).href;
@@ -4421,6 +4423,7 @@
       paymentWeekendNotice: document.getElementById("paymentWeekendNotice"),
       paymentReportDate: document.getElementById("paymentReportDate"),
       trainingAnomalyModal: document.getElementById("trainingAnomalyModal"),
+      trainingAnomalyTitle: document.getElementById("trainingAnomalyTitle"),
       trainingAnomalyMessage: document.getElementById("trainingAnomalyMessage"),
       trainingSkipBtn: document.getElementById("trainingSkipBtn"),
       trainingAcceptBtn: document.getElementById("trainingAcceptBtn"),
@@ -4607,7 +4610,7 @@
         }]));
       }
       if (!state.estimator.shuttleTypes.some((type) => type.id === state.selectedEstimateShuttleTypeId)) {
-        state.selectedEstimateShuttleTypeId = state.estimator.shuttle?.baseType || state.estimator.shuttleTypes[0]?.id || "rsl3";
+        state.selectedEstimateShuttleTypeId = state.estimator.shuttleTypes[0]?.id || "rsl3";
       }
       applyPaymentOrderState(data);
       state.dataSource = source;
@@ -6077,24 +6080,67 @@
 
     function normalizeEstimator(raw) {
       if (!raw || typeof raw !== "object") return DEFAULT_ESTIMATOR;
+      const rawTypes = Array.isArray(raw.shuttleTypes) && raw.shuttleTypes.length
+        ? raw.shuttleTypes
+        : DEFAULT_ESTIMATOR.shuttleTypes;
+      const shuttleTypes = rawTypes.map((type) => {
+        const { weight, weightSource, durability, ...fields } = type;
+        return {
+          ...fields,
+          id: String(type.id),
+          prices: Array.isArray(type.prices) ? type.prices.map(Number).filter(Number.isFinite) : [],
+        };
+      });
+      const hasV5Models = raw.version === 5 && raw.shuttle?.models && typeof raw.shuttle.models === "object";
+      const legacyBaseRate = Number(raw.shuttle?.weightedShuttlesPerParticipant ?? raw.shuttle?.rsl3EquivalentPerParticipant);
+      const fallbackBaseRate = Number.isFinite(legacyBaseRate) && legacyBaseRate > 0 ? legacyBaseRate : 0.81;
+      const fallbackRiskBuffer = Number.isFinite(Number(raw.shuttle?.riskBuffer))
+        ? Math.max(0, Number(raw.shuttle.riskBuffer))
+        : 0;
+      const models = Object.fromEntries(shuttleTypes.map((type) => {
+        const source = hasV5Models ? raw.shuttle.models[type.id] : null;
+        const effects = source?.effects || {};
+        const numericEffects = (values) => Object.fromEntries(Object.entries(values || {})
+          .map(([key, value]) => [key, Number(value)])
+          .filter(([, value]) => Number.isFinite(value)));
+        return [type.id, {
+          typeId: type.id,
+          trainingMode: source?.trainingMode || "cold-start",
+          baseRate: Number.isFinite(Number(source?.baseRate)) ? Number(source.baseRate) : fallbackBaseRate,
+          riskScale: Number.isFinite(Number(source?.riskScale)) ? Math.max(0, Number(source.riskScale)) : undefined,
+          riskBuffer: Number.isFinite(Number(source?.riskBuffer))
+            ? Math.max(0, Number(source.riskBuffer))
+            : (hasV5Models ? undefined : fallbackRiskBuffer),
+          effects: {
+            gender: numericEffects(effects.gender),
+            genderLevel: numericEffects(effects.genderLevel),
+            member: numericEffects(effects.member),
+          },
+          support: source?.support || { gender: {}, genderLevel: {}, member: {} },
+          training: source?.training || { sampleCount: 0, mixedExcludedCount: 0 },
+          regularization: source?.regularization || {},
+          validation: source?.validation || {},
+          fit: source?.fit || {},
+        }];
+      }));
       return {
         ...DEFAULT_ESTIMATOR,
         ...raw,
+        version: 5,
         training: { ...DEFAULT_ESTIMATOR.training, ...(raw.training || {}) },
-        shuttleTypes: Array.isArray(raw.shuttleTypes) && raw.shuttleTypes.length
-          ? raw.shuttleTypes.map((type) => ({
-              ...type,
-              prices: Array.isArray(type.prices) ? type.prices.map(Number).filter(Number.isFinite) : [],
-              weight: Number(type.weight ?? type.durability ?? 1),
-            }))
-          : DEFAULT_ESTIMATOR.shuttleTypes,
+        shuttleTypes: shuttleTypes.map((type) => ({
+          ...type,
+          sampleCount: Number(models[type.id]?.training?.sampleCount) || Number(type.sampleCount) || 0,
+          trainingMode: models[type.id]?.trainingMode || type.trainingMode || "cold-start",
+        })),
         court: {
           ...DEFAULT_ESTIMATOR.court,
           ...(raw.court || {}),
         },
         shuttle: {
           ...DEFAULT_ESTIMATOR.shuttle,
-          ...(raw.shuttle || {}),
+          ...(hasV5Models ? raw.shuttle : {}),
+          models,
         },
       };
     }
@@ -6178,6 +6224,9 @@
           ? row.gender
           : Boolean(row.isFemale) ? "女" : "不详",
         level: LEVELS.includes(row.level) ? row.level : "不详",
+        profileSnapshotReliable: row.profileSnapshotReliable !== false
+          && row.profileSnapshotReliable !== 0
+          && row.profileSnapshotReliable !== "0",
         ownerPlayerId,
         ownerName,
         isCompanion,
@@ -6211,6 +6260,7 @@
         shuttleCount: Number(session.shuttleCount) || 0,
         trainCourt: session.trainCourt !== false,
         trainShuttle: session.trainShuttle !== false,
+        actualShuttleConfirmed: session.actualShuttleConfirmed !== false,
         courtPriceRows: Array.isArray(session.courtPriceRows) ? session.courtPriceRows : null,
         shuttlePriceRows: Array.isArray(session.shuttlePriceRows)
           ? session.shuttlePriceRows.map((row) => ({
@@ -6768,6 +6818,9 @@
           courtPriceRows: record.courtPriceRows,
           shuttlePriceRows: record.shuttlePriceRows,
           players: record.players,
+          trainCourt: pending.trainCourt,
+          trainShuttle: pending.trainShuttle,
+          actualShuttleConfirmed: pending.actualShuttleConfirmed,
         },
       });
     }
@@ -6776,10 +6829,12 @@
       const record = state.currentPaymentRecord;
       if (!record) return;
       const anomaly = assessCurrentRecordAnomaly(record, courtCount);
-      if (anomaly.anomalous && !state.trainingAnomaly) {
-        state.trainingAnomaly = { mode: "direct", record, courtCount };
-        els.trainingAnomalyMessage.textContent = `此次数据与当前预估差异较大：场地预计${anomaly.court.predicted}个、实际${anomaly.court.actual}个；用球预计${anomaly.shuttle.predicted}颗、实际${anomaly.shuttle.actual}颗。请选择是否用于训练。`;
-        openModal("trainingAnomalyModal");
+      if (!state.trainingAnomaly && anomaly.anomalous) {
+        openTrainingDecision({ mode: "direct", record, courtCount, anomaly });
+        return;
+      }
+      if (!state.trainingAnomaly && Number(record.shuttleCount) > 0) {
+        openTrainingDecision({ mode: "direct", record, courtCount });
         return;
       }
       els.paymentRecordBtn.disabled = true;
@@ -6795,6 +6850,7 @@
           players: record.players,
           trainCourt: state.trainingAnomaly?.trainCourt ?? true,
           trainShuttle: state.trainingAnomaly?.trainShuttle ?? true,
+          actualShuttleConfirmed: state.trainingAnomaly?.actualShuttleConfirmed ?? Number(record.shuttleCount) <= 0,
         };
         if (record.courtPriceRows?.length) body.courtPriceRows = record.courtPriceRows;
         if (record.shuttlePriceRows?.length) body.shuttlePriceRows = record.shuttlePriceRows;
@@ -6862,6 +6918,7 @@
       els.recordModal.dataset.venue = editing ? session.venue : "EDC";
       els.recordModal.dataset.trainCourt = editing && session.trainCourt === false ? "0" : "1";
       els.recordModal.dataset.trainShuttle = editing && session.trainShuttle === false ? "0" : "1";
+      els.recordModal.dataset.actualShuttleConfirmed = editing && session.actualShuttleConfirmed === false ? "0" : "1";
       openModal("recordModal");
     }
 
@@ -7123,18 +7180,21 @@
       const sessionId = Number(els.recordModal.dataset.sessionId || 0);
       const editing = els.recordModal.dataset.editing === "1" && Number.isInteger(sessionId) && sessionId > 0;
       if (!editing && state.currentPaymentRecord && !state.trainingAnomaly) {
-        const anomaly = assessCurrentRecordAnomaly({
+        const submittedRecord = {
           ...state.currentPaymentRecord,
           courtFee,
           shuttlePrice,
           shuttleCount,
           courtPriceRows,
           shuttlePriceRows,
-        }, courtCount);
+        };
+        const anomaly = assessCurrentRecordAnomaly(submittedRecord, courtCount);
         if (anomaly.anomalous) {
-          state.trainingAnomaly = { mode: "dialog", courtCount };
-          els.trainingAnomalyMessage.textContent = `此次数据与当前预估差异较大：场地预计${anomaly.court.predicted}个、实际${anomaly.court.actual}个；用球预计${anomaly.shuttle.predicted}颗、实际${anomaly.shuttle.actual}颗。请选择是否用于训练。`;
-          openModal("trainingAnomalyModal");
+          openTrainingDecision({ mode: "dialog", record: submittedRecord, courtCount, anomaly });
+          return;
+        }
+        if (shuttleCount > 0) {
+          openTrainingDecision({ mode: "dialog", record: submittedRecord, courtCount });
           return;
         }
       }
@@ -7151,6 +7211,8 @@
           players,
           trainCourt: state.trainingAnomaly?.trainCourt ?? (editing ? els.recordModal.dataset.trainCourt !== "0" : true),
           trainShuttle: state.trainingAnomaly?.trainShuttle ?? (editing ? els.recordModal.dataset.trainShuttle !== "0" : true),
+          actualShuttleConfirmed: state.trainingAnomaly?.actualShuttleConfirmed
+            ?? (editing ? els.recordModal.dataset.actualShuttleConfirmed !== "0" : shuttleCount <= 0),
         };
         if (courtPriceRows.length) body.courtPriceRows = courtPriceRows;
         if (shuttlePriceRows.length) body.shuttlePriceRows = shuttlePriceRows;
@@ -7820,6 +7882,13 @@
               ? rawName
               : `${firstName(ownerName) || ownerName}+${guestNumber}`;
             appendLine(name, {
+              preserveSnapshot: true,
+              playerId: index === 0 ? normalizePlayerId(row.playerId) : null,
+              playerName: index === 0 ? row.playerName : name,
+              ownerPlayerId: normalizePlayerId(row.ownerPlayerId),
+              ownerName,
+              isCompanion: true,
+              profileSnapshotReliable: row.profileSnapshotReliable !== false,
               gender: index === 0 ? (row.gender || (row.isFemale ? "女" : "不详")) : "不详",
               levelText: index === 0 ? (row.level || "不详") : "不详",
               levelGroupLabel: index === 0 ? getLevelGroupLabel(row.level) : "不详",
@@ -7832,10 +7901,28 @@
         const plusCount = Math.max(0, Math.floor(Number(row.plusCount) || 0));
         const slots = Math.max(0, Math.floor(Number(row.slots) || 0));
         const selfPresent = slots > plusCount;
-        if (selfPresent) appendLine(row.isFemale ? `${name}🌸` : name);
+        if (selfPresent) appendLine(row.isFemale ? `${name}🌸` : name, {
+          preserveSnapshot: true,
+          playerId: normalizePlayerId(row.playerId),
+          playerName: row.playerName || name,
+          ownerPlayerId: normalizePlayerId(row.ownerPlayerId ?? row.playerId),
+          ownerName,
+          isCompanion: false,
+          profileSnapshotReliable: row.profileSnapshotReliable !== false,
+          gender: row.gender || (row.isFemale ? "女" : "不详"),
+          levelText: row.level || "不详",
+          levelGroupLabel: getLevelGroupLabel(row.level),
+        });
         const guestCount = Math.max(plusCount, slots - (selfPresent ? 1 : 0));
         for (let index = 0; index < guestCount; index += 1) {
           appendLine(`${firstName(ownerName) || ownerName}+${nextGuestNumber()}`, {
+            preserveSnapshot: true,
+            playerId: null,
+            playerName: `${firstName(ownerName) || ownerName}+${guestNumbers.get(ownerKey)}`,
+            ownerPlayerId: normalizePlayerId(row.ownerPlayerId ?? row.playerId),
+            ownerName,
+            isCompanion: true,
+            profileSnapshotReliable: row.profileSnapshotReliable !== false,
             gender: "不详",
             levelText: "不详",
             levelGroupLabel: "不详",
@@ -7843,6 +7930,13 @@
         }
         if (!selfPresent && guestCount === 0 && name) {
           appendLine(name, {
+            preserveSnapshot: true,
+            playerId: normalizePlayerId(row.playerId),
+            playerName: row.playerName || name,
+            ownerPlayerId: normalizePlayerId(row.ownerPlayerId ?? row.playerId),
+            ownerName,
+            isCompanion: false,
+            profileSnapshotReliable: row.profileSnapshotReliable !== false,
             gender: row.gender || (row.isFemale ? "女" : "不详"),
             levelText: row.level || "不详",
             levelGroupLabel: getLevelGroupLabel(row.level),
@@ -7857,7 +7951,14 @@
         toast("当前为只读模式，不能编辑订场记录");
         return;
       }
-      state.pendingSessionEdit = { id: session.id, date: session.date, venue: session.venue };
+      state.pendingSessionEdit = {
+        id: session.id,
+        date: session.date,
+        venue: session.venue,
+        trainCourt: session.trainCourt !== false,
+        trainShuttle: session.trainShuttle !== false,
+        actualShuttleConfirmed: session.actualShuttleConfirmed !== false,
+      };
       state.returnToCalendar = true;
       updateShakePeopleButtonVisibility();
       const chainInput = buildChainInputFromSession(session);
@@ -7866,11 +7967,16 @@
       state.plusOverrides = chainInput.plusOverrides;
       const courtRows = Array.isArray(session.courtPriceRows) ? session.courtPriceRows : [];
       const shuttleRows = Array.isArray(session.shuttlePriceRows) ? session.shuttlePriceRows : [];
-      const needsAdvanced = courtRows.length > 1 || shuttleRows.length > 1;
+      const needsAdvanced = courtRows.length > 1 || shuttleRows.length > 0;
       if (needsAdvanced) {
+        const editableCourtRows = courtRows.length
+          ? courtRows
+          : (deriveCourtRows(session.courtFee, session.courtCount).length
+            ? deriveCourtRows(session.courtFee, session.courtCount)
+            : [{ price: session.courtCount > 0 ? session.courtFee / session.courtCount : 0, count: session.courtCount }]);
         state.feeMode = "advanced";
         state.advancedRows = {
-          court: courtRows.map((row) => ({ ...row })),
+          court: editableCourtRows.map((row) => ({ ...row })),
           shuttle: shuttleRows.map((row) => ({ ...row })),
         };
         state.advancedAutoDefaults = null;
@@ -8165,9 +8271,10 @@
 
     function findShuttleTypeByPrice(price) {
       if (!Number.isFinite(price)) return null;
-      return (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes).find((type) => (
+      const matches = (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes).filter((type) => (
         Array.isArray(type.prices) && type.prices.some((knownPrice) => Math.abs(Number(knownPrice) - price) < 0.02)
-      )) || null;
+      ));
+      return matches.length === 1 ? matches[0] : null;
     }
 
     function withShuttleTypes(rows) {
@@ -8202,28 +8309,44 @@
         Number(courtModel.minimum) || 1,
         Math.ceil(participantCount / peoplePerCourt),
       );
-      const perParticipant = Number(shuttleModel.weightedShuttlesPerParticipant ?? shuttleModel.rsl3EquivalentPerParticipant) >= 0
-        ? Number(shuttleModel.weightedShuttlesPerParticipant ?? shuttleModel.rsl3EquivalentPerParticipant)
-        : DEFAULT_ESTIMATOR.shuttle.rsl3EquivalentPerParticipant;
-      const riskBuffer = Number.isFinite(Number(shuttleModel.riskBuffer))
-        ? Number(shuttleModel.riskBuffer)
-        : DEFAULT_ESTIMATOR.shuttle.riskBuffer;
-      const rsl3Equivalent = Math.max(
-        Number(shuttleModel.minimum) || 1,
-        participantCount * perParticipant + riskBuffer,
-      );
-      const shuttleCounts = Object.fromEntries((estimator.shuttleTypes || []).map((type) => [
-        type.id,
-        Math.max(1, Math.ceil(rsl3Equivalent / Math.max(0.01, Number(type.weight ?? type.durability ?? 1)))),
-      ]));
+      const participantProfile = (entry) => ({
+        playerId: normalizePlayerId(entry.preservedSnapshot ? entry.preservedPlayerId : (entry.player?.id ?? entry.playerId)),
+        gender: ["男", "女", "不详"].includes(entry.gender) ? entry.gender : "不详",
+        level: String(entry.levelText || entry.level || entry.player?.level || "不详"),
+      });
+      const participantRate = (typeModel, entry) => {
+        const profile = participantProfile(entry);
+        const genderLevel = `${profile.gender}|${profile.level}`;
+        const logRate = Math.log(Math.max(0.05, Number(typeModel?.baseRate) || 0.81))
+          + (Number(typeModel?.effects?.gender?.[profile.gender]) || 0)
+          + (Number(typeModel?.effects?.genderLevel?.[genderLevel]) || 0)
+          + (profile.playerId === null ? 0 : (Number(typeModel?.effects?.member?.[profile.playerId]) || 0));
+        return Math.exp(Math.min(Math.log(5), Math.max(Math.log(0.05), logRate)));
+      };
+      const shuttleExpected = {};
+      const shuttleRawExpected = {};
+      const shuttleRiskBuffers = {};
+      const shuttleCounts = Object.fromEntries((estimator.shuttleTypes || []).map((type) => {
+        const typeModel = shuttleModel.models?.[type.id] || DEFAULT_ESTIMATOR.shuttle.models?.[type.id];
+        const rawExpected = entries.reduce((sum, entry) => sum + participantRate(typeModel, entry), 0);
+        const riskBuffer = Number.isFinite(Number(typeModel?.riskScale))
+          ? Math.max(0, Number(typeModel.riskScale)) * Math.sqrt(Math.max(rawExpected, 1))
+          : Math.max(0, Number(typeModel?.riskBuffer) || 0);
+        const expected = rawExpected + riskBuffer;
+        shuttleRawExpected[type.id] = rawExpected;
+        shuttleRiskBuffers[type.id] = riskBuffer;
+        shuttleExpected[type.id] = expected;
+        return [type.id, Math.max(Number(shuttleModel.minimum) || 1, Math.ceil(expected))];
+      }));
       const primary = estimator.shuttleTypes?.find((type) => type.id === state.selectedEstimateShuttleTypeId)
-        || estimator.shuttleTypes?.find((type) => type.id === shuttleModel.baseType)
         || estimator.shuttleTypes?.[0]
         || { id: "rsl3", name: "亚3" };
       return {
         courts,
-        rsl3Equivalent,
         shuttleCounts,
+        shuttleExpected,
+        shuttleRawExpected,
+        shuttleRiskBuffers,
         rsl3: shuttleCounts.rsl3 || 0,
         as05: shuttleCounts.as05 || 0,
         primaryShuttleId: primary.id,
@@ -8235,10 +8358,7 @@
     function predictedShuttleCountForPrice(estimate, price) {
       const type = findShuttleTypeByPrice(price);
       if (!type || !estimate) return null;
-      if (type.id === "rsl3") return estimate.rsl3;
-      if (type.id === "as05") return estimate.as05;
-      return estimate.shuttleCounts?.[type.id]
-        || Math.max(1, Math.ceil(estimate.rsl3Equivalent / (Number(type.weight ?? type.durability) || 1)));
+      return estimate.shuttleCounts?.[type.id] ?? null;
     }
 
     function updateShuttleTypeNotice() {
@@ -8270,9 +8390,16 @@
         typeSelect.className = "shuttle-type-select";
         const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
         const selectedType = types.find((type) => type.id === row.type)
-          || findShuttleTypeByPrice(Number(row.price))
-          || types[0];
+          || findShuttleTypeByPrice(Number(row.price));
         row.type = selectedType?.id || "unknown";
+        if (!selectedType) {
+          const unknownOption = document.createElement("option");
+          unknownOption.value = "unknown";
+          unknownOption.textContent = "待确认型号";
+          unknownOption.selected = true;
+          unknownOption.disabled = true;
+          typeSelect.append(unknownOption);
+        }
         types.forEach((type) => {
           const option = document.createElement("option");
           option.value = type.id;
@@ -8891,9 +9018,9 @@
         .filter((entry) => entry.clean);
       normalizeRepeatedMemberEntries(entries);
       resolveChainEntryOwnership(entries, aliasIndex);
-      const activePlusKeys = new Set(entries.filter((entry) => entry.plusEntry).map((entry) => entry.overrideKey));
+      const activeOverrideKeys = new Set(entries.map((entry) => entry.overrideKey));
       Object.keys(state.plusOverrides).forEach((key) => {
-        if (!activePlusKeys.has(key)) delete state.plusOverrides[key];
+        if (!activeOverrideKeys.has(key)) delete state.plusOverrides[key];
       });
       const sorted = [...entries].sort((a, b) => (b.sortRank - a.sortRank) || (a.index - b.index));
       state.chainEntries = entries;
@@ -8911,6 +9038,13 @@
         entry.ownerPlayerId = null;
         entry.ownerName = "";
         entry.isCompanion = Boolean(entry.plusEntry);
+        if (entry.preservedSnapshot) {
+          entry.ownerPlayerId = entry.preservedOwnerPlayerId;
+          entry.ownerName = entry.preservedOwnerName || entry.preservedPlayerName || getChainEntryBaseName(entry);
+          entry.ownerPlayer = getPlayerById(entry.ownerPlayerId);
+          entry.isCompanion = entry.preservedIsCompanion;
+          return;
+        }
         if (entry.ownerIssue?.type === "ambiguous") return;
 
         if (entry.ownerPlayer) {
@@ -9019,19 +9153,27 @@
       const matchedPlayer = playerMatch.player;
       const plusMetadata = parsePlusEntryMetadata(rawClean, matchedPlayer);
       const clean = plusMetadata.displayName;
-      const player = plusMetadata.plusEntry ? null : matchedPlayer;
-      const ownerPlayer = matchedPlayer;
+      const preservedSnapshot = override?.preserveSnapshot === true;
+      const preservedPlayerId = preservedSnapshot ? normalizePlayerId(override.playerId) : null;
+      const preservedOwnerPlayerId = preservedSnapshot ? normalizePlayerId(override.ownerPlayerId) : null;
+      const preservedProfileSnapshotReliable = preservedSnapshot
+        ? override.profileSnapshotReliable !== false
+        : true;
+      const player = plusMetadata.plusEntry ? null : (getPlayerById(preservedPlayerId) || matchedPlayer);
+      const ownerPlayer = getPlayerById(preservedOwnerPlayerId) || matchedPlayer;
       const knownLevel = player?.level || "不详";
       const detectedLevelText = plusMetadata.plusEntry ? plusMetadata.levelText : knownLevel;
       const detectedGender = plusMetadata.plusEntry
         ? (plusMetadata.isFemale ? "女" : "不详")
         : (player?.gender === "女" ? "女" : player?.gender === "男" ? "男" : "不详");
-      const levelText = plusMetadata.plusEntry && override?.levelText ? override.levelText : detectedLevelText;
+      const levelText = (preservedSnapshot || plusMetadata.plusEntry) && override?.levelText
+        ? override.levelText
+        : detectedLevelText;
       const detectedLevelGroupLabel = plusMetadata.plusEntry ? plusMetadata.levelGroupLabel : null;
-      const levelGroupLabel = plusMetadata.plusEntry && override?.levelGroupLabel
+      const levelGroupLabel = (preservedSnapshot || plusMetadata.plusEntry) && override?.levelGroupLabel
         ? override.levelGroupLabel
-        : detectedLevelGroupLabel;
-      const overrideGender = plusMetadata.plusEntry
+        : (detectedLevelGroupLabel || getLevelGroupLabel(levelText));
+      const overrideGender = (preservedSnapshot || plusMetadata.plusEntry)
         ? (typeof override?.gender === "string"
           ? override.gender
           : typeof override?.isFemale === "boolean"
@@ -9046,12 +9188,19 @@
         clean,
         player,
         ownerPlayer,
-        ownerIssue: playerMatch.ambiguousPlayers.length
+        ownerIssue: !preservedSnapshot && playerMatch.ambiguousPlayers.length
           ? { type: "ambiguous", players: playerMatch.ambiguousPlayers }
           : null,
         explicitOwnerName: plusMetadata.explicitOwnerName || "",
         plusEntry: plusMetadata.plusEntry,
         overrideKey,
+        preservedSnapshot,
+        preservedPlayerId,
+        preservedPlayerName: preservedSnapshot ? String(override.playerName || "") : "",
+        preservedOwnerPlayerId,
+        preservedOwnerName: preservedSnapshot ? String(override.ownerName || "") : "",
+        preservedIsCompanion: preservedSnapshot ? Boolean(override.isCompanion) : plusMetadata.plusEntry,
+        preservedProfileSnapshotReliable,
         detectedLevelText,
         detectedLevelGroupLabel,
         detectedGender,
@@ -9164,6 +9313,7 @@
       const entry = state.chainEntries.find((item) => item.overrideKey === overrideKey);
       if (!entry) return;
       state.plusOverrides[overrideKey] = {
+        ...(state.plusOverrides[overrideKey] || {}),
         levelText: entry.levelText,
         levelGroupLabel: entry.levelGroupLabel,
         gender,
@@ -9178,6 +9328,7 @@
       const option = getInlinePlusLevelOptions().find((item) => item.label === label);
       if (!entry || !option) return;
       state.plusOverrides[overrideKey] = {
+        ...(state.plusOverrides[overrideKey] || {}),
         levelText: option.level,
         levelGroupLabel: getLevelGroupLabel(option.level),
         gender: entry.gender,
@@ -9400,7 +9551,7 @@
       panel.replaceChildren();
       const lines = [
         `场地：每场约${formatCompactNumber(model.court?.peoplePerCourt || 0)}人，训练${model.training?.court?.sampleCount || 0}场`,
-        `用球：每人权重${formatCompactNumber(model.shuttle?.weightedShuttlesPerParticipant || model.shuttle?.rsl3EquivalentPerParticipant || 0)}，风险缓冲${formatCompactNumber(model.shuttle?.riskBuffer || 0)}`,
+        `用球：型号 × 性别 × 等级 × 成员`,
       ];
       lines.forEach((text) => {
         const row = document.createElement("div");
@@ -9409,12 +9560,22 @@
         panel.append(row);
       });
       (model.shuttleTypes || []).forEach((type) => {
+        const typeModel = model.shuttle?.models?.[type.id] || {};
         const row = document.createElement("div");
         row.className = "estimator-advanced-row";
         const name = document.createElement("span");
         name.textContent = type.name;
         const detail = document.createElement("strong");
-        detail.textContent = `权重 ${formatCompactNumber(type.weight ?? type.durability ?? 1)} · ${(type.prices || []).join("/")}元 · ${type.sampleCount || 0}场`;
+        const modeLabel = typeModel.trainingMode === "hierarchical"
+          ? "分层"
+          : typeModel.trainingMode === "global-only"
+            ? "基础"
+            : "冷启动";
+        const mixedCount = Number(typeModel.training?.mixedExcludedCount) || 0;
+        const riskLabel = Number.isFinite(Number(typeModel.riskScale))
+          ? `风险${formatCompactNumber(typeModel.riskScale)}`
+          : `缓冲${formatCompactNumber(typeModel.riskBuffer || 0)}`;
+        detail.textContent = `${formatCompactNumber(typeModel.baseRate || 0.81)}颗/人 · ${riskLabel} · ${typeModel.training?.sampleCount || 0}场 · ${modeLabel}${mixedCount ? ` · 排除混用${mixedCount}场` : ""}`;
         row.append(name, detail);
         panel.append(row);
       });
@@ -9452,32 +9613,81 @@
       const estimate = estimateBooking(state.chainEntries);
       const actualCourt = Number(courtCount) || 0;
       const shuttleRows = record.shuttlePriceRows || [];
-      const actualShuttle = shuttleRows.reduce((sum, row) => sum + (Number(row.count) || 0), 0);
       const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
-      const typeMap = new Map(types.map((type) => [type.id, type]));
-      const actualWorkload = shuttleRows.reduce((sum, row) => {
-        const type = typeMap.get(row.type) || findShuttleTypeByPrice(Number(row.price));
-        return sum + (Number(row.count) || 0) * Number(type?.weight ?? type?.durability ?? 1);
-      }, 0);
-      const averageWeight = actualShuttle > 0 ? actualWorkload / actualShuttle : 1;
-      const predictedShuttle = actualShuttle > 0
-        ? Math.ceil((estimate.rsl3Equivalent || 0) / Math.max(0.01, averageWeight))
-        : (estimate.primaryShuttleCount || estimate.rsl3 || 0);
+      const typeIds = new Set(types.map((type) => type.id));
+      const counts = new Map();
+      let hasUnrecognizedPositiveRow = false;
+      shuttleRows.forEach((row) => {
+        if (!(Number(row.count) > 0)) return;
+        const explicitType = typeIds.has(row.type) ? row.type : null;
+        const typeId = explicitType || findShuttleTypeByPrice(Number(row.price))?.id;
+        if (!typeId) {
+          hasUnrecognizedPositiveRow = true;
+          return;
+        }
+        counts.set(typeId, (counts.get(typeId) || 0) + Number(row.count));
+      });
+      const comparable = !hasUnrecognizedPositiveRow && counts.size === 1;
+      const [typeId, actualShuttle] = comparable ? [...counts.entries()][0] : [null, null];
+      const predictedShuttle = comparable ? estimate.shuttleCounts?.[typeId] || 0 : null;
       return {
-        anomalous: Math.abs(actualCourt - estimate.courts) > 1 || Math.abs(actualShuttle - predictedShuttle) >= 2,
+        anomalous: Math.abs(actualCourt - estimate.courts) > 1
+          || (comparable && Math.abs(actualShuttle - predictedShuttle) >= 2),
         court: { predicted: estimate.courts, actual: actualCourt },
-        shuttle: { predicted: predictedShuttle, actual: actualShuttle },
+        shuttle: { comparable, typeId, predicted: predictedShuttle, actual: actualShuttle },
       };
+    }
+
+    function anomalyMessage(anomaly) {
+      const court = `场地预计${anomaly.court.predicted}个、实际${anomaly.court.actual}个`;
+      const shuttle = anomaly.shuttle.comparable
+        ? `用球预计${anomaly.shuttle.predicted}颗、实际${anomaly.shuttle.actual}颗`
+        : "混用球不作单型号耗球比较";
+      return `此次数据与当前预估差异较大：${court}；${shuttle}。请选择是否用于训练。`;
+    }
+
+    function hasMixedShuttleTypes(record) {
+      const typeIds = new Set();
+      (record?.shuttlePriceRows || []).forEach((row) => {
+        if (!(Number(row.count) > 0)) return;
+        const type = (state.estimator?.shuttleTypes || []).find((item) => item.id === row.type)
+          || findShuttleTypeByPrice(Number(row.price));
+        if (type?.id) typeIds.add(type.id);
+      });
+      return typeIds.size > 1;
+    }
+
+    function openTrainingDecision({ mode, record = null, courtCount, anomaly = null }) {
+      const decisionKind = anomaly ? "anomaly" : "actual-confirmation";
+      const hasShuttles = Number(record?.shuttleCount) > 0;
+      const mixedShuttle = hasMixedShuttleTypes(record);
+      state.trainingAnomaly = { mode, record, courtCount, decisionKind, mixedShuttle };
+      els.trainingAnomalyTitle.textContent = anomaly ? "数据异常" : "确认实际用球";
+      const confirmationText = mixedShuttle
+        ? "请确认球数是本场结束后的实际用量。本场为混用球，数据会保存，但不会作为任一单型号模型的完整训练样本。"
+        : "请确认球数是本场结束后的实际用量，而不是系统预估值。未确认的记录仍会保存，但不会用于训练用球模型。";
+      els.trainingAnomalyMessage.textContent = anomaly
+        ? `${anomalyMessage(anomaly)}${hasShuttles ? ` ${confirmationText}` : ""}`
+        : confirmationText;
+      els.trainingSkipBtn.textContent = anomaly ? "仅记录数据，不用于训练预估公式" : "仅保存，不训练用球";
+      els.trainingAcceptBtn.textContent = !hasShuttles
+        ? "记录并训练场地公式"
+        : mixedShuttle
+          ? (anomaly ? "确认实际用量并训练场地" : "已确认实际用量")
+          : anomaly ? "已确认实际用量并训练" : "已确认，加入训练";
+      openModal("trainingAnomalyModal");
     }
 
     function finishAnomalyTraining(shouldTrain) {
       const pending = state.trainingAnomaly;
       if (!pending) return;
+      const confirmation = pending.decisionKind === "actual-confirmation";
       state.trainingAnomaly = {
         ...pending,
         confirmed: true,
-        trainCourt: shouldTrain,
+        trainCourt: confirmation ? true : shouldTrain,
         trainShuttle: shouldTrain,
+        actualShuttleConfirmed: Number(pending.record?.shuttleCount) > 0 ? shouldTrain : true,
       };
       closeModal("trainingAnomalyModal");
       if (pending.mode === "dialog") void saveRecordDialog();
@@ -9724,16 +9934,23 @@
           ? (gender === "女" ? payment.femalePerPerson : payment.malePerPerson)
           : 0;
         return {
-          playerId: player?.id || null,
-          playerName: player ? paymentDisplayName(player) : getChainEntryBaseName(entry),
+          playerId: entry.preservedSnapshot ? entry.preservedPlayerId : (player?.id || null),
+          playerName: entry.preservedSnapshot && entry.preservedPlayerName
+            ? entry.preservedPlayerName
+            : player ? paymentDisplayName(player) : getChainEntryBaseName(entry),
           slots: 1,
           plusCount: 0,
           amount,
           isFemale: gender === "女",
           gender,
           level: entry.levelText || player?.level || "不详",
-          ownerPlayerId: normalizePlayerId(entry.ownerPlayerId),
-          ownerName: entry.ownerName || (entry.ownerPlayer ? paymentDisplayName(entry.ownerPlayer) : getChainEntryBaseName(entry)),
+          profileSnapshotReliable: entry.preservedSnapshot
+            ? entry.preservedProfileSnapshotReliable
+            : true,
+          ownerPlayerId: normalizePlayerId(entry.preservedSnapshot ? entry.preservedOwnerPlayerId : entry.ownerPlayerId),
+          ownerName: entry.preservedSnapshot && entry.preservedOwnerName
+            ? entry.preservedOwnerName
+            : entry.ownerName || (entry.ownerPlayer ? paymentDisplayName(entry.ownerPlayer) : getChainEntryBaseName(entry)),
           isCompanion: Boolean(entry.isCompanion),
         };
       });
