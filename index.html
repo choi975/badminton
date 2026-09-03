@@ -928,6 +928,7 @@
     }
 
     .shake-person-row {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -936,6 +937,29 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
+    }
+
+    .shake-person-skip {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 24px;
+      min-width: 24px;
+      height: 24px;
+      min-height: 24px;
+      padding: 0;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .shake-person-skip:hover {
+      background: #fbe9e5;
+      color: #b0442e;
     }
 
     .shake-person-name {
@@ -985,6 +1009,68 @@
     .short-term-rules-list {
       display: grid;
       gap: 7px;
+    }
+
+    .shake-rule-accordions {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .shake-rule-accordion {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .shake-rule-accordion summary {
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .shake-rule-accordion[open] summary {
+      border-bottom: 1px solid var(--line);
+      border-radius: 8px 8px 0 0;
+    }
+
+    .shake-rules-list {
+      display: grid;
+      gap: 7px;
+      padding: 9px 10px 10px;
+    }
+
+    .long-term-rule-line,
+    .shake-list-edit-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .long-term-rule-heading {
+      margin: 6px 0 2px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .shake-list-edit-input {
+      min-width: 0;
+      flex: 1 1 auto;
+      min-height: 30px;
+      padding: 4px 7px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      font: inherit;
+    }
+
+    .shake-list-save-btn {
+      min-height: 30px;
+      padding: 0 9px;
+      flex: 0 0 auto;
     }
 
     .short-rule-row {
@@ -3813,13 +3899,23 @@
       <div class="modal-header">
         <h2 id="shakePeopleTitle" class="modal-title">摇人</h2>
         <div class="modal-header-actions">
-          <button id="newShortRuleBtn" class="modal-add-btn" type="button" aria-label="新建短期规则" title="新建短期规则">+</button>
+          <button id="newShortRuleBtn" class="modal-add-btn" type="button" aria-label="新建规则" title="新建规则">+</button>
           <button class="modal-close-btn" data-close="shakePeopleModal" aria-label="关闭" title="关闭">×</button>
         </div>
       </div>
       <div class="modal-body">
         <p id="shakePeopleSummary" class="shake-people-summary"></p>
         <div id="shakePeopleList" class="shake-people-list"></div>
+        <div class="shake-rule-accordions">
+          <details id="shakeLongTermRulesBlock" class="shake-rule-accordion">
+            <summary>长期规则</summary>
+            <div id="shakeLongTermRulesList" class="shake-rules-list"></div>
+          </details>
+          <details id="shakeShortTermRulesBlock" class="shake-rule-accordion">
+            <summary>短期规则</summary>
+            <div id="shakeShortTermRulesList" class="shake-rules-list"></div>
+          </details>
+        </div>
       </div>
     </div>
   </div>
@@ -3827,7 +3923,7 @@
   <div id="shortRuleModal" class="modal-backdrop">
     <div class="modal short-rule-dialog" role="dialog" aria-modal="true" aria-labelledby="shortRuleTitle">
       <div class="modal-header">
-        <h2 id="shortRuleTitle" class="modal-title">新建短期规则</h2>
+        <h2 id="shortRuleTitle" class="modal-title">新建规则</h2>
         <button class="modal-close-btn" data-close="shortRuleModal" aria-label="关闭" title="关闭">×</button>
       </div>
       <div class="modal-body">
@@ -3835,19 +3931,19 @@
           <p>格式：成员名 时间 再打/不打 备注（备注可不写）</p>
           <p>支持格式：</p>
           <ul>
-            <li>成员名 周五、周六、周日 不打</li>
-            <li>成员名 只打 周五、周六</li>
-            <li>成员名 15天后 再打 军训</li>
-            <li>成员名 三天内 不打 培训</li>
-            <li>成员名 下周二 再打 加班</li>
-            <li>成员名 9.10 再打</li>
+            <li>成员名、成员名、成员名 周五、周六、周日 不打</li>
+            <li>成员名、成员名、成员名 只打 周五、周六</li>
+            <li>成员名、成员名、成员名 15天后 再打 军训</li>
+            <li>成员名、成员名、成员名 三天内 不打 培训</li>
+            <li>成员名、成员名、成员名 下周二 再打 加班</li>
+            <li>成员名、成员名、成员名 9.10 再打</li>
           </ul>
         </div>
-        <textarea id="shortRuleInput" class="short-rule-input" rows="4" placeholder="例如：果花 三天内 不打 培训"></textarea>
+        <textarea id="shortRuleInput" class="short-rule-input" rows="4" placeholder="例如：成员名、成员名 三天内 不打 培训"></textarea>
         <div class="short-rule-divider"></div>
         <div class="short-rule-head">
-          <h3>现有短期规则</h3>
-          <span class="short-rule-hint">星期规则长期有效，日期规则到期后自动清理</span>
+          <h3>现有规则</h3>
+          <span class="short-rule-hint">星期规则归入长期规则，日期规则到期后自动清理</span>
         </div>
         <div id="shortTermRulesList" class="short-term-rules-list"></div>
       </div>
@@ -4016,6 +4112,7 @@
       paymentGroupOverrides: {},
       currentPaymentRecord: null,
       shortTermRules: [],
+      longTermMemberLists: {},
       trainingAnomaly: null,
       estimatorAdvancedOpen: false,
       selectedEstimateShuttleTypeId: "rsl3",
@@ -4088,6 +4185,10 @@
       shakePeopleSummary: document.getElementById("shakePeopleSummary"),
       shakePeopleList: document.getElementById("shakePeopleList"),
       shortTermRulesList: document.getElementById("shortTermRulesList"),
+      shakeLongTermRulesBlock: document.getElementById("shakeLongTermRulesBlock"),
+      shakeShortTermRulesBlock: document.getElementById("shakeShortTermRulesBlock"),
+      shakeLongTermRulesList: document.getElementById("shakeLongTermRulesList"),
+      shakeShortTermRulesList: document.getElementById("shakeShortTermRulesList"),
       newShortRuleBtn: document.getElementById("newShortRuleBtn"),
       shortRuleModal: document.getElementById("shortRuleModal"),
       shortRuleInput: document.getElementById("shortRuleInput"),
@@ -4240,6 +4341,7 @@
         applyBootstrapData(data, "cloud", new Date().toISOString());
         try {
           await loadShortTermRules();
+          await loadShakeLongTermLists();
         } catch (error) {
           // 摇人规则加载失败不阻断其他数据加载
         }
@@ -4469,7 +4571,10 @@
       els.newShortRuleBtn.addEventListener("click", () => openShortRuleModal());
       els.saveShortRuleBtn.addEventListener("click", saveShortRule);
       els.shortRuleInput.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) saveShortRule();
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          saveShortRule();
+        }
       });
       if (!IS_GITHUB_PAGES) els.levelDisplayModeBtn.addEventListener("click", toggleChainLevelMode);
 
@@ -5201,6 +5306,11 @@
       if (event.altKey && shortcutUrls[event.key]) {
         event.preventDefault();
         location.assign(shortcutUrls[event.key]);
+        return;
+      }
+      if (event.altKey && event.key.toLowerCase() === "n" && els.shakePeopleModal?.classList.contains("open")) {
+        event.preventDefault();
+        openShortRuleModal();
         return;
       }
       if (event.key === "Escape") {
@@ -10570,6 +10680,45 @@
       return { player: longestMatches[0].player, remainder: collapsed.slice(alias.length).trim() };
     }
 
+    function isLongTermRuleType(rule) {
+      return rule?.type === "only_days" || rule?.type === "not_days";
+    }
+
+    function findRuleClauseStart(rawText) {
+      const patterns = [
+        /(?:\d{1,4}[.．]\d{1,2}(?:[.．]\d{1,2})?)\s*再打/,
+        /下周(?:[一二三四五六日])?\s*再打/,
+        /(?:[0-9]+|[零〇一二两三四五六七八九十百千]+)\s*天后\s*再打/,
+        /(?:[0-9]+|[零〇一二两三四五六七八九十百千]+)\s*天内\s*不打/,
+        /只打\s*周[一二三四五六日天]/,
+        /周[一二三四五六日天]/,
+        /再打|不打/,
+      ];
+      let best = -1;
+      patterns.forEach((pattern) => {
+        const index = String(rawText || "").search(pattern);
+        if (index >= 0 && (best < 0 || index < best)) best = index;
+      });
+      return best;
+    }
+
+    function parseShortRuleTextMultiple(rawText, today) {
+      const clauseStart = findRuleClauseStart(rawText);
+      if (clauseStart <= 0) return { error: "请先写成员名，再写时间与动作" };
+      const namesText = rawText.slice(0, clauseStart).trim();
+      const clauseText = rawText.slice(clauseStart).trim();
+      const names = namesText.split(/[、]/).map((name) => name.trim()).filter(Boolean);
+      if (!names.length) return { error: "请至少填写一个成员名" };
+      if (names.length > 3) return { error: "一次最多添加三名成员" };
+      const rules = [];
+      for (const name of names) {
+        const parsed = parseShortRuleText(`${name} ${clauseText}`.trim(), today);
+        if (parsed.error) return { error: `${name}：${parsed.error}` };
+        rules.push(parsed);
+      }
+      return { rules };
+    }
+
     function parseShortRuleText(rawText, today) {
       const found = findPlayerForShortRule(rawText);
       if (found.error) return { error: found.error };
@@ -10580,12 +10729,12 @@
       let expiresOn = null;
       let note = "";
       const weekdayList = "((?:周[一二三四五六日天])(?:\\s*[、,，]\\s*周[一二三四五六日天])*)";
-      const nextWeekMatch = text.match(/^下周([一二三四五六日天])?\s+再打(?:\s+(.+))?$/);
-      const afterMatch = text.match(/^([0-9]+|[零〇一二两三四五六七八九十百千]+)\s*天后\s+再打(?:\s+(.+))?$/);
-      const withinMatch = text.match(/^([0-9]+|[零〇一二两三四五六七八九十百千]+)\s*天内\s+不打(?:\s+(.+))?$/);
-      const absoluteMatch = text.match(/^(\d{1,4})[.．](\d{1,2})(?:[.．](\d{1,2}))?\s+再打(?:\s+(.+))?$/);
-      const onlyMatch = text.match(new RegExp(`^只打\\s+${weekdayList}(?:\\s+(.+))?$`));
-      const notMatch = text.match(new RegExp(`^${weekdayList}\\s+不打(?:\\s+(.+))?$`));
+      const nextWeekMatch = text.match(/^下周([一二三四五六日天])?\s*再打(?:\s+(.+))?$/);
+      const afterMatch = text.match(/^([0-9]+|[零〇一二两三四五六七八九十百千]+)\s*天后\s*再打(?:\s+(.+))?$/);
+      const withinMatch = text.match(/^([0-9]+|[零〇一二两三四五六七八九十百千]+)\s*天内\s*不打(?:\s+(.+))?$/);
+      const absoluteMatch = text.match(/^(\d{1,4})[.．](\d{1,2})(?:[.．](\d{1,2}))?\s*再打(?:\s+(.+))?$/);
+      const onlyMatch = text.match(new RegExp(`^只打\\s*${weekdayList}(?:\\s+(.+))?$`));
+      const notMatch = text.match(new RegExp(`^${weekdayList}\\s*不打(?:\\s+(.+))?$`));
 
       if (nextWeekMatch) {
         const weekdays = parseWeekdayNames(nextWeekMatch[1] ? `周${nextWeekMatch[1]}` : "周一");
@@ -10693,12 +10842,108 @@
             isLowLevelMatch: hasLowLevelJoined && rank >= 0 && rank < 3,
           };
         })
+        .filter((item) => item.playCount > 0)
         .sort((a, b) => (
           (b.playCount - a.playCount)
           || ((b.isBestPartner ? 1 : 0) - (a.isBestPartner ? 1 : 0))
           || ((b.isLowLevelMatch ? 1 : 0) - (a.isLowLevelMatch ? 1 : 0))
           || collator.compare(firstName(a.player.name), firstName(b.player.name))
         ));
+    }
+
+    const LONG_TERM_MEMBER_LIST_DEFINITIONS = [
+      { key: "threeDayStreak", label: "能够连续打三天球的成员" },
+      { key: "twoDayStreak", label: "能够连续打两天球的成员" },
+      { key: "onlyLargeSessions", label: "只参加10人及以上接龙的成员" },
+    ];
+
+    function getLongTermMemberListDefaults() {
+      const attendance = new Map();
+      const sessionSizes = new Map();
+      const sessionDates = [];
+      for (const session of state.sessions || []) {
+        if (!session.date) continue;
+        sessionDates.push(session.date);
+        const size = (session.players || []).reduce((sum, row) => sum + Math.max(0, Number(row.slots) || 0), 0);
+        sessionSizes.set(session.date, size);
+        const seen = new Set();
+        for (const row of session.players || []) {
+          if (row.isCompanion) continue;
+          if (!(Math.max(0, Number(row.slots) || 0) > Math.max(0, Number(row.plusCount) || 0))) continue;
+          const playerId = Number(row.ownerPlayerId ?? row.playerId);
+          if (!Number.isInteger(playerId) || playerId <= 0 || seen.has(playerId)) continue;
+          seen.add(playerId);
+          if (!attendance.has(playerId)) attendance.set(playerId, new Set());
+          attendance.get(playerId).add(session.date);
+        }
+      }
+      const dateDiff = (a, b) => Math.round((new Date(`${b}T00:00:00+08:00`) - new Date(`${a}T00:00:00+08:00`)) / 86400000);
+      const maxStreak = (dates) => {
+        const sorted = [...dates].sort();
+        let best = 0;
+        let current = 0;
+        let previous = null;
+        for (const date of sorted) {
+          if (previous !== null && dateDiff(previous, date) === 1) current += 1;
+          else current = 1;
+          best = Math.max(best, current);
+          previous = date;
+        }
+        return best;
+      };
+      const names = (playerId) => {
+        const player = getPlayerById(playerId);
+        return player ? firstName(player.name) : "";
+      };
+      const result = {
+        threeDayStreak: [],
+        twoDayStreak: [],
+        onlyLargeSessions: [],
+      };
+      const rows = [...attendance.entries()].map(([playerId, dates]) => ({
+        playerId,
+        name: names(playerId),
+        dates,
+        streak: maxStreak(dates),
+        sizes: [...dates].map((date) => sessionSizes.get(date)),
+      })).filter((row) => row.name);
+      rows.sort((a, b) => b.streak - a.streak || collator.compare(a.name, b.name));
+      result.threeDayStreak = rows.filter((row) => row.streak >= 3).map((row) => row.name);
+      result.twoDayStreak = rows.filter((row) => row.streak >= 2).map((row) => row.name);
+      rows
+        .filter((row) => row.sizes.length && row.sizes.every((size) => size >= 10))
+        .sort((a, b) => b.sizes.length - a.sizes.length || collator.compare(a.name, b.name))
+        .forEach((row) => result.onlyLargeSessions.push(row.name));
+      return result;
+    }
+
+    async function loadShakeLongTermLists() {
+      const data = await api("/api/shake-long-term-lists");
+      state.longTermMemberLists = {};
+      (data.lists || []).forEach((list) => {
+        state.longTermMemberLists[list.key] = {
+          label: list.label,
+          members: Array.isArray(list.members) ? list.members : [],
+        };
+      });
+    }
+
+    function getVisibleLongTermListValue(key) {
+      return Object.prototype.hasOwnProperty.call(state.longTermMemberLists, key)
+        ? (state.longTermMemberLists[key]?.members || [])
+        : (getLongTermMemberListDefaults()[key] || []);
+    }
+
+    async function saveShakeLongTermList(key, label, members) {
+      const data = await api(`/api/shake-long-term-lists/${key}`, {
+        method: "PUT",
+        body: JSON.stringify({ label, members }),
+      });
+      state.longTermMemberLists[key] = {
+        label: data.list?.label || label,
+        members: data.list?.members || members,
+      };
+      if (els.shakePeopleModal.classList.contains("open")) renderShakeLongTermRules();
     }
 
     function renderShakePeopleList(recommendations) {
@@ -10721,7 +10966,6 @@
         const meta = document.createElement("div");
         meta.className = "shake-person-meta";
         const badges = [];
-        badges.push(`打球 ${item.playCount} 次`);
         if (item.isBestPartner) badges.push("最佳拍档");
         if (item.isLowLevelMatch) badges.push("水平相近");
         badges.forEach((text) => {
@@ -10730,9 +10974,125 @@
           badge.textContent = text;
           meta.append(badge);
         });
-        row.append(name, meta);
+        const skipButton = document.createElement("button");
+        skipButton.type = "button";
+        skipButton.className = "shake-person-skip";
+        skipButton.textContent = "×";
+        skipButton.title = "今天不打球，快速创建短期规则";
+        skipButton.setAttribute("aria-label", `${firstName(item.player.name)}今天不打球`);
+        skipButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          createQuickTodayRule(item.player);
+        });
+        row.append(name, meta, skipButton);
         els.shakePeopleList.append(row);
       });
+    }
+
+    function createRuleRow(rule) {
+      const player = getPlayerById(rule.playerId);
+      const row = document.createElement("div");
+      row.className = "short-rule-row";
+      const text = document.createElement("span");
+      const typeLabel = isLongTermRuleType(rule) ? "长期" : "短期";
+      text.textContent = `[${typeLabel}] ${player ? firstName(player.name) : `#${rule.playerId}`} ${shortRuleDescription(rule)}`;
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.textContent = "删除";
+      deleteButton.addEventListener("click", () => deleteShortRule(rule.id));
+      row.append(text, deleteButton);
+      return row;
+    }
+
+    function getActiveRules() {
+      const today = getBeijingDateString();
+      return state.shortTermRules
+        .filter((rule) => !rule.expiresOn || rule.expiresOn >= today)
+        .sort((a, b) => {
+          if (Boolean(a.expiresOn) !== Boolean(b.expiresOn)) return a.expiresOn ? 1 : -1;
+          if (a.expiresOn && b.expiresOn && a.expiresOn !== b.expiresOn) return a.expiresOn.localeCompare(b.expiresOn);
+          return Number(a.id) - Number(b.id);
+        });
+    }
+
+    function renderShakeLongTermRules() {
+      els.shakeLongTermRulesList.replaceChildren();
+      const longRules = [
+        "只推荐未接龙的人；已接龙的人不推荐。",
+        "优先推荐打球次数多的人。",
+        "优先推荐已接龙人员的最佳拍档。",
+        "已有3级以下成员接龙时，优先推荐其他3级以下成员（不含“不详”）。",
+      ];
+      const fixedHeading = document.createElement("div");
+      fixedHeading.className = "long-term-rule-heading";
+      fixedHeading.textContent = "固定推荐规则";
+      els.shakeLongTermRulesList.append(fixedHeading);
+      longRules.forEach((line) => {
+        const item = document.createElement("div");
+        item.className = "long-term-rule-line";
+        item.textContent = line;
+        els.shakeLongTermRulesList.append(item);
+      });
+
+      const listHeading = document.createElement("div");
+      listHeading.className = "long-term-rule-heading";
+      listHeading.textContent = "成员统计名单（可编辑保存）";
+      els.shakeLongTermRulesList.append(listHeading);
+      LONG_TERM_MEMBER_LIST_DEFINITIONS.forEach((definition) => {
+        const members = getVisibleLongTermListValue(definition.key);
+        const row = document.createElement("div");
+        row.className = "shake-list-edit-row";
+        const label = document.createElement("span");
+        label.textContent = `${definition.label}：`;
+        const input = document.createElement("input");
+        input.className = "shake-list-edit-input";
+        input.value = members.join("、");
+        const saveButton = document.createElement("button");
+        saveButton.type = "button";
+        saveButton.className = "shake-list-save-btn";
+        saveButton.textContent = "保存";
+        saveButton.addEventListener("click", async () => {
+          saveButton.disabled = true;
+          try {
+            const nextMembers = input.value.split(/[、，,]/).map((name) => name.trim()).filter(Boolean);
+            await saveShakeLongTermList(definition.key, definition.label, nextMembers);
+            toast(`${definition.label}已保存`);
+          } catch (error) {
+            toast(`保存失败：${error.message}`);
+          } finally {
+            saveButton.disabled = false;
+          }
+        });
+        row.append(label, input, saveButton);
+        els.shakeLongTermRulesList.append(row);
+      });
+
+      const weeklyHeading = document.createElement("div");
+      weeklyHeading.className = "long-term-rule-heading";
+      weeklyHeading.textContent = "每周固定安排";
+      els.shakeLongTermRulesList.append(weeklyHeading);
+      const weeklyRules = getActiveRules().filter(isLongTermRuleType);
+      if (!weeklyRules.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-hint";
+        empty.textContent = "暂无每周固定规则";
+        els.shakeLongTermRulesList.append(empty);
+      } else {
+        weeklyRules.forEach((rule) => els.shakeLongTermRulesList.append(createRuleRow(rule)));
+      }
+    }
+
+    function renderShakeShortTermRules() {
+      els.shakeShortTermRulesList.replaceChildren();
+      const shortRules = getActiveRules().filter((rule) => !isLongTermRuleType(rule));
+      if (!shortRules.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-hint";
+        empty.textContent = "暂无短期规则";
+        els.shakeShortTermRulesList.append(empty);
+        return;
+      }
+      shortRules.forEach((rule) => els.shakeShortTermRulesList.append(createRuleRow(rule)));
     }
 
     function shortRuleDescription(rule) {
@@ -10746,34 +11106,15 @@
 
     function renderShortTermRulesList() {
       els.shortTermRulesList.replaceChildren();
-      const today = getBeijingDateString();
-      const rules = state.shortTermRules
-        .filter((rule) => !rule.expiresOn || rule.expiresOn >= today)
-        .sort((a, b) => {
-          if (Boolean(a.expiresOn) !== Boolean(b.expiresOn)) return a.expiresOn ? 1 : -1;
-          if (a.expiresOn && b.expiresOn && a.expiresOn !== b.expiresOn) return a.expiresOn.localeCompare(b.expiresOn);
-          return Number(a.id) - Number(b.id);
-        });
+      const rules = getActiveRules();
       if (!rules.length) {
         const empty = document.createElement("div");
         empty.className = "empty-hint";
-        empty.textContent = "暂无短期规则";
+        empty.textContent = "暂无规则";
         els.shortTermRulesList.append(empty);
         return;
       }
-      rules.forEach((rule) => {
-        const player = getPlayerById(rule.playerId);
-        const row = document.createElement("div");
-        row.className = "short-rule-row";
-        const text = document.createElement("span");
-        text.textContent = `${player ? firstName(player.name) : `#${rule.playerId}`} ${shortRuleDescription(rule)}`;
-        const deleteButton = document.createElement("button");
-        deleteButton.type = "button";
-        deleteButton.textContent = "删除";
-        deleteButton.addEventListener("click", () => deleteShortRule(rule.id));
-        row.append(text, deleteButton);
-        els.shortTermRulesList.append(row);
-      });
+      rules.forEach((rule) => els.shortTermRulesList.append(createRuleRow(rule)));
     }
 
     function renderShakePeopleModal() {
@@ -10781,13 +11122,15 @@
       const recommendations = buildShakePeopleRecommendations(today);
       els.shakePeopleSummary.textContent = `北京时间今天：${today}。按打球次数、最佳拍档、水平相近依次排序。`;
       renderShakePeopleList(recommendations);
+      renderShakeLongTermRules();
+      renderShakeShortTermRules();
     }
 
     async function openShakePeopleModal() {
       if (state.readOnly) return;
       processChain();
       try {
-        await loadShortTermRules();
+        await Promise.all([loadShortTermRules(), loadShakeLongTermLists()]);
       } catch (error) {
         toast(`摇人规则加载失败：${error.message}`);
       }
@@ -10805,32 +11148,57 @@
       }, 0);
     }
 
-    async function saveShortRule() {
-      const rawText = els.shortRuleInput.value.trim();
-      if (!rawText) {
-        toast("请填写短期规则");
-        return;
+    async function submitRuleText(rawText) {
+      if (!String(rawText || "").trim()) {
+        toast("请填写规则");
+        return false;
       }
-      const parsed = parseShortRuleText(rawText, getBeijingDateString());
+      const parsed = parseShortRuleTextMultiple(String(rawText).trim(), getBeijingDateString());
       if (parsed.error) {
         toast(parsed.error);
-        return;
+        return false;
       }
-      els.saveShortRuleBtn.disabled = true;
-      try {
+      for (const rule of parsed.rules) {
         const data = await api("/api/short-term-rules", {
           method: "POST",
-          body: JSON.stringify(parsed),
+          body: JSON.stringify(rule),
         });
-        state.shortTermRules = Array.isArray(data.rules) ? data.rules : [...state.shortTermRules, data.rule];
-        closeModal("shortRuleModal");
-        if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
-        toast(data.message || "短期规则已保存");
-      } catch (error) {
-        toast(`保存失败：${error.message}`);
-      } finally {
-        els.saveShortRuleBtn.disabled = false;
+        state.shortTermRules = Array.isArray(data.rules)
+          ? data.rules
+          : upsertShortRule(state.shortTermRules, data.rule);
       }
+      if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
+      if (els.shortRuleModal.classList.contains("open")) renderShortTermRulesList();
+      return true;
+    }
+
+    function upsertShortRule(rules, rule) {
+      if (!rule?.id) return rules;
+      return [...rules.filter((item) => Number(item.id) !== Number(rule.id)), rule];
+    }
+
+    async function saveShortRule() {
+      const rawText = els.shortRuleInput.value.trim();
+      const saved = await submitRuleText(rawText);
+      if (!saved) return;
+      closeModal("shortRuleModal");
+      toast("规则已保存");
+    }
+
+    async function createQuickTodayRule(player) {
+      const today = getBeijingDateString();
+      const playerId = Number(player.id);
+      const alreadyBlocked = state.shortTermRules.some((rule) => (
+        Number(rule.playerId) === playerId
+        && !isLongTermRuleType(rule)
+        && rule.expiresOn === today
+      ));
+      if (alreadyBlocked) {
+        toast(`${firstName(player.name)}今天已有不打的规则`);
+        return;
+      }
+      const saved = await submitRuleText(`${firstName(player.name)} 1天后 再打`);
+      if (saved) toast(`已为${firstName(player.name)}创建“今天不打球”`);
     }
 
     async function deleteShortRule(ruleId) {

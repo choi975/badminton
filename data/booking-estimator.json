@@ -1,23 +1,23 @@
 {
   "version": 4,
-  "generatedAt": "2026-08-31T01:48:51.502Z",
+  "generatedAt": "2026-09-03T15:38:24.604Z",
   "training": {
     "dateRange": {
       "from": "2026-07-13",
-      "to": "2026-08-28"
+      "to": "2026-09-02"
     },
     "court": {
-      "sampleCount": 18,
+      "sampleCount": 20,
       "dateRange": {
         "from": "2026-07-13",
-        "to": "2026-08-28"
+        "to": "2026-09-02"
       }
     },
     "shuttle": {
-      "sampleCount": 18,
+      "sampleCount": 20,
       "dateRange": {
         "from": "2026-07-13",
-        "to": "2026-08-28"
+        "to": "2026-09-02"
       }
     }
   },
@@ -32,7 +32,7 @@
         11.5
       ],
       "weight": 1,
-      "sampleCount": 18,
+      "sampleCount": 20,
       "weightSource": "reference"
     },
     {
@@ -49,7 +49,7 @@
   ],
   "court": {
     "formula": "ceil(participantCount / peoplePerCourt)",
-    "peoplePerCourt": 7.5,
+    "peoplePerCourt": 7.75,
     "minimum": 1,
     "selection": {
       "strategy": "grid-search",
@@ -63,7 +63,7 @@
     "validation": {
       "method": "in-sample",
       "minimumTrainingSessions": 5,
-      "folds": 18,
+      "folds": 20,
       "mae": 0,
       "rmse": 0,
       "exactRate": 1,
@@ -75,9 +75,9 @@
   "shuttle": {
     "baseType": "rsl3",
     "formula": "ceil((participantCount * weightedShuttlesPerParticipant + riskBuffer) / weight)",
-    "weightedShuttlesPerParticipant": 0.813042,
+    "weightedShuttlesPerParticipant": 0.814071,
     "riskQuantile": 0.7,
-    "riskBuffer": 0.677472,
+    "riskBuffer": 0.880178,
     "riskBufferSource": "residual-quantile",
     "minimum": 1,
     "weightSearch": {
@@ -89,13 +89,13 @@
     },
     "validation": {
       "method": "weighted-workload",
-      "folds": 18,
-      "mae": 2.027,
-      "rmse": 2.642,
+      "folds": 20,
+      "mae": 2.149,
+      "rmse": 2.707,
       "exactRate": 0,
-      "bias": 0.894,
-      "underPredictionRate": 0.333,
-      "overPredictionRate": 0.667
+      "bias": 1.099,
+      "underPredictionRate": 0.3,
+      "overPredictionRate": 0.7
     }
   }
 }

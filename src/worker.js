@@ -97,6 +97,11 @@ const EXPIRING_SHORT_TERM_RULE_TYPES = new Set([
   "not_before_date",
 ]);
 const WEEKLY_SHORT_TERM_RULE_TYPES = new Set(["only_days", "not_days"]);
+const SHAKE_LONG_TERM_LIST_KEYS = new Set([
+  "threeDayStreak",
+  "twoDayStreak",
+  "onlyLargeSessions",
+]);
 
 const LEVEL_PATTERN = /^(\d+(?:\.5)?级)$/;
 
@@ -861,6 +866,33 @@ async function handleApi(request, env, url) {
     return json(await getLevelGuide(env.DB));
   }
 
+  if (pathname === "/api/shake-long-term-lists" && method === "GET") {
+    return json({ lists: await listShakeLongTermLists(env.DB) });
+  }
+
+  const shakeLongTermListMatch = pathname.match(/^\/api\/shake-long-term-lists\/([a-zA-Z0-9]+)$/);
+  if (shakeLongTermListMatch && method === "PUT") {
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以编辑摇人长期名单" }, 403);
+    const key = String(shakeLongTermListMatch[1]);
+    if (!SHAKE_LONG_TERM_LIST_KEYS.has(key)) return json({ error: "长期名单类型无效" }, 400);
+    const body = await readJson(request);
+    const members = Array.isArray(body?.members)
+      ? body.members.map((name) => String(name || "").trim()).filter(Boolean)
+      : [];
+    if (members.length > 500 || members.some((name) => name.length > 50)) {
+      return json({ error: "成员名单数据无效" }, 400);
+    }
+    await env.DB.prepare(
+      `INSERT INTO shake_long_term_lists (list_key, label, members_json, updated_at)
+       VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+       ON CONFLICT(list_key) DO UPDATE SET
+         label = excluded.label,
+         members_json = excluded.members_json,
+         updated_at = CURRENT_TIMESTAMP`
+    ).bind(key, body?.label ? String(body.label).slice(0, 120) : key, JSON.stringify(members)).run();
+    return json({ list: await getShakeLongTermList(env.DB, key) });
+  }
+
   const shortTermRuleMatch = pathname.match(/^\/api\/short-term-rules\/(\d+)$/);
   if (shortTermRuleMatch && method === "DELETE") {
     if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以删除摇人短期规则" }, 403);
@@ -968,6 +1000,36 @@ function mapShortTermRuleRow(row) {
     expiresOn: row.expires_on || null,
     rawText: String(row.raw_text || ""),
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+async function listShakeLongTermLists(db) {
+  const { results } = await db.prepare(
+    "SELECT list_key, label, members_json, updated_at FROM shake_long_term_lists ORDER BY list_key ASC"
+  ).all();
+  return results.map(mapShakeLongTermListRow);
+}
+
+async function getShakeLongTermList(db, key) {
+  const row = await db.prepare(
+    "SELECT list_key, label, members_json, updated_at FROM shake_long_term_lists WHERE list_key = ?"
+  ).bind(key).first();
+  return row ? mapShakeLongTermListRow(row) : null;
+}
+
+function mapShakeLongTermListRow(row) {
+  let members = [];
+  try {
+    const parsed = JSON.parse(row.members_json || "[]");
+    members = Array.isArray(parsed) ? parsed.map((name) => String(name || "").trim()).filter(Boolean) : [];
+  } catch (error) {
+    members = [];
+  }
+  return {
+    key: String(row.list_key),
+    label: String(row.label || row.list_key || ""),
+    members,
     updatedAt: row.updated_at,
   };
 }

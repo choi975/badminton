@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-31T01:48:53.900Z",
+  "generatedAt": "2026-09-03T15:38:28.215Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -101,7 +101,7 @@
       },
       {
         "id": 10,
-        "name": "🌹，霖",
+        "name": "🌹，霖，霖姐",
         "gender": "女",
         "level": "3级",
         "affiliation": "球友",
@@ -109,7 +109,7 @@
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-09 12:08:30",
-        "updatedAt": "2026-08-10 14:41:48"
+        "updatedAt": "2026-09-02 02:21:19"
       },
       {
         "id": 11,
@@ -269,7 +269,7 @@
       },
       {
         "id": 24,
-        "name": "Hx7",
+        "name": "Hx7，梁教",
         "gender": "男",
         "level": "4.5级",
         "affiliation": "球友",
@@ -277,7 +277,7 @@
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-09 12:11:03",
-        "updatedAt": "2026-07-09 12:13:18"
+        "updatedAt": "2026-09-02 02:20:17"
       },
       {
         "id": 25,
@@ -301,7 +301,7 @@
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-10 01:40:10",
-        "updatedAt": "2026-08-21 06:35:13"
+        "updatedAt": "2026-08-31 04:21:44"
       },
       {
         "id": 27,
@@ -391,13 +391,13 @@
         "id": 35,
         "name": "Ni 姐姐",
         "gender": "女",
-        "level": "2.5级",
+        "level": "2级",
         "affiliation": "球友",
         "notes": "",
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-10 01:46:28",
-        "updatedAt": "2026-08-17 00:40:36"
+        "updatedAt": "2026-09-02 09:47:07"
       },
       {
         "id": 36,
@@ -511,13 +511,13 @@
         "id": 45,
         "name": "吕教，吕小困，小吕，了鱼吕",
         "gender": "男",
-        "level": "4.5级",
+        "level": "5级",
         "affiliation": "球友",
         "notes": "",
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-10 01:49:26",
-        "updatedAt": "2026-07-15 09:47:54"
+        "updatedAt": "2026-08-31 03:46:37"
       },
       {
         "id": 46,
@@ -547,13 +547,13 @@
         "id": 48,
         "name": "あ小新",
         "gender": "男",
-        "level": "不详",
+        "level": "3级",
         "affiliation": "球友",
         "notes": "",
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-10 01:50:12",
-        "updatedAt": "2026-07-10 01:50:12"
+        "updatedAt": "2026-09-01 14:25:55"
       },
       {
         "id": 49,
@@ -808,18 +808,6 @@
         "updatedAt": "2026-08-10 14:41:56"
       },
       {
-        "id": 71,
-        "name": "A.",
-        "gender": "男",
-        "level": "不详",
-        "affiliation": "球友",
-        "notes": "",
-        "photoKey": "",
-        "participatesPayment": true,
-        "createdAt": "2026-07-28 04:23:34",
-        "updatedAt": "2026-07-28 04:23:34"
-      },
-      {
         "id": 73,
         "name": "果花，果子，何凤英永旺门窗马安店",
         "gender": "女",
@@ -943,25 +931,73 @@
         "id": 84,
         "name": "顺",
         "gender": "男",
-        "level": "不详",
+        "level": "4.5级",
         "affiliation": "球友",
         "notes": "",
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-08-29 15:42:54",
-        "updatedAt": "2026-08-29 15:42:54"
+        "updatedAt": "2026-09-02 09:50:27"
       },
       {
         "id": 85,
         "name": "北新",
         "gender": "男",
-        "level": "不详",
+        "level": "3级",
         "affiliation": "球友",
         "notes": "",
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-08-30 09:36:38",
-        "updatedAt": "2026-08-30 09:36:38"
+        "updatedAt": "2026-09-01 14:26:04"
+      },
+      {
+        "id": 86,
+        "name": "菲姐",
+        "gender": "女",
+        "level": "4级",
+        "affiliation": "特殊",
+        "notes": "",
+        "photoKey": "",
+        "participatesPayment": true,
+        "createdAt": "2026-09-02 08:17:02",
+        "updatedAt": "2026-09-02 08:17:20"
+      },
+      {
+        "id": 87,
+        "name": "Miu",
+        "gender": "男",
+        "level": "不详",
+        "affiliation": "特殊",
+        "notes": "",
+        "photoKey": "",
+        "participatesPayment": true,
+        "createdAt": "2026-09-02 09:37:35",
+        "updatedAt": "2026-09-02 09:38:54"
+      },
+      {
+        "id": 88,
+        "name": "四叶草",
+        "gender": "女",
+        "level": "3.5级",
+        "affiliation": "球友",
+        "notes": "",
+        "photoKey": "",
+        "participatesPayment": true,
+        "createdAt": "2026-09-02 09:39:03",
+        "updatedAt": "2026-09-02 15:50:31"
+      },
+      {
+        "id": 89,
+        "name": "周若萱",
+        "gender": "女",
+        "level": "2级",
+        "affiliation": "球友",
+        "notes": "",
+        "photoKey": "",
+        "participatesPayment": true,
+        "createdAt": "2026-09-02 09:39:38",
+        "updatedAt": "2026-09-02 15:49:47"
       }
     ],
     "levelDescriptions": {
@@ -1128,112 +1164,116 @@
           "joinNumber": 37
         },
         {
-          "playerId": 71,
+          "playerId": 12,
           "joinNumber": 38
         },
         {
-          "playerId": 12,
+          "playerId": 4,
           "joinNumber": 39
         },
         {
-          "playerId": 4,
+          "playerId": 64,
           "joinNumber": 40
         },
         {
-          "playerId": 64,
+          "playerId": 63,
           "joinNumber": 41
         },
         {
-          "playerId": 63,
+          "playerId": 62,
           "joinNumber": 42
         },
         {
-          "playerId": 62,
+          "playerId": 24,
           "joinNumber": 43
         },
         {
-          "playerId": 24,
+          "playerId": 14,
           "joinNumber": 44
         },
         {
-          "playerId": 14,
+          "playerId": 33,
           "joinNumber": 45
         },
         {
-          "playerId": 33,
+          "playerId": 48,
           "joinNumber": 46
         },
         {
-          "playerId": 48,
+          "playerId": 49,
           "joinNumber": 47
         },
         {
-          "playerId": 49,
+          "playerId": 50,
           "joinNumber": 48
         },
         {
-          "playerId": 50,
+          "playerId": 52,
           "joinNumber": 49
         },
         {
-          "playerId": 52,
+          "playerId": 53,
           "joinNumber": 50
         },
         {
-          "playerId": 53,
+          "playerId": 60,
           "joinNumber": 51
         },
         {
-          "playerId": 60,
+          "playerId": 59,
           "joinNumber": 52
         },
         {
-          "playerId": 59,
-          "joinNumber": 53
-        },
-        {
           "playerId": 73,
-          "joinNumber": 55
+          "joinNumber": 54
         },
         {
           "playerId": 74,
-          "joinNumber": 56
+          "joinNumber": 55
         },
         {
           "playerId": 75,
-          "joinNumber": 57
+          "joinNumber": 56
         },
         {
           "playerId": 76,
-          "joinNumber": 58
+          "joinNumber": 57
         },
         {
           "playerId": 78,
-          "joinNumber": 59
+          "joinNumber": 58
         },
         {
           "playerId": 79,
-          "joinNumber": 60
+          "joinNumber": 59
         },
         {
           "playerId": 80,
-          "joinNumber": 61
+          "joinNumber": 60
         },
         {
           "playerId": 82,
-          "joinNumber": 62
+          "joinNumber": 61
         },
         {
           "playerId": 83,
-          "joinNumber": 63
+          "joinNumber": 62
         },
         {
           "playerId": 84,
-          "joinNumber": 64
+          "joinNumber": 63
         },
         {
           "playerId": 85,
+          "joinNumber": 64
+        },
+        {
+          "playerId": 89,
           "joinNumber": 65
+        },
+        {
+          "playerId": 88,
+          "joinNumber": 66
         }
       ],
       "Hytronik": [
@@ -1365,7 +1405,6 @@
         46,
         47,
         10,
-        71,
         12,
         4,
         64,
@@ -1391,7 +1430,9 @@
         82,
         83,
         84,
-        85
+        85,
+        89,
+        88
       ],
       "Hytronik": [
         11,
@@ -5488,28 +5529,630 @@
         ],
         "createdAt": "2026-08-29 09:22:46",
         "updatedAt": "2026-08-29 09:23:15"
+      },
+      {
+        "id": 28,
+        "date": "2026-09-01",
+        "venue": "EDC",
+        "courtCount": 3,
+        "courtFee": 210,
+        "shuttlePrice": 11,
+        "shuttleCount": 13,
+        "courtPriceRows": [
+          {
+            "price": 70,
+            "count": 3
+          }
+        ],
+        "shuttlePriceRows": [
+          {
+            "price": 11,
+            "count": 13,
+            "type": "rsl3"
+          }
+        ],
+        "trainCourt": true,
+        "trainShuttle": true,
+        "players": [
+          {
+            "playerId": 51,
+            "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级"
+          },
+          {
+            "playerId": 9,
+            "playerName": "柚子🍀",
+            "ownerPlayerId": 9,
+            "ownerName": "柚子🍀",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": true,
+            "gender": "女",
+            "level": "3级"
+          },
+          {
+            "playerId": 33,
+            "playerName": "朱薛陈",
+            "ownerPlayerId": 33,
+            "ownerName": "朱薛陈",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级"
+          },
+          {
+            "playerId": 36,
+            "playerName": "小精灵",
+            "ownerPlayerId": 36,
+            "ownerName": "小精灵",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": true,
+            "gender": "女",
+            "level": "2.5级"
+          },
+          {
+            "playerId": 57,
+            "playerName": "Debra",
+            "ownerPlayerId": 57,
+            "ownerName": "Debra",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": true,
+            "gender": "女",
+            "level": "2级"
+          },
+          {
+            "playerId": null,
+            "playerName": "柚子🍀 +1",
+            "ownerPlayerId": 9,
+            "ownerName": "柚子🍀",
+            "isCompanion": true,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级"
+          },
+          {
+            "playerId": 54,
+            "playerName": "游",
+            "ownerPlayerId": 54,
+            "ownerName": "游",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": false,
+            "gender": "男",
+            "level": "2.5级"
+          },
+          {
+            "playerId": 19,
+            "playerName": "FENG",
+            "ownerPlayerId": 19,
+            "ownerName": "FENG",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3.5级"
+          },
+          {
+            "playerId": 41,
+            "playerName": "清。",
+            "ownerPlayerId": 41,
+            "ownerName": "清。",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3.5级"
+          },
+          {
+            "playerId": 60,
+            "playerName": "Pony boy",
+            "ownerPlayerId": 60,
+            "ownerName": "Pony boy",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": false,
+            "gender": "男",
+            "level": "2.5级"
+          },
+          {
+            "playerId": 8,
+            "playerName": "阿恒",
+            "ownerPlayerId": 8,
+            "ownerName": "阿恒",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": false,
+            "gender": "男",
+            "level": "4.5级"
+          },
+          {
+            "playerId": 48,
+            "playerName": "あ小新",
+            "ownerPlayerId": 48,
+            "ownerName": "あ小新",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级"
+          },
+          {
+            "playerId": 24,
+            "playerName": "Hx7",
+            "ownerPlayerId": 24,
+            "ownerName": "Hx7",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": false,
+            "gender": "男",
+            "level": "4.5级"
+          },
+          {
+            "playerId": 39,
+            "playerName": "1fan",
+            "ownerPlayerId": 39,
+            "ownerName": "1fan",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": false,
+            "gender": "男",
+            "level": "4级"
+          },
+          {
+            "playerId": 35,
+            "playerName": "Ni 姐姐",
+            "ownerPlayerId": 35,
+            "ownerName": "Ni 姐姐",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": true,
+            "gender": "女",
+            "level": "2.5级"
+          },
+          {
+            "playerId": 37,
+            "playerName": "🎀 ～TomCat",
+            "ownerPlayerId": 37,
+            "ownerName": "🎀 ～TomCat",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3.5级"
+          },
+          {
+            "playerId": 85,
+            "playerName": "北新",
+            "ownerPlayerId": 85,
+            "ownerName": "北新",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级"
+          },
+          {
+            "playerId": 83,
+            "playerName": "！",
+            "ownerPlayerId": 83,
+            "ownerName": "！",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": true,
+            "gender": "女",
+            "level": "4级"
+          },
+          {
+            "playerId": 82,
+            "playerName": "翠萍",
+            "ownerPlayerId": 82,
+            "ownerName": "翠萍",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 18.6,
+            "isFemale": true,
+            "gender": "女",
+            "level": "3.5级"
+          }
+        ],
+        "createdAt": "2026-09-01 14:26:53",
+        "updatedAt": "2026-09-03 04:06:47"
+      },
+      {
+        "id": 29,
+        "date": "2026-09-02",
+        "venue": "EDC",
+        "courtCount": 3,
+        "courtFee": 210,
+        "shuttlePrice": 11.3,
+        "shuttleCount": 21,
+        "courtPriceRows": [
+          {
+            "price": 70,
+            "count": 3
+          }
+        ],
+        "shuttlePriceRows": [
+          {
+            "price": 11.3,
+            "count": 21,
+            "type": "rsl3"
+          }
+        ],
+        "trainCourt": true,
+        "trainShuttle": true,
+        "players": [
+          {
+            "playerId": 51,
+            "playerName": "choi",
+            "ownerPlayerId": 51,
+            "ownerName": "choi",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级"
+          },
+          {
+            "playerId": 35,
+            "playerName": "Ni 姐姐",
+            "ownerPlayerId": 35,
+            "ownerName": "Ni 姐姐",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": true,
+            "gender": "女",
+            "level": "2级"
+          },
+          {
+            "playerId": 13,
+            "playerName": "甲乙丙",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": true,
+            "gender": "女",
+            "level": "3.5级"
+          },
+          {
+            "playerId": 36,
+            "playerName": "小精灵",
+            "ownerPlayerId": 36,
+            "ownerName": "小精灵",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": true,
+            "gender": "女",
+            "level": "2.5级"
+          },
+          {
+            "playerId": null,
+            "playerName": "🍭 甲乙丙 +1",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": true,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级"
+          },
+          {
+            "playerId": null,
+            "playerName": "🍭 甲乙丙 +2",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": true,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级"
+          },
+          {
+            "playerId": 10,
+            "playerName": "🌹",
+            "ownerPlayerId": 10,
+            "ownerName": "🌹",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": true,
+            "gender": "女",
+            "level": "3级"
+          },
+          {
+            "playerId": null,
+            "playerName": "🍭 甲乙丙 +3",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": true,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": true,
+            "gender": "女",
+            "level": "3级"
+          },
+          {
+            "playerId": 84,
+            "playerName": "顺",
+            "ownerPlayerId": 84,
+            "ownerName": "顺",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": false,
+            "gender": "男",
+            "level": "4.5级"
+          },
+          {
+            "playerId": 14,
+            "playerName": "小零",
+            "ownerPlayerId": 14,
+            "ownerName": "小零",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": true,
+            "gender": "女",
+            "level": "3级"
+          },
+          {
+            "playerId": 86,
+            "playerName": "菲姐",
+            "ownerPlayerId": 86,
+            "ownerName": "菲姐",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": true,
+            "gender": "女",
+            "level": "4级"
+          },
+          {
+            "playerId": 33,
+            "playerName": "朱薛陈",
+            "ownerPlayerId": 33,
+            "ownerName": "朱薛陈",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级"
+          },
+          {
+            "playerId": 48,
+            "playerName": "あ小新",
+            "ownerPlayerId": 48,
+            "ownerName": "あ小新",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级"
+          },
+          {
+            "playerId": 88,
+            "playerName": "四叶草",
+            "ownerPlayerId": 88,
+            "ownerName": "四叶草",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": true,
+            "gender": "女",
+            "level": "3.5级"
+          },
+          {
+            "playerId": 19,
+            "playerName": "FENG",
+            "ownerPlayerId": 19,
+            "ownerName": "FENG",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3.5级"
+          },
+          {
+            "playerId": 89,
+            "playerName": "周若萱",
+            "ownerPlayerId": 89,
+            "ownerName": "周若萱",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": true,
+            "gender": "女",
+            "level": "2级"
+          },
+          {
+            "playerId": 39,
+            "playerName": "1fan",
+            "ownerPlayerId": 39,
+            "ownerName": "1fan",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": false,
+            "gender": "男",
+            "level": "4级"
+          },
+          {
+            "playerId": 37,
+            "playerName": "🎀 ～TomCat",
+            "ownerPlayerId": 37,
+            "ownerName": "🎀 ～TomCat",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3.5级"
+          },
+          {
+            "playerId": 53,
+            "playerName": "oi",
+            "ownerPlayerId": 53,
+            "ownerName": "oi",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": false,
+            "gender": "男",
+            "level": "5级"
+          },
+          {
+            "playerId": null,
+            "playerName": "oi +1",
+            "ownerPlayerId": 53,
+            "ownerName": "oi",
+            "isCompanion": true,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级"
+          },
+          {
+            "playerId": 45,
+            "playerName": "吕教",
+            "ownerPlayerId": 45,
+            "ownerName": "吕教",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": false,
+            "gender": "男",
+            "level": "5级"
+          },
+          {
+            "playerId": 40,
+            "playerName": "小孩哥",
+            "ownerPlayerId": 40,
+            "ownerName": "小孩哥",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3.5级"
+          },
+          {
+            "playerId": null,
+            "playerName": "🍭 甲乙丙 +4",
+            "ownerPlayerId": 13,
+            "ownerName": "甲乙丙",
+            "isCompanion": true,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 19.5,
+            "isFemale": true,
+            "gender": "女",
+            "level": "3级"
+          }
+        ],
+        "createdAt": "2026-09-02 15:51:06",
+        "updatedAt": "2026-09-02 15:51:06"
       }
     ],
     "estimator": {
       "version": 4,
-      "generatedAt": "2026-08-31T01:48:51.502Z",
+      "generatedAt": "2026-09-03T15:38:24.604Z",
       "training": {
         "dateRange": {
           "from": "2026-07-13",
-          "to": "2026-08-28"
+          "to": "2026-09-02"
         },
         "court": {
-          "sampleCount": 18,
+          "sampleCount": 20,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-08-28"
+            "to": "2026-09-02"
           }
         },
         "shuttle": {
-          "sampleCount": 18,
+          "sampleCount": 20,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-08-28"
+            "to": "2026-09-02"
           }
         }
       },
@@ -5524,7 +6167,7 @@
             11.5
           ],
           "weight": 1,
-          "sampleCount": 18,
+          "sampleCount": 20,
           "weightSource": "reference"
         },
         {
@@ -5541,7 +6184,7 @@
       ],
       "court": {
         "formula": "ceil(participantCount / peoplePerCourt)",
-        "peoplePerCourt": 7.5,
+        "peoplePerCourt": 7.75,
         "minimum": 1,
         "selection": {
           "strategy": "grid-search",
@@ -5555,7 +6198,7 @@
         "validation": {
           "method": "in-sample",
           "minimumTrainingSessions": 5,
-          "folds": 18,
+          "folds": 20,
           "mae": 0,
           "rmse": 0,
           "exactRate": 1,
@@ -5567,9 +6210,9 @@
       "shuttle": {
         "baseType": "rsl3",
         "formula": "ceil((participantCount * weightedShuttlesPerParticipant + riskBuffer) / weight)",
-        "weightedShuttlesPerParticipant": 0.813042,
+        "weightedShuttlesPerParticipant": 0.814071,
         "riskQuantile": 0.7,
-        "riskBuffer": 0.677472,
+        "riskBuffer": 0.880178,
         "riskBufferSource": "residual-quantile",
         "minimum": 1,
         "weightSearch": {
@@ -5581,13 +6224,13 @@
         },
         "validation": {
           "method": "weighted-workload",
-          "folds": 18,
-          "mae": 2.027,
-          "rmse": 2.642,
+          "folds": 20,
+          "mae": 2.149,
+          "rmse": 2.707,
           "exactRate": 0,
-          "bias": 0.894,
-          "underPredictionRate": 0.333,
-          "overPredictionRate": 0.667
+          "bias": 1.099,
+          "underPredictionRate": 0.3,
+          "overPredictionRate": 0.7
         }
       }
     }

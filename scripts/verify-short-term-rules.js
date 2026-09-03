@@ -51,20 +51,24 @@ const functionNames = [
   "formatShortRuleDate",
   "normalizeShortRuleNote",
   "findPlayerForShortRule",
+  "findRuleClauseStart",
   "parseShortRuleText",
+  "parseShortRuleTextMultiple",
   "shortRuleDescription",
 ];
 vm.runInContext(`${functionNames.map((name) => extractFunction(indexHtml, name)).join("\n\n")}
-globalThis.shortRuleApi = { parseShortRuleText, parseChineseNumber, shortRuleDescription };`, context);
+globalThis.shortRuleApi = { parseShortRuleText, parseShortRuleTextMultiple, parseChineseNumber, shortRuleDescription };`, context);
 
-const { parseShortRuleText, parseChineseNumber, shortRuleDescription } = context.shortRuleApi;
+const { parseShortRuleText, parseShortRuleTextMultiple, parseChineseNumber, shortRuleDescription } = context.shortRuleApi;
 const today = "2026-08-31";
 
 const shakePeopleSection = indexHtml.slice(
   indexHtml.indexOf('<div id="shakePeopleModal"'),
   indexHtml.indexOf('<div id="shortRuleModal"'),
 );
-assert.match(shakePeopleSection, /id="newShortRuleBtn"[^>]*aria-label="新建短期规则"[^>]*>\+<\/button>/);
+assert.match(shakePeopleSection, /id="newShortRuleBtn"[^>]*aria-label="新建规则"[^>]*>\+<\/button>/);
+assert.match(shakePeopleSection, /id="shakeLongTermRulesBlock"/);
+assert.match(shakePeopleSection, /id="shakeShortTermRulesBlock"/);
 assert.doesNotMatch(shakePeopleSection, /modal-footer/);
 assert.match(indexHtml, /newShortRuleBtn\.addEventListener\("click", \(\) => openShortRuleModal\(\)\)/);
 assert.doesNotMatch(indexHtml, /newShortRuleBtn\.addEventListener\("click", openShortRuleModal\)/);
@@ -111,6 +115,12 @@ assert.equal(parseChineseNumber("十五"), 15);
 assert.equal(parseChineseNumber("三千六百六十"), 3660);
 assert.match(parseShortRuleText("阿达 9.10 不打", today).error, /格式无法识别/);
 assert.match(parseShortRuleText("阿达 三天后 不打", today).error, /格式无法识别/);
+
+const multiple = parseShortRuleTextMultiple("果花、阿达 三天内 不打 培训", today);
+assert.equal(multiple.rules.length, 2);
+assert.equal(multiple.rules[0].rule.note, "培训");
+assert.equal(multiple.rules[1].rule.note, "培训");
+assert.match(parseShortRuleTextMultiple("果花、阿达、花花、海尼克-刘赵达 周五 不打", today).error, /最多添加三名/);
 
 assert.match(workerSource, /starts_on <= \?/);
 assert.match(workerSource, /expires_on >= \?/);
