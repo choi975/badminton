@@ -98,6 +98,8 @@ const memberExitRateWindows = new Map();
 const SESSION_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const VALID_SESSION_VENUES = new Set(["文体", "EDC"]);
 const VALID_PARTICIPANT_GENDERS = new Set(["男", "女", "不详"]);
+const DEFAULT_EDC_BALANCE = 860;
+const MAX_ABSOLUTE_EDC_BALANCE = 10_000_000;
 const EXPIRING_SHORT_TERM_RULE_TYPES = new Set([
   "not_before_days",
   "not_within_days",
@@ -583,7 +585,7 @@ async function handleApi(request, env, url) {
 
   if (pathname === "/api/bootstrap" && method === "GET") {
     const learningNow = new Date();
-    const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes, cachedGroupLearningSignals] = await Promise.all([
+    const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes, cachedGroupLearningSignals, edcBalance] = await Promise.all([
       listPlayers(env.DB),
       getLevelGuide(env.DB),
       getPaymentOrderState(env.DB),
@@ -591,6 +593,7 @@ async function handleApi(request, env, url) {
       getCurrentEstimator(env.DB),
       listGroupAttemptOutcomes(env.DB),
       getCachedGroupLearningSignals(env.DB),
+      getEdcBalance(env.DB),
     ]);
     const groupLearningSignals = cachedGroupLearningSignals || buildGroupLearningColdStart(players, sessions, learningNow);
     return json({
@@ -601,6 +604,7 @@ async function handleApi(request, env, url) {
       estimator,
       groupAttemptOutcomes,
       groupLearningSignals,
+      edcBalance,
     });
   }
 
@@ -887,7 +891,14 @@ async function handleApi(request, env, url) {
     const estimator = input.trainCourt || input.trainShuttle
       ? await retrainEstimator(env.DB)
       : await getCurrentEstimator(env.DB);
-    return json({ session, estimator, removedShortRuleCount, groupAttempt }, 201);
+    return json({
+      session,
+      estimator,
+      removedShortRuleCount,
+      groupAttempt,
+      edcBalance: await getEdcBalance(env.DB),
+      edcCharge: input.venue === "EDC" ? input.courtCount * 80 : 0,
+    }, 201);
   }
 
   const sessionVenueMatch = pathname.match(/^\/api\/sessions\/(\d+)\/venue$/);
@@ -983,6 +994,14 @@ async function handleApi(request, env, url) {
     if (!settings) return json({ error: "特殊成员设置无效" }, 400);
     await saveSpecialPaymentSettings(env.DB, settings);
     return json({ players: await listPlayers(env.DB) });
+  }
+
+  if (pathname === "/api/edc-balance" && method === "PUT") {
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以修改EDC余额" }, 403);
+    const balance = normalizeEdcBalance((await readJson(request))?.balance);
+    if (balance === null) return json({ error: "EDC余额需要填写有效金额" }, 400);
+    await saveEdcBalance(env.DB, balance);
+    return json({ edcBalance: await getEdcBalance(env.DB) });
   }
 
   if (pathname === "/api/level-guide" && method === "GET") {
@@ -2521,7 +2540,7 @@ function serializePriceRows(rows) {
 }
 
 async function createSession(db, input) {
-  const result = await db.prepare(
+  const statements = [db.prepare(
     `INSERT INTO booking_sessions
        (date, venue, court_count, court_fee, shuttle_price, shuttle_count, court_price_rows, shuttle_price_rows, train_court, train_shuttle, actual_shuttle_confirmed, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
@@ -2537,9 +2556,10 @@ async function createSession(db, input) {
     input.trainCourt ? 1 : 0,
     input.trainShuttle ? 1 : 0,
     input.actualShuttleConfirmed ? 1 : 0
-  ).run();
-  const sessionId = Number(result.meta.last_row_id);
-  await insertSessionPlayers(db, sessionId, input.players);
+  )];
+  statements.push(...buildSessionPlayerStatements(db, null, input.players, true));
+  const results = await db.batch(statements);
+  const sessionId = Number(results[0].meta.last_row_id);
   return getSessionById(db, sessionId);
 }
 
@@ -2571,19 +2591,17 @@ async function updateSession(db, id, input) {
   return getSessionById(db, id);
 }
 
-async function insertSessionPlayers(db, sessionId, players) {
-  const statements = buildSessionPlayerStatements(db, sessionId, players);
-  if (statements.length) await db.batch(statements);
-}
-
-function buildSessionPlayerStatements(db, sessionId, players) {
+function buildSessionPlayerStatements(db, sessionId, players, useLatestSession = false) {
+  const sessionIdSql = useLatestSession
+    ? "(SELECT seq FROM sqlite_sequence WHERE name = 'booking_sessions')"
+    : "?";
   return players.map((player) => db.prepare(
     `INSERT INTO booking_session_players
        (session_id, player_id, player_name, owner_player_id, owner_name_snapshot, is_companion,
-        slots, plus_count, amount, is_female, gender_snapshot, level_snapshot, profile_snapshot_reliable, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+         slots, plus_count, amount, is_female, gender_snapshot, level_snapshot, profile_snapshot_reliable, updated_at)
+      VALUES (${sessionIdSql}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).bind(
-    sessionId,
+    ...(!useLatestSession ? [sessionId] : []),
     player.playerId,
     player.playerName,
     player.ownerPlayerId,
@@ -3002,6 +3020,24 @@ async function getLevelGuide(db) {
   const raw = rawRow?.value || DEFAULT_LEVEL_GUIDE_RAW;
   const levels = Object.fromEntries(guideRows.results.map((row) => [row.level, row.description]));
   return { levelGuideRaw: raw, levelDescriptions: levels };
+}
+
+function normalizeEdcBalance(value) {
+  if (value === null || value === undefined || String(value).trim() === "") return null;
+  const balance = Number(value);
+  if (!Number.isFinite(balance) || Math.abs(balance) > MAX_ABSOLUTE_EDC_BALANCE) return null;
+  return Math.round((balance + Number.EPSILON) * 100) / 100;
+}
+
+async function getEdcBalance(db) {
+  const row = await db.prepare("SELECT value FROM app_settings WHERE key = 'edc_balance'").first();
+  return normalizeEdcBalance(row?.value) ?? DEFAULT_EDC_BALANCE;
+}
+
+async function saveEdcBalance(db, balance) {
+  await db.prepare(
+    "INSERT INTO app_settings (key, value) VALUES ('edc_balance', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+  ).bind(String(balance)).run();
 }
 
 async function saveLevelGuide(db, raw) {

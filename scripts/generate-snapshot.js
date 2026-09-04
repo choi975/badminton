@@ -95,6 +95,8 @@ const players = playerRows.map((row) => ({
 }));
 const levelDescriptions = Object.fromEntries(levelRows.map((row) => [row.level, row.description]));
 const levelGuideRaw = settingRows.find((row) => row.key === "level_guide_raw")?.value || "";
+const storedEdcBalance = Number(settingRows.find((row) => row.key === "edc_balance")?.value);
+const edcBalance = Number.isFinite(storedEdcBalance) ? storedEdcBalance : 860;
 const groupJoinNumbers = { "球友": [], "Hytronik": [] };
 for (const row of joinRows) {
   if (!groupJoinNumbers[row.affiliation]) continue;
@@ -285,6 +287,7 @@ const snapshot = {
     players,
     levelDescriptions,
     levelGuideRaw,
+    edcBalance,
     groupJoinNumbers,
     paymentOrders,
     sessions,

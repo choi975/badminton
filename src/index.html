@@ -1574,6 +1574,45 @@
       gap: 8px;
     }
 
+    .edc-balance-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+    }
+
+    .edc-balance-row label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .edc-balance-control {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .modal .edc-balance-input {
+      width: 96px;
+      min-height: 32px;
+      padding: 4px 7px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .modal .edc-balance-input:disabled {
+      background: #f4f7f6;
+      color: var(--text);
+      opacity: 1;
+      cursor: not-allowed;
+    }
+
     .fee-title-row {
       display: flex;
       align-items: center;
@@ -3768,6 +3807,13 @@
                   <div id="shuttlePriceRows" class="fee-advanced-rows"></div>
                 </div>
               </div>
+              <div class="edc-balance-row">
+                <label for="edcBalanceInput">EDC余额</label>
+                <div class="edc-balance-control">
+                  <input id="edcBalanceInput" class="edc-balance-input" type="number" step="0.01" inputmode="decimal" value="860" autocomplete="off">
+                  <span aria-hidden="true">元</span>
+                </div>
+              </div>
               <div id="shuttleTypeNotice" class="fee-notice" hidden></div>
               <button id="paymentBtn" class="primary-btn" disabled>群收款</button>
             </div>
@@ -4189,6 +4235,7 @@
     const IS_WORKER_APP = location.hostname === "badminton.choi975.workers.dev"
       || ["127.0.0.1", "localhost"].includes(location.hostname);
     const BOOTSTRAP_CACHE_KEY = "badminton-bootstrap-cache-v4";
+    const DEFAULT_EDC_BALANCE = 860;
     const MAX_MEMBER_EXIT_COUNT = 200;
     const EMPTY_IMAGE_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
     const SNAPSHOT_URL = new URL("./bootstrap-snapshot.json", location.href).href;
@@ -4237,6 +4284,8 @@
       estimator: DEFAULT_ESTIMATOR,
       groupJoinNumbers: { "球友": [], "Hytronik": [] },
       paymentOrders: { "球友": [], "Hytronik": [] },
+      edcBalance: DEFAULT_EDC_BALANCE,
+      edcBalanceSaving: false,
       readOnly: IS_GITHUB_PAGES,
       dataSource: "loading",
       dataTimestamp: null,
@@ -4391,6 +4440,7 @@
       courtFeeInput: document.getElementById("courtFeeInput"),
       shuttlePriceInput: document.getElementById("shuttlePriceInput"),
       shuttleCountInput: document.getElementById("shuttleCountInput"),
+      edcBalanceInput: document.getElementById("edcBalanceInput"),
       shuttleTypeNotice: document.getElementById("shuttleTypeNotice"),
       feeAdvancedBtn: document.getElementById("feeAdvancedBtn"),
       feeBasicGrid: document.getElementById("feeBasicGrid"),
@@ -4592,6 +4642,7 @@
       state.sessions = normalizeSessions(data.sessions);
       state.levelDescriptions = data.levelDescriptions || {};
       state.levelGuideRaw = data.levelGuideRaw || "";
+      state.edcBalance = normalizeEdcBalanceValue(data.edcBalance) ?? DEFAULT_EDC_BALANCE;
       state.estimator = normalizeEstimator(data.estimator);
       state.shortTermRules = Array.isArray(data.shortTermRules) ? data.shortTermRules : state.shortTermRules;
       state.groupAttemptOutcomes = Array.isArray(data.groupAttemptOutcomes) ? data.groupAttemptOutcomes : state.groupAttemptOutcomes;
@@ -4617,6 +4668,7 @@
       renderTable();
       if (els.calendarModal.classList.contains("open")) renderCalendar();
       if (els.chainModal.classList.contains("open")) processChain();
+      renderEdcBalance();
     }
 
     function cacheBootstrap(data) {
@@ -4659,6 +4711,7 @@
       const readOnly = state.readOnly;
       els.paymentSettingsBtn.disabled = readOnly || !state.players.length;
       els.paymentRecordBtn.hidden = readOnly;
+      renderEdcBalance();
       els.guideEditor.readOnly = readOnly;
       els.saveGuideBtn.hidden = readOnly;
       updateShakePeopleButtonVisibility();
@@ -4753,6 +4806,16 @@
       els.saveRecordBtn.addEventListener("click", saveRecordDialog);
       els.paymentSettingsTabs.forEach((tab) => {
         tab.addEventListener("click", () => switchPaymentSettingsTab(tab.dataset.paymentSettingsTab));
+      });
+      els.edcBalanceInput.addEventListener("change", saveEdcBalance);
+      els.edcBalanceInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          els.edcBalanceInput.blur();
+        } else if (event.key === "Escape") {
+          renderEdcBalance();
+          els.edcBalanceInput.blur();
+        }
       });
       els.savePaymentSettingsBtn.addEventListener("click", () => savePaymentSettings());
       els.memberExitInvestigatorBtn.addEventListener("click", openMemberExitInvestigator);
@@ -4855,6 +4918,74 @@
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
       return data;
+    }
+
+    function normalizeEdcBalanceValue(value) {
+      if (value === null || value === undefined || String(value).trim() === "") return null;
+      const balance = Number(value);
+      if (!Number.isFinite(balance) || Math.abs(balance) > 10_000_000) return null;
+      return Math.round((balance + Number.EPSILON) * 100) / 100;
+    }
+
+    function formatEdcBalance(value) {
+      const balance = normalizeEdcBalanceValue(value) ?? DEFAULT_EDC_BALANCE;
+      return Number.isInteger(balance) ? String(balance) : balance.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+    }
+
+    function renderEdcBalance() {
+      if (!els.edcBalanceInput) return;
+      if (document.activeElement !== els.edcBalanceInput || state.edcBalanceSaving) {
+        els.edcBalanceInput.value = formatEdcBalance(state.edcBalance);
+      }
+      els.edcBalanceInput.disabled = state.readOnly || state.edcBalanceSaving;
+      els.edcBalanceInput.title = state.readOnly ? "GitHub备用版只读" : "修改EDC充值余额";
+    }
+
+    async function saveEdcBalance() {
+      if (state.readOnly || state.edcBalanceSaving) {
+        renderEdcBalance();
+        return;
+      }
+      const balance = normalizeEdcBalanceValue(els.edcBalanceInput.value);
+      if (balance === null) {
+        toast("EDC余额需要填写有效金额");
+        renderEdcBalance();
+        return;
+      }
+      if (balance === state.edcBalance) {
+        renderEdcBalance();
+        return;
+      }
+
+      state.edcBalanceSaving = true;
+      renderEdcBalance();
+      setSync("正在保存EDC余额");
+      try {
+        const data = await api("/api/edc-balance", {
+          method: "PUT",
+          body: JSON.stringify({ balance }),
+        });
+        state.edcBalance = normalizeEdcBalanceValue(data.edcBalance) ?? balance;
+        setSync("已保存");
+        toast(`EDC余额已更新为${formatEdcBalance(state.edcBalance)}元`);
+      } catch (error) {
+        setSync("保存失败");
+        toast(`保存EDC余额失败：${error.message}`);
+      } finally {
+        state.edcBalanceSaving = false;
+        renderEdcBalance();
+      }
+    }
+
+    function applyEdcBalanceResponse(data) {
+      const balance = normalizeEdcBalanceValue(data?.edcBalance);
+      if (balance === null) return "";
+      state.edcBalance = balance;
+      renderEdcBalance();
+      const charge = normalizeEdcBalanceValue(data?.edcCharge);
+      return charge > 0
+        ? `EDC余额已扣${formatEdcBalance(charge)}元，剩余${formatEdcBalance(balance)}元`
+        : "";
     }
 
     function setSync(text, forcedState = "") {
@@ -6854,6 +6985,7 @@
           body: JSON.stringify(body),
         });
         upsertSession(data.session);
+        const balanceMessage = applyEdcBalanceResponse(data);
         if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
         if (data.removedShortRuleCount) await loadShortTermRules();
         applyGroupAttemptResponse(data.groupAttempt);
@@ -6861,9 +6993,10 @@
         setSync("已保存");
         closeModal("paymentModal");
         renderTable();
-        toast(data.removedShortRuleCount
-          ? `订场记录已保存，已删除${data.removedShortRuleCount}条提前返场规则`
-          : "订场记录已保存");
+        const savedMessages = ["订场记录已保存"];
+        if (balanceMessage) savedMessages.push(balanceMessage);
+        if (data.removedShortRuleCount) savedMessages.push(`已删除${data.removedShortRuleCount}条提前返场规则`);
+        toast(savedMessages.join("，"));
       } catch (error) {
         setSync("保存失败");
         toast(`保存订场记录失败：${error.message}`);
@@ -7215,6 +7348,7 @@
           ? await api(`/api/sessions/${sessionId}`, { method: "PATCH", body: JSON.stringify(body) })
           : await api("/api/sessions", { method: "POST", body: JSON.stringify(body) });
         upsertSession(data.session);
+        const balanceMessage = editing ? "" : applyEdcBalanceResponse(data);
         if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
         if (data.removedShortRuleCount) await loadShortTermRules();
         applyGroupAttemptResponse(data.groupAttempt);
@@ -7232,10 +7366,10 @@
         } else if (els.calendarModal.classList.contains("open")) {
           renderCalendar();
         }
-        const savedMessage = editing ? "订场记录已更新" : "订场记录已保存";
-        toast(data.removedShortRuleCount
-          ? `${savedMessage}，已删除${data.removedShortRuleCount}条提前返场规则`
-          : savedMessage);
+        const savedMessages = [editing ? "订场记录已更新" : "订场记录已保存"];
+        if (balanceMessage) savedMessages.push(balanceMessage);
+        if (data.removedShortRuleCount) savedMessages.push(`已删除${data.removedShortRuleCount}条提前返场规则`);
+        toast(savedMessages.join("，"));
       } catch (error) {
         setSync("保存失败");
         toast(`保存订场记录失败：${error.message}`);
