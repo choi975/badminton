@@ -504,13 +504,49 @@ assert.ok(recentHighFrequency.adaptation.weightedSuccessfulSessions < 25, "old s
 
 const learningPlayers = makePlayers(15);
 const newMemberId = 15;
-const learningBase = {
+const establishedLearningHistory = buildHistory(makePlayers(14));
+const neverJoinedBase = {
   players: learningPlayers,
-  sessions: buildHistory(makePlayers(14)),
+  sessions: establishedLearningHistory,
   entries: learningPlayers.slice(0, 5).map(regularEntry),
   includeCandidates: true,
   simulations: 5000,
   counterfactualSimulations: 160,
+};
+const neverJoined = estimate(neverJoinedBase);
+assert.equal(
+  neverJoined.candidates.find((candidate) => candidate.playerId === newMemberId),
+  undefined,
+  "a member without any real signup history must not enter shake recommendations",
+);
+const trackedSignupWithoutSuccessfulSession = estimate({
+  ...neverJoinedBase,
+  groupLearningSignals: {
+    members: { [newMemberId]: { joinedWeight: 0.5 } },
+  },
+});
+assert.ok(
+  trackedSignupWithoutSuccessfulSession.candidates.some((candidate) => candidate.playerId === newMemberId),
+  "a prior eligible signup should qualify even when that attempt did not become a successful session",
+);
+const companionOnlyPlayers = makePlayers(7);
+const companionOnlyHistory = [session("2026-09-01", [1, 2, 3, 4, 5, 6], { 7: 1 })];
+const companionOnlyOwner = estimate({
+  players: companionOnlyPlayers,
+  sessions: companionOnlyHistory,
+  entries: [],
+});
+assert.equal(
+  companionOnlyOwner.candidates.find((candidate) => candidate.playerId === 7),
+  undefined,
+  "being named only as a companion owner must not count as a personal signup",
+);
+const learningBase = {
+  ...neverJoinedBase,
+  sessions: [
+    ...establishedLearningHistory,
+    session("2026-06-01", [1, 2, 3, 4, 5, newMemberId]),
+  ],
 };
 const newMemberColdStart = estimate(learningBase);
 const zeroEvidenceColdStart = estimate({
@@ -564,8 +600,8 @@ const newMemberLearnedHigh = estimate({
 });
 const coldNewCandidate = newMemberColdStart.candidates.find((candidate) => candidate.playerId === newMemberId);
 const learnedNewCandidate = newMemberLearnedHigh.candidates.find((candidate) => candidate.playerId === newMemberId);
-assert.ok(coldNewCandidate, "a new player must automatically enter the candidate pool without history");
-assert.ok(coldNewCandidate.risks.includes("新成员样本少"));
+assert.ok(coldNewCandidate, "a member with successful-session history must enter the candidate pool");
+assert.ok(coldNewCandidate.risks.includes("历史样本较少"));
 assert.ok(
   learnedNewCandidate.attendanceProbability > coldNewCandidate.attendanceProbability * 1.5,
   "a reliable participation signal must replace cold-start behavior as new-member observations arrive",

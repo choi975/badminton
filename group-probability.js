@@ -575,6 +575,7 @@
       const thirdDay = member.thirdDay && typeof member.thirdDay === "object" ? member.thirdDay : {};
       membersById.set(playerId, {
         playerId,
+        joinedWeight: evidenceField(member, ["joinedWeight", "joined_weight"]),
         participationRate: probabilityField(member, ["participationRate", "participation_rate"])
           ?? probabilityField(participation, ["rate"]),
         participationReliability: reliabilityField(member, ["participationReliability", "participation_reliability"])
@@ -1225,14 +1226,17 @@
     for (let index = 0; index < model.players.length; index += 1) {
       const player = model.players[index];
       if (currentIds.has(player.id)) continue;
-      const member = todayContext.memberData[index];
       const stats = model.history.statsById.get(player.id);
+      const learningSignal = model.learning.membersById.get(player.id);
+      const hasPriorRealSignup = (stats?.rawPlayCount || 0) > 0
+        || (learningSignal?.joinedWeight || 0) > 0;
+      if (!hasPriorRealSignup) continue;
+      const member = todayContext.memberData[index];
       const blocked = member.blocked;
       const priorStreak = member.baseStreak;
       const fatigued = priorStreak > 0 && fatigueFactorFor(member, priorStreak) < 0.8;
       const social = member.social;
       const largeConfidence = member.largeConfidence;
-      const learningSignal = model.learning.membersById.get(player.id);
       const attendanceProbability = blocked ? 0 : attendanceCounts[index] / Math.max(1, simulationCount);
       const rawUplift = blocked ? 0 : counterfactualUplift(
         model,

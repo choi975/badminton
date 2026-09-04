@@ -1,8 +1,7 @@
 {
-  "generatedAt": "2026-09-04T02:18:20.691Z",
+  "generatedAt": "2026-09-04T04:12:19.895Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
-    "edcBalance": 860,
     "players": [
       {
         "id": 1,
@@ -30,7 +29,7 @@
       },
       {
         "id": 4,
-        "name": "何兴康，7点",
+        "name": "7点，何兴康",
         "gender": "男",
         "level": "3.5级",
         "affiliation": "球友+Hytronik",
@@ -38,7 +37,7 @@
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-09 12:07:19",
-        "updatedAt": "2026-07-28 03:40:17"
+        "updatedAt": "2026-09-04 03:02:46"
       },
       {
         "id": 5,
@@ -999,6 +998,18 @@
         "participatesPayment": true,
         "createdAt": "2026-09-02 09:39:38",
         "updatedAt": "2026-09-02 15:49:47"
+      },
+      {
+        "id": 90,
+        "name": "Selina",
+        "gender": "女",
+        "level": "不详",
+        "affiliation": "Hytronik",
+        "notes": "",
+        "photoKey": "",
+        "participatesPayment": true,
+        "createdAt": "2026-09-04 03:24:34",
+        "updatedAt": "2026-09-04 03:24:41"
       }
     ],
     "levelDescriptions": {
@@ -1018,6 +1029,7 @@
       "9级": "•  在全国性比赛获得冠军"
     },
     "levelGuideRaw": "中羽等级表格\n0.5级\n•  刚开始打球，连握拍都不会\n1级\n•  会正手和反手握拍，但不会灵活切换\n•  会正手发球和反手发球，但发球经常下网或者出界\n•  不会侧身和架拍\n•  打球基本原地不动\n•  挥拍经常挥空\n1.5级\n•  反手发球基本及格，正手发球还不熟练\n•  偶尔会记得侧身和架拍\n•  开始会移动了，但移动较慢，动作僵硬\n•  正手高远球经常只能打到中场\n•  不会处理网前球\n2级\n•  正手高远球基本能到底线\n•  接发球经常是随意将球回到中场，遇到高手会被直接杀球\n•  不会接对面偷后场的发球\n•  挥拍经常打杆\n•  对网前球会下压和放网，但失误率高\n2.5级\n•  接发球开始会挑后场了\n•  能接对面偷后场的发球，但回球经常是只能回到网前。\n•  大多是平抽，还不太会杀球、吊球等技术\n•  回球质量不高，常被对手连续进攻\n3级\n•  接发球不再只是挑后场，偶尔会平推或放网\n•  面对对面偷后场的发球，回球能够回高远球甚至杀球。\n•  移动开始变得灵活\n•  掌握吊球，杀球，搓球，放网等常用的技术\n•  回球开始会找空档，但还不会主动规划线路，转守为攻。\n•  正手回球能回到底线，正反手也能完成一些过渡\n•  能接一些威胁不大的杀球。\n3.5级\n•  掌握踮步、并步、弓箭步、交叉步等常见步伐，启动和移动速度达到中等水平\n•  反手高远球也能够打到后场，正反手过渡直线斜线相对稳定\n•  进攻有威胁，防守会做出一些球路变化，不让对手连续进攻\n4级\n•  发接发质量高，失误少，网前放网、搓球等质量高\n•  前场封网速度快，后场能够连续进攻\n•  掌握各种杀球(重杀，劈杀，点杀)和吊球(滑吊，劈吊)技术\n•  能够较好的完成对抗练习，有控制对手的意识，发现其弱点\n•  场上失误较少，回球质量较高\n4.5级\n•  步伐标准，没有多余的动作\n•  后场能够连续进攻，甚至会双脚起跳杀球\n•  防守能做出球路变化，转守为攻\n•  会一些假动作且动作一致性较强\n5级\n•  各项技术运用自如，并且有一两项突出的技术(比如杀球快)\n•  每一拍衔接的较快，几乎没有失误\n•  会反手杀球、鱼跃接球、身后接球之类的高难度动作\n•  力量和速度达到高等水平，进攻威胁较强，防守也较牢固\n6级\n•  能看到专业选手的技术特点，有意识和战术分析能力\n•  参加业余比赛并取得过较好成绩\n7级\n•  在省市级业余比赛获得较好名次\n8级\n•  在全国性比赛获得较好名次\n9级\n•  在全国性比赛获得冠军",
+    "edcBalance": 860,
     "groupJoinNumbers": {
       "球友": [
         {
@@ -1365,6 +1377,10 @@
         {
           "playerId": 54,
           "joinNumber": 44
+        },
+        {
+          "playerId": 90,
+          "joinNumber": 45
         }
       ]
     },
@@ -1457,7 +1473,8 @@
         22,
         16,
         17,
-        54
+        54,
+        90
       ]
     },
     "sessions": [
@@ -6473,7 +6490,7 @@
     ],
     "estimator": {
       "version": 5,
-      "generatedAt": "2026-09-04T02:18:20.352Z",
+      "generatedAt": "2026-09-04T04:12:19.547Z",
       "trainingRevision": 200,
       "training": {
         "dateRange": {
@@ -6862,6 +6879,21 @@
         "updatedAt": "2026-09-02 04:05:22"
       },
       {
+        "id": 49,
+        "playerId": 8,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-05",
+          "note": ""
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": "2026-09-04",
+        "rawText": "阿恒 1天后 再打",
+        "createdAt": "2026-09-04 03:13:02",
+        "updatedAt": "2026-09-04 03:13:02"
+      },
+      {
         "id": 36,
         "playerId": 73,
         "type": "not_before_date",
@@ -6934,6 +6966,21 @@
         "rawText": "北新  下周 再打",
         "createdAt": "2026-09-03 04:00:45",
         "updatedAt": "2026-09-03 04:00:45"
+      },
+      {
+        "id": 51,
+        "playerId": 9,
+        "type": "not_before_next_week",
+        "rule": {
+          "weekday": 1,
+          "resumeOn": "2026-09-07",
+          "note": "工作"
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": "2026-09-06",
+        "rawText": "柚子 下周 再打 工作",
+        "createdAt": "2026-09-04 03:52:48",
+        "updatedAt": "2026-09-04 03:52:48"
       },
       {
         "id": 27,
@@ -7131,11 +7178,11 @@
     ],
     "groupLearningSignals": {
       "version": "group-learning-v1",
-      "generatedAt": "2026-09-04T02:18:20.691Z",
+      "generatedAt": "2026-09-04T04:12:19.895Z",
       "generatedDate": "2026-09-04",
       "halfLifeDays": 30,
       "training": {
-        "playerCount": 83,
+        "playerCount": 84,
         "sessionCount": 22,
         "attemptCount": 1,
         "eligibleAttemptCount": 0,
@@ -8655,6 +8702,24 @@
           "companionMean": 0.1,
           "companionReliability": 0,
           "lastObservedDate": "2026-09-02"
+        },
+        "90": {
+          "attemptWeight": 0,
+          "joinedWeight": 0,
+          "participationRate": 0.18,
+          "participationReliability": 0,
+          "retentionRate": 0.95,
+          "retentionReliability": 0,
+          "largePreferenceConfidence": 0.08,
+          "largePreferenceEvidence": 0,
+          "secondDayRate": 0.042056,
+          "secondDayEvidence": 0,
+          "thirdDayRate": 0.042056,
+          "thirdDayEvidence": 0,
+          "companionRate": 0.08,
+          "companionMean": 0.1,
+          "companionReliability": 0,
+          "lastObservedDate": null
         }
       },
       "influence": {}
