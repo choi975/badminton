@@ -3,9 +3,15 @@ import { webcrypto } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import vm from "node:vm";
+import {
+  buildGroupLearningSignals,
+  GROUP_LEARNING_VERSION,
+} from "../src/group-learning-core.js";
 
 const workerSource = readFileSync(new URL("../src/worker.js", import.meta.url), "utf8");
+const snapshotSource = readFileSync(new URL("./generate-snapshot.js", import.meta.url), "utf8");
 const migrationSource = readFileSync(new URL("../migrations/0017_group_attempt_tracking.sql", import.meta.url), "utf8");
+const cacheMigrationSource = readFileSync(new URL("../migrations/0021_group_learning_model_cache.sql", import.meta.url), "utf8");
 const capturedErrors = [];
 
 const pureHelpersStart = workerSource.indexOf("function getBeijingDateString(");
@@ -26,6 +32,10 @@ const context = vm.createContext({
   TextEncoder,
   Uint8Array,
   crypto: webcrypto,
+  buildGroupLearningSignals,
+  GROUP_LEARNING_VERSION,
+  listPlayers: async () => [],
+  listSessions: async () => [],
   console: { ...console, error: (...args) => capturedErrors.push(args) },
 });
 vm.runInContext(`
@@ -38,6 +48,15 @@ const GROUP_ATTEMPT_MAX_CONSTRAINTS = 500;
 const GROUP_ATTEMPT_MAX_JSON_BYTES = 16 * 1024;
 const GROUP_ATTEMPT_MAX_SNAPSHOTS = 200;
 const GROUP_ATTEMPT_CLOCK_SKEW_MS = 10 * 60 * 1000;
+const GROUP_LEARNING_LOOKBACK_DAYS = 365;
+const GROUP_LEARNING_MAX_ATTEMPTS = 50;
+const GROUP_LEARNING_MAX_ROWS = 10_000;
+const GROUP_LEARNING_HALF_LIFE_DAYS = 30;
+const GROUP_LEARNING_CACHE_ID = "current";
+const GROUP_LEARNING_RAW_DATA_KEYS = new Set([
+  "snapshots", "knownPlayerIds", "known_player_ids", "known_player_ids_json",
+  "companionsByOwner", "companions_by_owner", "companions_by_owner_json",
+]);
 const GROUP_ATTEMPT_TRIGGERS = new Set(["paste", "input", "companion", "rule_change"]);
 const GROUP_ATTEMPT_RANKING_MODES = new Set(["attendanceProbability", "attendanceProbabilityTimesUplift"]);
 const GROUP_ATTEMPT_CONSTRAINT_TYPES = new Set([
@@ -93,17 +112,221 @@ ${workerSource.slice(databaseHelpersStart, databaseHelpersEnd)}
 globalThis.trackingDatabase = {
   saveGroupAttemptSnapshot,
   listGroupAttemptOutcomes,
+  listGroupLearningAttempts,
+  parseGroupLearningAttemptRows,
+  parseCachedGroupLearningSignals,
+  getCachedGroupLearningSignals,
+  buildGroupLearningColdStart,
+  rebuildGroupLearningSignals,
+  safelyRebuildGroupLearningSignals,
   reconcileGroupAttemptOutcome,
   safelyReconcileGroupAttemptOutcome,
   settleDueGroupAttempts,
+  runScheduledGroupLearningMaintenance,
 };
 `, context);
 const {
   saveGroupAttemptSnapshot,
   listGroupAttemptOutcomes,
+  listGroupLearningAttempts,
+  parseGroupLearningAttemptRows,
+  parseCachedGroupLearningSignals,
+  getCachedGroupLearningSignals,
+  buildGroupLearningColdStart,
+  rebuildGroupLearningSignals,
+  safelyRebuildGroupLearningSignals,
   safelyReconcileGroupAttemptOutcome,
   settleDueGroupAttempts,
+  runScheduledGroupLearningMaintenance,
 } = context.trackingDatabase;
+
+const robustRows = [
+  {
+    attempt_id: 9,
+    activity_date: "2026-09-04",
+    attempt_outcome: "failure",
+    attempt_training_state: "eligible",
+    attempt_source: "tracked",
+    snapshot_id: 2,
+    snapshot_observed_at: "2026-09-04T08:02:00.000Z",
+    snapshot_training_state: "eligible",
+    snapshot_participant_count: "Infinity",
+    known_player_ids_json: "not-json",
+    companions_by_owner_json: "{\"1\":2}",
+  },
+  {
+    attempt_id: 9,
+    activity_date: "2026-09-04",
+    attempt_outcome: "failure",
+    attempt_training_state: "eligible",
+    attempt_source: "tracked",
+    snapshot_id: 1,
+    snapshot_observed_at: "2026-09-04T08:01:00.000Z",
+    snapshot_training_state: "eligible",
+    snapshot_participant_count: 2,
+    known_player_ids_json: "[1,2]",
+    companions_by_owner_json: "[]",
+  },
+  {
+    attempt_id: 9,
+    activity_date: "2026-09-04",
+    snapshot_id: 1,
+    snapshot_observed_at: "2026-09-04T09:00:00.000Z",
+    known_player_ids_json: "[99]",
+    companions_by_owner_json: "[]",
+  },
+  {
+    attempt_id: 10,
+    activity_date: "2026-09-03",
+    attempt_outcome: "success",
+    attempt_training_state: "eligible",
+    attempt_source: "tracked",
+    snapshot_id: null,
+  },
+  { attempt_id: 11, activity_date: "2026-02-30", snapshot_id: 4 },
+  { attempt_id: "invalid", activity_date: "2026-09-04", snapshot_id: 5 },
+];
+const robustAttempts = JSON.parse(JSON.stringify(parseGroupLearningAttemptRows(robustRows)));
+assert.equal(robustAttempts.length, 2, "坏attempt行应跳过，无快照attempt仍可安全分组");
+assert.deepEqual(robustAttempts.map((attempt) => attempt.id), [10, 9]);
+assert.deepEqual(robustAttempts[0].snapshots, []);
+assert.deepEqual(robustAttempts[1].snapshots.map((snapshot) => snapshot.id), [1, 2], "快照应排序并按ID去重");
+assert.deepEqual(robustAttempts[1].snapshots[0].knownPlayerIds, [1, 2]);
+assert.deepEqual(robustAttempts[1].snapshots[1].knownPlayerIds, [], "坏名单JSON应降级为空数组");
+assert.deepEqual(robustAttempts[1].snapshots[1].companionsByOwner, { 1: 2 }, "对象形式随行数据应被保留给核心归一化");
+assert.equal(robustAttempts[1].snapshots[1].participantCount, 0, "非有限人数不能污染学习信号");
+assert.deepEqual(JSON.parse(JSON.stringify(parseGroupLearningAttemptRows(null))), []);
+
+let learningQuery = "";
+let learningBindings = [];
+let learningQueryCount = 0;
+const boundedLearningDb = {
+  prepare(sql) {
+    learningQueryCount += 1;
+    learningQuery = sql;
+    return {
+      bind(...bindings) {
+        learningBindings = bindings;
+        return { all: async () => ({ results: robustRows }) };
+      },
+    };
+  },
+};
+const boundedAttempts = await listGroupLearningAttempts(
+  boundedLearningDb,
+  new Date("2026-09-04T04:00:00.000Z"),
+);
+assert.equal(learningQueryCount, 1, "学习数据必须由单个受限查询读取");
+assert.deepEqual(learningBindings, ["main", "2025-09-05", "2026-09-04", 50]);
+const learningAttemptSelectionEnd = learningQuery.indexOf("SELECT\n       attempt.attempt_id");
+const learningAttemptSelection = learningQuery.slice(0, learningAttemptSelectionEnd);
+assert.match(learningAttemptSelection, /attempt\.training_state = 'eligible'/);
+assert.match(learningAttemptSelection, /EXISTS \([\s\S]*eligible_snapshot\.training_state = 'eligible'/);
+assert.match(learningAttemptSelection, /ORDER BY attempt\.activity_date DESC, attempt\.id DESC[\s\S]*LIMIT \?/);
+assert.ok(
+  learningQuery.indexOf("LIMIT ?") < learningQuery.indexOf("INNER JOIN group_attempt_snapshots"),
+  "必须先限制50个完整attempt，再关联其快照",
+);
+assert.match(learningQuery, /INNER JOIN group_attempt_snapshots/);
+assert.doesNotMatch(learningQuery, /LEFT JOIN/, "完整attempt查询不能用LEFT JOIN制造空行或截断残片");
+assert.match(learningQuery, /snapshot\.training_state = 'eligible'/, "试算快照不得占用训练预算");
+assert.doesNotMatch(learningQuery, /SELECT\s+\*/i, "学习查询只能读取核心所需列");
+assert.equal(boundedAttempts.length, 2);
+
+const completeAttemptDatabase = new DatabaseSync(":memory:");
+completeAttemptDatabase.exec(`
+  CREATE TABLE group_attempts (
+    id INTEGER PRIMARY KEY,
+    activity_date TEXT NOT NULL,
+    group_key TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    training_state TEXT NOT NULL,
+    source TEXT NOT NULL
+  );
+  CREATE TABLE group_attempt_snapshots (
+    id INTEGER PRIMARY KEY,
+    attempt_id INTEGER NOT NULL,
+    observed_at TEXT NOT NULL,
+    training_state TEXT NOT NULL,
+    participant_count INTEGER NOT NULL,
+    known_player_ids_json TEXT NOT NULL,
+    companions_by_owner_json TEXT NOT NULL
+  );
+`);
+const insertCompleteAttempt = completeAttemptDatabase.prepare(
+  "INSERT INTO group_attempts (id, activity_date, group_key, outcome, training_state, source) VALUES (?, ?, 'main', 'failure', ?, 'tracked')"
+);
+const insertCompleteSnapshot = completeAttemptDatabase.prepare(
+  "INSERT INTO group_attempt_snapshots (id, attempt_id, observed_at, training_state, participant_count, known_player_ids_json, companions_by_owner_json) VALUES (?, ?, ?, ?, ?, ?, '[]')"
+);
+for (let index = 0; index < 51; index += 1) {
+  const attemptId = index + 1;
+  const activityDate = new Date(Date.UTC(2026, 6, 1 + index)).toISOString().slice(0, 10);
+  insertCompleteAttempt.run(attemptId, activityDate, "eligible");
+  insertCompleteSnapshot.run(attemptId * 10 + 1, attemptId, `${activityDate}T08:00:00.000Z`, "eligible", 1, `[${attemptId}]`);
+  insertCompleteSnapshot.run(attemptId * 10 + 2, attemptId, `${activityDate}T08:01:00.000Z`, "excluded", 2, `[${attemptId},999]`);
+  insertCompleteSnapshot.run(attemptId * 10 + 3, attemptId, `${activityDate}T08:02:00.000Z`, "eligible", 2, `[${attemptId},1]`);
+}
+insertCompleteAttempt.run(100, "2026-09-01", "excluded");
+insertCompleteSnapshot.run(1001, 100, "2026-09-01T08:00:00.000Z", "eligible", 1, "[100]");
+const completeAttemptD1 = {
+  prepare(sql) {
+    return {
+      bind(...bindings) {
+        return { all: async () => ({ results: completeAttemptDatabase.prepare(sql).all(...bindings) }) };
+      },
+    };
+  },
+};
+const completeAttempts = await listGroupLearningAttempts(
+  completeAttemptD1,
+  new Date("2026-09-04T04:00:00.000Z"),
+);
+assert.equal(completeAttempts.length, 50, "最近50个eligible attempt必须完整进入训练");
+assert.equal(completeAttempts[0].id, 2, "第51个较老attempt应在JOIN前被整体排除");
+assert.equal(completeAttempts.at(-1).id, 51);
+assert.ok(completeAttempts.every((attempt) => attempt.snapshots.length === 2), "不能返回被行级LIMIT截断的残片attempt");
+assert.ok(completeAttempts.every((attempt) => (
+  attempt.snapshots.every((snapshot) => snapshot.trainingState === "eligible")
+)), "excluded试算快照不能进入训练或占用行预算");
+assert.equal(completeAttempts.some((attempt) => attempt.id === 100), false, "excluded试算attempt不能占用50个名额");
+completeAttemptDatabase.close();
+
+const coldStartSignals = buildGroupLearningColdStart(
+  [{ id: 1, createdAt: "2026-09-01T00:00:00.000Z" }],
+  [],
+  new Date("2026-09-04T04:00:00.000Z"),
+);
+assert.equal(coldStartSignals.version, GROUP_LEARNING_VERSION);
+assert.equal(coldStartSignals.training.eligibleAttemptCount, 0, "冷启动严禁把快照作为训练输入");
+assert.equal(parseCachedGroupLearningSignals("not-json"), null);
+assert.equal(parseCachedGroupLearningSignals(JSON.stringify({ ...coldStartSignals, snapshots: [] })), null);
+assert.equal(
+  parseCachedGroupLearningSignals(JSON.stringify({ ...coldStartSignals, version: "group-learning-v0" })),
+  null,
+  "旧版缓存必须拒绝并触发冷启动，等待定时重建",
+);
+
+let cacheReadCount = 0;
+let cacheReadSql = "";
+const badCacheDb = {
+  prepare(sql) {
+    cacheReadCount += 1;
+    cacheReadSql = sql;
+    return {
+      bind(...bindings) {
+        assert.deepEqual(bindings, ["current"]);
+        return { first: async () => ({ model_json: "not-json" }) };
+      },
+    };
+  },
+};
+const badCachedSignals = await getCachedGroupLearningSignals(badCacheDb);
+const safeFallbackSignals = badCachedSignals || buildGroupLearningColdStart([], [], new Date("2026-09-04T04:00:00.000Z"));
+assert.equal(cacheReadCount, 1);
+assert.match(cacheReadSql, /SELECT model_json FROM group_learning_model_cache/);
+assert.doesNotMatch(cacheReadSql, /group_attempt_snapshots/, "bootstrap缓存读取不能扫描历史快照");
+assert.equal(safeFallbackSignals.training.eligibleAttemptCount, 0, "坏缓存必须退回安全冷启动");
 
 assert.equal(getBeijingDateString(new Date("2026-09-03T16:00:00.000Z")), "2026-09-04");
 assert.equal(
@@ -279,6 +502,20 @@ database.exec(`
   VALUES (1, 7, 'not_within_days', '{"days":2}', '2026-09-01', '2026-09-02', '成员甲 两天内不打');
 `);
 database.exec(migrationSource);
+database.exec(cacheMigrationSource);
+
+assert.deepEqual(
+  database.prepare("PRAGMA table_info(group_learning_model_cache)").all().map((row) => row.name),
+  ["id", "model_json", "generated_at", "updated_at"],
+  "学习模型缓存迁移必须建立固定单行结构",
+);
+assert.throws(
+  () => database.prepare(
+    "INSERT INTO group_learning_model_cache (id, model_json, generated_at) VALUES ('other', '{}', CURRENT_TIMESTAMP)"
+  ).run(),
+  /constraint/i,
+  "缓存表只能接受current主键",
+);
 
 const migratedAttempts = database.prepare(
   "SELECT activity_date, outcome, training_state, source, actual_participant_count FROM group_attempts ORDER BY activity_date"
@@ -425,6 +662,32 @@ assert.deepEqual(Object.keys(upgradedOutcome).sort(), [
   "activityDate", "hasEligibleSnapshots", "outcome", "source", "trainingState",
 ].sort(), "bootstrap聚合不得泄露roster");
 assert.equal(upgradedOutcome.hasEligibleSnapshots, true);
+const sqlLearningAttempts = await listGroupLearningAttempts(d1, requestNow);
+const sqlLearnedSeptemberThird = sqlLearningAttempts.find((attempt) => attempt.activityDate === "2026-09-03");
+assert.ok(sqlLearnedSeptemberThird, "真实SQLite查询应能读取窗口内attempt");
+assert.equal(sqlLearnedSeptemberThird.snapshots.length, 1, "真实SQLite查询只能返回完整attempt中的eligible快照");
+assert.deepEqual(
+  [...sqlLearnedSeptemberThird.snapshots[0].knownPlayerIds],
+  [1, 2],
+  "真实SQLite查询应把名单JSON留在服务端学习输入中解析",
+);
+const rebuiltSignals = await rebuildGroupLearningSignals(d1, requestNow);
+const rebuiltCacheRow = database.prepare(
+  "SELECT id, model_json, generated_at FROM group_learning_model_cache WHERE id = 'current'"
+).get();
+assert.equal(rebuiltCacheRow.id, "current");
+assert.equal(rebuiltCacheRow.generated_at, rebuiltSignals.generatedAt);
+assert.deepEqual(
+  JSON.parse(rebuiltCacheRow.model_json),
+  rebuiltSignals,
+  "显式重建必须把完整聚合信号原子写入缓存",
+);
+assert.doesNotMatch(
+  rebuiltCacheRow.model_json,
+  /knownPlayerIds|known_player_ids_json|companionsByOwner|companions_by_owner_json|"snapshots"/,
+  "缓存不得保存原始名单或快照",
+);
+assert.equal((await getCachedGroupLearningSignals(d1)).version, "group-learning-v1");
 
 database.prepare("UPDATE group_attempts SET outcome = 'pending' WHERE activity_date = '2026-09-01'").run();
 database.prepare("UPDATE group_attempts SET outcome = 'success' WHERE activity_date = '2026-09-02'").run();
@@ -444,6 +707,22 @@ assert.deepEqual(
   { outcome: "failure", source: "booking_backfill" },
   "定时任务应从订场记录修复首次安全对账漏建的attempt",
 );
+database.prepare(
+  "UPDATE group_learning_model_cache SET model_json = 'broken', generated_at = 'broken' WHERE id = 'current'"
+).run();
+const maintenanceResult = await runScheduledGroupLearningMaintenance(
+  d1,
+  new Date("2026-09-05T04:05:00.000Z"),
+);
+assert.equal(maintenanceResult.settlement.cutoffDate, "2026-09-04");
+assert.equal(maintenanceResult.groupLearningSignals.version, "group-learning-v1");
+assert.equal(
+  parseCachedGroupLearningSignals(database.prepare(
+    "SELECT model_json FROM group_learning_model_cache WHERE id = 'current'"
+  ).get().model_json).version,
+  "group-learning-v1",
+  "定时结算后必须重建并覆盖坏缓存",
+);
 
 const safeResult = await safelyReconcileGroupAttemptOutcome({
   prepare() {
@@ -451,6 +730,12 @@ const safeResult = await safelyReconcileGroupAttemptOutcome({
   },
 }, "2026-09-04");
 assert.equal(safeResult, null, "安全对账失败不能向订场主流程抛错");
+const safeLearningResult = await safelyRebuildGroupLearningSignals({
+  prepare() {
+    throw new Error("simulated learning outage");
+  },
+}, requestNow);
+assert.equal(safeLearningResult, null, "学习重建失败必须独立降级，不能反向影响结算");
 assert.ok(capturedErrors.length > 0, "安全对账失败应留下服务端错误日志");
 
 assert.match(workerSource, /pathname === "\/api\/group-attempts\/snapshots" && method === "POST"/);
@@ -461,7 +746,65 @@ assert.match(workerSource, /GROUP_ATTEMPT_SUCCESS_COUNT = 6/);
 assert.match(workerSource, /GROUP_ATTEMPT_MAX_SNAPSHOTS = 200/);
 assert.match(workerSource, /GROUP_ATTEMPT_RATE_LIMITER\.limit\(\{ key \}\)/);
 assert.match(workerSource, /listGroupAttemptOutcomes\(env\.DB\)/);
+assert.match(workerSource, /import \{[\s\S]*buildGroupLearningSignals,[\s\S]*GROUP_LEARNING_VERSION,[\s\S]*\} from "\.\/group-learning-core\.js"/);
 assert.match(migrationSource, /trigger_type TEXT NOT NULL,\s+training_state TEXT NOT NULL DEFAULT 'eligible'/);
+assert.match(cacheMigrationSource, /CREATE TABLE IF NOT EXISTS group_learning_model_cache/);
+assert.match(cacheMigrationSource, /CHECK \(id = 'current'\)/);
+assert.match(workerSource, /context\.waitUntil\(runScheduledGroupLearningMaintenance\(env\.DB, now\)\)/);
+
+const bootstrapStart = workerSource.indexOf('if (pathname === "/api/bootstrap" && method === "GET")');
+const bootstrapEnd = workerSource.indexOf('if (pathname === "/api/estimator"', bootstrapStart);
+const bootstrapRoute = workerSource.slice(bootstrapStart, bootstrapEnd);
+assert.match(bootstrapRoute, /getCachedGroupLearningSignals\(env\.DB\)/);
+assert.match(bootstrapRoute, /cachedGroupLearningSignals \|\| buildGroupLearningColdStart/);
+assert.doesNotMatch(
+  bootstrapRoute,
+  /listGroupLearningAttempts|group_attempt_snapshots/,
+  "公开bootstrap不得扫描历史接龙快照",
+);
+assert.match(bootstrapRoute, /groupLearningSignals/);
+const bootstrapResponseStart = bootstrapRoute.indexOf("return json({");
+const bootstrapResponse = bootstrapRoute.slice(bootstrapResponseStart);
+assert.doesNotMatch(
+  bootstrapResponse,
+  /groupLearningAttempts|known_player_ids_json|companions_by_owner_json|snapshots\s*:/,
+  "bootstrap只能返回聚合学习信号，不能泄露原始名单或快照",
+);
+
+const rebuildRouteStart = workerSource.indexOf('if (pathname === "/api/group-learning/rebuild" && method === "POST")');
+const rebuildRouteEnd = workerSource.indexOf('if (pathname === "/api/group-attempts/current"', rebuildRouteStart);
+const rebuildRoute = workerSource.slice(rebuildRouteStart, rebuildRouteEnd);
+assert.match(rebuildRoute, /isAdminRequest\(request\)/, "手动重建必须限制为管理端来源");
+assert.match(rebuildRoute, /consumeGroupAttemptRateLimit\(request, env\)/, "手动重建必须沿用现有限流");
+assert.match(rebuildRoute, /rebuildGroupLearningSignals\(env\.DB\)/);
+assert.doesNotMatch(rebuildRoute, /snapshots\s*:|knownPlayerIds|companionsByOwner/);
+
+assert.match(snapshotSource, /import \{ buildGroupLearningSignals \} from "\.\.\/src\/group-learning-core\.js"/);
+assert.match(snapshotSource, /GROUP_LEARNING_LOOKBACK_DAYS = 365/);
+assert.match(snapshotSource, /GROUP_LEARNING_MAX_ATTEMPTS = 50/);
+assert.match(snapshotSource, /GROUP_LEARNING_MAX_ROWS = 10_000/);
+assert.match(snapshotSource, /resultSets\.length < 10/);
+const snapshotLearningQueryStart = snapshotSource.indexOf("WITH selected_group_learning_attempts AS (");
+const snapshotLearningQueryEnd = snapshotSource.indexOf("`;", snapshotLearningQueryStart);
+const snapshotLearningQuery = snapshotSource.slice(snapshotLearningQueryStart, snapshotLearningQueryEnd);
+assert.ok(
+  snapshotLearningQuery.indexOf("LIMIT ${GROUP_LEARNING_MAX_ATTEMPTS}")
+    < snapshotLearningQuery.indexOf("INNER JOIN group_attempt_snapshots"),
+  "静态快照也必须先选50个完整attempt再JOIN",
+);
+assert.match(snapshotLearningQuery, /attempts\.training_state = 'eligible'/);
+assert.match(snapshotLearningQuery, /eligible_snapshots\.training_state = 'eligible'/);
+assert.match(snapshotLearningQuery, /snapshots\.training_state = 'eligible'/);
+assert.doesNotMatch(snapshotLearningQuery, /LEFT JOIN/);
+const snapshotOutputStart = snapshotSource.indexOf("const snapshot = {");
+const snapshotOutputEnd = snapshotSource.indexOf("await mkdir", snapshotOutputStart);
+const snapshotOutput = snapshotSource.slice(snapshotOutputStart, snapshotOutputEnd);
+assert.match(snapshotOutput, /groupLearningSignals/);
+assert.doesNotMatch(
+  snapshotOutput,
+  /groupLearningRows|groupLearningAttempts|known_player_ids_json|companions_by_owner_json|snapshots\s*:/,
+  "GitHub快照只能写入聚合学习信号，不能写入原始名单或快照",
+);
 
 const shortRuleGetStart = workerSource.indexOf('if (pathname === "/api/short-term-rules" && method === "GET")');
 const shortRulePostStart = workerSource.indexOf('if (pathname === "/api/short-term-rules" && method === "POST")', shortRuleGetStart);

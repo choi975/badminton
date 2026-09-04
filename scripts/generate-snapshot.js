@@ -2,9 +2,19 @@ import { execFile } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { promisify } from "node:util";
+import { buildGroupLearningSignals } from "../src/group-learning-core.js";
 
 const execFileAsync = promisify(execFile);
 const outputPath = resolve("data/bootstrap-snapshot.json");
+const GROUP_LEARNING_LOOKBACK_DAYS = 365;
+const GROUP_LEARNING_MAX_ATTEMPTS = 50;
+const GROUP_LEARNING_MAX_ROWS = 10_000;
+const GROUP_LEARNING_HALF_LIFE_DAYS = 30;
+const snapshotNow = new Date();
+const snapshotToday = new Date(snapshotNow.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const learningEarliestDate = new Date(
+  Date.parse(`${snapshotToday}T00:00:00.000Z`) - (GROUP_LEARNING_LOOKBACK_DAYS - 1) * 86_400_000,
+).toISOString().slice(0, 10);
 const query = `
 SELECT * FROM players ORDER BY id ASC;
 SELECT key, value FROM app_settings ORDER BY key ASC;
@@ -15,16 +25,41 @@ SELECT id, session_id, player_id, player_name, owner_player_id, owner_name_snaps
 SELECT id, player_id, rule_type, rule_json, starts_on, expires_on, raw_text, created_at, updated_at FROM short_term_rules ORDER BY CASE WHEN expires_on IS NULL THEN 0 ELSE 1 END ASC, expires_on ASC, created_at ASC, id ASC;
 SELECT list_key, label, members_json, updated_at FROM shake_long_term_lists ORDER BY list_key ASC;
 SELECT attempts.activity_date, attempts.outcome, attempts.training_state, attempts.source, EXISTS (SELECT 1 FROM group_attempt_snapshots snapshots WHERE snapshots.attempt_id = attempts.id AND snapshots.training_state = 'eligible') AS has_eligible_snapshots FROM group_attempts attempts WHERE attempts.group_key = 'main' ORDER BY attempts.activity_date ASC;
+WITH selected_group_learning_attempts AS (
+  SELECT attempts.id AS attempt_id, attempts.activity_date, attempts.outcome AS attempt_outcome,
+         attempts.training_state AS attempt_training_state, attempts.source AS attempt_source
+  FROM group_attempts attempts
+  WHERE attempts.group_key = 'main'
+    AND attempts.activity_date >= '${learningEarliestDate}'
+    AND attempts.activity_date <= '${snapshotToday}'
+    AND attempts.training_state = 'eligible'
+    AND EXISTS (
+      SELECT 1
+      FROM group_attempt_snapshots eligible_snapshots
+      WHERE eligible_snapshots.attempt_id = attempts.id
+        AND eligible_snapshots.training_state = 'eligible'
+    )
+  ORDER BY attempts.activity_date DESC, attempts.id DESC
+  LIMIT ${GROUP_LEARNING_MAX_ATTEMPTS}
+)
+SELECT attempts.attempt_id, attempts.activity_date, attempts.attempt_outcome, attempts.attempt_training_state, attempts.attempt_source,
+       snapshots.id AS snapshot_id, snapshots.observed_at AS snapshot_observed_at, snapshots.training_state AS snapshot_training_state,
+       snapshots.participant_count AS snapshot_participant_count, snapshots.known_player_ids_json, snapshots.companions_by_owner_json
+FROM selected_group_learning_attempts attempts
+INNER JOIN group_attempt_snapshots snapshots
+  ON snapshots.attempt_id = attempts.attempt_id
+ AND snapshots.training_state = 'eligible'
+ORDER BY attempts.activity_date ASC, attempts.attempt_id ASC, snapshots.observed_at ASC, snapshots.id ASC;
 `;
 
 const wrangler = resolve("node_modules", "wrangler", "bin", "wrangler.js");
 const { stdout } = await execFileAsync(
   process.execPath,
   [wrangler, "d1", "execute", "DB", "--remote", "--json", "--command", query],
-  { cwd: resolve("."), maxBuffer: 20 * 1024 * 1024 },
+  { cwd: resolve("."), maxBuffer: 64 * 1024 * 1024 },
 );
 const resultSets = JSON.parse(stdout);
-if (!Array.isArray(resultSets) || resultSets.length < 9 || resultSets.some((set) => !set.success)) {
+if (!Array.isArray(resultSets) || resultSets.length < 10 || resultSets.some((set) => !set.success)) {
   throw new Error("Could not read all snapshot tables from D1");
 }
 
@@ -38,7 +73,11 @@ const [
   shortTermRuleRows,
   shakeLongTermListRows,
   groupAttemptOutcomeRows,
+  groupLearningRows,
 ] = resultSets.map((set) => set.results || []);
+if (groupLearningRows.length > GROUP_LEARNING_MAX_ROWS) {
+  throw new Error("Group-learning query exceeded its complete-attempt row bound");
+}
 const estimator = JSON.parse(await readFile(resolve("data/booking-estimator.json"), "utf8"));
 const shuttleTypes = Array.isArray(estimator.shuttleTypes) ? estimator.shuttleTypes : [];
 const shuttleTypeIds = new Set(shuttleTypes.map((type) => type.id));
@@ -167,9 +206,80 @@ const groupAttemptOutcomes = groupAttemptOutcomeRows.map((row) => ({
   source: String(row.source || ""),
   hasEligibleSnapshots: Boolean(Number(row.has_eligible_snapshots)),
 }));
+const isPlainObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
+const parseLearningJson = (value, fallback) => {
+  if (Array.isArray(value) || isPlainObject(value)) return value;
+  if (typeof value !== "string") return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) || isPlainObject(parsed) ? parsed : fallback;
+  } catch (error) {
+    return fallback;
+  }
+};
+const isValidLearningDate = (value) => {
+  const date = String(value || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const timestamp = Date.parse(`${date}T00:00:00.000Z`);
+  return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === date;
+};
+const groupLearningAttemptsById = new Map();
+const groupLearningSnapshotIds = new Map();
+for (const row of groupLearningRows) {
+  const attemptId = Number(row.attempt_id);
+  const activityDate = String(row.activity_date || "");
+  if (!Number.isInteger(attemptId) || attemptId <= 0 || !isValidLearningDate(activityDate)) continue;
+  let attempt = groupLearningAttemptsById.get(attemptId);
+  if (!attempt) {
+    attempt = {
+      id: attemptId,
+      activityDate,
+      outcome: String(row.attempt_outcome || ""),
+      trainingState: String(row.attempt_training_state || ""),
+      source: String(row.attempt_source || ""),
+      snapshots: [],
+    };
+    groupLearningAttemptsById.set(attemptId, attempt);
+    groupLearningSnapshotIds.set(attemptId, new Set());
+  }
+  const snapshotId = Number(row.snapshot_id);
+  const seenSnapshotIds = groupLearningSnapshotIds.get(attemptId);
+  if (!Number.isInteger(snapshotId) || snapshotId <= 0 || seenSnapshotIds.has(snapshotId)) continue;
+  seenSnapshotIds.add(snapshotId);
+  const knownPlayerIds = parseLearningJson(row.known_player_ids_json, []);
+  const companionsByOwner = parseLearningJson(row.companions_by_owner_json, []);
+  const rawParticipantCount = Number(row.snapshot_participant_count);
+  attempt.snapshots.push({
+    id: snapshotId,
+    observedAt: row.snapshot_observed_at || null,
+    trainingState: String(row.snapshot_training_state || ""),
+    participantCount: Number.isFinite(rawParticipantCount) && rawParticipantCount > 0
+      ? Math.floor(rawParticipantCount)
+      : 0,
+    knownPlayerIds: Array.isArray(knownPlayerIds) ? knownPlayerIds : [],
+    companionsByOwner: Array.isArray(companionsByOwner) || isPlainObject(companionsByOwner)
+      ? companionsByOwner
+      : [],
+  });
+}
+const groupLearningAttempts = [...groupLearningAttemptsById.values()]
+  .map((attempt) => ({
+    ...attempt,
+    snapshots: attempt.snapshots.sort((left, right) => (
+      String(left.observedAt || "").localeCompare(String(right.observedAt || "")) || left.id - right.id
+    )),
+  }))
+  .sort((left, right) => left.activityDate.localeCompare(right.activityDate) || left.id - right.id);
+const groupLearningSignals = buildGroupLearningSignals({
+  players,
+  sessions,
+  attempts: groupLearningAttempts,
+  now: snapshotNow,
+  halfLifeDays: GROUP_LEARNING_HALF_LIFE_DAYS,
+});
 
 const snapshot = {
-  generatedAt: new Date().toISOString(),
+  generatedAt: snapshotNow.toISOString(),
   source: "Cloudflare D1: Badminton",
   data: {
     players,
@@ -182,6 +292,7 @@ const snapshot = {
     shortTermRules,
     shakeLongTermLists,
     groupAttemptOutcomes,
+    groupLearningSignals,
   },
 };
 

@@ -4292,6 +4292,7 @@
       shortTermRules: [],
       longTermMemberLists: {},
       groupAttemptOutcomes: [],
+      groupLearningSignals: null,
       groupForecast: null,
       groupAttempt: null,
       attemptTrialRequested: false,
@@ -4603,6 +4604,9 @@
       state.estimator = normalizeEstimator(data.estimator);
       state.shortTermRules = Array.isArray(data.shortTermRules) ? data.shortTermRules : state.shortTermRules;
       state.groupAttemptOutcomes = Array.isArray(data.groupAttemptOutcomes) ? data.groupAttemptOutcomes : state.groupAttemptOutcomes;
+      state.groupLearningSignals = data.groupLearningSignals && typeof data.groupLearningSignals === "object"
+        ? data.groupLearningSignals
+        : state.groupLearningSignals;
       if (Array.isArray(data.shakeLongTermLists)) {
         state.longTermMemberLists = Object.fromEntries(data.shakeLongTermLists.map((list) => [list.key, {
           label: list.label,
@@ -8707,6 +8711,8 @@
         state.sessions.length,
         lastSession?.updatedAt || lastSession?.date || "",
         state.groupAttemptOutcomes,
+        state.groupLearningSignals?.generatedAt || "",
+        state.groupLearningSignals?.version || "",
         entries,
         rules,
         state.longTermMemberLists,
@@ -8735,6 +8741,7 @@
           players: state.players,
           sessions: state.sessions,
           groupAttempts: state.groupAttemptOutcomes,
+          groupLearningSignals: state.groupLearningSignals,
           entries: state.chainEntries,
           shortTermRules: state.shortTermRules,
           longTermLists: state.longTermMemberLists,

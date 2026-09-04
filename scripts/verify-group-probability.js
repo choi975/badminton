@@ -10,6 +10,11 @@ function isoDate(timestamp) {
   return new Date(timestamp).toISOString().slice(0, 10);
 }
 
+function logOdds(probability) {
+  const bounded = Math.min(0.999999, Math.max(0.000001, probability));
+  return Math.log(bounded / (1 - bounded));
+}
+
 function makePlayers(count = 14) {
   return Array.from({ length: count }, (_, index) => ({
     id: index + 1,
@@ -123,8 +128,9 @@ assert.equal(realBaseline.weekdayBaseline.historyStart, "2026-07-13");
 assert.equal(realBaseline.weekdayBaseline.historyEnd, "2026-09-03");
 assert.equal(realBaseline.weekdayBaseline.rows.find((row) => row.name === "周五").successes, 5);
 assert.equal(realBaseline.weekdayBaseline.rows.find((row) => row.name === "周五").days, 7);
-assert.ok(Math.abs(realBaseline.weekdayBaseline.today - 0.561376) < 0.000001, "Friday EB baseline should include 5% soft failures and k=10 shrinkage");
-assert.ok(Math.abs(realBaseline.weekdayBaseline.tomorrow - 0.393729) < 0.000001, "Saturday EB baseline should be selected for tomorrow");
+assert.ok(Math.abs(realBaseline.weekdayBaseline.today - 0.530204) < 0.000001, "Friday EB baseline should use 30-day decay, 5% soft failures, and k=10 shrinkage");
+assert.ok(Math.abs(realBaseline.weekdayBaseline.tomorrow - 0.404013) < 0.000001, "Saturday decayed EB baseline should be selected for tomorrow");
+assert.equal(realBaseline.weekdayBaseline.rows.find((row) => row.name === "周五").effectiveDays, 3.860242);
 
 const explicitAttemptFailure = probabilityApi.estimate({
   ...snapshot,
@@ -165,6 +171,32 @@ const excludedAttempt = probabilityApi.estimate({
   seed: 11,
 });
 assert.equal(excludedAttempt.weekdayBaseline.today, realBaseline.weekdayBaseline.today, "excluded attempts must not affect calibration");
+
+const baselineStart = Date.parse("2026-07-01T00:00:00Z");
+const baselineDates = Array.from({ length: 65 }, (_, index) => isoDate(baselineStart + index * 86400000));
+const baselineFridays = baselineDates.filter((date) => new Date(`${date}T00:00:00Z`).getUTCDay() === 5);
+function outcomeShift(successDates) {
+  const successful = new Set(successDates);
+  return estimate({
+    sessions: [],
+    entries: [],
+    includeCandidates: false,
+    groupAttemptOutcomes: baselineDates.map((activityDate) => ({
+      activityDate,
+      outcome: successful.has(activityDate) ? "success" : "failure",
+      trainingState: "eligible",
+      hasEligibleSnapshots: true,
+    })),
+  });
+}
+const oldFridaySuccesses = outcomeShift(baselineFridays.slice(0, 4));
+const recentFridaySuccesses = outcomeShift(baselineFridays.slice(-4));
+assert.equal(oldFridaySuccesses.weekdayBaseline.rows.find((row) => row.name === "周五").successes, 4);
+assert.equal(recentFridaySuccesses.weekdayBaseline.rows.find((row) => row.name === "周五").successes, 4);
+assert.ok(
+  recentFridaySuccesses.weekdayBaseline.today > oldFridaySuccesses.weekdayBaseline.today + 0.08,
+  "recent group outcomes must outweigh the same number of old outcomes in the weekday baseline",
+);
 
 const deterministicInput = {
   entries: makePlayers().slice(0, 4).map(regularEntry),
@@ -434,6 +466,530 @@ const joinedFatigue = estimate({
   simulations: 5000,
 });
 assert.ok(joinedFatigue.todayProbability > 0.4 && joinedFatigue.todayProbability < 0.7, "an over-capacity current signup should use the single weaker 55% retention penalty");
+
+const shiftingPlayers = makePlayers(14);
+const shiftingStart = Date.parse("2026-06-30T00:00:00Z");
+function shiftingHistory(recentlyFrequent) {
+  return Array.from({ length: 33 }, (_, index) => {
+    const candidateIsPresent = recentlyFrequent ? index >= 17 : index < 16;
+    return session(
+      isoDate(shiftingStart + index * 2 * 86400000),
+      candidateIsPresent ? [1, 2, 3, 4, 5, 12] : [1, 2, 3, 4, 5, 6],
+    );
+  });
+}
+const recentHighFrequency = estimate({
+  players: shiftingPlayers,
+  sessions: shiftingHistory(true),
+  entries: [],
+  simulations: 5000,
+  counterfactualSimulations: 100,
+});
+const recentLowFrequency = estimate({
+  players: shiftingPlayers,
+  sessions: shiftingHistory(false),
+  entries: [],
+  simulations: 5000,
+  counterfactualSimulations: 100,
+});
+const recentHighCandidate = recentHighFrequency.candidates.find((candidate) => candidate.playerId === 12);
+const recentLowCandidate = recentLowFrequency.candidates.find((candidate) => candidate.playerId === 12);
+assert.ok(
+  recentHighCandidate.attendanceProbability > recentLowCandidate.attendanceProbability * 1.2,
+  "30-day half-life must let a recent frequency change outweigh equally sized older history",
+);
+assert.equal(recentHighFrequency.adaptation.historyHalfLifeDays, 30);
+assert.equal(recentHighFrequency.adaptation.rawSuccessfulSessions, 33);
+assert.ok(recentHighFrequency.adaptation.weightedSuccessfulSessions < 25, "old sessions should retain raw counts but lose effective weight");
+
+const learningPlayers = makePlayers(15);
+const newMemberId = 15;
+const learningBase = {
+  players: learningPlayers,
+  sessions: buildHistory(makePlayers(14)),
+  entries: learningPlayers.slice(0, 5).map(regularEntry),
+  includeCandidates: true,
+  simulations: 5000,
+  counterfactualSimulations: 160,
+};
+const newMemberColdStart = estimate(learningBase);
+const zeroEvidenceColdStart = estimate({
+  ...learningBase,
+  groupLearningSignals: {
+    priors: {
+      participationRate: 0.7,
+      participationEvidence: 0,
+      regularRetention: 0.6,
+      regularRetentionEvidence: 0,
+      fatigueMultiplier: 0.8,
+      fatigueEvidence: 0,
+      largeLowRetention: 0.8,
+      largeLowRetentionEvidence: 0,
+    },
+    members: {
+      [newMemberId]: {
+        participationRate: 0.9,
+        participationReliability: 0,
+        retentionRate: 0.6,
+        retentionReliability: 0,
+        largePreferenceConfidence: 0.9,
+        largePreferenceEvidence: 0,
+        secondDayRate: 0.9,
+        secondDayEvidence: 0,
+        thirdDayRate: 0.9,
+        thirdDayEvidence: 0,
+        companionRate: 0.9,
+        companionMean: 3,
+        companionReliability: 0,
+      },
+    },
+  },
+});
+assert.equal(zeroEvidenceColdStart.todayProbability, newMemberColdStart.todayProbability, "zero-evidence signals must retain the existing prior");
+assert.equal(zeroEvidenceColdStart.tomorrowProbability, newMemberColdStart.tomorrowProbability);
+assert.deepEqual(zeroEvidenceColdStart.candidates, newMemberColdStart.candidates);
+const newMemberLearnedHigh = estimate({
+  ...learningBase,
+  groupLearningSignals: {
+    members: {
+      [newMemberId]: {
+        participationRate: 0.92,
+        participationReliability: 0.98,
+        retentionRate: 0.97,
+        retentionReliability: 0.9,
+        lastObservedDate: "2026-09-03",
+      },
+    },
+  },
+});
+const coldNewCandidate = newMemberColdStart.candidates.find((candidate) => candidate.playerId === newMemberId);
+const learnedNewCandidate = newMemberLearnedHigh.candidates.find((candidate) => candidate.playerId === newMemberId);
+assert.ok(coldNewCandidate, "a new player must automatically enter the candidate pool without history");
+assert.ok(coldNewCandidate.risks.includes("新成员样本少"));
+assert.ok(
+  learnedNewCandidate.attendanceProbability > coldNewCandidate.attendanceProbability * 1.5,
+  "a reliable participation signal must replace cold-start behavior as new-member observations arrive",
+);
+assert.ok(learnedNewCandidate.reasons.includes("近期更常来"));
+assert.equal(newMemberLearnedHigh.adaptation.memberSignalsApplied, 1);
+const mediumReliabilityPosterior = estimate({
+  ...learningBase,
+  counterfactualSimulations: 40,
+  groupLearningSignals: {
+    generatedAt: "2026-09-04T00:00:00.000Z",
+    members: { [newMemberId]: { participationRate: 0.7, participationReliability: 0.25 } },
+  },
+});
+const highReliabilitySamePosterior = estimate({
+  ...learningBase,
+  counterfactualSimulations: 40,
+  groupLearningSignals: {
+    generatedAt: "2026-09-04T00:00:00.000Z",
+    members: { [newMemberId]: { participationRate: 0.7, participationReliability: 1 } },
+  },
+});
+assert.equal(
+  mediumReliabilityPosterior.candidates.find((candidate) => candidate.playerId === newMemberId).attendanceProbability,
+  highReliabilitySamePosterior.candidates.find((candidate) => candidate.playerId === newMemberId).attendanceProbability,
+  "posterior participation must not be shrunk a second time by reliability",
+);
+const freshModelWithOldMemberObservation = estimate({
+  ...learningBase,
+  counterfactualSimulations: 40,
+  groupLearningSignals: {
+    generatedAt: "2026-09-04T00:00:00.000Z",
+    members: {
+      [newMemberId]: {
+        participationRate: 0.7,
+        participationReliability: 0.25,
+        lastObservedDate: "2026-07-06",
+      },
+    },
+  },
+});
+assert.equal(
+  freshModelWithOldMemberObservation.candidates.find((candidate) => candidate.playerId === newMemberId).attendanceProbability,
+  mediumReliabilityPosterior.candidates.find((candidate) => candidate.playerId === newMemberId).attendanceProbability,
+  "lastObservedDate must not decay evidence already decayed by the learning core",
+);
+const thirtyDayOldPosterior = estimate({
+  ...learningBase,
+  counterfactualSimulations: 40,
+  groupLearningSignals: {
+    generatedAt: "2026-08-05T00:00:00.000Z",
+    members: { [newMemberId]: { participationRate: 0.7, participationReliability: 0.25 } },
+  },
+});
+const coldAttendance = coldNewCandidate.attendanceProbability;
+const freshAttendance = mediumReliabilityPosterior.candidates.find((candidate) => candidate.playerId === newMemberId).attendanceProbability;
+const staleAttendance = thirtyDayOldPosterior.candidates.find((candidate) => candidate.playerId === newMemberId).attendanceProbability;
+const finalEffectDecay = (logOdds(staleAttendance) - logOdds(coldAttendance))
+  / (logOdds(freshAttendance) - logOdds(coldAttendance));
+assert.ok(
+  finalEffectDecay > 0.4 && finalEffectDecay < 0.72,
+  "a model generated 30 days ago should retain about half its end-to-end effect, not w^2 or w^3",
+);
+assert.equal(thirtyDayOldPosterior.adaptation.effectivePriors.freshness, 0.5);
+for (const generatedAt of ["2026-09-03T16:00:00.000Z", "2026-09-03T23:59:59.000Z"]) {
+  const legacyBeijingMorning = estimate({
+    ...learningBase,
+    includeCandidates: false,
+    simulations: 400,
+    groupLearningSignals: { generatedAt },
+  });
+  assert.equal(
+    legacyBeijingMorning.adaptation.effectivePriors.freshness,
+    1,
+    "legacy UTC generatedAt during Beijing 00:00-07:59 must not decay an extra day",
+  );
+}
+const explicitGeneratedDate = estimate({
+  ...learningBase,
+  includeCandidates: false,
+  simulations: 400,
+  groupLearningSignals: {
+    generatedDate: "2026-09-04",
+    generatedAt: "2026-08-05T00:00:00.000Z",
+  },
+});
+assert.equal(explicitGeneratedDate.adaptation.effectivePriors.freshness, 1, "generatedDate must take precedence over legacy generatedAt");
+const newMemberLearnedLow = estimate({
+  ...learningBase,
+  groupLearningSignals: {
+    priors: { participationRate: 0.2, participationEvidence: 80 },
+    members: {
+      [newMemberId]: {
+        participationRate: 0.03,
+        participationReliability: 0.98,
+        lastObservedDate: "2026-09-03",
+      },
+    },
+  },
+});
+assert.ok(newMemberLearnedLow.candidates.find((candidate) => candidate.playerId === newMemberId).risks.includes("近期较少参与"));
+
+const directionalForward = estimate({
+  ...learningBase,
+  entries: [regularEntry(learningPlayers[0])],
+  groupLearningSignals: {
+    influence: { 1: { 12: { lift: 0.15, evidence: 60, reliability: 0.95 } } },
+  },
+});
+const directionalReverse = estimate({
+  ...learningBase,
+  entries: [regularEntry(learningPlayers[0])],
+  groupLearningSignals: {
+    influence: { 12: { 1: { lift: 0.15, evidence: 60, reliability: 0.95 } } },
+  },
+});
+assert.ok(
+  directionalForward.candidates.find((candidate) => candidate.playerId === 12).attendanceProbability
+    > directionalReverse.candidates.find((candidate) => candidate.playerId === 12).attendanceProbability * 1.2,
+  "learned social influence must be directional from the joined source to the candidate target",
+);
+assert.equal(directionalForward.adaptation.influenceEdgesApplied, 1);
+const directionalMediumReliability = estimate({
+  ...learningBase,
+  entries: [regularEntry(learningPlayers[0])],
+  groupLearningSignals: {
+    influence: { 1: { 12: { lift: 0.15, evidence: 60, reliability: 0.2 } } },
+  },
+});
+assert.equal(
+  directionalMediumReliability.candidates.find((candidate) => candidate.playerId === 12).attendanceProbability,
+  directionalForward.candidates.find((candidate) => candidate.playerId === 12).attendanceProbability,
+  "posterior influence lift must use reliability as a gate, not multiply by it again",
+);
+
+const retainedSix = learningPlayers.slice(0, 6).map(regularEntry);
+const reliableRetention = estimate({
+  ...learningBase,
+  entries: retainedSix,
+  now: "2026-09-04T16:59:00+08:00",
+  includeCandidates: false,
+  groupLearningSignals: {
+    members: { 6: { retentionRate: 0.99, retentionReliability: 1, lastObservedDate: "2026-09-03" } },
+  },
+});
+const unreliableRetention = estimate({
+  ...learningBase,
+  entries: retainedSix,
+  now: "2026-09-04T16:59:00+08:00",
+  includeCandidates: false,
+  groupLearningSignals: {
+    members: { 6: { retentionRate: 0.08, retentionReliability: 1, lastObservedDate: "2026-09-03" } },
+  },
+});
+assert.ok(reliableRetention.todayProbability > unreliableRetention.todayProbability + 0.2, "member retention learning must affect a current signup's stability");
+
+const learnedLargePreference = estimate({
+  ...learningBase,
+  entries: retainedSix,
+  now: "2026-09-04T16:59:00+08:00",
+  includeCandidates: false,
+  groupLearningSignals: {
+    priors: { largeLowRetention: 0.12, largeLowRetentionEvidence: 80 },
+    members: { 6: { largePreferenceConfidence: 0.99, largePreferenceEvidence: 80, lastObservedDate: "2026-09-03" } },
+  },
+});
+const learnedSmallFriendly = estimate({
+  ...learningBase,
+  entries: retainedSix,
+  now: "2026-09-04T16:59:00+08:00",
+  includeCandidates: false,
+  groupLearningSignals: {
+    priors: { largeLowRetention: 0.12, largeLowRetentionEvidence: 80 },
+    members: { 6: { largePreferenceConfidence: 0.001, largePreferenceEvidence: 80, lastObservedDate: "2026-09-03" } },
+  },
+});
+assert.ok(
+  learnedSmallFriendly.todayProbability > learnedLargePreference.todayProbability + 0.25,
+  "learned large-session preference and low-count retention prior must affect sub-ten stability",
+);
+const learnedLargeMediumEvidence = estimate({
+  ...learningBase,
+  entries: retainedSix,
+  now: "2026-09-04T16:59:00+08:00",
+  includeCandidates: false,
+  groupLearningSignals: {
+    priors: {
+      largePreferenceRate: 0.08,
+      largePreferenceEvidence: 2,
+      largeLowRetention: 0.12,
+      largeLowRetentionEvidence: 2,
+    },
+    members: { 6: { largePreferenceConfidence: 0.99, largePreferenceEvidence: 2 } },
+  },
+});
+const learnedLargeHighEvidenceSamePosterior = estimate({
+  ...learningBase,
+  entries: retainedSix,
+  now: "2026-09-04T16:59:00+08:00",
+  includeCandidates: false,
+  groupLearningSignals: {
+    priors: {
+      largePreferenceRate: 0.08,
+      largePreferenceEvidence: 200,
+      largeLowRetention: 0.12,
+      largeLowRetentionEvidence: 200,
+    },
+    members: { 6: { largePreferenceConfidence: 0.99, largePreferenceEvidence: 200 } },
+  },
+});
+assert.equal(
+  learnedLargeMediumEvidence.todayProbability,
+  learnedLargeHighEvidenceSamePosterior.todayProbability,
+  "large-session posteriors must not be shrunk again by evidence",
+);
+
+const adaptiveFatigueHistory = [...buildHistory(learningPlayers), session("2026-09-03", [10, 11, 12, 13, 14, 1])];
+const learnedSecondDayStrong = estimate({
+  ...learningBase,
+  sessions: adaptiveFatigueHistory,
+  entries: [],
+  groupLearningSignals: {
+    members: {
+      10: {
+        participationRate: 0.7,
+        participationReliability: 0.9,
+        secondDayRate: 0.68,
+        secondDayEvidence: 80,
+        lastObservedDate: "2026-09-03",
+      },
+    },
+  },
+});
+const learnedSecondDayWeak = estimate({
+  ...learningBase,
+  sessions: adaptiveFatigueHistory,
+  entries: [],
+  groupLearningSignals: {
+    members: {
+      10: {
+        participationRate: 0.7,
+        participationReliability: 0.9,
+        secondDayRate: 0.05,
+        secondDayEvidence: 80,
+        lastObservedDate: "2026-09-03",
+      },
+    },
+  },
+});
+assert.ok(
+  learnedSecondDayStrong.candidates.find((candidate) => candidate.playerId === 10).attendanceProbability
+    > learnedSecondDayWeak.candidates.find((candidate) => candidate.playerId === 10).attendanceProbability * 2,
+  "learned consecutive-day rates must adapt the fatigue penalty",
+);
+const learnedSecondDayMediumEvidence = estimate({
+  ...learningBase,
+  sessions: adaptiveFatigueHistory,
+  entries: [],
+  groupLearningSignals: {
+    members: {
+      10: {
+        participationRate: 0.7,
+        participationReliability: 0.2,
+        secondDayRate: 0.68,
+        secondDayEvidence: 2,
+      },
+    },
+  },
+});
+assert.equal(
+  learnedSecondDayMediumEvidence.candidates.find((candidate) => candidate.playerId === 10).attendanceProbability,
+  learnedSecondDayStrong.candidates.find((candidate) => candidate.playerId === 10).attendanceProbability,
+  "member fatigue posteriors must use evidence as a gate rather than a second shrinkage factor",
+);
+
+const thirdDayHistory = [
+  ...buildHistory(learningPlayers),
+  session("2026-09-02", [10, 11, 12, 13, 14, 1]),
+  session("2026-09-03", [10, 11, 12, 13, 14, 1]),
+];
+const learnedThirdDayStrong = estimate({
+  ...learningBase,
+  sessions: thirdDayHistory,
+  entries: [],
+  groupLearningSignals: {
+    members: { 10: {
+      participationRate: 0.7,
+      participationReliability: 0.9,
+      thirdDayRate: 0.68,
+      thirdDayEvidence: 80,
+      lastObservedDate: "2026-09-03",
+    } },
+  },
+});
+const learnedThirdDayWeak = estimate({
+  ...learningBase,
+  sessions: thirdDayHistory,
+  entries: [],
+  groupLearningSignals: {
+    members: { 10: {
+      participationRate: 0.7,
+      participationReliability: 0.9,
+      thirdDayRate: 0.04,
+      thirdDayEvidence: 80,
+      lastObservedDate: "2026-09-03",
+    } },
+  },
+});
+assert.ok(
+  learnedThirdDayStrong.candidates.find((candidate) => candidate.playerId === 10).attendanceProbability
+    > learnedThirdDayWeak.candidates.find((candidate) => candidate.playerId === 10).attendanceProbability * 2,
+  "third-day evidence must adapt independently from second-day evidence",
+);
+
+const companionOwnerEntry = regularEntry(learningPlayers[13]);
+const learnedCompanionHigh = estimate({
+  ...learningBase,
+  entries: [...learningPlayers.slice(0, 4).map(regularEntry), companionOwnerEntry],
+  now: "2026-09-04T16:59:00+08:00",
+  includeCandidates: false,
+  groupLearningSignals: {
+    members: { 14: {
+      companionRate: 0.9,
+      companionMean: 1.8,
+      companionReliability: 0.98,
+      lastObservedDate: "2026-09-03",
+    } },
+  },
+});
+const learnedCompanionLow = estimate({
+  ...learningBase,
+  entries: [...learningPlayers.slice(0, 4).map(regularEntry), companionOwnerEntry],
+  now: "2026-09-04T16:59:00+08:00",
+  includeCandidates: false,
+  groupLearningSignals: {
+    members: { 14: {
+      companionRate: 0.01,
+      companionMean: 0,
+      companionReliability: 0.98,
+      lastObservedDate: "2026-09-03",
+    } },
+  },
+});
+assert.ok(
+  learnedCompanionHigh.todayProbability > learnedCompanionLow.todayProbability + 0.35,
+  "learned companion rate and mean must adapt the +N distribution even without successful-session history",
+);
+const establishedGuestStart = Date.parse("2026-07-25T00:00:00Z");
+const establishedGuestHistory = Array.from({ length: 20 }, (_, index) => session(
+  isoDate(establishedGuestStart + index * 2 * 86400000),
+  [1, 2, 3, 4, 5, 14],
+  { 14: 3 },
+));
+const establishedGuestInput = {
+  ...learningBase,
+  sessions: establishedGuestHistory,
+  entries: [...learningPlayers.slice(0, 4).map(regularEntry), companionOwnerEntry],
+  now: "2026-09-04T16:59:00+08:00",
+  includeCandidates: false,
+};
+const establishedGuestBase = estimate(establishedGuestInput);
+const oneNegativeCompanionObservation = estimate({
+  ...establishedGuestInput,
+  groupLearningSignals: {
+    generatedAt: "2026-09-04T00:00:00.000Z",
+    members: { 14: {
+      companionRate: 0.05,
+      companionMean: 0.05,
+      companionReliability: 1 / 6,
+    } },
+  },
+});
+assert.ok(
+  oneNegativeCompanionObservation.todayProbability >= establishedGuestBase.todayProbability - 0.15,
+  "one tracked no-companion observation must not replace twenty recent +3 session observations",
+);
+
+const retentionCurvePlayers = makePlayers(6);
+const retentionCurveInput = {
+  players: retentionCurvePlayers,
+  sessions: [session("2026-08-30", [1, 2, 3, 4, 5, 6])],
+  entries: retentionCurvePlayers.map(regularEntry),
+  includeCandidates: false,
+  groupLearningSignals: {
+    priors: { regularRetention: 0.7, regularRetentionEvidence: 100 },
+  },
+  simulations: 8000,
+};
+const learnedRetentionMorning = estimate({ ...retentionCurveInput, now: "2026-09-04T09:00:00+08:00" });
+const learnedRetentionNearCutoff = estimate({ ...retentionCurveInput, now: "2026-09-04T16:59:00+08:00" });
+assert.ok(
+  learnedRetentionNearCutoff.todayProbability > learnedRetentionMorning.todayProbability,
+  "a learned regular-retention prior must preserve the existing increase near activity time",
+);
+const multiplierOnePointOne = estimate({
+  ...learningBase,
+  includeCandidates: false,
+  simulations: 400,
+  groupLearningSignals: {
+    generatedAt: "2026-09-04T00:00:00.000Z",
+    priors: { fatigueMultiplier: 1.1, fatigueEvidence: 2 },
+  },
+});
+const multiplierOnePointOneMoreEvidence = estimate({
+  ...learningBase,
+  includeCandidates: false,
+  simulations: 400,
+  groupLearningSignals: {
+    generatedAt: "2026-09-04T00:00:00.000Z",
+    priors: { fatigueMultiplier: 1.1, fatigueEvidence: 200 },
+  },
+});
+const multiplierAtUpperBound = estimate({
+  ...learningBase,
+  includeCandidates: false,
+  simulations: 400,
+  groupLearningSignals: {
+    generatedAt: "2026-09-04T00:00:00.000Z",
+    priors: { fatigueMultiplier: 1.25, fatigueEvidence: 2 },
+  },
+});
+assert.equal(multiplierOnePointOne.adaptation.effectivePriors.fatigueMultiplier, 1.1);
+assert.equal(multiplierOnePointOneMoreEvidence.adaptation.effectivePriors.fatigueMultiplier, 1.1, "global posterior evidence must gate, not shrink twice");
+assert.equal(multiplierAtUpperBound.adaptation.effectivePriors.fatigueMultiplier, 1.25, "fatigue multipliers above one must not be truncated as probabilities");
 
 const impossible = estimate({ players: [], sessions: [], entries: [], simulations: 400, calibrationSimulations: 200 });
 assert.equal(impossible.todayProbability, 0, "without players or entries a group cannot form");

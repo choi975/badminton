@@ -25,6 +25,7 @@ assert.match(html, /location\.pathname\.includes\("\/badminton-navigation-homepa
 assert.match(html, /activeGroupDate !== date[\s\S]*els\.chainInput\.value = ""[\s\S]*processChain\(\)/);
 
 assert.match(html, /BadmintonGroupProbability/);
+assert.match(html, /groupLearningSignals: state\.groupLearningSignals/);
 assert.match(html, /scheduleGroupForecastRender\(\)/);
 assert.match(html, /scheduleGroupAttemptSnapshot\("input"\)/);
 assert.match(html, /scheduleGroupAttemptSnapshot\("paste"\)/);

@@ -8,6 +8,8 @@
   const MISSING_BOOKING_SOFT_SUCCESS = 0.05;
   const MEMBER_PRIOR_STRENGTH = 6;
   const GUEST_PRIOR_STRENGTH = 5;
+  const HISTORY_HALF_LIFE_DAYS = 30;
+  const LEARNING_EVIDENCE_PRIOR = 5;
   const FATIGUE_MULTIPLIER = 0.2;
   const JOINED_FATIGUE_RETENTION = 0.55;
   const LARGE_LOW_RETENTION = 0.3;
@@ -17,6 +19,8 @@
   const DEFAULT_CALIBRATION_SIMULATIONS = 300;
   const DEFAULT_COUNTERFACTUAL_SIMULATIONS = 120;
   const DEFAULT_BASELINE = 0.44;
+  const DEFAULT_PARTICIPATION_RATE = 0.18;
+  const DEFAULT_LARGE_PREFERENCE_RATE = 0.08;
   const CUTOFF_HOUR = 17;
   const ACTIVITY_HOUR = 19;
   const WEEKDAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
@@ -66,6 +70,17 @@
     return String(left || "").localeCompare(String(right || ""));
   }
 
+  function daysBetween(left, right) {
+    const parsedLeft = parseIsoDate(left);
+    const parsedRight = parseIsoDate(right);
+    if (!parsedLeft || !parsedRight) return 0;
+    return (parsedRight.timestamp - parsedLeft.timestamp) / DAY_MS;
+  }
+
+  function historyWeight(date, targetDate) {
+    return 0.5 ** (Math.max(0, daysBetween(date, targetDate)) / HISTORY_HALF_LIFE_DAYS);
+  }
+
   function weekdayOf(dateString) {
     const parsed = parseIsoDate(dateString);
     return parsed ? new Date(parsed.timestamp).getUTCDay() : 0;
@@ -90,6 +105,14 @@
       minute: Number(parts.minute),
       second: Number(parts.second),
     };
+  }
+
+  function signalGeneratedDate(value) {
+    if (!value) return "";
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return beijingNowParts(parsed).date;
+    const dateOnly = String(value).slice(0, 10);
+    return parseIsoDate(dateOnly) ? dateOnly : "";
   }
 
   function localClockTimestamp(dateString, hour, minute = 0) {
@@ -249,8 +272,16 @@
     return outcomes;
   }
 
-  function computeWeekdayBaselines(sessions, attempts, historyStart, historyEnd, softSuccess, priorStrength) {
-    const rows = Array.from({ length: 7 }, (_, weekday) => ({ weekday, days: 0, observedSuccesses: 0, softSuccesses: 0 }));
+  function computeWeekdayBaselines(sessions, attempts, historyStart, historyEnd, softSuccess, priorStrength, targetDate) {
+    const rows = Array.from({ length: 7 }, (_, weekday) => ({
+      weekday,
+      days: 0,
+      observedSuccesses: 0,
+      softSuccesses: 0,
+      effectiveDays: 0,
+      effectiveObservedSuccesses: 0,
+      effectiveSoftSuccesses: 0,
+    }));
     const successfulDates = new Set(sessions.filter((session) => session.participantCount >= SUCCESS_THRESHOLD).map((session) => session.date));
     const attemptOutcomes = normalizeAttemptOutcomes(attempts, historyEnd);
     const parsedStart = parseIsoDate(historyStart);
@@ -262,61 +293,92 @@
         const explicitOutcome = attemptOutcomes.get(date);
         const success = explicitOutcome === undefined ? successfulDates.has(date) : explicitOutcome;
         const label = explicitOutcome === undefined ? (success ? 1 : softSuccess) : (success ? 1 : 0);
+        const weight = historyWeight(date, targetDate);
         row.days += 1;
         row.observedSuccesses += success ? 1 : 0;
         row.softSuccesses += label;
+        row.effectiveDays += weight;
+        row.effectiveObservedSuccesses += success ? weight : 0;
+        row.effectiveSoftSuccesses += label * weight;
       }
     }
     const totalDays = rows.reduce((sum, row) => sum + row.days, 0);
-    const totalSoftSuccesses = rows.reduce((sum, row) => sum + row.softSuccesses, 0);
-    const overall = totalDays ? totalSoftSuccesses / totalDays : DEFAULT_BASELINE;
+    const totalEffectiveDays = rows.reduce((sum, row) => sum + row.effectiveDays, 0);
+    const totalEffectiveSoftSuccesses = rows.reduce((sum, row) => sum + row.effectiveSoftSuccesses, 0);
+    const overall = totalEffectiveDays ? totalEffectiveSoftSuccesses / totalEffectiveDays : DEFAULT_BASELINE;
     rows.forEach((row) => {
-      const probability = row.days
-        ? (row.softSuccesses + priorStrength * overall) / (row.days + priorStrength)
+      const probability = row.effectiveDays
+        ? (row.effectiveSoftSuccesses + priorStrength * overall) / (row.effectiveDays + priorStrength)
         : overall;
       row.probability = clamp(probability, 0.01, 0.99);
       row.rawProbability = row.days ? row.observedSuccesses / row.days : null;
       row.name = WEEKDAY_NAMES[row.weekday];
     });
-    return { overall: clamp(overall, 0.01, 0.99), totalDays, rows };
+    return { overall: clamp(overall, 0.01, 0.99), totalDays, totalEffectiveDays, rows };
   }
 
-  function buildHistoryStats(players, sessions) {
+  function buildHistoryStats(players, sessions, targetDate) {
     const playerCount = Math.max(1, players.length);
     const statsById = new Map(players.map((player) => [player.id, {
       id: player.id,
       playCount: 0,
+      rawPlayCount: 0,
       weekdayCounts: Array(7).fill(0),
+      rawWeekdayCounts: Array(7).fill(0),
       dates: new Set(),
       sessionSizes: [],
+      largeSessionWeight: 0,
+      rawLargeSessionCount: 0,
       guestHistogram: new Map(),
+      rawGuestHistogram: new Map(),
       guestSessionCount: 0,
+      rawGuestSessionCount: 0,
       guestTotal: 0,
+      rawGuestTotal: 0,
     }]));
     const pairCounts = new Map();
+    const rawPairCounts = new Map();
     const successSessionsByWeekday = Array(7).fill(0);
+    const rawSuccessSessionsByWeekday = Array(7).fill(0);
     const selfAppearancesByWeekday = Array(7).fill(0);
+    const rawSelfAppearancesByWeekday = Array(7).fill(0);
     const globalGuestHistogram = new Map();
+    const rawGlobalGuestHistogram = new Map();
     let globalGuestSamples = 0;
+    let rawGlobalGuestSamples = 0;
+    let successfulSessions = 0;
+    let rawSuccessfulSessions = 0;
 
     for (const session of sessions) {
       if (session.participantCount < SUCCESS_THRESHOLD) continue;
+      const weight = historyWeight(session.date, targetDate);
       const weekday = weekdayOf(session.date);
-      successSessionsByWeekday[weekday] += 1;
+      successfulSessions += weight;
+      rawSuccessfulSessions += 1;
+      successSessionsByWeekday[weekday] += weight;
+      rawSuccessSessionsByWeekday[weekday] += 1;
       const selfIds = session.selfIds.filter((id) => statsById.has(id));
-      selfAppearancesByWeekday[weekday] += selfIds.length;
+      selfAppearancesByWeekday[weekday] += selfIds.length * weight;
+      rawSelfAppearancesByWeekday[weekday] += selfIds.length;
       for (const id of selfIds) {
         const stats = statsById.get(id);
-        stats.playCount += 1;
-        stats.weekdayCounts[weekday] += 1;
+        stats.playCount += weight;
+        stats.rawPlayCount += 1;
+        stats.weekdayCounts[weekday] += weight;
+        stats.rawWeekdayCounts[weekday] += 1;
         stats.dates.add(session.date);
         stats.sessionSizes.push(session.participantCount);
+        if (session.participantCount >= LARGE_SESSION_THRESHOLD) {
+          stats.largeSessionWeight += weight;
+          stats.rawLargeSessionCount += 1;
+        }
       }
       for (const left of selfIds) {
         for (const right of selfIds) {
           if (left === right) continue;
           const key = `${left}:${right}`;
-          pairCounts.set(key, (pairCounts.get(key) || 0) + 1);
+          pairCounts.set(key, (pairCounts.get(key) || 0) + weight);
+          rawPairCounts.set(key, (rawPairCounts.get(key) || 0) + 1);
         }
       }
 
@@ -332,29 +394,42 @@
       for (const [ownerId, group] of ownerGroups) {
         const count = clamp(group.guests, 0, 12);
         const stats = statsById.get(ownerId);
-        stats.guestHistogram.set(count, (stats.guestHistogram.get(count) || 0) + 1);
-        stats.guestSessionCount += 1;
-        stats.guestTotal += count;
-        globalGuestHistogram.set(count, (globalGuestHistogram.get(count) || 0) + 1);
-        globalGuestSamples += 1;
+        stats.guestHistogram.set(count, (stats.guestHistogram.get(count) || 0) + weight);
+        stats.rawGuestHistogram.set(count, (stats.rawGuestHistogram.get(count) || 0) + 1);
+        stats.guestSessionCount += weight;
+        stats.rawGuestSessionCount += 1;
+        stats.guestTotal += count * weight;
+        stats.rawGuestTotal += count;
+        globalGuestHistogram.set(count, (globalGuestHistogram.get(count) || 0) + weight);
+        rawGlobalGuestHistogram.set(count, (rawGlobalGuestHistogram.get(count) || 0) + 1);
+        globalGuestSamples += weight;
+        rawGlobalGuestSamples += 1;
       }
     }
 
     if (!globalGuestSamples) {
       globalGuestHistogram.set(0, 1);
+      rawGlobalGuestHistogram.set(0, 1);
       globalGuestSamples = 1;
+      rawGlobalGuestSamples = 1;
     }
-    const successfulSessions = sessions.filter((session) => session.participantCount >= SUCCESS_THRESHOLD).length;
     const totalSelfAppearances = selfAppearancesByWeekday.reduce((sum, count) => sum + count, 0);
     return {
       statsById,
       pairCounts,
+      rawPairCounts,
       successfulSessions,
+      rawSuccessfulSessions,
       successSessionsByWeekday,
+      rawSuccessSessionsByWeekday,
       selfAppearancesByWeekday,
+      rawSelfAppearancesByWeekday,
       groupConditionalRate: clamp(totalSelfAppearances / Math.max(1, successfulSessions * playerCount), 0.01, 0.95),
       globalGuestHistogram,
+      rawGlobalGuestHistogram,
       globalGuestSamples,
+      rawGlobalGuestSamples,
+      halfLifeDays: HISTORY_HALF_LIFE_DAYS,
     };
   }
 
@@ -416,15 +491,293 @@
     const largeIds = large.present
       ? resolveMemberRefs(large.members, players, aliasToId)
       : new Set(players.filter((player) => {
-        const sizes = history.statsById.get(player.id)?.sessionSizes || [];
-        return sizes.length > 0 && sizes.every((size) => size >= LARGE_SESSION_THRESHOLD);
+        const stats = history.statsById.get(player.id);
+        const largeRate = (stats?.largeSessionWeight || 0) / Math.max(0.0001, stats?.playCount || 0);
+        return (stats?.rawPlayCount || 0) > 0 && largeRate >= 0.8;
       }).map((player) => player.id));
     const capacityById = new Map(players.map((player) => [player.id, threeIds.has(player.id) ? 3 : twoIds.has(player.id) ? 2 : 1]));
     const largeConfidenceById = new Map(players.map((player) => {
-      const sampleCount = history.statsById.get(player.id)?.playCount || 0;
-      return [player.id, largeIds.has(player.id) ? sampleCount / (sampleCount + 5) : 0];
+      const stats = history.statsById.get(player.id);
+      const sampleCount = stats?.playCount || 0;
+      const largeRate = (stats?.largeSessionWeight || 0) / Math.max(0.0001, sampleCount);
+      const preferenceRate = large.present ? Number(largeIds.has(player.id)) : (largeIds.has(player.id) ? largeRate : 0);
+      return [player.id, preferenceRate * sampleCount / (sampleCount + LEARNING_EVIDENCE_PRIOR)];
     }));
     return { capacityById, largeConfidenceById, threeIds, twoIds, largeIds };
+  }
+
+  function firstFinite(source, keys) {
+    for (const key of keys) {
+      const rawValue = source?.[key];
+      if (rawValue === null || rawValue === undefined || rawValue === "") continue;
+      const value = Number(rawValue);
+      if (Number.isFinite(value)) return value;
+    }
+    return null;
+  }
+
+  function probabilityField(source, keys) {
+    const value = firstFinite(source, keys);
+    return value === null ? null : clamp(value, 0.001, 0.999);
+  }
+
+  function multiplierField(source, keys) {
+    const value = firstFinite(source, keys);
+    return value === null ? null : clamp(value, 0.05, 1.25);
+  }
+
+  function reliabilityField(source, keys) {
+    const value = firstFinite(source, keys);
+    return value === null ? 0 : clamp(value, 0, 1);
+  }
+
+  function evidenceField(source, keys) {
+    const value = firstFinite(source, keys);
+    return value === null ? 0 : Math.max(0, value);
+  }
+
+  function optionalEvidenceField(source, keys) {
+    const value = firstFinite(source, keys);
+    return value === null ? null : Math.max(0, value);
+  }
+
+  function normalizeLearningSignals(rawSignals, players) {
+    const raw = rawSignals && typeof rawSignals === "object" ? rawSignals : {};
+    const suppliedGeneratedDate = String(raw.generatedDate ?? raw.generated_date ?? "");
+    const rawPriors = raw.priors && typeof raw.priors === "object" ? raw.priors : {};
+    const priors = {
+      participationRate: probabilityField(rawPriors, ["participationRate", "participation_rate"]),
+      participationEvidence: optionalEvidenceField(rawPriors, ["participationEvidence", "participation_evidence"]),
+      regularRetention: probabilityField(rawPriors, ["regularRetention", "regular_retention"]),
+      regularRetentionEvidence: optionalEvidenceField(rawPriors, ["regularRetentionEvidence", "regular_retention_evidence"]),
+      fatigueMultiplier: multiplierField(rawPriors, ["fatigueMultiplier", "fatigue_multiplier"]),
+      fatigueEvidence: optionalEvidenceField(rawPriors, ["fatigueEvidence", "fatigue_evidence"]),
+      largePreferenceRate: probabilityField(rawPriors, ["largePreferenceRate", "large_preference_rate"]),
+      largePreferenceEvidence: optionalEvidenceField(rawPriors, ["largePreferenceEvidence", "large_preference_evidence"]),
+      largeLowRetention: probabilityField(rawPriors, ["largeLowRetention", "large_low_retention"]),
+      largeLowRetentionEvidence: optionalEvidenceField(rawPriors, ["largeLowRetentionEvidence", "large_low_retention_evidence"]),
+    };
+    const validIds = new Set(players.map((player) => player.id));
+    const membersById = new Map();
+    const rawMembers = raw.members;
+    const memberRows = Array.isArray(rawMembers)
+      ? rawMembers.map((member) => [member?.playerId ?? member?.player_id ?? member?.id, member])
+      : rawMembers && typeof rawMembers === "object"
+        ? Object.entries(rawMembers)
+        : [];
+    for (const [rawId, member] of memberRows) {
+      const playerId = normalizePlayerId(member?.playerId ?? member?.player_id ?? member?.id ?? rawId);
+      if (!playerId || !validIds.has(playerId) || !member || typeof member !== "object") continue;
+      const participation = member.participation && typeof member.participation === "object" ? member.participation : {};
+      const retention = member.retention && typeof member.retention === "object" ? member.retention : {};
+      const largePreference = member.largePreference && typeof member.largePreference === "object" ? member.largePreference : {};
+      const secondDay = member.secondDay && typeof member.secondDay === "object" ? member.secondDay : {};
+      const thirdDay = member.thirdDay && typeof member.thirdDay === "object" ? member.thirdDay : {};
+      membersById.set(playerId, {
+        playerId,
+        participationRate: probabilityField(member, ["participationRate", "participation_rate"])
+          ?? probabilityField(participation, ["rate"]),
+        participationReliability: reliabilityField(member, ["participationReliability", "participation_reliability"])
+          || reliabilityField(participation, ["reliability"]),
+        retentionRate: probabilityField(member, ["retentionRate", "retention_rate"])
+          ?? probabilityField(retention, ["rate"]),
+        retentionReliability: reliabilityField(member, ["retentionReliability", "retention_reliability"])
+          || reliabilityField(retention, ["reliability"]),
+        largePreferenceConfidence: probabilityField(member, ["largePreferenceConfidence", "large_preference_confidence"])
+          ?? probabilityField(largePreference, ["confidence"]),
+        largePreferenceEvidence: evidenceField(member, ["largePreferenceEvidence", "large_preference_evidence"])
+          || evidenceField(largePreference, ["evidence"]),
+        secondDayRate: probabilityField(member, ["secondDayRate", "second_day_rate"])
+          ?? probabilityField(secondDay, ["rate"]),
+        secondDayEvidence: evidenceField(member, ["secondDayEvidence", "second_day_evidence"])
+          || evidenceField(secondDay, ["evidence"]),
+        thirdDayRate: probabilityField(member, ["thirdDayRate", "third_day_rate"])
+          ?? probabilityField(thirdDay, ["rate"]),
+        thirdDayEvidence: evidenceField(member, ["thirdDayEvidence", "third_day_evidence"])
+          || evidenceField(thirdDay, ["evidence"]),
+        companionRate: probabilityField(member, ["companionRate", "companion_rate"]),
+        companionMean: firstFinite(member, ["companionMean", "companion_mean"]),
+        companionReliability: reliabilityField(member, ["companionReliability", "companion_reliability"]),
+        lastObservedDate: String(member.lastObservedDate ?? member.last_observed_date ?? ""),
+      });
+    }
+
+    const influenceByTarget = new Map();
+    const rawInfluence = raw.influence ?? raw.influences;
+    const influences = Array.isArray(rawInfluence) ? [...rawInfluence] : [];
+    if (rawInfluence && typeof rawInfluence === "object" && !Array.isArray(rawInfluence)) {
+      for (const [sourcePlayerId, targets] of Object.entries(rawInfluence)) {
+        if (!targets || typeof targets !== "object") continue;
+        for (const [targetPlayerId, edge] of Object.entries(targets)) {
+          influences.push({ ...edge, sourcePlayerId, targetPlayerId });
+        }
+      }
+    }
+    for (const edge of influences) {
+      const sourcePlayerId = normalizePlayerId(edge?.sourcePlayerId ?? edge?.source_player_id);
+      const targetPlayerId = normalizePlayerId(edge?.targetPlayerId ?? edge?.target_player_id);
+      const lift = firstFinite(edge, ["lift"]);
+      const evidence = evidenceField(edge, ["evidence"]);
+      const suppliedReliability = firstFinite(edge, ["reliability"]);
+      if (!sourcePlayerId || !targetPlayerId || sourcePlayerId === targetPlayerId
+        || !validIds.has(sourcePlayerId) || !validIds.has(targetPlayerId) || lift === null || !evidence) continue;
+      const rows = influenceByTarget.get(targetPlayerId) || [];
+      const edgeReliability = suppliedReliability === null ? evidenceReliability(evidence) : clamp(suppliedReliability, 0, 1);
+      if (!edgeReliability) continue;
+      rows.push({
+        sourcePlayerId,
+        targetPlayerId,
+        lift: clamp(lift, -0.12, 0.15),
+        evidence,
+        reliability: edgeReliability,
+      });
+      influenceByTarget.set(targetPlayerId, rows);
+    }
+    return {
+      priors,
+      membersById,
+      influenceByTarget,
+      generatedDate: parseIsoDate(suppliedGeneratedDate)
+        ? suppliedGeneratedDate
+        : signalGeneratedDate(raw.generatedAt ?? raw.generated_at),
+      supplied: Boolean(rawSignals && typeof rawSignals === "object"),
+      memberSignalCount: [...membersById.values()].filter((member) => (
+        member.participationReliability > 0
+          || member.retentionReliability > 0
+          || member.largePreferenceEvidence > 0
+          || member.secondDayEvidence > 0
+          || member.thirdDayEvidence > 0
+          || member.companionReliability > 0
+      )).length,
+      influenceCount: [...influenceByTarget.values()].reduce((sum, rows) => sum + rows.length, 0),
+    };
+  }
+
+  function learningFreshness(learning, targetDate) {
+    if (!parseIsoDate(learning?.generatedDate)) return 1;
+    return historyWeight(learning.generatedDate, targetDate);
+  }
+
+  function evidenceReliability(evidence) {
+    return Math.max(0, Number(evidence) || 0) / (Math.max(0, Number(evidence) || 0) + LEARNING_EVIDENCE_PRIOR);
+  }
+
+  function hasPosteriorEvidence(value, evidence) {
+    return value !== null && (evidence === null || evidence > 0);
+  }
+
+  function adaptiveProbabilityPrior(defaultValue, learnedValue, evidence, freshness) {
+    if (!hasPosteriorEvidence(learnedValue, evidence)) return defaultValue;
+    return clamp(sigmoid(
+      logit(defaultValue) + freshness * (logit(learnedValue) - logit(defaultValue)),
+    ), 0.001, 0.999);
+  }
+
+  function adaptiveMultiplierPrior(defaultValue, learnedValue, evidence, freshness) {
+    if (!hasPosteriorEvidence(learnedValue, evidence)) return defaultValue;
+    return clamp(Math.exp(
+      Math.log(defaultValue) + freshness * (Math.log(learnedValue) - Math.log(defaultValue)),
+    ), 0.01, 1.25);
+  }
+
+  function adaptiveRegularRetention(timeAdjustedDefault, groupRegularRetention) {
+    return clamp(sigmoid(
+      logit(timeAdjustedDefault)
+        + logit(groupRegularRetention) - logit(0.95),
+    ), 0.5, 0.999);
+  }
+
+  function learnedParticipationEffect(participationPrior, signal, freshness) {
+    if (!signal || signal.participationRate === null || !signal.participationReliability) return 0;
+    return clamp(
+      freshness * (logit(signal.participationRate) - logit(participationPrior)),
+      -1.75,
+      1.75,
+    );
+  }
+
+  function learnedRetention(baseRetention, groupRegularRetention, signal, freshness) {
+    if (!signal || signal.retentionRate === null || !signal.retentionReliability) return baseRetention;
+    return clamp(sigmoid(
+      logit(baseRetention) + freshness * (logit(signal.retentionRate) - logit(groupRegularRetention)),
+    ), 0.05, 0.999);
+  }
+
+  function learnedLargeConfidence(baseConfidence, groupPreferenceRate, signal, freshness) {
+    if (!signal || signal.largePreferenceConfidence === null || !signal.largePreferenceEvidence) return baseConfidence;
+    return clamp(baseConfidence + freshness * (signal.largePreferenceConfidence - groupPreferenceRate), 0, 0.999);
+  }
+
+  function learnedFatigueFactor(defaultFactor, rate, evidence, participationReference, groupFatigueFactor, freshness) {
+    if (rate === null || !evidence) return defaultFactor;
+    const rateOdds = rate / Math.max(0.001, 1 - rate);
+    const participationOdds = participationReference / Math.max(0.001, 1 - participationReference);
+    const learnedFactor = clamp(rateOdds / Math.max(0.001, participationOdds), 0.05, 1.25);
+    const relativeFactor = learnedFactor / Math.max(0.05, groupFatigueFactor);
+    return clamp(defaultFactor * (relativeFactor ** freshness), 0.05, 1.25);
+  }
+
+  function learnedGuestDistribution(baseDistribution, signal, freshness) {
+    if (!signal || signal.companionRate === null || signal.companionMean === null || !signal.companionReliability) {
+      return baseDistribution;
+    }
+    const companionRate = clamp(signal.companionRate, 0.001, 0.95);
+    const mixWeight = signal.companionReliability * freshness;
+    const conditionalMean = clamp(Math.max(0, signal.companionMean) / companionRate, 1, 12);
+    const lower = Math.floor(conditionalMean);
+    const upper = Math.min(12, Math.ceil(conditionalMean));
+    const upperShare = upper === lower ? 0 : conditionalMean - lower;
+    const learned = new Map([[0, 1 - companionRate]]);
+    learned.set(lower, (learned.get(lower) || 0) + companionRate * (1 - upperShare));
+    if (upperShare) learned.set(upper, (learned.get(upper) || 0) + companionRate * upperShare);
+    const base = new Map(baseDistribution.map((row) => [row.count, row.probability]));
+    const maximum = Math.max(0, ...base.keys(), ...learned.keys());
+    const rows = [];
+    for (let count = 0; count <= maximum; count += 1) {
+      rows.push({
+        count,
+        probability: (1 - mixWeight) * (base.get(count) || 0) + mixWeight * (learned.get(count) || 0),
+      });
+    }
+    const total = rows.reduce((sum, row) => sum + row.probability, 0) || 1;
+    return rows.map((row) => ({ count: row.count, probability: row.probability / total }));
+  }
+
+  function resolveLearningPriors(learning, history, targetDate) {
+    const freshness = learningFreshness(learning, targetDate);
+    return {
+      freshness,
+      participationRate: adaptiveProbabilityPrior(
+        history.rawSuccessfulSessions ? history.groupConditionalRate : DEFAULT_PARTICIPATION_RATE,
+        learning.priors.participationRate,
+        learning.priors.participationEvidence,
+        freshness,
+      ),
+      regularRetention: adaptiveProbabilityPrior(
+        0.95,
+        learning.priors.regularRetention,
+        learning.priors.regularRetentionEvidence,
+        freshness,
+      ),
+      fatigueMultiplier: adaptiveMultiplierPrior(
+        FATIGUE_MULTIPLIER,
+        learning.priors.fatigueMultiplier,
+        learning.priors.fatigueEvidence,
+        freshness,
+      ),
+      largePreferenceRate: adaptiveProbabilityPrior(
+        DEFAULT_LARGE_PREFERENCE_RATE,
+        learning.priors.largePreferenceRate,
+        learning.priors.largePreferenceEvidence,
+        freshness,
+      ),
+      largeLowRetention: adaptiveProbabilityPrior(
+        LARGE_LOW_RETENTION,
+        learning.priors.largeLowRetention,
+        learning.priors.largeLowRetentionEvidence,
+        freshness,
+      ),
+    };
   }
 
   function ruleFields(rule) {
@@ -520,11 +873,11 @@
     return clamp(0.5 * (logit(weekdayRate) - logit(groupWeekday)), -0.7, 0.7);
   }
 
-  function socialEffect(history, candidateId, joinedIds) {
+  function socialEffect(history, learning, candidateId, joinedIds, freshness) {
     const candidateStats = history.statsById.get(candidateId);
     if (!candidateStats || !joinedIds.size) return 0;
     const base = (candidateStats.playCount + 2) / Math.max(4, history.successfulSessions + 4);
-    const lifts = [];
+    const historicalLifts = [];
     for (const joinedId of joinedIds) {
       const joinedPlays = history.statsById.get(joinedId)?.playCount || 0;
       if (!joinedPlays) continue;
@@ -532,9 +885,24 @@
       if (!coattendance) continue;
       const conditional = (coattendance + 2 * base) / (joinedPlays + 2);
       const reliability = coattendance / (coattendance + 5);
-      lifts.push(clamp(Math.log(Math.max(0.001, conditional) / Math.max(0.001, base)) * reliability, 0, Math.log(1.35)));
+      historicalLifts.push(clamp(Math.log(Math.max(0.001, conditional) / Math.max(0.001, base)) * reliability, 0, Math.log(1.35)));
     }
-    return clamp(lifts.sort((left, right) => right - left).slice(0, 2).reduce((sum, value) => sum + value, 0), 0, Math.log(1.6));
+    const historical = clamp(
+      historicalLifts.sort((left, right) => right - left).slice(0, 2).reduce((sum, value) => sum + value, 0),
+      0,
+      Math.log(1.6),
+    );
+    const learnedLifts = [];
+    for (const edge of learning.influenceByTarget.get(candidateId) || []) {
+      if (!joinedIds.has(edge.sourcePlayerId)) continue;
+      const targetRate = clamp(base + freshness * edge.lift, 0.01, 0.99);
+      learnedLifts.push(clamp(logit(targetRate) - logit(base), -Math.log(2), Math.log(2)));
+    }
+    const learned = learnedLifts
+      .sort((left, right) => Math.abs(right) - Math.abs(left))
+      .slice(0, 2)
+      .reduce((sum, value) => sum + value, 0);
+    return clamp(historical + learned, -Math.log(1.8), Math.log(2));
   }
 
   function levelRank(level) {
@@ -590,12 +958,16 @@
     return context.memberData[index].baseStreak;
   }
 
+  function fatigueFactorFor(member, priorStreak) {
+    if (priorStreak <= 0) return 1;
+    return priorStreak === 1 ? member.secondDayFatigueFactor : member.thirdDayFatigueFactor;
+  }
+
   function joinProbability(context, index, previousStreaks, ignoreRulesAndFatigue = false) {
     const member = context.memberData[index];
     if (!ignoreRulesAndFatigue && member.blocked) return 0;
     const priorStreak = priorStreakAt(context, index, previousStreaks);
-    const capacity = member.capacity;
-    const fatigue = !ignoreRulesAndFatigue && priorStreak >= capacity ? FATIGUE_MULTIPLIER : 1;
+    const fatigue = ignoreRulesAndFatigue ? 1 : fatigueFactorFor(member, priorStreak);
     const dayProbability = sigmoid(
       context.intercept
       + member.baseEffect
@@ -627,21 +999,28 @@
         continue;
       }
       const priorStreak = priorStreakAt(context, index, previousStreaks);
-      const capacity = member.capacity;
-      const joinedFatigueRetention = options.neutral || !isCurrent || priorStreak < capacity ? 1 : JOINED_FATIGUE_RETENTION;
-      const blocked = !options.neutral && member.blocked;
-      const conflictMultiplier = isCurrent && blocked ? 0.6 : 1;
-      const regularStay = context.regularRetention;
-      const largeConfidence = member.largeConfidence;
-      const followsLargeRule = random() < largeConfidence;
-      const decisionUniform = makeBundleUniform(`owner:${player.id}`, bundles, random);
-      if (followsLargeRule) {
-        largeCandidates.push({
-          index,
-          highProbability: LARGE_HIGH_RETENTION * joinedFatigueRetention * conflictMultiplier,
-          lowProbability: LARGE_LOW_RETENTION * joinedFatigueRetention * conflictMultiplier,
-          decisionUniform,
-        });
+       const staticFatigue = fatigueFactorFor({
+         secondDayFatigueFactor: member.staticSecondDayFatigueFactor,
+         thirdDayFatigueFactor: member.staticThirdDayFatigueFactor,
+       }, priorStreak);
+       const adaptiveFatigue = fatigueFactorFor(member, priorStreak);
+       const joinedFatigueRetention = options.neutral || !isCurrent || priorStreak <= 0 || adaptiveFatigue >= 0.999
+         ? 1
+         : clamp(JOINED_FATIGUE_RETENTION * adaptiveFatigue / Math.max(0.05, staticFatigue), 0.2, 1);
+       const blocked = !options.neutral && member.blocked;
+       const conflictMultiplier = isCurrent && blocked ? 0.6 : 1;
+       const regularStay = member.retention;
+       const largeConfidence = member.largeConfidence;
+       const followsLargeRule = random() < largeConfidence;
+       const decisionUniform = makeBundleUniform(`owner:${player.id}`, bundles, random);
+       const retentionAdjustment = clamp(member.retention / Math.max(0.05, context.regularRetention), 0.1, 1.5);
+       if (followsLargeRule) {
+         largeCandidates.push({
+           index,
+           highProbability: clamp(LARGE_HIGH_RETENTION * retentionAdjustment * joinedFatigueRetention * conflictMultiplier, 0, 0.999),
+           lowProbability: clamp(context.largeLowRetention * retentionAdjustment * joinedFatigueRetention * conflictMultiplier, 0, 0.999),
+           decisionUniform,
+         });
       } else if (decisionUniform < regularStay * joinedFatigueRetention * conflictMultiplier) {
         ordinaryCount += 1;
         attended[index] = 1;
@@ -699,7 +1078,7 @@
     context.memberData.forEach((member, index) => {
       if (!member.current) return;
       const followsLargeRule = random() < member.largeConfidence;
-      if (!followsLargeRule || random() < LARGE_LOW_RETENTION) {
+      if (!followsLargeRule || random() < context.largeLowRetention) {
         finalCount += 1;
         attended[index] = 1;
       }
@@ -710,6 +1089,7 @@
   function makeDayContext(model, targetDate, entries, intercept, options = {}) {
     const normalizedEntries = normalizeEntries(entries);
     const current = currentEntryState(normalizedEntries);
+    const resolvedPriors = resolveLearningPriors(model.learning, model.history, targetDate);
     const context = {
       ...model,
       targetDate,
@@ -718,27 +1098,78 @@
       intercept,
       shortTermRules: options.shortTermRules ?? model.shortTermRules,
       exposure: options.neutral ? 1 : remainingExposure(targetDate, model.nowParts),
-      regularRetention: regularRetention(targetDate, model.nowParts),
-      guestRetention: Math.max(0.5, regularRetention(targetDate, model.nowParts) - 0.03),
+      resolvedPriors,
+      regularRetention: adaptiveRegularRetention(regularRetention(targetDate, model.nowParts), resolvedPriors.regularRetention),
+      largeLowRetention: resolvedPriors.largeLowRetention,
       effectiveCurrentCount: current.selfIds.size + current.unknownSelfCount + current.companionRows.reduce((sum, row) => sum + row.count, 0),
       lowLevelJoined: hasLowLevelJoined(normalizedEntries, model.playerById),
     };
+    context.guestRetention = Math.max(0.5, context.regularRetention - 0.03);
     const weekday = weekdayOf(targetDate);
     const countMomentum = options.neutral ? 0 : 0.1 * Math.min(context.effectiveCurrentCount, SUCCESS_THRESHOLD);
     context.memberData = context.players.map((player) => {
       const rank = levelRank(player.level);
-      const social = options.neutral ? 0 : socialEffect(context.history, player.id, current.selfIds);
+      const signal = context.learning.membersById.get(player.id);
+      const stats = context.history.statsById.get(player.id);
+      const historicalParticipation = ((stats?.playCount || 0) + MEMBER_PRIOR_STRENGTH * context.resolvedPriors.participationRate)
+        / Math.max(MEMBER_PRIOR_STRENGTH, context.history.successfulSessions + MEMBER_PRIOR_STRENGTH);
+      const participationReference = signal?.participationRate ?? historicalParticipation;
+      const capacity = context.longTerm.capacityById.get(player.id) || 1;
+      const fatigueMultiplier = context.resolvedPriors.fatigueMultiplier;
+      const staticSecondDayFatigueFactor = capacity >= 2 ? 1 : fatigueMultiplier;
+      const staticThirdDayFatigueFactor = capacity >= 3 ? 1 : fatigueMultiplier;
+      const social = options.neutral ? 0 : socialEffect(
+        context.history,
+        context.learning,
+        player.id,
+        current.selfIds,
+        context.resolvedPriors.freshness,
+      );
       const levelMatch = !options.neutral && context.lowLevelJoined && rank >= 0 && rank < 3 ? Math.log(1.1) : 0;
       return {
         current: current.selfIds.has(player.id),
         blocked: options.neutral ? false : ruleBlocksPlayer(context.shortTermRules, player.id, targetDate),
-        capacity: context.longTerm.capacityById.get(player.id) || 1,
-        largeConfidence: context.longTerm.largeConfidenceById.get(player.id) || 0,
+        capacity,
+        largeConfidence: learnedLargeConfidence(
+          context.longTerm.largeConfidenceById.get(player.id) || 0,
+          context.resolvedPriors.largePreferenceRate,
+          signal,
+          context.resolvedPriors.freshness,
+        ),
         baseStreak: historicalStreakBefore(context.history, player.id, targetDate),
-        baseEffect: memberEffect(context.history, player.id, weekday, context.players.length),
+        baseEffect: memberEffect(context.history, player.id, weekday, context.players.length)
+          + learnedParticipationEffect(context.resolvedPriors.participationRate, signal, context.resolvedPriors.freshness),
         stateEffect: social + levelMatch + countMomentum,
         social,
-        guestDistribution: context.guestDistributionById.get(player.id),
+        retention: learnedRetention(
+          context.regularRetention,
+          context.resolvedPriors.regularRetention,
+          signal,
+          context.resolvedPriors.freshness,
+        ),
+        staticSecondDayFatigueFactor,
+        staticThirdDayFatigueFactor,
+        secondDayFatigueFactor: learnedFatigueFactor(
+          staticSecondDayFatigueFactor,
+          signal?.secondDayRate ?? null,
+          signal?.secondDayEvidence || 0,
+          participationReference,
+          context.resolvedPriors.fatigueMultiplier,
+          context.resolvedPriors.freshness,
+        ),
+        thirdDayFatigueFactor: learnedFatigueFactor(
+          staticThirdDayFatigueFactor,
+          signal?.thirdDayRate ?? null,
+          signal?.thirdDayEvidence || 0,
+          participationReference,
+          context.resolvedPriors.fatigueMultiplier,
+          context.resolvedPriors.freshness,
+        ),
+        guestDistribution: learnedGuestDistribution(
+          context.guestDistributionById.get(player.id),
+          signal,
+          context.resolvedPriors.freshness,
+        ),
       };
     });
     return context;
@@ -798,10 +1229,10 @@
       const stats = model.history.statsById.get(player.id);
       const blocked = member.blocked;
       const priorStreak = member.baseStreak;
-      const capacity = member.capacity;
-      const fatigued = priorStreak >= capacity;
+      const fatigued = priorStreak > 0 && fatigueFactorFor(member, priorStreak) < 0.8;
       const social = member.social;
       const largeConfidence = member.largeConfidence;
+      const learningSignal = model.learning.membersById.get(player.id);
       const attendanceProbability = blocked ? 0 : attendanceCounts[index] / Math.max(1, simulationCount);
       const rawUplift = blocked ? 0 : counterfactualUplift(
         model,
@@ -814,14 +1245,20 @@
       const reasons = [];
       const risks = [];
       if (social > 0.02) reasons.push("常与已接龙成员同场");
-      if ((stats?.playCount || 0) >= Math.max(3, model.history.successfulSessions / 3)) reasons.push("历史参与较多");
-      if ((stats?.guestTotal || 0) >= 2) reasons.push("常带随行人员");
+      if (learningSignal?.participationRate !== null && learningSignal?.participationReliability > 0
+        && learningSignal.participationRate > todayContext.resolvedPriors.participationRate + 0.08) reasons.push("近期更常来");
+      if ((stats?.rawPlayCount || 0) >= Math.max(3, model.history.rawSuccessfulSessions / 3)) reasons.push("历史参与较多");
+      if ((stats?.rawGuestTotal || 0) >= 2) reasons.push("常带随行人员");
+      if (learningSignal?.companionReliability > 0.25
+        && (learningSignal.companionMean || 0) >= 0.35) reasons.push("近期常带随行人员");
       const rank = levelRank(player.level);
       if (todayContext.lowLevelJoined && rank >= 0 && rank < 3) reasons.push("水平相近");
       if (blocked) risks.push("规则显示当天不打");
       if (fatigued) risks.push("超过连续打球体力上限");
       if (largeConfidence > 0) risks.push("不足10人时可能退出");
-      if ((stats?.playCount || 0) < 2) risks.push("历史样本较少");
+      if (learningSignal?.participationRate !== null && learningSignal?.participationReliability > 0
+        && learningSignal.participationRate < todayContext.resolvedPriors.participationRate - 0.08) risks.push("近期较少参与");
+      if ((stats?.rawPlayCount || 0) < 2) risks.push((stats?.rawPlayCount || 0) === 0 ? "新成员样本少" : "历史样本较少");
       rows.push({
         playerId: player.id,
         name: String(player.name || `#${player.id}`),
@@ -862,7 +1299,9 @@
     ].filter(parseIsoDate).sort(compareDates);
     const historyStart = rawHistoryDates.find((date) => compareDates(date, historyEnd) <= 0) || addDays(historyEnd, -52);
     const sessions = normalizeSessions(input.sessions, historyEnd);
-    const history = buildHistoryStats(players, sessions);
+    const learning = normalizeLearningSignals(input.groupLearningSignals, players);
+    const history = buildHistoryStats(players, sessions, targetDate);
+    learning.resolvedPriors = resolveLearningPriors(learning, history, targetDate);
     const baselines = computeWeekdayBaselines(
       sessions,
       attempts,
@@ -870,6 +1309,7 @@
       historyEnd,
       Number.isFinite(Number(input.missingBookingSoftSuccess)) ? clamp(Number(input.missingBookingSoftSuccess), 0, 0.5) : MISSING_BOOKING_SOFT_SUCCESS,
       Number.isFinite(Number(input.weekdayPriorStrength)) ? Math.max(0, Number(input.weekdayPriorStrength)) : WEEKDAY_PRIOR_STRENGTH,
+      targetDate,
     );
     const guestDistributionById = new Map(players.map((player) => [player.id, guestDistribution(history, player.id)]));
     return {
@@ -877,6 +1317,7 @@
       playerById,
       sessions,
       history,
+      learning,
       guestDistributionById,
       baselines,
       historyStart,
@@ -961,6 +1402,8 @@
       name: row.name,
       days: row.days,
       successes: row.observedSuccesses,
+      effectiveDays: round(row.effectiveDays),
+      effectiveSuccesses: round(row.effectiveObservedSuccesses),
       rawProbability: row.rawProbability === null ? null : round(row.rawProbability),
       probability: round(row.probability),
     }));
@@ -980,7 +1423,7 @@
       expectedFinalCount: round(tomorrowCountTotal / simulations, 3),
     };
     return {
-      modelVersion: "group-probability-v0",
+      modelVersion: "group-probability-v1",
       today,
       tomorrow,
       todayProbability: today.probability,
@@ -1007,6 +1450,52 @@
           ? clamp(Number(input.missingBookingSoftSuccess), 0, 0.5)
           : MISSING_BOOKING_SOFT_SUCCESS,
         joinedFatigueRetention: JOINED_FATIGUE_RETENTION,
+        historyHalfLifeDays: HISTORY_HALF_LIFE_DAYS,
+        learningEvidencePrior: LEARNING_EVIDENCE_PRIOR,
+        adaptiveSignalSemantics: {
+          posteriorContract: "learning rates and lifts are already prior-shrunk; reliability and evidence gate application except companion source fusion",
+          freshness: "generatedAt-to-targetDate decay is applied once after model generation",
+          influenceLift: "directional posterior probability-point change",
+          fatigueRates: "conditional consecutive-day posterior converted with participation odds",
+          largePreference: "member posterior deviation from the group preference posterior adjusts history evidence",
+        },
+      },
+      adaptation: {
+        enabled: model.learning.supplied,
+        historyHalfLifeDays: HISTORY_HALF_LIFE_DAYS,
+        rawOutcomeDays: model.baselines.totalDays,
+        effectiveOutcomeDays: round(model.baselines.totalEffectiveDays),
+        rawSuccessfulSessions: model.history.rawSuccessfulSessions,
+        weightedSuccessfulSessions: round(model.history.successfulSessions),
+        memberSignalsReceived: model.learning.membersById.size,
+        memberSignalsApplied: model.learning.memberSignalCount,
+        influenceEdgesApplied: model.learning.influenceCount,
+        learnedPriorsApplied: ["participationRate", "regularRetention", "fatigueMultiplier", "largePreferenceRate", "largeLowRetention"]
+          .filter((key) => {
+            const evidenceKey = key === "regularRetention"
+              ? "regularRetentionEvidence"
+              : key === "largePreferenceRate"
+                ? "largePreferenceEvidence"
+              : key === "largeLowRetention"
+                ? "largeLowRetentionEvidence"
+                : key === "fatigueMultiplier"
+                  ? "fatigueEvidence"
+                  : "participationEvidence";
+            return model.learning.priors[key] !== null
+              && (model.learning.priors[evidenceKey] === null || model.learning.priors[evidenceKey] > 0);
+          }).length,
+        effectivePriors: {
+          freshness: round(model.learning.resolvedPriors.freshness),
+          participationRate: round(model.learning.resolvedPriors.participationRate),
+          regularRetention: round(model.learning.resolvedPriors.regularRetention),
+          regularRetentionToday: round(adaptiveRegularRetention(
+            regularRetention(targetDate, nowParts),
+            model.learning.resolvedPriors.regularRetention,
+          )),
+          fatigueMultiplier: round(model.learning.resolvedPriors.fatigueMultiplier),
+          largePreferenceRate: round(model.learning.resolvedPriors.largePreferenceRate),
+          largeLowRetention: round(model.learning.resolvedPriors.largeLowRetention),
+        },
       },
     };
   }
@@ -1019,6 +1508,7 @@
       weekdayPriorStrength: WEEKDAY_PRIOR_STRENGTH,
       missingBookingSoftSuccess: MISSING_BOOKING_SOFT_SUCCESS,
       fatigueMultiplier: FATIGUE_MULTIPLIER,
+      historyHalfLifeDays: HISTORY_HALF_LIFE_DAYS,
       joinedFatigueRetention: JOINED_FATIGUE_RETENTION,
       largeLowRetention: LARGE_LOW_RETENTION,
       largeHighRetention: LARGE_HIGH_RETENTION,

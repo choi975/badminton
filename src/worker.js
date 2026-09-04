@@ -7,6 +7,10 @@ import {
   expandEstimatorParticipants,
   trainEstimatorModel,
 } from "./estimator-core.js";
+import {
+  buildGroupLearningSignals,
+  GROUP_LEARNING_VERSION,
+} from "./group-learning-core.js";
 
 const BOOKING_ESTIMATOR_DATA = JSON.parse(BOOKING_ESTIMATOR);
 
@@ -114,6 +118,20 @@ const GROUP_ATTEMPT_MAX_CONSTRAINTS = 500;
 const GROUP_ATTEMPT_MAX_JSON_BYTES = 16 * 1024;
 const GROUP_ATTEMPT_MAX_SNAPSHOTS = 200;
 const GROUP_ATTEMPT_CLOCK_SKEW_MS = 10 * 60 * 1000;
+const GROUP_LEARNING_LOOKBACK_DAYS = 365;
+const GROUP_LEARNING_MAX_ATTEMPTS = 50;
+const GROUP_LEARNING_MAX_ROWS = 10_000;
+const GROUP_LEARNING_HALF_LIFE_DAYS = 30;
+const GROUP_LEARNING_CACHE_ID = "current";
+const GROUP_LEARNING_RAW_DATA_KEYS = new Set([
+  "snapshots",
+  "knownPlayerIds",
+  "known_player_ids",
+  "known_player_ids_json",
+  "companionsByOwner",
+  "companions_by_owner",
+  "companions_by_owner_json",
+]);
 const GROUP_ATTEMPT_TRIGGERS = new Set(["paste", "input", "companion", "rule_change"]);
 const GROUP_ATTEMPT_RANKING_MODES = new Set(["attendanceProbability", "attendanceProbabilityTimesUplift"]);
 const GROUP_ATTEMPT_CONSTRAINT_TYPES = new Set([
@@ -187,7 +205,7 @@ export default {
 
   async scheduled(controller, env, context) {
     const now = new Date(Number(controller?.scheduledTime) || Date.now());
-    context.waitUntil(settleDueGroupAttempts(env.DB, now));
+    context.waitUntil(runScheduledGroupLearningMaintenance(env.DB, now));
   },
 };
 
@@ -564,19 +582,37 @@ async function handleApi(request, env, url) {
   const method = request.method.toUpperCase();
 
   if (pathname === "/api/bootstrap" && method === "GET") {
-    const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes] = await Promise.all([
+    const learningNow = new Date();
+    const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes, cachedGroupLearningSignals] = await Promise.all([
       listPlayers(env.DB),
       getLevelGuide(env.DB),
       getPaymentOrderState(env.DB),
       listSessions(env.DB),
       getCurrentEstimator(env.DB),
       listGroupAttemptOutcomes(env.DB),
+      getCachedGroupLearningSignals(env.DB),
     ]);
-    return json({ players, ...guide, ...paymentState, sessions, estimator, groupAttemptOutcomes });
+    const groupLearningSignals = cachedGroupLearningSignals || buildGroupLearningColdStart(players, sessions, learningNow);
+    return json({
+      players,
+      ...guide,
+      ...paymentState,
+      sessions,
+      estimator,
+      groupAttemptOutcomes,
+      groupLearningSignals,
+    });
   }
 
   if (pathname === "/api/estimator" && method === "GET") {
     return json({ estimator: await getCurrentEstimator(env.DB) });
+  }
+
+  if (pathname === "/api/group-learning/rebuild" && method === "POST") {
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以重建组局学习模型" }, 403);
+    if (!await consumeGroupAttemptRateLimit(request, env)) return json({ error: "组局学习模型重建过于频繁，请稍后重试" }, 429);
+    const groupLearningSignals = await rebuildGroupLearningSignals(env.DB);
+    return json({ ok: true, groupLearningSignals });
   }
 
   if (pathname === "/api/group-attempts/current" && method === "GET") {
@@ -1434,6 +1470,210 @@ async function listGroupAttemptOutcomes(db) {
   }));
 }
 
+function parseGroupLearningJson(value, fallback) {
+  if (Array.isArray(value) || isPlainJsonObject(value)) return value;
+  if (typeof value !== "string") return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) || isPlainJsonObject(parsed) ? parsed : fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function parseGroupLearningAttemptRows(rows) {
+  const attemptsById = new Map();
+  const snapshotIdsByAttempt = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const attemptId = Number(row?.attempt_id);
+    const activityDate = String(row?.activity_date || "");
+    if (!Number.isInteger(attemptId) || attemptId <= 0 || !isValidDateString(activityDate)) continue;
+
+    let attempt = attemptsById.get(attemptId);
+    if (!attempt) {
+      attempt = {
+        id: attemptId,
+        activityDate,
+        outcome: String(row?.attempt_outcome || ""),
+        trainingState: String(row?.attempt_training_state || ""),
+        source: String(row?.attempt_source || ""),
+        snapshots: [],
+      };
+      attemptsById.set(attemptId, attempt);
+      snapshotIdsByAttempt.set(attemptId, new Set());
+    }
+
+    const snapshotId = Number(row?.snapshot_id);
+    const seenSnapshotIds = snapshotIdsByAttempt.get(attemptId);
+    if (!Number.isInteger(snapshotId) || snapshotId <= 0 || seenSnapshotIds.has(snapshotId)) continue;
+    seenSnapshotIds.add(snapshotId);
+    const knownPlayerIds = parseGroupLearningJson(row?.known_player_ids_json, []);
+    const companionsByOwner = parseGroupLearningJson(row?.companions_by_owner_json, []);
+    const rawParticipantCount = Number(row?.snapshot_participant_count);
+    attempt.snapshots.push({
+      id: snapshotId,
+      observedAt: row?.snapshot_observed_at || null,
+      trainingState: String(row?.snapshot_training_state || ""),
+      participantCount: Number.isFinite(rawParticipantCount) && rawParticipantCount > 0
+        ? Math.floor(rawParticipantCount)
+        : 0,
+      knownPlayerIds: Array.isArray(knownPlayerIds) ? knownPlayerIds : [],
+      companionsByOwner: Array.isArray(companionsByOwner) || isPlainJsonObject(companionsByOwner)
+        ? companionsByOwner
+        : [],
+    });
+  }
+  return [...attemptsById.values()]
+    .map((attempt) => ({
+      ...attempt,
+      snapshots: attempt.snapshots.sort((left, right) => (
+        String(left.observedAt || "").localeCompare(String(right.observedAt || "")) || left.id - right.id
+      )),
+    }))
+    .sort((left, right) => left.activityDate.localeCompare(right.activityDate) || left.id - right.id);
+}
+
+async function listGroupLearningAttempts(db, now = new Date()) {
+  const today = getBeijingDateString(now);
+  const earliestDate = addDaysToDateString(today, 1 - GROUP_LEARNING_LOOKBACK_DAYS);
+  const { results } = await db.prepare(
+    `WITH selected_attempts AS (
+       SELECT
+         attempt.id AS attempt_id,
+         attempt.activity_date,
+         attempt.outcome AS attempt_outcome,
+         attempt.training_state AS attempt_training_state,
+         attempt.source AS attempt_source
+       FROM group_attempts attempt
+       WHERE attempt.group_key = ?
+         AND attempt.activity_date >= ?
+         AND attempt.activity_date <= ?
+         AND attempt.training_state = 'eligible'
+         AND EXISTS (
+           SELECT 1
+           FROM group_attempt_snapshots eligible_snapshot
+           WHERE eligible_snapshot.attempt_id = attempt.id
+             AND eligible_snapshot.training_state = 'eligible'
+         )
+       ORDER BY attempt.activity_date DESC, attempt.id DESC
+       LIMIT ?
+     )
+     SELECT
+       attempt.attempt_id,
+       attempt.activity_date,
+       attempt.attempt_outcome,
+       attempt.attempt_training_state,
+       attempt.attempt_source,
+       snapshot.id AS snapshot_id,
+       snapshot.observed_at AS snapshot_observed_at,
+       snapshot.training_state AS snapshot_training_state,
+       snapshot.participant_count AS snapshot_participant_count,
+       snapshot.known_player_ids_json,
+       snapshot.companions_by_owner_json
+     FROM selected_attempts attempt
+     INNER JOIN group_attempt_snapshots snapshot
+       ON snapshot.attempt_id = attempt.attempt_id
+      AND snapshot.training_state = 'eligible'
+     ORDER BY attempt.activity_date ASC, attempt.attempt_id ASC, snapshot.observed_at ASC, snapshot.id ASC`
+  ).bind(GROUP_ATTEMPT_KEY, earliestDate, today, GROUP_LEARNING_MAX_ATTEMPTS).all();
+  if (results.length > GROUP_LEARNING_MAX_ROWS) {
+    throw new Error("Group-learning query exceeded its complete-attempt row bound");
+  }
+  return parseGroupLearningAttemptRows(results);
+}
+
+function containsRawGroupLearningData(value) {
+  const pending = [value];
+  let visited = 0;
+  while (pending.length) {
+    const current = pending.pop();
+    if (!current || typeof current !== "object") continue;
+    visited += 1;
+    if (visited > 100_000) return true;
+    for (const [key, nested] of Object.entries(current)) {
+      if (GROUP_LEARNING_RAW_DATA_KEYS.has(key)) return true;
+      if (nested && typeof nested === "object") pending.push(nested);
+    }
+  }
+  return false;
+}
+
+function parseCachedGroupLearningSignals(value) {
+  let parsed;
+  try {
+    parsed = typeof value === "string" ? JSON.parse(value) : value;
+  } catch (error) {
+    return null;
+  }
+  if (!isPlainJsonObject(parsed)
+    || parsed.version !== GROUP_LEARNING_VERSION
+    || !Number.isFinite(Number(parsed.halfLifeDays))
+    || Number(parsed.halfLifeDays) <= 0
+    || Number.isNaN(Date.parse(String(parsed.generatedAt || "")))
+    || !isPlainJsonObject(parsed.training)
+    || !isPlainJsonObject(parsed.priors)
+    || !isPlainJsonObject(parsed.members)
+    || !isPlainJsonObject(parsed.influence)
+    || containsRawGroupLearningData(parsed)) {
+    return null;
+  }
+  return parsed;
+}
+
+async function getCachedGroupLearningSignals(db) {
+  const row = await db.prepare(
+    "SELECT model_json FROM group_learning_model_cache WHERE id = ? LIMIT 1"
+  ).bind(GROUP_LEARNING_CACHE_ID).first();
+  return parseCachedGroupLearningSignals(row?.model_json);
+}
+
+function buildGroupLearningColdStart(players, sessions, now = new Date()) {
+  return buildGroupLearningSignals({
+    players: Array.isArray(players) ? players : [],
+    sessions: Array.isArray(sessions) ? sessions : [],
+    attempts: [],
+    now,
+    halfLifeDays: GROUP_LEARNING_HALF_LIFE_DAYS,
+  });
+}
+
+async function rebuildGroupLearningSignals(db, now = new Date()) {
+  const [players, sessions, attempts] = await Promise.all([
+    listPlayers(db),
+    listSessions(db),
+    listGroupLearningAttempts(db, now),
+  ]);
+  const groupLearningSignals = buildGroupLearningSignals({
+    players,
+    sessions,
+    attempts,
+    now,
+    halfLifeDays: GROUP_LEARNING_HALF_LIFE_DAYS,
+  });
+  const modelJson = JSON.stringify(groupLearningSignals);
+  if (!parseCachedGroupLearningSignals(modelJson)) {
+    throw new Error("Generated group-learning model failed cache validation");
+  }
+  await db.prepare(
+    `INSERT INTO group_learning_model_cache (id, model_json, generated_at, updated_at)
+     VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT(id) DO UPDATE SET
+       model_json = excluded.model_json,
+       generated_at = excluded.generated_at,
+       updated_at = CURRENT_TIMESTAMP`
+  ).bind(GROUP_LEARNING_CACHE_ID, modelJson, groupLearningSignals.generatedAt).run();
+  return groupLearningSignals;
+}
+
+async function safelyRebuildGroupLearningSignals(db, now = new Date()) {
+  try {
+    return await rebuildGroupLearningSignals(db, now);
+  } catch (error) {
+    console.error("Could not rebuild group-learning model", error);
+    return null;
+  }
+}
+
 async function getGroupAttemptSnapshotByEventId(db, clientEventId) {
   const row = await db.prepare(
     "SELECT * FROM group_attempt_snapshots WHERE client_event_id = ?"
@@ -1802,6 +2042,12 @@ async function settleDueGroupAttempts(db, now = new Date()) {
     backfilledCount: Number(backfillResult.meta?.changes) || 0,
     reconciledCount: Number(reconcileResult.meta?.changes) || 0,
   };
+}
+
+async function runScheduledGroupLearningMaintenance(db, now = new Date()) {
+  const settlement = await settleDueGroupAttempts(db, now);
+  const groupLearningSignals = await safelyRebuildGroupLearningSignals(db, now);
+  return { settlement, groupLearningSignals };
 }
 
 function buildShortTermRuleInsert(db, input) {
