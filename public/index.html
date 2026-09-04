@@ -1964,67 +1964,44 @@
       text-align: right;
     }
 
-    .payment-settings-dialog { width: min(760px, 100%); }
+    .payment-settings-dialog { width: min(1180px, 100%); }
 
-    .payment-settings-tabs {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      margin-bottom: 16px;
-      border: 1px solid var(--line-strong);
-      border-radius: 6px;
+    .payment-settings-dialog .modal-body {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
       overflow: hidden;
     }
 
-    .payment-settings-tab {
-      min-height: 38px;
-      border: 0;
-      border-radius: 0;
-      background: #fff;
-      color: var(--muted);
-    }
-
-    .payment-settings-tab + .payment-settings-tab {
-      border-left: 1px solid var(--line-strong);
-    }
-
-    .payment-settings-tab.active {
-      background: var(--accent-soft);
-      color: var(--accent-dark);
-      font-weight: 700;
-    }
-
-    .payment-settings-panel[hidden] { display: none; }
-
-    .payment-settings-order-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-
-    .payment-settings-order-count {
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .payment-settings-order-actions {
+    .payment-settings-group-actions {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 8px;
-      flex-wrap: wrap;
+      gap: 5px;
+      margin-left: auto;
+    }
+
+    .payment-settings-group-actions svg {
+      width: 15px;
+      height: 15px;
+      flex: none;
+      stroke-width: 2;
+    }
+
+    .payment-settings-group-actions button {
+      width: 30px;
+      min-width: 30px;
+      min-height: 30px;
+      display: grid;
+      place-items: center;
+      padding: 0;
     }
 
     .member-exit-investigator-btn {
-      min-height: 34px;
-      padding: 0 10px;
       color: var(--accent-dark);
       border-color: #9bc9c1;
       background: var(--accent-soft);
-      font-size: 13px;
-      font-weight: 700;
     }
 
     .member-exit-investigator-btn:hover {
@@ -2033,12 +2010,9 @@
     }
 
     .unrecorded-exit-btn {
-      min-height: 34px;
-      padding: 0 10px;
       color: var(--danger);
       border-color: #e6aaa5;
       background: #fff;
-      font-size: 13px;
     }
 
     .unrecorded-exit-btn:hover {
@@ -2047,39 +2021,133 @@
       background: #fff4f3;
     }
 
-    .order-list {
+    .payment-settings-groups {
+      min-height: 0;
+      flex: 1;
       display: grid;
-      gap: 8px;
-      max-height: min(62vh, 620px);
+      grid-template-columns: minmax(300px, 2.15fr) minmax(320px, 2.15fr) minmax(180px, 1fr);
+      align-items: stretch;
       overflow: auto;
-      padding-right: 2px;
-    }
-
-    .order-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 126px;
-      align-items: center;
-      gap: 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 8px;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
       background: #fff;
-      transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
     }
 
-    .order-row:hover { border-color: #b7d5cf; background: #fbfefd; }
+    .payment-settings-group {
+      min-width: 0;
+      display: grid;
+      align-content: start;
+      grid-template-rows: auto auto 1fr;
+      background: #fff;
+    }
 
-    .order-name {
+    .payment-settings-group + .payment-settings-group {
+      border-left: 1px solid var(--line-strong);
+    }
+
+    .payment-settings-group-head {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px 6px 12px;
+      border-bottom: 1px solid var(--line-strong);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .payment-settings-group-head h3 {
+      margin: 0;
+      font: inherit;
+    }
+
+    .payment-settings-group--friends .payment-settings-group-head {
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+    }
+
+    .payment-settings-group--hytronik .payment-settings-group-head {
+      background: var(--amber-soft);
+      color: #744500;
+    }
+
+    .payment-settings-group--special .payment-settings-group-head {
+      background: #f1f3f3;
+      color: #344743;
+    }
+
+    .payment-settings-group-count {
+      color: currentColor;
+      font-size: 11px;
+      font-weight: 700;
+      opacity: .7;
+      white-space: nowrap;
+    }
+
+    .payment-settings-column-head,
+    .payment-settings-member-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 112px;
+      align-items: center;
+    }
+
+    .payment-settings-group--special .payment-settings-column-head,
+    .payment-settings-group--special .payment-settings-member-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .payment-settings-column-head {
+      position: sticky;
+      top: 44px;
+      z-index: 2;
+      min-height: 38px;
+      border-bottom: 1px solid var(--line-strong);
+      background: #f8faf9;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .payment-settings-column-head > span,
+    .payment-settings-member-cell {
+      min-width: 0;
+      padding: 8px 12px;
+    }
+
+    .payment-settings-member-row {
+      min-height: 44px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      transition: background-color 0.16s ease;
+    }
+
+    .payment-settings-member-row:last-child { border-bottom: 0; }
+    .payment-settings-member-row:hover { background: #fbfefd; }
+
+    .payment-settings-name {
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
+    .payment-settings-empty {
+      padding: 16px 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
     .join-number-field {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-columns: auto 74px;
       align-items: center;
+      justify-content: start;
       gap: 7px;
       color: var(--muted);
       font-size: 13px;
@@ -2471,62 +2539,6 @@
       margin-left: auto;
     }
 
-    .special-settings-list {
-      display: grid;
-      gap: 8px;
-      max-height: min(62vh, 620px);
-      overflow: auto;
-      padding-right: 2px;
-    }
-
-    .special-setting-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: center;
-      gap: 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 9px 10px;
-      background: #fff;
-      transition: border-color 0.16s ease, background-color 0.16s ease;
-    }
-
-    .special-setting-row:hover { border-color: #b7d5cf; background: #fbfefd; }
-
-    .special-setting-name {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .special-setting-choice {
-      display: grid;
-      grid-template-columns: repeat(2, 88px);
-      border: 1px solid var(--line-strong);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-
-    .special-setting-choice button {
-      min-height: 32px;
-      border: 0;
-      border-radius: 0;
-      padding: 4px 8px;
-      background: #fff;
-      color: var(--muted);
-    }
-
-    .special-setting-choice button + button {
-      border-left: 1px solid var(--line-strong);
-    }
-
-    .special-setting-choice button.active {
-      background: #e1f5f1;
-      color: #0c5f59;
-      font-weight: 700;
-    }
-
     .toast {
       position: fixed;
       right: 18px;
@@ -2584,6 +2596,14 @@
       .app-shell { height: auto; min-height: 100vh; }
       .table-wrap { min-height: 58vh; }
       .table-tools { justify-content: space-between; }
+      .payment-settings-groups {
+        grid-template-columns: repeat(2, minmax(280px, 1fr));
+      }
+      .payment-settings-group--special {
+        grid-column: 1 / -1;
+        border-top: 1px solid var(--line-strong);
+        border-left: 0 !important;
+      }
     }
 
     @media (max-width: 560px) {
@@ -2621,10 +2641,28 @@
       .shake-people-summary-row { align-items: flex-start; flex-direction: column; }
       .shake-person-row { grid-template-columns: 1fr; }
       .shake-person-score { justify-content: flex-start; }
-      .payment-settings-tabs { grid-template-columns: 1fr; }
-      .payment-settings-tab + .payment-settings-tab { border-left: 0; border-top: 1px solid var(--line-strong); }
-      .payment-settings-order-toolbar { align-items: flex-start; }
-      .payment-settings-order-actions { justify-content: flex-end; }
+      .payment-settings-groups { grid-template-columns: minmax(0, 1fr); }
+      .payment-settings-group,
+      .payment-settings-group--special {
+        grid-column: auto;
+        border-top: 1px solid var(--line-strong);
+        border-left: 0 !important;
+      }
+      .payment-settings-group:first-child { border-top: 0; }
+      .payment-settings-group-actions button {
+        width: 44px;
+        min-width: 44px;
+        min-height: 44px;
+      }
+      .payment-settings-group-head { min-height: 56px; }
+      .payment-settings-column-head { top: 56px; }
+      .payment-settings-member-row { min-height: 52px; }
+      .join-number-input { height: 44px; font-size: 16px; }
+      .payment-settings-name {
+        overflow: visible;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
       .member-exit-dialog .modal-body { padding: 12px; }
       .member-exit-intake { grid-template-columns: 1fr; gap: 14px; }
       .member-exit-upload { min-height: 190px; }
@@ -2649,16 +2687,6 @@
       .chain-output-row { grid-template-columns: 1fr; gap: 4px; padding-block: 7px; }
       .inline-plus-controls { justify-self: start; justify-content: flex-start; }
       .inline-level-select { flex: 1; width: auto; min-width: 0; }
-      .special-setting-row { grid-template-columns: 1fr; }
-      .special-setting-name {
-        overflow: visible;
-        white-space: normal;
-        word-break: break-word;
-      }
-      .special-setting-choice {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        width: 100%;
-      }
     }
 
     .record-dialog {
@@ -3561,9 +3589,12 @@
     }
 
     .nav-preview .modal-backdrop.nav-page .calendar-dialog .modal-body,
-    .nav-preview .modal-backdrop.nav-page .guide-dialog .modal-body,
-    .nav-preview .modal-backdrop.nav-page .payment-settings-dialog .modal-body {
+    .nav-preview .modal-backdrop.nav-page .guide-dialog .modal-body {
       overflow: auto;
+    }
+
+    .nav-preview .modal-backdrop.nav-page .payment-settings-dialog .modal-body {
+      overflow: hidden;
     }
 
     .nav-preview .modal-backdrop.nav-page .export-grid {
@@ -3614,6 +3645,7 @@
 
     @media (max-width: 760px) {
       body.nav-preview { min-width: 760px; --nav-width: 68px; }
+      body.nav-preview:has(#paymentSettingsModal.open) { min-width: 0; }
       .nav-preview-sidebar { width: 68px; }
       .nav-preview-main { width: calc(100% - 68px); margin-left: 68px; }
       .nav-preview-brand-copy,
@@ -3628,6 +3660,14 @@
       .nav-preview-status { justify-content: center; }
       .nav-preview .modal-backdrop.nav-page { left: 68px; }
       .nav-preview .modal-backdrop.nav-page .chain-grid { min-width: 1080px; }
+      .payment-settings-groups { grid-template-columns: minmax(0, 1fr); }
+      .payment-settings-group,
+      .payment-settings-group--special {
+        grid-column: auto;
+        border-top: 1px solid var(--line-strong);
+        border-left: 0 !important;
+      }
+      .payment-settings-group:first-child { border-top: 0; }
     }
   </style>
 </head>
@@ -3985,29 +4025,45 @@
   </div>
 
   <div id="paymentSettingsModal" class="modal-backdrop nav-page">
-    <div class="modal medium payment-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="paymentSettingsTitle">
+    <div class="modal wide payment-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="paymentSettingsTitle">
       <div class="modal-header">
         <h2 id="paymentSettingsTitle" class="modal-title">群收款设置</h2>
         <button class="modal-close-btn" data-close="paymentSettingsModal" aria-label="关闭" title="关闭">×</button>
       </div>
       <div class="modal-body">
-        <div class="payment-settings-tabs" role="tablist" aria-label="群收款设置分类">
-          <button class="payment-settings-tab active" type="button" role="tab" aria-selected="true" data-payment-settings-tab="球友">球友入群序号</button>
-          <button class="payment-settings-tab" type="button" role="tab" aria-selected="false" data-payment-settings-tab="Hytronik">Hytronik入群序号</button>
-          <button class="payment-settings-tab" type="button" role="tab" aria-selected="false" data-payment-settings-tab="特殊">特殊成员</button>
-        </div>
-        <div id="paymentSettingsOrderPanel" class="payment-settings-panel" role="tabpanel">
-          <div class="payment-settings-order-toolbar">
-            <span id="paymentSettingsOrderCount" class="payment-settings-order-count"></span>
-            <div class="payment-settings-order-actions">
-              <button id="memberExitInvestigatorBtn" class="member-exit-investigator-btn" type="button">截图排查退群</button>
-              <button id="unrecordedExitBtn" class="unrecorded-exit-btn" type="button">↘ 未录入成员退群</button>
+        <div class="payment-settings-groups" aria-label="群收款成员设置">
+          <section class="payment-settings-group payment-settings-group--friends" aria-labelledby="paymentSettingsFriendsTitle">
+            <div class="payment-settings-group-head">
+              <h3 id="paymentSettingsFriendsTitle">球友入群序号</h3>
+              <span id="paymentSettingsFriendsCount" class="payment-settings-group-count"></span>
+              <div class="payment-settings-group-actions" aria-label="球友群退群工具">
+                <button class="member-exit-investigator-btn" type="button" data-member-exit-investigator="球友" aria-label="截图排查球友群退群" title="截图排查退群"><i data-lucide="scan-search"></i></button>
+                <button class="unrecorded-exit-btn" type="button" data-unrecorded-exit="球友" aria-label="处理球友群未录入成员退群" title="未录入成员退群"><i data-lucide="user-round-x"></i></button>
+              </div>
             </div>
-          </div>
-          <div id="paymentSettingsOrderList" class="order-list"></div>
-        </div>
-        <div id="paymentSettingsSpecialPanel" class="payment-settings-panel" role="tabpanel" hidden>
-          <div id="paymentSettingsSpecialList" class="special-settings-list"></div>
+            <div class="payment-settings-column-head" aria-hidden="true"><span>球友名</span><span>在球友群的序号</span></div>
+            <div id="paymentSettingsFriendsList" class="payment-settings-member-list"></div>
+          </section>
+          <section class="payment-settings-group payment-settings-group--hytronik" aria-labelledby="paymentSettingsHytronikTitle">
+            <div class="payment-settings-group-head">
+              <h3 id="paymentSettingsHytronikTitle">Hytronik入群序号</h3>
+              <span id="paymentSettingsHytronikCount" class="payment-settings-group-count"></span>
+              <div class="payment-settings-group-actions" aria-label="Hytronik群退群工具">
+                <button class="member-exit-investigator-btn" type="button" data-member-exit-investigator="Hytronik" aria-label="截图排查Hytronik群退群" title="截图排查退群"><i data-lucide="scan-search"></i></button>
+                <button class="unrecorded-exit-btn" type="button" data-unrecorded-exit="Hytronik" aria-label="处理Hytronik群未录入成员退群" title="未录入成员退群"><i data-lucide="user-round-x"></i></button>
+              </div>
+            </div>
+            <div class="payment-settings-column-head" aria-hidden="true"><span>Hytronik成员名</span><span>在Hytronik群的序号</span></div>
+            <div id="paymentSettingsHytronikList" class="payment-settings-member-list"></div>
+          </section>
+          <section class="payment-settings-group payment-settings-group--special" aria-labelledby="paymentSettingsSpecialTitle">
+            <div class="payment-settings-group-head">
+              <h3 id="paymentSettingsSpecialTitle">特殊成员</h3>
+              <span id="paymentSettingsSpecialCount" class="payment-settings-group-count"></span>
+            </div>
+            <div class="payment-settings-column-head" aria-hidden="true"><span>特殊成员名</span></div>
+            <div id="paymentSettingsSpecialList" class="payment-settings-member-list"></div>
+          </section>
         </div>
       </div>
       <div class="modal-footer">
@@ -4305,9 +4361,7 @@
       recordRows: { court: [], shuttle: [] },
       recordRawPlayers: [],
       paymentSettingsEditor: {
-        activeTab: "球友",
         joinNumbers: { "球友": [], "Hytronik": [] },
-        special: {},
       },
       memberExitInvestigator: {
         affiliation: "球友",
@@ -4470,14 +4524,15 @@
       trainingSkipBtn: document.getElementById("trainingSkipBtn"),
       trainingAcceptBtn: document.getElementById("trainingAcceptBtn"),
       paymentSettingsModal: document.getElementById("paymentSettingsModal"),
-      paymentSettingsTabs: [...document.querySelectorAll("[data-payment-settings-tab]")],
-      paymentSettingsOrderPanel: document.getElementById("paymentSettingsOrderPanel"),
-      paymentSettingsOrderCount: document.getElementById("paymentSettingsOrderCount"),
-      paymentSettingsOrderList: document.getElementById("paymentSettingsOrderList"),
-      paymentSettingsSpecialPanel: document.getElementById("paymentSettingsSpecialPanel"),
+      paymentSettingsFriendsCount: document.getElementById("paymentSettingsFriendsCount"),
+      paymentSettingsHytronikCount: document.getElementById("paymentSettingsHytronikCount"),
+      paymentSettingsSpecialCount: document.getElementById("paymentSettingsSpecialCount"),
+      paymentSettingsFriendsList: document.getElementById("paymentSettingsFriendsList"),
+      paymentSettingsHytronikList: document.getElementById("paymentSettingsHytronikList"),
       paymentSettingsSpecialList: document.getElementById("paymentSettingsSpecialList"),
       savePaymentSettingsBtn: document.getElementById("savePaymentSettingsBtn"),
-      memberExitInvestigatorBtn: document.getElementById("memberExitInvestigatorBtn"),
+      memberExitInvestigatorBtns: [...document.querySelectorAll("[data-member-exit-investigator]")],
+      unrecordedExitBtns: [...document.querySelectorAll("[data-unrecorded-exit]")],
       memberExitInvestigatorModal: document.getElementById("memberExitInvestigatorModal"),
       memberExitInvestigatorTitle: document.getElementById("memberExitInvestigatorTitle"),
       memberExitUploadZone: document.getElementById("memberExitUploadZone"),
@@ -4503,7 +4558,6 @@
       memberExitEvidenceList: document.getElementById("memberExitEvidenceList"),
       memberExitRetryBtn: document.getElementById("memberExitRetryBtn"),
       memberExitConfirmBtn: document.getElementById("memberExitConfirmBtn"),
-      unrecordedExitBtn: document.getElementById("unrecordedExitBtn"),
       unrecordedExitModal: document.getElementById("unrecordedExitModal"),
       unrecordedExitTitle: document.getElementById("unrecordedExitTitle"),
       unrecordedExitLabel: document.getElementById("unrecordedExitLabel"),
@@ -4804,9 +4858,6 @@
       els.trainingAcceptBtn.addEventListener("click", () => finishAnomalyTraining(true));
       els.recordCourtFeeInput.addEventListener("input", onRecordCourtFeeChange);
       els.saveRecordBtn.addEventListener("click", saveRecordDialog);
-      els.paymentSettingsTabs.forEach((tab) => {
-        tab.addEventListener("click", () => switchPaymentSettingsTab(tab.dataset.paymentSettingsTab));
-      });
       els.edcBalanceInput.addEventListener("change", saveEdcBalance);
       els.edcBalanceInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
@@ -4818,7 +4869,9 @@
         }
       });
       els.savePaymentSettingsBtn.addEventListener("click", () => savePaymentSettings());
-      els.memberExitInvestigatorBtn.addEventListener("click", openMemberExitInvestigator);
+      els.memberExitInvestigatorBtns.forEach((button) => {
+        button.addEventListener("click", () => openMemberExitInvestigator(button.dataset.memberExitInvestigator));
+      });
       els.memberExitUploadZone.addEventListener("click", () => {
         if (state.memberExitInvestigator.imageDataUrl) openMemberExitImageViewer();
         else els.memberExitImageInput.click();
@@ -4847,7 +4900,9 @@
       els.memberExitAnalyzeBtn.addEventListener("click", runMemberExitRecognition);
       els.memberExitRetryBtn.addEventListener("click", runMemberExitRecognition);
       els.memberExitConfirmBtn.addEventListener("click", confirmMemberExitCandidate);
-      els.unrecordedExitBtn.addEventListener("click", openUnrecordedExitModal);
+      els.unrecordedExitBtns.forEach((button) => {
+        button.addEventListener("click", () => openUnrecordedExitModal(button.dataset.unrecordedExit));
+      });
       els.confirmUnrecordedExitBtn.addEventListener("click", confirmUnrecordedExit);
       els.photoFitToggleBtn.addEventListener("click", togglePhotoViewerSize);
       els.unrecordedExitNumber.addEventListener("keydown", (event) => {
@@ -10181,12 +10236,11 @@
         .sort((a, b) => (a.joinNumber - b.joinNumber) || (a.playerId - b.playerId));
     }
 
-    function openMemberExitInvestigator() {
+    function openMemberExitInvestigator(affiliation) {
       if (state.readOnly) {
         toast("当前为只读模式，不能排查退群");
         return;
       }
-      const affiliation = state.paymentSettingsEditor.activeTab;
       if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation)) return;
       if (hasUnsavedPaymentSettingsChanges()) {
         toast("入群序号设置尚未保存，请先保存后再排查退群");
@@ -10910,17 +10964,12 @@
       return lines.join("\n");
     }
 
-    function createPaymentSettingsEditor(activeTab = "球友") {
+    function createPaymentSettingsEditor() {
       return {
-        activeTab,
         joinNumbers: Object.fromEntries(PAYMENT_ORDER_AFFILIATIONS.map((affiliation) => [
           affiliation,
           getJoinNumbersForEditor(affiliation),
         ])),
-        special: Object.fromEntries(
-          state.players.filter(isSpecialPlayer)
-            .map((player) => [String(player.id), player.participatesPayment !== false])
-        ),
       };
     }
 
@@ -10930,20 +10979,17 @@
           .map((entry) => [affiliation, Number(entry.playerId), Number(entry.joinNumber)])
           .sort((left, right) => (left[1] - right[1]) || (left[2] - right[2]))
       ));
-      const special = Object.entries(editor?.special || {})
-        .map(([playerId, participates]) => [Number(playerId), participates !== false])
-        .sort((left, right) => left[0] - right[0]);
-      return JSON.stringify({ joinNumbers, special });
+      return JSON.stringify({ joinNumbers });
     }
 
     function hasUnsavedPaymentSettingsChanges() {
-      const baseline = createPaymentSettingsEditor(state.paymentSettingsEditor.activeTab);
+      const baseline = createPaymentSettingsEditor();
       return paymentSettingsEditorSignature(state.paymentSettingsEditor)
         !== paymentSettingsEditorSignature(baseline);
     }
 
     function refreshPaymentSettingsEditorFromState() {
-      state.paymentSettingsEditor = createPaymentSettingsEditor(state.paymentSettingsEditor.activeTab);
+      state.paymentSettingsEditor = createPaymentSettingsEditor();
       renderPaymentSettings();
     }
 
@@ -10957,25 +11003,11 @@
       openModal("paymentSettingsModal");
     }
 
-    function switchPaymentSettingsTab(tab) {
-      if (![...PAYMENT_ORDER_AFFILIATIONS, "特殊"].includes(tab)) return;
-      state.paymentSettingsEditor.activeTab = tab;
-      renderPaymentSettings();
-    }
-
     function renderPaymentSettings() {
-      const activeTab = state.paymentSettingsEditor.activeTab;
-      const isSpecial = activeTab === "特殊";
-      els.paymentSettingsTabs.forEach((tab) => {
-        const active = tab.dataset.paymentSettingsTab === activeTab;
-        tab.classList.toggle("active", active);
-        tab.setAttribute("aria-selected", String(active));
-        tab.tabIndex = active ? 0 : -1;
-      });
-      els.paymentSettingsOrderPanel.hidden = isSpecial;
-      els.paymentSettingsSpecialPanel.hidden = !isSpecial;
-      if (isSpecial) renderSpecialSettingsList();
-      else renderOrderList();
+      const playersById = new Map(state.players.map((player) => [Number(player.id), player]));
+      renderPaymentSettingsGroup("球友", els.paymentSettingsFriendsList, els.paymentSettingsFriendsCount, playersById);
+      renderPaymentSettingsGroup("Hytronik", els.paymentSettingsHytronikList, els.paymentSettingsHytronikCount, playersById);
+      renderSpecialSettingsList();
     }
 
     function getJoinNumbersForEditor(affiliation) {
@@ -10994,10 +11026,8 @@
       return entries.sort(compareJoinNumberEntries);
     }
 
-    function renderOrderList() {
-      const affiliation = state.paymentSettingsEditor.activeTab;
+    function renderPaymentSettingsGroup(affiliation, list, count, playersById) {
       if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation)) return;
-      const playersById = new Map(state.players.map((player) => [Number(player.id), player]));
       const entries = state.paymentSettingsEditor.joinNumbers[affiliation]
         .filter((entry) => {
           const player = playersById.get(Number(entry.playerId));
@@ -11005,31 +11035,31 @@
         })
         .sort(compareJoinNumberEntries);
       state.paymentSettingsEditor.joinNumbers[affiliation] = entries;
-      els.paymentSettingsOrderCount.textContent = `${affiliation}成员 ${entries.length}人`;
+      count.textContent = `${entries.length}人`;
 
       if (!entries.length) {
         const empty = document.createElement("div");
-        empty.className = "empty-hint";
-        empty.textContent = "暂无成员";
-        els.paymentSettingsOrderList.replaceChildren(empty);
+        empty.className = "payment-settings-empty";
+        empty.textContent = `暂无${affiliation}成员`;
+        list.replaceChildren(empty);
         return;
       }
 
-      els.paymentSettingsOrderList.replaceChildren(...entries.map((entry) => createOrderRow(playersById.get(entry.playerId), entry)));
+      list.replaceChildren(...entries.map((entry) => createOrderRow(playersById.get(entry.playerId), entry, affiliation)));
     }
 
-    function createOrderRow(player, entry) {
+    function createOrderRow(player, entry, affiliation) {
       const row = document.createElement("div");
-      row.className = "order-row";
+      row.className = "payment-settings-member-row";
       row.dataset.playerId = String(player.id);
 
       const name = document.createElement("span");
-      name.className = "order-name";
+      name.className = "payment-settings-member-cell payment-settings-name";
       name.textContent = firstName(player.name) || player.name || "未命名";
       name.title = player.name || "";
 
       const numberField = document.createElement("label");
-      numberField.className = "join-number-field";
+      numberField.className = "payment-settings-member-cell join-number-field";
       numberField.append(document.createTextNode("第"));
       const input = document.createElement("input");
       input.className = "join-number-input";
@@ -11038,30 +11068,29 @@
       input.step = "1";
       input.inputMode = "numeric";
       input.value = String(entry.joinNumber);
-      input.setAttribute("aria-label", `${name.textContent}的入群序号`);
+      input.setAttribute("aria-label", `${name.textContent}在${affiliation}群的入群序号`);
       input.addEventListener("focus", () => input.select());
-      input.addEventListener("change", () => setJoinNumber(player.id, input.value));
+      input.addEventListener("change", () => setJoinNumber(affiliation, player.id, input.value));
       numberField.append(input);
 
       row.append(name, numberField);
       return row;
     }
 
-    function setJoinNumber(playerId, rawValue) {
-      const affiliation = state.paymentSettingsEditor.activeTab;
+    function setJoinNumber(affiliation, playerId, rawValue) {
       if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation)) return;
       const joinNumber = Number(rawValue);
       const entries = state.paymentSettingsEditor.joinNumbers[affiliation];
       const current = entries.find((entry) => Number(entry.playerId) === Number(playerId));
       if (!current || !Number.isInteger(joinNumber) || joinNumber <= 0) {
         toast("入群序号需要填写大于0的整数");
-        renderOrderList();
+        renderPaymentSettings();
         return;
       }
       if (current.joinNumber === joinNumber) return;
 
       moveJoinNumberWithinEntries(entries, current, joinNumber);
-      renderOrderList();
+      renderPaymentSettings();
     }
 
     function moveJoinNumberWithinEntries(entries, current, joinNumber) {
@@ -11079,9 +11108,9 @@
       current.joinNumber = joinNumber;
     }
 
-    function openUnrecordedExitModal() {
-      const affiliation = state.paymentSettingsEditor.activeTab;
+    function openUnrecordedExitModal(affiliation) {
       if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation)) return;
+      els.unrecordedExitModal.dataset.affiliation = affiliation;
       els.unrecordedExitTitle.textContent = `${affiliation}：未录入成员退群`;
       els.unrecordedExitLabel.textContent = `${affiliation}退群前序号`;
       els.unrecordedExitNumber.value = "";
@@ -11091,7 +11120,7 @@
 
     async function confirmUnrecordedExit() {
       if (state.readOnly) return;
-      const affiliation = state.paymentSettingsEditor.activeTab;
+      const affiliation = els.unrecordedExitModal.dataset.affiliation;
       const joinNumber = Number(els.unrecordedExitNumber.value);
       if (!PAYMENT_ORDER_AFFILIATIONS.includes(affiliation) || !Number.isInteger(joinNumber) || joinNumber <= 0) {
         toast("退群前序号需要填写大于0的整数");
@@ -11120,10 +11149,11 @@
       const members = state.players
         .filter(isSpecialPlayer)
         .sort((a, b) => collator.compare(firstName(a.name), firstName(b.name)) || Number(a.id) - Number(b.id));
+      els.paymentSettingsSpecialCount.textContent = `${members.length}人`;
 
       if (!members.length) {
         const empty = document.createElement("div");
-        empty.className = "empty-hint";
+        empty.className = "payment-settings-empty";
         empty.textContent = "暂无特殊成员";
         els.paymentSettingsSpecialList.replaceChildren(empty);
         return;
@@ -11131,43 +11161,16 @@
 
       els.paymentSettingsSpecialList.replaceChildren(...members.map((player) => {
         const row = document.createElement("div");
-        row.className = "special-setting-row";
+        row.className = "payment-settings-member-row";
 
         const name = document.createElement("span");
-        name.className = "special-setting-name";
+        name.className = "payment-settings-member-cell payment-settings-name";
         name.textContent = firstName(player.name) || player.name || "未命名";
         name.title = player.name || "";
 
-        const choice = document.createElement("div");
-        choice.className = "special-setting-choice";
-        choice.setAttribute("role", "group");
-        choice.setAttribute("aria-label", `${name.textContent}的群收款设置`);
-        const participates = state.paymentSettingsEditor.special[String(player.id)] !== false;
-
-        const yesButton = document.createElement("button");
-        yesButton.type = "button";
-        yesButton.textContent = "参与A钱";
-        yesButton.classList.toggle("active", participates);
-        yesButton.setAttribute("aria-pressed", String(participates));
-        yesButton.addEventListener("click", () => setSpecialPaymentChoice(player.id, true));
-
-        const noButton = document.createElement("button");
-        noButton.type = "button";
-        noButton.textContent = "不A钱";
-        noButton.classList.toggle("active", !participates);
-        noButton.setAttribute("aria-pressed", String(!participates));
-        noButton.addEventListener("click", () => setSpecialPaymentChoice(player.id, false));
-
-        choice.append(yesButton, noButton);
-        row.append(name, choice);
+        row.append(name);
         return row;
       }));
-    }
-
-    function setSpecialPaymentChoice(playerId, participatesPayment) {
-      if (state.readOnly) return;
-      state.paymentSettingsEditor.special[String(playerId)] = participatesPayment;
-      renderSpecialSettingsList();
     }
 
     async function savePaymentSettings({ closeAfterSave = true, unrecordedExit = null, successMessage = "群收款设置已保存" } = {}) {
@@ -11179,7 +11182,7 @@
         .filter(isSpecialPlayer)
         .map((player) => ({
           playerId: Number(player.id),
-          participatesPayment: state.paymentSettingsEditor.special[String(player.id)] !== false,
+          participatesPayment: true,
         }));
 
       els.savePaymentSettingsBtn.disabled = true;
@@ -11198,7 +11201,7 @@
         });
         state.players = data.players || state.players;
         applyPaymentOrderState(data);
-        state.paymentSettingsEditor = createPaymentSettingsEditor(state.paymentSettingsEditor.activeTab);
+        state.paymentSettingsEditor = createPaymentSettingsEditor();
         setSync("已保存");
         toast(successMessage);
         if (closeAfterSave) closeModal("paymentSettingsModal");
@@ -11237,10 +11240,6 @@
         const canonicalName = entry.ownerName || (paymentOwner ? paymentDisplayName(paymentOwner) : getChainEntryBaseName(entry));
         if (!entry.clean) continue;
 
-        if (isSpecialPlayer(player) && player.participatesPayment === false) {
-          addPaymentLine(groups.special, canonicalName, 0, "不参与A钱", 0, player.id, nextSequence++, entry.isFemale, false);
-          continue;
-        }
         if (!shouldCountForPayment(entry)) continue;
 
         const entryAmount = entry.isFemale ? femalePerPerson : malePerPerson;
@@ -11297,9 +11296,7 @@
     }
 
     function shouldCountForPayment(entry) {
-      if (!entry.clean) return false;
-      if (isSpecialPlayer(entry.player) && entry.player.participatesPayment === false) return false;
-      return true;
+      return Boolean(entry.clean);
     }
 
     function getSharedPaymentGroup(entries) {
@@ -12454,7 +12451,7 @@
         chain: ["接龙助手", "整理名单、计算费用并准备群收款"],
         calendar: ["订场日历", "查看订场记录与成员出勤"],
         database: ["数据库", "管理成员资料、等级和历史统计"],
-        "payment-settings": ["群收款设置", "维护群内顺序与特殊成员规则"],
+        "payment-settings": ["群收款设置", "入群序号与特殊成员"],
         guide: ["等级介绍", "查看并维护中羽等级说明"],
         export: ["导出表格", "选择字段并导出成员数据"],
       };

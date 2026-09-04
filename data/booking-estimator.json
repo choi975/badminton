@@ -1,32 +1,32 @@
 {
   "version": 5,
-  "generatedAt": "2026-09-04T09:55:36.137Z",
-  "trainingRevision": 200,
+  "generatedAt": "2026-09-04T16:50:23.012Z",
+  "trainingRevision": 229,
   "training": {
     "dateRange": {
       "from": "2026-07-13",
-      "to": "2026-09-02"
+      "to": "2026-09-04"
     },
     "court": {
-      "sampleCount": 20,
+      "sampleCount": 21,
       "dateRange": {
         "from": "2026-07-13",
-        "to": "2026-09-02"
+        "to": "2026-09-04"
       }
     },
     "shuttle": {
-      "sampleCount": 19,
-      "eligibleSessionCount": 20,
+      "sampleCount": 20,
+      "eligibleSessionCount": 21,
       "unconfirmedExcludedCount": 0,
       "mixedExcludedCount": 1,
       "unknownTypeExcludedCount": 0,
       "byType": {
         "rsl3": {
-          "sampleCount": 19,
+          "sampleCount": 20,
           "mixedExcludedCount": 1,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-09-02"
+            "to": "2026-09-04"
           }
         },
         "as05": {
@@ -50,7 +50,7 @@
         11.3,
         11.5
       ],
-      "sampleCount": 19,
+      "sampleCount": 20,
       "trainingMode": "global-only"
     },
     {
@@ -80,12 +80,12 @@
     "validation": {
       "method": "in-sample",
       "minimumTrainingSessions": 5,
-      "folds": 20,
-      "mae": 0,
-      "rmse": 0,
-      "exactRate": 1,
-      "bias": 0,
-      "underPredictionRate": 0,
+      "folds": 21,
+      "mae": 0.048,
+      "rmse": 0.218,
+      "exactRate": 0.952,
+      "bias": -0.048,
+      "underPredictionRate": 0.048,
       "overPredictionRate": 0
     }
   },
@@ -107,22 +107,22 @@
         "typeId": "rsl3",
         "trainingMode": "global-only",
         "formula": "ceil(rawExpected + riskScale * sqrt(max(rawExpected, 1)))",
-        "baseRate": 0.81087,
+        "baseRate": 0.816659,
         "riskQuantile": 0.7,
-        "riskScale": 0.20928,
+        "riskScale": 0.21078,
         "effects": {
           "gender": {},
           "genderLevel": {},
           "member": {}
         },
         "training": {
-          "sampleCount": 19,
-          "availableSampleCount": 19,
+          "sampleCount": 20,
+          "availableSampleCount": 20,
           "olderExcludedCount": 0,
           "mixedExcludedCount": 1,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-09-02"
+            "to": "2026-09-04"
           }
         },
         "regularization": {
@@ -139,16 +139,16 @@
             0.1
           ],
           "source": "time-holdout-conservative-grid-search",
-          "baselineMae": 1.982,
+          "baselineMae": 2.076,
           "requiredImprovement": 0.25
         },
         "validation": {
           "method": "time-holdout",
           "folds": 5,
-          "mae": 1.982,
-          "rmse": 2.144,
+          "mae": 2.076,
+          "rmse": 2.195,
           "exactRate": 0,
-          "bias": 0.2,
+          "bias": 0.177,
           "underPredictionRate": 0.6,
           "overPredictionRate": 0.4
         },
@@ -158,22 +158,22 @@
           "priorStrength": 5,
           "maximumScale": 2,
           "folds": 5,
-          "mae": 2,
-          "rmse": 2.608,
+          "mae": 2.2,
+          "rmse": 2.933,
           "exactRate": 0.2,
-          "bias": 1.6,
+          "bias": 1.8,
           "underPredictionRate": 0.2,
           "overPredictionRate": 0.6
         },
         "fit": {
           "method": "global-rate",
-          "folds": 19,
-          "mae": 2.368,
-          "rmse": 2.911,
-          "exactRate": 0.053,
-          "bias": 1.526,
-          "underPredictionRate": 0.263,
-          "overPredictionRate": 0.684
+          "folds": 20,
+          "mae": 2.3,
+          "rmse": 2.881,
+          "exactRate": 0.1,
+          "bias": 1.5,
+          "underPredictionRate": 0.25,
+          "overPredictionRate": 0.65
         }
       },
       "as05": {

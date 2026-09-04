@@ -117,10 +117,8 @@ function participantSnapshots(row) {
   return snapshots;
 }
 
-function shouldPay(row, ownersById) {
-  if (row.isCompanion === true) return true;
-  const owner = ownersById.get(Number(row.playerId));
-  return !(owner?.affiliation === "特殊" && owner.participatesPayment === false);
+function shouldPay(row) {
+  return Boolean(row);
 }
 
 function getBestPartnerIdsMap(sessions) {
@@ -247,11 +245,11 @@ const specialRows = [
     ownerName: specialOwner.name,
     isCompanion: false,
     slots: 1,
-    amount: 0,
+    amount: 30,
   },
   { ...parseCompanion("特殊成员+1", specialOwner), amount: 30 },
 ];
-assert.equal(shouldPay(specialRows[0], ownersById), false, "不参与A钱的特殊成员本人不付款");
+assert.equal(shouldPay(specialRows[0], ownersById), true, "特殊成员本人统一参与A钱");
 assert.equal(shouldPay(specialRows[1], ownersById), true, "特殊成员带来的随行人员仍应付款");
 assert.deepEqual(projectOwners(specialRows)[0], {
   ownerPlayerId: specialOwner.id,
@@ -259,7 +257,7 @@ assert.deepEqual(projectOwners(specialRows)[0], {
   participantCount: 2,
   guestCount: 1,
   playCount: 1,
-  amount: 30,
+  amount: 60,
 });
 
 const partnerSessions = [
@@ -287,6 +285,12 @@ assert.ok(/\[\s*["']比赛级高手["']\s*,\s*["']6级["']\s*\]/.test(indexHtml)
 assert.ok(!/\[\s*["']比赛级高手["']\s*,\s*["']5级["']\s*\]/.test(indexHtml), "生产代码不得继续将比赛级高手保存为 5级");
 assert.ok(/sample\.participantCount/.test(estimatorSource), "预估核心应继续消费总人数");
 assert.ok(!/genderLevelWeights/.test(estimatorSource), "当前预估公式不得悄悄启用性别/水平权重");
+for (const label of ["球友名", "在球友群的序号", "Hytronik成员名", "在Hytronik群的序号", "特殊成员名"]) {
+  assert.ok(indexHtml.includes(label), `群收款设置应展示“${label}”列`);
+}
+assert.doesNotMatch(indexHtml, /参与A钱|不A钱|不参与A钱/, "群收款设置不应再展示或计算特殊成员付款例外");
+const shouldCountForPaymentSection = functionSection(indexHtml, "shouldCountForPayment", "getSharedPaymentGroup");
+assert.ok(!/participatesPayment/.test(shouldCountForPaymentSection), "特殊成员应统一参与A钱");
 
 const aggregateCalendarSection = functionSection(indexHtml, "createAggregateCalendarCard", "buildChainInputFromSession");
 const recordCalendarSection = functionSection(indexHtml, "createCalendarRecordCard", "deleteSessionRecord");

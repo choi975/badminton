@@ -173,9 +173,7 @@ function paymentDisplayName(player) {
 }
 
 function shouldCountForPayment(entry) {
-  if (!entry.clean) return false;
-  if (entry.player?.affiliation === "特殊" && entry.player.participatesPayment === false) return false;
-  return true;
+  return Boolean(entry.clean);
 }
 
 function getPaymentGroup(player) {
@@ -256,10 +254,6 @@ function calculatePayment(entries, courtFee, shuttlePrice, shuttleCount) {
     const player = entry.player;
     const paymentOwner = entry.ownerPlayer || player;
     const canonicalName = paymentOwner ? paymentDisplayName(paymentOwner) : getChainEntryBaseName(entry);
-    if (player?.affiliation === "特殊" && player.participatesPayment === false) {
-      addPaymentLine(groups.special, canonicalName, 0, "不参与A钱", 0, player.id, sequence++, entry.isFemale);
-      continue;
-    }
     if (!shouldCountForPayment(entry)) continue;
     addPaymentLine(
       groups[getPaymentGroup(paymentOwner)],
@@ -328,16 +322,16 @@ const payment = calculatePayment(entries, 70, 11.3, 5);
 console.log(output.join("\n"));
 console.log(JSON.stringify({ payerCount: payment.payerCount, perPerson: formatMoney(payment.perPerson), friends: payment.friends, heineken: payment.heineken, special: payment.special }, null, 2));
 
-if (payment.payerCount !== 7) throw new Error(`Expected payerCount 7, got ${payment.payerCount}`);
-if (formatMoney(payment.perPerson) !== "18.1") throw new Error(`Expected 18.1, got ${formatMoney(payment.perPerson)}`);
+if (payment.payerCount !== 8) throw new Error(`Expected payerCount 8, got ${payment.payerCount}`);
+if (formatMoney(payment.perPerson) !== "15.9") throw new Error(`Expected 15.9, got ${formatMoney(payment.perPerson)}`);
 const liuzhaodaRow = payment.heineken.find((row) => row.name === "海尼克-刘赵达");
-if (formatMoney(liuzhaodaRow?.amount || 0) !== "54.3" || liuzhaodaRow?.slots !== 3) {
+if (formatMoney(liuzhaodaRow?.amount || 0) !== "47.7" || liuzhaodaRow?.slots !== 3) {
   throw new Error("Expected 刘赵达 and his two companions to merge into one Hytronik payment row");
 }
 if (payment.heineken.some((row) => row.name === "达哥的领导" || row.name === "海尼克-徐攀")) throw new Error("Expected special members to stay out of heineken group");
-if (!payment.special.some((row) => row.name === "达哥的领导" && row.note === "不参与A钱")) throw new Error("Expected non-paying special row");
-if (formatMoney(payment.special.find((row) => row.name === "海尼克-徐攀")?.amount || 0) !== "18.1") throw new Error("Expected paying special member amount");
-if (formatMoney(calculateLedgerAmount({ friends: payment.friends, heineken: payment.heineken, special: payment.special }, 70)) !== "38.6") {
+if (formatMoney(payment.special.find((row) => row.name === "达哥的领导")?.amount || 0) !== "15.9") throw new Error("Expected every special member to participate in payment");
+if (formatMoney(payment.special.find((row) => row.name === "海尼克-徐攀")?.amount || 0) !== "15.9") throw new Error("Expected paying special member amount");
+if (formatMoney(calculateLedgerAmount({ friends: payment.friends, heineken: payment.heineken, special: payment.special }, 70)) !== "41.3") {
   throw new Error("Expected ledger amount to exclude choi and subtract court fee");
 }
 const choiCompanionEntries = ["choi", "choi+1", "甲乙丙"]
@@ -353,7 +347,7 @@ if (formatMoney(calculateLedgerAmount({
 }, 70)) !== "-45.0") {
   throw new Error("Expected ledger amount to exclude the companion amount collected through choi");
 }
-if (formatMoney(payment.special.find((row) => row.name === "choi")?.amount || 0) !== "18.1") throw new Error("Expected choi to follow special payment settings and remain visible");
+if (formatMoney(payment.special.find((row) => row.name === "choi")?.amount || 0) !== "15.9") throw new Error("Expected choi to remain visible in the special group");
 if (!output.some((line) => line.includes("甲乙丙🌸（3级）"))) throw new Error("Expected female flower suffix");
 if (!groupedOutput.some((line) => line.includes("甲乙丙🌸（中手）"))) throw new Error("Expected grouped female output");
 if (paymentRowDisplayName(payment.friends.find((row) => row.name === "甲乙丙")) !== "甲乙丙🌸") {
@@ -371,7 +365,7 @@ if (groupedCounts.get("高手") !== 1) throw new Error("Expected 高手 count 1"
 if (groupedCounts.get("中手") !== 3) throw new Error("Expected 中手 count 3");
 if (groupedCounts.get("新手") !== 2) throw new Error("Expected 新手 count 2");
 if (groupedCounts.get("不详") !== 2) throw new Error("Expected unknown count 2");
-if (shouldCountForPayment({ clean: "达哥的领导", player: players.find((player) => player.id === 4) })) throw new Error("Expected configured special member to be excluded");
+if (!shouldCountForPayment({ clean: "达哥的领导", player: players.find((player) => player.id === 4) })) throw new Error("Expected every special member to participate");
 if (!shouldCountForPayment({ clean: "sun", player: players.find((player) => player.id === 7) })) throw new Error("Expected unrelated sun member to participate");
 if (findPlayerForLine("sun", buildAliasIndex())?.id !== 7) throw new Error("Expected sun to match the unrelated sun member");
 if (findPlayerForLine("阿恒（7点半）", buildAliasIndex())) throw new Error("Expected Chinese time annotation not to match the 7点 member");
