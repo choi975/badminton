@@ -1352,18 +1352,6 @@
       transform: translateY(0);
     }
 
-    .chain-mode-btn {
-      min-width: 82px;
-      white-space: nowrap;
-      background: #fff;
-    }
-
-    .chain-mode-btn.active {
-      color: var(--accent);
-      border-color: var(--accent);
-      background: #ecf9f7;
-    }
-
     .chain-textarea {
       border: 0;
       border-radius: 0;
@@ -2586,6 +2574,9 @@
       .chain-head.chain-head--input { align-items: center; flex-direction: row; }
       .chain-head--input .chain-head-actions { width: auto; flex-wrap: nowrap; margin-left: auto; }
       .chain-head--input .chain-head-actions button { flex: 0 0 36px; }
+      .chain-head.chain-head--output { align-items: center; flex-direction: row; }
+      .chain-head--output .chain-head-actions { width: auto; flex-wrap: nowrap; margin-left: auto; }
+      .chain-head--output .chain-head-actions button { flex: 0 0 36px; }
       .chain-head--input .group-probability-wrap { position: static; }
       .chain-head--input .group-probability-tooltip { right: 0; left: auto; }
       .shake-people-summary-row { align-items: flex-start; flex-direction: column; }
@@ -3731,10 +3722,10 @@
             <textarea id="chainInput" class="chain-textarea" placeholder=""></textarea>
           </section>
           <section class="chain-panel">
-            <div class="chain-head">
+            <div class="chain-head chain-head--output">
               <span>接龙人员</span>
               <div class="chain-head-actions">
-                <button id="levelDisplayModeBtn" class="chain-mode-btn" type="button" title="切换等级显示方式" aria-pressed="false">⇄ 等级</button>
+                <button id="levelDisplayModeBtn" class="chain-icon-btn" type="button" aria-label="精确等级显示，切换为分组" title="精确等级显示，点击切换为分组" aria-pressed="false"><i data-lucide="arrow-left-right"></i></button>
               </div>
             </div>
             <div id="chainOutput" class="chain-output-list" role="list" aria-label="整理后的接龙人员"></div>
@@ -9129,9 +9120,12 @@
 
     function renderChainLevelModeButton() {
       const grouped = state.chainLevelMode === "group";
-      els.levelDisplayModeBtn.textContent = grouped ? "⇄ 分组" : "⇄ 等级";
       els.levelDisplayModeBtn.classList.toggle("active", grouped);
       els.levelDisplayModeBtn.setAttribute("aria-pressed", String(grouped));
+      els.levelDisplayModeBtn.setAttribute(
+        "aria-label",
+        grouped ? "分组显示，切换为精确等级" : "精确等级显示，切换为分组"
+      );
       els.levelDisplayModeBtn.title = grouped
         ? "当前为分组显示，点击切换为精确等级"
         : "当前为精确等级，点击切换为分组显示";
