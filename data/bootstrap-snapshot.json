@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T04:12:19.895Z",
+  "generatedAt": "2026-09-04T09:55:36.527Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -6490,7 +6490,7 @@
     ],
     "estimator": {
       "version": 5,
-      "generatedAt": "2026-09-04T04:12:19.547Z",
+      "generatedAt": "2026-09-04T09:55:36.137Z",
       "trainingRevision": 200,
       "training": {
         "dateRange": {
@@ -6879,6 +6879,23 @@
         "updatedAt": "2026-09-02 04:05:22"
       },
       {
+        "id": 54,
+        "playerId": 83,
+        "type": "only_days",
+        "rule": {
+          "weekdays": [
+            6,
+            0
+          ],
+          "note": "上班"
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": null,
+        "rawText": "！ 只打 周六、周日 上班",
+        "createdAt": "2026-09-04 08:44:04",
+        "updatedAt": "2026-09-04 08:44:04"
+      },
+      {
         "id": 49,
         "playerId": 8,
         "type": "not_before_days",
@@ -6892,6 +6909,156 @@
         "rawText": "阿恒 1天后 再打",
         "createdAt": "2026-09-04 03:13:02",
         "updatedAt": "2026-09-04 03:13:02"
+      },
+      {
+        "id": 52,
+        "playerId": 63,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-05",
+          "note": ""
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": "2026-09-04",
+        "rawText": "阿汤 1天后 再打",
+        "createdAt": "2026-09-04 04:25:56",
+        "updatedAt": "2026-09-04 04:25:56"
+      },
+      {
+        "id": 53,
+        "playerId": 67,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-05",
+          "note": ""
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": "2026-09-04",
+        "rawText": "🤔zZso 1天后 再打",
+        "createdAt": "2026-09-04 04:26:01",
+        "updatedAt": "2026-09-04 04:26:01"
+      },
+      {
+        "id": 55,
+        "playerId": 26,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-05",
+          "note": ""
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": "2026-09-04",
+        "rawText": "威朱 1天后 再打",
+        "createdAt": "2026-09-04 08:49:31",
+        "updatedAt": "2026-09-04 08:49:31"
+      },
+      {
+        "id": 56,
+        "playerId": 4,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-05",
+          "note": ""
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": "2026-09-04",
+        "rawText": "7点 1天后 再打",
+        "createdAt": "2026-09-04 08:49:39",
+        "updatedAt": "2026-09-04 08:49:39"
+      },
+      {
+        "id": 57,
+        "playerId": 49,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-05",
+          "note": ""
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": "2026-09-04",
+        "rawText": "Maiko 1天后 再打",
+        "createdAt": "2026-09-04 08:49:42",
+        "updatedAt": "2026-09-04 08:49:42"
+      },
+      {
+        "id": 58,
+        "playerId": 28,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-05",
+          "note": ""
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": "2026-09-04",
+        "rawText": "周浩东 1天后 再打",
+        "createdAt": "2026-09-04 08:49:47",
+        "updatedAt": "2026-09-04 08:49:47"
+      },
+      {
+        "id": 59,
+        "playerId": 13,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-05",
+          "note": ""
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": "2026-09-04",
+        "rawText": "甲乙丙 1天后 再打",
+        "createdAt": "2026-09-04 08:49:50",
+        "updatedAt": "2026-09-04 08:49:50"
+      },
+      {
+        "id": 60,
+        "playerId": 31,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-05",
+          "note": ""
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": "2026-09-04",
+        "rawText": "April 1天后 再打",
+        "createdAt": "2026-09-04 08:49:56",
+        "updatedAt": "2026-09-04 08:49:56"
+      },
+      {
+        "id": 62,
+        "playerId": 48,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-05",
+          "note": ""
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": "2026-09-04",
+        "rawText": "あ小新 1天后 再打",
+        "createdAt": "2026-09-04 08:52:08",
+        "updatedAt": "2026-09-04 08:52:08"
+      },
+      {
+        "id": 63,
+        "playerId": 74,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-05",
+          "note": ""
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": "2026-09-04",
+        "rawText": "稻草人 1天后 再打",
+        "createdAt": "2026-09-04 08:52:29",
+        "updatedAt": "2026-09-04 08:52:29"
       },
       {
         "id": 36,
@@ -7010,6 +7177,21 @@
         "rawText": "0.o 9.14 再打 军训",
         "createdAt": "2026-09-02 02:23:50",
         "updatedAt": "2026-09-02 02:23:50"
+      },
+      {
+        "id": 61,
+        "playerId": 2,
+        "type": "not_before_days",
+        "rule": {
+          "days": 365,
+          "resumeOn": "2027-09-04",
+          "note": ""
+        },
+        "startsOn": "2026-09-04",
+        "expiresOn": "2027-09-03",
+        "rawText": "Benny 365天后 再打",
+        "createdAt": "2026-09-04 08:50:24",
+        "updatedAt": "2026-09-04 08:50:24"
       }
     ],
     "shakeLongTermLists": [],
@@ -7178,7 +7360,7 @@
     ],
     "groupLearningSignals": {
       "version": "group-learning-v1",
-      "generatedAt": "2026-09-04T04:12:19.895Z",
+      "generatedAt": "2026-09-04T09:55:36.527Z",
       "generatedDate": "2026-09-04",
       "halfLifeDays": 30,
       "training": {

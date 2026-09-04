@@ -21,7 +21,7 @@
   const DEFAULT_BASELINE = 0.44;
   const DEFAULT_PARTICIPATION_RATE = 0.18;
   const DEFAULT_LARGE_PREFERENCE_RATE = 0.08;
-  const CUTOFF_HOUR = 17;
+  const CUTOFF_HOUR = 20;
   const ACTIVITY_HOUR = 19;
   const WEEKDAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 
@@ -1446,7 +1446,7 @@
       simulationCount: simulations,
       counterfactualSimulationCount: hardSettled || !includeCandidates ? 0 : counterfactualSimulations,
       assumptions: {
-        cutoffTime: "17:00",
+        cutoffTime: "20:00",
         activityTime: "19:00",
         successThreshold: SUCCESS_THRESHOLD,
         largeSessionThreshold: LARGE_SESSION_THRESHOLD,

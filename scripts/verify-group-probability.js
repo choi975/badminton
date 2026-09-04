@@ -5,6 +5,7 @@ await import("../group-probability.js");
 
 const probabilityApi = globalThis.BadmintonGroupProbability;
 assert.ok(probabilityApi, "browser global should be attached after importing the core");
+assert.equal(probabilityApi.constants.cutoffHour, 20, "the group cutoff must be 20:00 Beijing time");
 
 function isoDate(timestamp) {
   return new Date(timestamp).toISOString().slice(0, 10);
@@ -381,23 +382,30 @@ assert.equal(fiveJoined.rankingMode, "attendanceProbabilityTimesUplift");
 const beforeCutoffFive = estimate({
   sessions: guestHistory,
   entries: players.slice(0, 5).map(regularEntry),
-  now: "2026-09-04T16:59:00+08:00",
+  now: "2026-09-04T19:59:00+08:00",
 });
 assert.ok(beforeCutoffFive.todayProbability > 0, "future arrivals may still contribute before cutoff");
+const afterFormerCutoff = estimate({
+  sessions: guestHistory,
+  entries: players.slice(0, 5).map(regularEntry),
+  now: "2026-09-04T17:48:00+08:00",
+});
+assert.equal(afterFormerCutoff.today.settled, false, "17:48 must remain open after moving the cutoff to 20:00");
+assert.ok(afterFormerCutoff.candidates.length > 0, "shake recommendations must remain available at 17:48");
 const settledFive = estimate({
   sessions: guestHistory,
   entries: players.slice(0, 5).map(regularEntry),
-  now: "2026-09-04T17:00:00+08:00",
+  now: "2026-09-04T20:00:00+08:00",
 });
-assert.equal(settledFive.todayProbability, 0, "five current names must settle to failure at 17:00 even for a historical guest-bringer");
+assert.equal(settledFive.todayProbability, 0, "five current names must settle to failure at 20:00 even for a historical guest-bringer");
 assert.equal(settledFive.today.expectedFinalCount, 5);
 assert.equal(settledFive.today.settled, true);
 assert.deepEqual(settledFive.candidates, [], "no candidate may be recommended after hard settlement");
 const settledSix = estimate({
   entries: players.slice(0, 6).map(regularEntry),
-  now: "2026-09-04T17:00:00+08:00",
+  now: "2026-09-04T20:00:00+08:00",
 });
-assert.equal(settledSix.todayProbability, 1, "six explicit current names must settle to success at 17:00");
+assert.equal(settledSix.todayProbability, 1, "six explicit current names must settle to success at 20:00");
 const settledSixWithLargePreference = estimate({
   entries: players.slice(0, 6).map(regularEntry),
   sessions: buildHistory(players, { days: 70, largePlayerId: 6 }),
@@ -406,7 +414,7 @@ const settledSixWithLargePreference = estimate({
     twoDayStreak: { members: players.map((player) => player.name) },
     onlyLargeSessions: { members: [players[5].name] },
   },
-  now: "2026-09-04T17:00:00+08:00",
+  now: "2026-09-04T20:00:00+08:00",
 });
 assert.ok(
   settledSixWithLargePreference.todayProbability > 0 && settledSixWithLargePreference.todayProbability < 1,
@@ -415,7 +423,7 @@ assert.ok(
 const settledWithExplicitGuest = estimate({
   sessions: guestHistory,
   entries: [...players.slice(0, 5).map(regularEntry), companionEntry(players[11])],
-  now: "2026-09-04T17:00:00+08:00",
+  now: "2026-09-04T20:00:00+08:00",
 });
 assert.equal(settledWithExplicitGuest.todayProbability, 1, "an explicit +N still counts at settlement");
 
@@ -430,20 +438,20 @@ assert.ok(Math.abs(atTen.todayProbability - atTenOhOne.todayProbability) <= 0.03
 const failedTodayNoFatigue = estimate({
   sessions: fatigueSessions,
   entries: players.slice(0, 5).map(regularEntry),
-  now: "2026-09-04T17:00:00+08:00",
+  now: "2026-09-04T20:00:00+08:00",
   seed: 404,
 });
 const emptyFailedToday = estimate({
   sessions: fatigueSessions,
   entries: [],
-  now: "2026-09-04T17:00:00+08:00",
+  now: "2026-09-04T20:00:00+08:00",
   seed: 404,
 });
 assert.equal(failedTodayNoFatigue.tomorrowProbability, emptyFailedToday.tomorrowProbability, "a settled failed group must not create tomorrow fatigue");
 const successfulTodayCreatesFatigue = estimate({
   sessions: fatigueSessions,
   entries: players.slice(0, 6).map(regularEntry),
-  now: "2026-09-04T17:00:00+08:00",
+  now: "2026-09-04T20:00:00+08:00",
   seed: 404,
 });
 assert.ok(successfulTodayCreatesFatigue.tomorrowProbability < emptyFailedToday.tomorrowProbability, "only a successful group should pass today's attendance into tomorrow stamina");
@@ -741,7 +749,7 @@ const retainedSix = learningPlayers.slice(0, 6).map(regularEntry);
 const reliableRetention = estimate({
   ...learningBase,
   entries: retainedSix,
-  now: "2026-09-04T16:59:00+08:00",
+  now: "2026-09-04T19:59:00+08:00",
   includeCandidates: false,
   groupLearningSignals: {
     members: { 6: { retentionRate: 0.99, retentionReliability: 1, lastObservedDate: "2026-09-03" } },
@@ -750,7 +758,7 @@ const reliableRetention = estimate({
 const unreliableRetention = estimate({
   ...learningBase,
   entries: retainedSix,
-  now: "2026-09-04T16:59:00+08:00",
+  now: "2026-09-04T19:59:00+08:00",
   includeCandidates: false,
   groupLearningSignals: {
     members: { 6: { retentionRate: 0.08, retentionReliability: 1, lastObservedDate: "2026-09-03" } },
@@ -761,7 +769,7 @@ assert.ok(reliableRetention.todayProbability > unreliableRetention.todayProbabil
 const learnedLargePreference = estimate({
   ...learningBase,
   entries: retainedSix,
-  now: "2026-09-04T16:59:00+08:00",
+  now: "2026-09-04T19:59:00+08:00",
   includeCandidates: false,
   groupLearningSignals: {
     priors: { largeLowRetention: 0.12, largeLowRetentionEvidence: 80 },
@@ -771,7 +779,7 @@ const learnedLargePreference = estimate({
 const learnedSmallFriendly = estimate({
   ...learningBase,
   entries: retainedSix,
-  now: "2026-09-04T16:59:00+08:00",
+  now: "2026-09-04T19:59:00+08:00",
   includeCandidates: false,
   groupLearningSignals: {
     priors: { largeLowRetention: 0.12, largeLowRetentionEvidence: 80 },
@@ -785,7 +793,7 @@ assert.ok(
 const learnedLargeMediumEvidence = estimate({
   ...learningBase,
   entries: retainedSix,
-  now: "2026-09-04T16:59:00+08:00",
+  now: "2026-09-04T19:59:00+08:00",
   includeCandidates: false,
   groupLearningSignals: {
     priors: {
@@ -800,7 +808,7 @@ const learnedLargeMediumEvidence = estimate({
 const learnedLargeHighEvidenceSamePosterior = estimate({
   ...learningBase,
   entries: retainedSix,
-  now: "2026-09-04T16:59:00+08:00",
+  now: "2026-09-04T19:59:00+08:00",
   includeCandidates: false,
   groupLearningSignals: {
     priors: {
@@ -920,7 +928,7 @@ const companionOwnerEntry = regularEntry(learningPlayers[13]);
 const learnedCompanionHigh = estimate({
   ...learningBase,
   entries: [...learningPlayers.slice(0, 4).map(regularEntry), companionOwnerEntry],
-  now: "2026-09-04T16:59:00+08:00",
+  now: "2026-09-04T19:59:00+08:00",
   includeCandidates: false,
   groupLearningSignals: {
     members: { 14: {
@@ -934,7 +942,7 @@ const learnedCompanionHigh = estimate({
 const learnedCompanionLow = estimate({
   ...learningBase,
   entries: [...learningPlayers.slice(0, 4).map(regularEntry), companionOwnerEntry],
-  now: "2026-09-04T16:59:00+08:00",
+  now: "2026-09-04T19:59:00+08:00",
   includeCandidates: false,
   groupLearningSignals: {
     members: { 14: {
@@ -959,7 +967,7 @@ const establishedGuestInput = {
   ...learningBase,
   sessions: establishedGuestHistory,
   entries: [...learningPlayers.slice(0, 4).map(regularEntry), companionOwnerEntry],
-  now: "2026-09-04T16:59:00+08:00",
+  now: "2026-09-04T19:59:00+08:00",
   includeCandidates: false,
 };
 const establishedGuestBase = estimate(establishedGuestInput);
@@ -991,7 +999,7 @@ const retentionCurveInput = {
   simulations: 8000,
 };
 const learnedRetentionMorning = estimate({ ...retentionCurveInput, now: "2026-09-04T09:00:00+08:00" });
-const learnedRetentionNearCutoff = estimate({ ...retentionCurveInput, now: "2026-09-04T16:59:00+08:00" });
+const learnedRetentionNearCutoff = estimate({ ...retentionCurveInput, now: "2026-09-04T19:59:00+08:00" });
 assert.ok(
   learnedRetentionNearCutoff.todayProbability > learnedRetentionMorning.todayProbability,
   "a learned regular-retention prior must preserve the existing increase near activity time",
