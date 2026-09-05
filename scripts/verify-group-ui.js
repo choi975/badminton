@@ -39,14 +39,41 @@ assert.match(html, /scheduleGroupAttemptSnapshot\("rule_change"\)/);
 assert.match(html, /knownPlayerIds/);
 assert.match(html, /companionsByOwner/);
 assert.match(html, /currentParticipantCount/);
-assert.match(html, /className = "shake-person-add"/);
+assert.match(html, /className = "shake-person-action shake-person-add"/);
+assert.match(html, /className = "shake-person-action shake-person-bottom"/);
+assert.match(html, /actions\.append\(addButton, bottomButton\);\s*heading\.append\(actions, name\);/);
+assert.match(html, /bottomIcon\.setAttribute\("data-lucide", isBottomed \? "arrow-up-from-line" : "arrow-down-to-line"\)/);
+assert.match(html, /shakeBottomedPlayerIds: new Set\(\)/);
+assert.match(html, /state\.shakeBottomedPlayerIds\.clear\(\)/);
 assert.match(html, /addShakePersonToChain\(item\.player, \{ focusNext: event\.detail === 0 \}\)/);
 assert.match(html, /scheduleGroupAttemptSnapshot\("input"\);[\s\S]*renderShakePeopleModal\(\);/);
 assert.doesNotMatch(html, /rawClipboard|chainInput\.value[^\n]*features/);
 
+const toggleBottomStart = html.indexOf("function toggleShakePersonBottom(");
+const toggleBottomEnd = html.indexOf("\n    function appendMemberToChainInput(", toggleBottomStart);
+assert.ok(toggleBottomStart >= 0 && toggleBottomEnd > toggleBottomStart, "Expected shake bottom toggle");
+const toggleBottomSource = html.slice(toggleBottomStart, toggleBottomEnd);
+assert.match(toggleBottomSource, /renderShakePeopleSummary\(recommendations\);\s*renderShakePeopleList\(recommendations\);/);
+assert.doesNotMatch(toggleBottomSource, /renderShakePeopleModal\(\)/);
+
 const inlineScripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)];
 assert.ok(inlineScripts.length > 0, "Expected an inline application script");
 for (const script of inlineScripts) new vm.Script(script[1]);
+
+const orderRecommendationsStart = html.indexOf("function orderShakePeopleRecommendations(");
+const orderRecommendationsEnd = html.indexOf("\n    function renderShakePeopleList(", orderRecommendationsStart);
+assert.ok(orderRecommendationsStart >= 0 && orderRecommendationsEnd > orderRecommendationsStart, "Expected shake ordering helper");
+const orderRecommendationsContext = vm.createContext({});
+vm.runInContext(`
+${html.slice(orderRecommendationsStart, orderRecommendationsEnd)}
+globalThis.orderShakePeopleRecommendations = orderShakePeopleRecommendations;
+`, orderRecommendationsContext);
+const orderedRecommendations = orderRecommendationsContext.orderShakePeopleRecommendations([
+  { player: { id: 1 } },
+  { player: { id: 2 } },
+  { player: { id: 3 } },
+], [2]);
+assert.equal(orderedRecommendations.map((item) => item.player.id).join(","), "1,3,2");
 
 const appendMemberStart = html.indexOf("function appendMemberToChainInput(");
 const appendMemberEnd = html.indexOf("\n    function addShakePersonToChain(", appendMemberStart);

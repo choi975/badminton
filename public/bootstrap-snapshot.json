@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-05T02:42:30.721Z",
+  "generatedAt": "2026-09-05T03:10:19.997Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -6923,7 +6923,7 @@
     ],
     "estimator": {
       "version": 5,
-      "generatedAt": "2026-09-05T02:42:30.359Z",
+      "generatedAt": "2026-09-05T03:10:19.649Z",
       "trainingRevision": 229,
       "training": {
         "dateRange": {
@@ -7449,21 +7449,6 @@
         "updatedAt": "2026-09-04 08:49:56"
       },
       {
-        "id": 62,
-        "playerId": 48,
-        "type": "not_before_days",
-        "rule": {
-          "days": 1,
-          "resumeOn": "2026-09-05",
-          "note": ""
-        },
-        "startsOn": "2026-09-04",
-        "expiresOn": "2026-09-04",
-        "rawText": "あ小新 1天后 再打",
-        "createdAt": "2026-09-04 08:52:08",
-        "updatedAt": "2026-09-04 08:52:08"
-      },
-      {
         "id": 63,
         "playerId": 74,
         "type": "not_before_days",
@@ -7583,6 +7568,51 @@
         "updatedAt": "2026-09-05 02:41:21"
       },
       {
+        "id": 72,
+        "playerId": 48,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-06",
+          "note": ""
+        },
+        "startsOn": "2026-09-05",
+        "expiresOn": "2026-09-05",
+        "rawText": "あ小新 1天后 再打",
+        "createdAt": "2026-09-05 02:52:05",
+        "updatedAt": "2026-09-05 02:52:05"
+      },
+      {
+        "id": 73,
+        "playerId": 6,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-06",
+          "note": ""
+        },
+        "startsOn": "2026-09-05",
+        "expiresOn": "2026-09-05",
+        "rawText": "冯丽美 1天后 再打",
+        "createdAt": "2026-09-05 02:54:11",
+        "updatedAt": "2026-09-05 02:54:11"
+      },
+      {
+        "id": 75,
+        "playerId": 12,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-06",
+          "note": ""
+        },
+        "startsOn": "2026-09-05",
+        "expiresOn": "2026-09-05",
+        "rawText": "刘俊杰 1天后 再打",
+        "createdAt": "2026-09-05 03:01:40",
+        "updatedAt": "2026-09-05 03:01:40"
+      },
+      {
         "id": 35,
         "playerId": 15,
         "type": "not_before_next_week",
@@ -7656,6 +7686,21 @@
         "rawText": "柚子 下周 再打 工作",
         "createdAt": "2026-09-04 03:52:48",
         "updatedAt": "2026-09-04 03:52:48"
+      },
+      {
+        "id": 74,
+        "playerId": 45,
+        "type": "not_before_days",
+        "rule": {
+          "days": 2,
+          "resumeOn": "2026-09-07",
+          "note": ""
+        },
+        "startsOn": "2026-09-05",
+        "expiresOn": "2026-09-06",
+        "rawText": "吕教 2天后 再打",
+        "createdAt": "2026-09-05 02:59:21",
+        "updatedAt": "2026-09-05 02:59:21"
       },
       {
         "id": 27,
@@ -7861,7 +7906,7 @@
     ],
     "groupLearningSignals": {
       "version": "group-learning-v1",
-      "generatedAt": "2026-09-05T02:42:30.721Z",
+      "generatedAt": "2026-09-05T03:10:19.997Z",
       "generatedDate": "2026-09-05",
       "halfLifeDays": 30,
       "training": {

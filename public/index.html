@@ -984,7 +984,13 @@
       min-width: 0;
     }
 
-    .shake-person-add {
+    .shake-person-actions {
+      display: flex;
+      flex: 0 0 auto;
+      gap: 5px;
+    }
+
+    .shake-person-action {
       width: 28px;
       min-width: 28px;
       height: 28px;
@@ -997,20 +1003,30 @@
       cursor: pointer;
     }
 
-    .shake-person-add:hover {
+    .shake-person-action:hover {
       border-color: var(--accent);
       background: #e8f2ef;
     }
 
-    .shake-person-add:focus-visible {
+    .shake-person-action:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
     }
 
-    .shake-person-add svg {
+    .shake-person-action svg {
       width: 16px;
       height: 16px;
       stroke-width: 2.25;
+    }
+
+    .shake-person-bottom {
+      color: var(--muted);
+    }
+
+    .shake-person-bottom[aria-pressed="true"] {
+      border-color: #aebfba;
+      background: #eef3f1;
+      color: #35554e;
     }
 
     .shake-person-skip {
@@ -1037,7 +1053,9 @@
     }
 
     .shake-person-name {
+      min-width: 0;
       font-weight: 700;
+      overflow-wrap: anywhere;
     }
 
     .shake-person-score {
@@ -2677,7 +2695,7 @@
       .shake-people-summary-row { align-items: flex-start; flex-direction: column; }
       .shake-person-row { grid-template-columns: 1fr; }
       .shake-person-score { justify-content: flex-start; }
-      .shake-person-add {
+      .shake-person-action {
         width: 44px;
         min-width: 44px;
         height: 44px;
@@ -4432,6 +4450,7 @@
       groupForecast: null,
       groupAttempt: null,
       attemptTrialRequested: false,
+      shakeBottomedPlayerIds: new Set(),
       chainInputUserOwned: false,
       trainingAnomaly: null,
       estimatorAdvancedOpen: false,
@@ -9132,6 +9151,7 @@
         activeGroupDate = date;
         state.groupAttempt = null;
         state.attemptTrialRequested = false;
+        state.shakeBottomedPlayerIds.clear();
         state.chainInputUserOwned = false;
         state.plusOverrides = {};
         els.chainInput.value = "";
@@ -11966,6 +11986,19 @@
       if (els.shakePeopleModal.classList.contains("open")) renderShakeLongTermRules();
     }
 
+    function orderShakePeopleRecommendations(recommendations, bottomedPlayerIds) {
+      const bottomedIds = bottomedPlayerIds instanceof Set
+        ? bottomedPlayerIds
+        : new Set(bottomedPlayerIds || []);
+      const regular = [];
+      const bottomed = [];
+      recommendations.forEach((item) => {
+        const playerId = Number(item.player?.id ?? item.playerId);
+        (bottomedIds.has(playerId) ? bottomed : regular).push(item);
+      });
+      return [...regular, ...bottomed];
+    }
+
     function renderShakePeopleList(recommendations) {
       els.shakePeopleList.replaceChildren();
       if (!recommendations.length) {
@@ -11975,13 +12008,16 @@
         els.shakePeopleList.append(empty);
         return;
       }
-      recommendations.forEach((item) => {
+      orderShakePeopleRecommendations(recommendations, state.shakeBottomedPlayerIds).forEach((item) => {
+        const displayName = firstName(item.player.name);
+        const playerId = normalizePlayerId(item.player.id);
+        const isBottomed = state.shakeBottomedPlayerIds.has(playerId);
         const row = document.createElement("div");
         row.className = "shake-person-row";
         row.title = "双击快速创建该成员的短期规则";
         row.addEventListener("dblclick", (event) => {
           if (event.target.closest("button")) return;
-          openShortRuleModal(`${firstName(item.player.name)} `);
+          openShortRuleModal(`${displayName} `);
         });
 
         const primary = document.createElement("div");
@@ -11990,12 +12026,14 @@
         heading.className = "shake-person-heading";
         const name = document.createElement("span");
         name.className = "shake-person-name";
-        name.textContent = firstName(item.player.name);
+        name.textContent = displayName;
+        const actions = document.createElement("div");
+        actions.className = "shake-person-actions";
         const addButton = document.createElement("button");
         addButton.type = "button";
-        addButton.className = "shake-person-add";
+        addButton.className = "shake-person-action shake-person-add";
         addButton.title = "加入接龙名单";
-        addButton.setAttribute("aria-label", `将${firstName(item.player.name)}加入接龙名单`);
+        addButton.setAttribute("aria-label", `将${displayName}加入接龙名单`);
         const addIcon = document.createElement("i");
         addIcon.setAttribute("data-lucide", "plus");
         addButton.append(addIcon);
@@ -12003,7 +12041,22 @@
           event.stopPropagation();
           addShakePersonToChain(item.player, { focusNext: event.detail === 0 });
         });
-        heading.append(name, addButton);
+        const bottomButton = document.createElement("button");
+        bottomButton.type = "button";
+        bottomButton.className = "shake-person-action shake-person-bottom";
+        bottomButton.title = isBottomed ? "恢复推荐排序" : "移到推荐列表底部";
+        bottomButton.setAttribute("aria-label", `${isBottomed ? "恢复" : "置底"}${displayName}`);
+        bottomButton.setAttribute("aria-pressed", String(isBottomed));
+        bottomButton.dataset.shakeBottomPlayerId = String(playerId);
+        const bottomIcon = document.createElement("i");
+        bottomIcon.setAttribute("data-lucide", isBottomed ? "arrow-up-from-line" : "arrow-down-to-line");
+        bottomButton.append(bottomIcon);
+        bottomButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          toggleShakePersonBottom(item.player, recommendations, { focusButton: event.detail === 0 });
+        });
+        actions.append(addButton, bottomButton);
+        heading.append(actions, name);
         const meta = document.createElement("div");
         meta.className = "shake-person-meta";
         const badges = [
@@ -12057,6 +12110,20 @@
         els.shakePeopleList.append(row);
       });
       window.lucide?.createIcons({ attrs: { "aria-hidden": "true" } });
+    }
+
+    function toggleShakePersonBottom(player, recommendations, { focusButton = false } = {}) {
+      const playerId = normalizePlayerId(player?.id);
+      if (!playerId) return;
+      const wasBottomed = state.shakeBottomedPlayerIds.has(playerId);
+      if (wasBottomed) state.shakeBottomedPlayerIds.delete(playerId);
+      else state.shakeBottomedPlayerIds.add(playerId);
+      renderShakePeopleSummary(recommendations);
+      renderShakePeopleList(recommendations);
+      toast(`${firstName(player.name)}${wasBottomed ? "已恢复推荐排序" : "已移到推荐列表底部"}`);
+      if (focusButton) {
+        els.shakePeopleList.querySelector(`[data-shake-bottom-player-id="${playerId}"]`)?.focus();
+      }
     }
 
     function appendMemberToChainInput(rawInput, displayName) {
@@ -12228,14 +12295,23 @@
       rules.forEach((rule) => els.shortTermRulesList.append(createRuleRow(rule)));
     }
 
+    function renderShakePeopleSummary(recommendations) {
+      const today = getBeijingDateString();
+      const todayPercent = state.groupForecast
+        ? forecastDisplayPercent(state.groupForecast.todayProbability, state.groupForecast.today?.settled)
+        : 0;
+      const bottomedCount = recommendations.filter((item) => (
+        state.shakeBottomedPlayerIds.has(normalizePlayerId(item.player?.id))
+      )).length;
+      const bottomedSummary = bottomedCount ? ` · 已置底 ${bottomedCount} 人` : "";
+      els.shakePeopleSummary.textContent = `${today} · 当前成局 ${todayPercent}% · 推荐 ${recommendations.length} 人${bottomedSummary}`;
+    }
+
     function renderShakePeopleModal() {
       const today = getBeijingDateString();
       renderGroupForecast({ includeCandidates: true });
       const recommendations = buildShakePeopleRecommendations(today);
-      const todayPercent = state.groupForecast
-        ? forecastDisplayPercent(state.groupForecast.todayProbability, state.groupForecast.today?.settled)
-        : 0;
-      els.shakePeopleSummary.textContent = `${today} · 当前成局 ${todayPercent}% · 推荐 ${recommendations.length} 人`;
+      renderShakePeopleSummary(recommendations);
       syncAttemptTrialToggle();
       renderShakePeopleList(recommendations);
       renderShakeLongTermRules();
