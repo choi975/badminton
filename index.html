@@ -977,6 +977,42 @@
 
     .shake-person-primary { min-width: 0; }
 
+    .shake-person-heading {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .shake-person-add {
+      width: 28px;
+      min-width: 28px;
+      height: 28px;
+      min-height: 28px;
+      padding: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--accent-dark);
+      cursor: pointer;
+    }
+
+    .shake-person-add:hover {
+      border-color: var(--accent);
+      background: #e8f2ef;
+    }
+
+    .shake-person-add:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .shake-person-add svg {
+      width: 16px;
+      height: 16px;
+      stroke-width: 2.25;
+    }
+
     .shake-person-skip {
       position: absolute;
       top: 2px;
@@ -2553,7 +2589,7 @@
       opacity: 0;
       pointer-events: none;
       transition: 0.18s ease;
-      z-index: 80;
+      z-index: 120;
     }
 
     .toast.show {
@@ -2641,6 +2677,12 @@
       .shake-people-summary-row { align-items: flex-start; flex-direction: column; }
       .shake-person-row { grid-template-columns: 1fr; }
       .shake-person-score { justify-content: flex-start; }
+      .shake-person-add {
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+        min-height: 44px;
+      }
       .payment-settings-groups { grid-template-columns: minmax(0, 1fr); }
       .payment-settings-group,
       .payment-settings-group--special {
@@ -4239,7 +4281,7 @@
     </div>
   </div>
 
-  <div id="toast" class="toast"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="./html2canvas.min.js"></script>
   <script>
@@ -11937,13 +11979,31 @@
         const row = document.createElement("div");
         row.className = "shake-person-row";
         row.title = "双击快速创建该成员的短期规则";
-        row.addEventListener("dblclick", () => openShortRuleModal(`${firstName(item.player.name)} `));
+        row.addEventListener("dblclick", (event) => {
+          if (event.target.closest("button")) return;
+          openShortRuleModal(`${firstName(item.player.name)} `);
+        });
 
         const primary = document.createElement("div");
         primary.className = "shake-person-primary";
+        const heading = document.createElement("div");
+        heading.className = "shake-person-heading";
         const name = document.createElement("span");
         name.className = "shake-person-name";
         name.textContent = firstName(item.player.name);
+        const addButton = document.createElement("button");
+        addButton.type = "button";
+        addButton.className = "shake-person-add";
+        addButton.title = "加入接龙名单";
+        addButton.setAttribute("aria-label", `将${firstName(item.player.name)}加入接龙名单`);
+        const addIcon = document.createElement("i");
+        addIcon.setAttribute("data-lucide", "plus");
+        addButton.append(addIcon);
+        addButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          addShakePersonToChain(item.player, { focusNext: event.detail === 0 });
+        });
+        heading.append(name, addButton);
         const meta = document.createElement("div");
         meta.className = "shake-person-meta";
         const badges = [
@@ -11958,7 +12018,7 @@
           badgeElement.textContent = itemBadge.text;
           meta.append(badgeElement);
         });
-        primary.append(name);
+        primary.append(heading);
         if (badges.length) primary.append(meta);
 
         const score = document.createElement("div");
@@ -11996,6 +12056,48 @@
         row.append(skipButton);
         els.shakePeopleList.append(row);
       });
+      window.lucide?.createIcons({ attrs: { "aria-hidden": "true" } });
+    }
+
+    function appendMemberToChainInput(rawInput, displayName) {
+      const value = String(rawInput || "").replace(/\s+$/, "");
+      const cleanName = String(displayName || "").trim();
+      if (!cleanName) return value;
+      const lines = value.split(/\r?\n/).filter((line) => line.trim());
+      const numberedLines = lines.filter((line) => CHAIN_NUMBER_PREFIX.test(line));
+      const lineNumbers = numberedLines
+        .map((line) => Number(line.match(/^\s*(\d+)/)?.[1]))
+        .filter(Number.isFinite);
+      const shouldNumber = !lines.length || numberedLines.length > 0;
+      const nextNumber = lineNumbers.length ? Math.max(...lineNumbers) + 1 : 1;
+      const nextLine = shouldNumber ? `${nextNumber}. ${cleanName}` : cleanName;
+      return value ? `${value}\n${nextLine}` : nextLine;
+    }
+
+    function addShakePersonToChain(player, { focusNext = false } = {}) {
+      const playerId = normalizePlayerId(player?.id);
+      const alreadyJoined = playerId && state.chainEntries.some((entry) => (
+        !entry.isCompanion && normalizePlayerId(entry.player?.id) === playerId
+      ));
+      if (alreadyJoined) {
+        renderShakePeopleModal();
+        return;
+      }
+
+      const displayName = firstName(player?.name);
+      if (!displayName) return;
+      els.chainInput.value = appendMemberToChainInput(els.chainInput.value, displayName);
+      state.chainInputUserOwned = true;
+      processChain();
+      scheduleGroupAttemptSnapshot("input");
+      renderShakePeopleModal();
+
+      const todayPercent = state.groupForecast
+        ? forecastDisplayPercent(state.groupForecast.todayProbability, state.groupForecast.today?.settled)
+        : 0;
+      const listKind = state.attemptTrialRequested ? "试算名单" : "接龙名单";
+      toast(`${displayName}已加入${listKind}，当前成局 ${todayPercent}%`);
+      if (focusNext) els.shakePeopleList.querySelector(".shake-person-add")?.focus();
     }
 
     function createRuleRow(rule) {

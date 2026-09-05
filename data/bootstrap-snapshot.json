@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T16:50:23.376Z",
+  "generatedAt": "2026-09-05T02:42:30.721Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -113,7 +113,7 @@
       },
       {
         "id": 11,
-        "name": "老洪，洪学华，henry，今晚跑不动",
+        "name": "Henry，老洪，洪学华",
         "gender": "男",
         "level": "4级",
         "affiliation": "球友+Hytronik",
@@ -121,7 +121,7 @@
         "photoKey": "",
         "participatesPayment": true,
         "createdAt": "2026-07-09 12:08:36",
-        "updatedAt": "2026-07-28 03:40:17"
+        "updatedAt": "2026-09-05 02:17:46"
       },
       {
         "id": 12,
@@ -6923,7 +6923,7 @@
     ],
     "estimator": {
       "version": 5,
-      "generatedAt": "2026-09-04T16:50:23.012Z",
+      "generatedAt": "2026-09-05T02:42:30.359Z",
       "trainingRevision": 229,
       "training": {
         "dateRange": {
@@ -7434,21 +7434,6 @@
         "updatedAt": "2026-09-04 08:49:47"
       },
       {
-        "id": 59,
-        "playerId": 13,
-        "type": "not_before_days",
-        "rule": {
-          "days": 1,
-          "resumeOn": "2026-09-05",
-          "note": ""
-        },
-        "startsOn": "2026-09-04",
-        "expiresOn": "2026-09-04",
-        "rawText": "甲乙丙 1天后 再打",
-        "createdAt": "2026-09-04 08:49:50",
-        "updatedAt": "2026-09-04 08:49:50"
-      },
-      {
         "id": 60,
         "playerId": 31,
         "type": "not_before_days",
@@ -7506,6 +7491,96 @@
         "rawText": "果花 9.6 再打 回老家",
         "createdAt": "2026-09-02 04:13:31",
         "updatedAt": "2026-09-02 04:13:31"
+      },
+      {
+        "id": 64,
+        "playerId": 1,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-06",
+          "note": ""
+        },
+        "startsOn": "2026-09-05",
+        "expiresOn": "2026-09-05",
+        "rawText": "阿达 1天后 再打",
+        "createdAt": "2026-09-05 02:28:55",
+        "updatedAt": "2026-09-05 02:28:55"
+      },
+      {
+        "id": 65,
+        "playerId": 76,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-06",
+          "note": ""
+        },
+        "startsOn": "2026-09-05",
+        "expiresOn": "2026-09-05",
+        "rawText": "严迪 1天后 再打",
+        "createdAt": "2026-09-05 02:30:13",
+        "updatedAt": "2026-09-05 02:30:13"
+      },
+      {
+        "id": 66,
+        "playerId": 16,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-06",
+          "note": ""
+        },
+        "startsOn": "2026-09-05",
+        "expiresOn": "2026-09-05",
+        "rawText": "ben 1天后 再打",
+        "createdAt": "2026-09-05 02:30:23",
+        "updatedAt": "2026-09-05 02:30:23"
+      },
+      {
+        "id": 68,
+        "playerId": 90,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-06",
+          "note": ""
+        },
+        "startsOn": "2026-09-05",
+        "expiresOn": "2026-09-05",
+        "rawText": "Selina 1天后 再打",
+        "createdAt": "2026-09-05 02:31:02",
+        "updatedAt": "2026-09-05 02:31:02"
+      },
+      {
+        "id": 69,
+        "playerId": 20,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-06",
+          "note": ""
+        },
+        "startsOn": "2026-09-05",
+        "expiresOn": "2026-09-05",
+        "rawText": "0.o 1天后 再打",
+        "createdAt": "2026-09-05 02:40:50",
+        "updatedAt": "2026-09-05 02:40:50"
+      },
+      {
+        "id": 71,
+        "playerId": 13,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-09-06",
+          "note": ""
+        },
+        "startsOn": "2026-09-05",
+        "expiresOn": "2026-09-05",
+        "rawText": "甲乙丙 1天后 再打",
+        "createdAt": "2026-09-05 02:41:21",
+        "updatedAt": "2026-09-05 02:41:21"
       },
       {
         "id": 35,
@@ -7775,17 +7850,24 @@
         "trainingState": "eligible",
         "source": "tracked",
         "hasEligibleSnapshots": true
+      },
+      {
+        "activityDate": "2026-09-05",
+        "outcome": "pending",
+        "trainingState": "eligible",
+        "source": "tracked",
+        "hasEligibleSnapshots": true
       }
     ],
     "groupLearningSignals": {
       "version": "group-learning-v1",
-      "generatedAt": "2026-09-04T16:50:23.376Z",
+      "generatedAt": "2026-09-05T02:42:30.721Z",
       "generatedDate": "2026-09-05",
       "halfLifeDays": 30,
       "training": {
         "playerCount": 85,
         "sessionCount": 23,
-        "attemptCount": 1,
+        "attemptCount": 2,
         "eligibleAttemptCount": 1,
         "eligibleSnapshotCount": 23,
         "excludedSnapshotCount": 0,
