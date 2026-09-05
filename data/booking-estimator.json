@@ -1,32 +1,32 @@
 {
   "version": 5,
-  "generatedAt": "2026-09-05T03:10:19.649Z",
-  "trainingRevision": 229,
+  "generatedAt": "2026-09-05T15:11:34.834Z",
+  "trainingRevision": 237,
   "training": {
     "dateRange": {
       "from": "2026-07-13",
-      "to": "2026-09-04"
+      "to": "2026-09-05"
     },
     "court": {
-      "sampleCount": 21,
+      "sampleCount": 22,
       "dateRange": {
         "from": "2026-07-13",
-        "to": "2026-09-04"
+        "to": "2026-09-05"
       }
     },
     "shuttle": {
-      "sampleCount": 20,
-      "eligibleSessionCount": 21,
+      "sampleCount": 21,
+      "eligibleSessionCount": 22,
       "unconfirmedExcludedCount": 0,
       "mixedExcludedCount": 1,
       "unknownTypeExcludedCount": 0,
       "byType": {
         "rsl3": {
-          "sampleCount": 20,
+          "sampleCount": 21,
           "mixedExcludedCount": 1,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-09-04"
+            "to": "2026-09-05"
           }
         },
         "as05": {
@@ -50,7 +50,7 @@
         11.3,
         11.5
       ],
-      "sampleCount": 20,
+      "sampleCount": 21,
       "trainingMode": "global-only"
     },
     {
@@ -80,12 +80,12 @@
     "validation": {
       "method": "in-sample",
       "minimumTrainingSessions": 5,
-      "folds": 21,
-      "mae": 0.048,
-      "rmse": 0.218,
-      "exactRate": 0.952,
-      "bias": -0.048,
-      "underPredictionRate": 0.048,
+      "folds": 22,
+      "mae": 0.045,
+      "rmse": 0.213,
+      "exactRate": 0.955,
+      "bias": -0.045,
+      "underPredictionRate": 0.045,
       "overPredictionRate": 0
     }
   },
@@ -107,22 +107,22 @@
         "typeId": "rsl3",
         "trainingMode": "global-only",
         "formula": "ceil(rawExpected + riskScale * sqrt(max(rawExpected, 1)))",
-        "baseRate": 0.816659,
+        "baseRate": 0.814756,
         "riskQuantile": 0.7,
-        "riskScale": 0.21078,
+        "riskScale": 0.000022,
         "effects": {
           "gender": {},
           "genderLevel": {},
           "member": {}
         },
         "training": {
-          "sampleCount": 20,
-          "availableSampleCount": 20,
+          "sampleCount": 21,
+          "availableSampleCount": 21,
           "olderExcludedCount": 0,
           "mixedExcludedCount": 1,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-09-04"
+            "to": "2026-09-05"
           }
         },
         "regularization": {
@@ -139,18 +139,18 @@
             0.1
           ],
           "source": "time-holdout-conservative-grid-search",
-          "baselineMae": 2.076,
+          "baselineMae": 2.097,
           "requiredImprovement": 0.25
         },
         "validation": {
           "method": "time-holdout",
           "folds": 5,
-          "mae": 2.076,
-          "rmse": 2.195,
+          "mae": 2.097,
+          "rmse": 2.255,
           "exactRate": 0,
-          "bias": 0.177,
-          "underPredictionRate": 0.6,
-          "overPredictionRate": 0.4
+          "bias": 1,
+          "underPredictionRate": 0.4,
+          "overPredictionRate": 0.6
         },
         "riskCalibration": {
           "method": "time-holdout",
@@ -158,22 +158,22 @@
           "priorStrength": 5,
           "maximumScale": 2,
           "folds": 5,
-          "mae": 2.2,
-          "rmse": 2.933,
+          "mae": 2,
+          "rmse": 2.449,
           "exactRate": 0.2,
-          "bias": 1.8,
+          "bias": 1.6,
           "underPredictionRate": 0.2,
           "overPredictionRate": 0.6
         },
         "fit": {
           "method": "global-rate",
-          "folds": 20,
-          "mae": 2.3,
-          "rmse": 2.881,
-          "exactRate": 0.1,
-          "bias": 1.5,
-          "underPredictionRate": 0.25,
-          "overPredictionRate": 0.65
+          "folds": 21,
+          "mae": 1.952,
+          "rmse": 2.478,
+          "exactRate": 0.143,
+          "bias": 0.714,
+          "underPredictionRate": 0.333,
+          "overPredictionRate": 0.524
         }
       },
       "as05": {
