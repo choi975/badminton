@@ -28,6 +28,8 @@ assert.match(html, /attemptTrackingObservation\.trainingState = state\.attemptTr
 assert.match(html, /includeCandidates: true/);
 assert.match(html, /location\.pathname\.includes\("\/badminton-navigation-homepage\/"\)/);
 assert.match(html, /activeGroupDate !== date[\s\S]*els\.chainInput\.value = ""[\s\S]*processChain\(\)/);
+assert.match(html, /\.nav-preview \.modal-backdrop\.nav-page \.chain-dialog[\s\S]*grid-template-rows: minmax\(0, 1fr\)/);
+assert.match(html, /function hasUnparenthesizedLockMarker\(value\)[\s\S]*outsideParentheses[\s\S]*includes\("锁车"\)/);
 
 assert.match(html, /BadmintonGroupProbability/);
 assert.match(html, /groupLearningSignals: state\.groupLearningSignals/);

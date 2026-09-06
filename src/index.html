@@ -3702,6 +3702,18 @@
       padding: 10px;
     }
 
+    /* The navigation version hides the dialog header, so the chain workspace
+       must use a single flexible row; otherwise the hidden header's grid track
+       leaves a large unused area below the cards. */
+    .nav-preview .modal-backdrop.nav-page .chain-dialog {
+      grid-template-rows: minmax(0, 1fr);
+    }
+
+    .nav-preview .modal-backdrop.nav-page .chain-dialog .modal-body {
+      height: auto;
+      min-height: 0;
+    }
+
     .nav-preview .modal-backdrop.nav-page .chain-grid {
       width: 100%;
       height: 100%;
@@ -12599,7 +12611,12 @@
       const lines = String(rawInput || "").split(/\r?\n/);
       const numberedLines = lines.filter((line) => CHAIN_NUMBER_PREFIX.test(line));
       const candidates = numberedLines.length ? numberedLines : lines;
-      return candidates.filter((line) => !String(line || "").includes("锁车"));
+      return candidates.filter((line) => !hasUnparenthesizedLockMarker(line));
+    }
+
+    function hasUnparenthesizedLockMarker(value) {
+      const outsideParentheses = String(value || "").replace(/\([^)]*\)|（[^）]*）/g, " ");
+      return outsideParentheses.includes("锁车");
     }
 
     function normalizeAlias(value) {
