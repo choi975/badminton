@@ -151,7 +151,7 @@ const sessions = sessionRows.map((row) => {
   return {
     id,
     date: row.date,
-    venue: row.venue === "EDC" ? "EDC" : "文体",
+    venue: ["EDC", "文体", "广羽"].includes(row.venue) ? row.venue : "文体",
     courtCount: Number(row.court_count),
     courtFee: Number(row.court_fee),
     shuttlePrice: Number(row.shuttle_price),

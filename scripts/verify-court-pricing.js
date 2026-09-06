@@ -57,6 +57,8 @@ database.close();
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const worker = readFileSync(new URL("../src/worker.js", import.meta.url), "utf8");
+assert.match(worker, /VALID_SESSION_VENUES = new Set\(\["文体", "EDC", "广羽"\]\)/);
+assert.match(html, /const venues = \["EDC", "文体", "广羽"\]/);
 assert.match(html, /id="edcBalanceInput"[^>]*type="number"[^>]*value="860"/);
 assert.match(html, /api\("\/api\/edc-balance"[\s\S]*method: "PUT"/);
 assert.match(worker, /pathname === "\/api\/edc-balance" && method === "PUT"/);

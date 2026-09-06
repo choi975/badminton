@@ -3057,6 +3057,12 @@
       color: #17699f;
     }
 
+    .calendar-day-venue.venue-guangyu {
+      border-color: #79b889;
+      background: #e8f7eb;
+      color: #28713a;
+    }
+
     @media (max-width: 560px) {
       .calendar-toolbar {
         display: grid;
@@ -6552,7 +6558,7 @@
       return (Array.isArray(rawSessions) ? rawSessions : []).map((session) => ({
         id: Number(session.id),
         date: String(session.date || ""),
-        venue: session.venue === "EDC" ? "EDC" : "文体",
+        venue: ["EDC", "文体", "广羽"].includes(session.venue) ? session.venue : "文体",
         courtCount: Number(session.courtCount) || 0,
         courtFee: Number(session.courtFee) || 0,
         shuttlePrice: Number(session.shuttlePrice) || 0,
@@ -7781,9 +7787,14 @@
         badge.append(count, unit);
         const session = daySessions[0];
         const venue = document.createElement("span");
-        venue.className = `calendar-day-venue ${session.venue === "EDC" ? "venue-edc" : "venue-wenti"}`;
+        const venueClass = session.venue === "EDC"
+          ? "venue-edc"
+          : session.venue === "广羽" ? "venue-guangyu" : "venue-wenti";
+        venue.className = `calendar-day-venue ${venueClass}`;
         venue.textContent = session.venue;
-        venue.title = state.readOnly ? "只读模式下不能切换球馆" : `点击切换为${session.venue === "EDC" ? "文体" : "EDC"}`;
+        const venueIndex = ["EDC", "文体", "广羽"].indexOf(session.venue);
+        const nextVenue = ["EDC", "文体", "广羽"][(venueIndex + 1) % 3];
+        venue.title = state.readOnly ? "只读模式下不能切换球馆" : `点击切换为${nextVenue}`;
         venue.setAttribute("role", "button");
         venue.setAttribute("tabindex", "0");
         venue.setAttribute("aria-label", `${dateString}球馆：${session.venue}，点击切换`);
@@ -7832,7 +7843,9 @@
         toast("当前为只读模式，不能切换球馆");
         return;
       }
-      const venue = session.venue === "EDC" ? "文体" : "EDC";
+      const venues = ["EDC", "文体", "广羽"];
+      const venueIndex = Math.max(0, venues.indexOf(session.venue));
+      const venue = venues[(venueIndex + 1) % venues.length];
       setSync("正在切换球馆");
       try {
         const data = await api(`/api/sessions/${session.id}/venue`, {
@@ -12585,7 +12598,8 @@
     function getChainInputLines(rawInput) {
       const lines = String(rawInput || "").split(/\r?\n/);
       const numberedLines = lines.filter((line) => CHAIN_NUMBER_PREFIX.test(line));
-      return numberedLines.length ? numberedLines : lines;
+      const candidates = numberedLines.length ? numberedLines : lines;
+      return candidates.filter((line) => !String(line || "").includes("锁车"));
     }
 
     function normalizeAlias(value) {

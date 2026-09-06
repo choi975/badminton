@@ -96,7 +96,7 @@ const MEMBER_EXIT_ALLOWED_ORIGINS = new Set([
 ]);
 const memberExitRateWindows = new Map();
 const SESSION_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const VALID_SESSION_VENUES = new Set(["文体", "EDC"]);
+const VALID_SESSION_VENUES = new Set(["文体", "EDC", "广羽"]);
 const VALID_PARTICIPANT_GENDERS = new Set(["男", "女", "不详"]);
 const DEFAULT_EDC_BALANCE = 860;
 const MAX_ABSOLUTE_EDC_BALANCE = 10_000_000;

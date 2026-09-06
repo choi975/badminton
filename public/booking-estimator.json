@@ -1,22 +1,22 @@
 {
   "version": 5,
-  "generatedAt": "2026-09-05T15:11:34.834Z",
-  "trainingRevision": 237,
+  "generatedAt": "2026-09-06T16:30:46.721Z",
+  "trainingRevision": 257,
   "training": {
     "dateRange": {
       "from": "2026-07-13",
-      "to": "2026-09-05"
+      "to": "2026-09-06"
     },
     "court": {
-      "sampleCount": 22,
+      "sampleCount": 23,
       "dateRange": {
         "from": "2026-07-13",
-        "to": "2026-09-05"
+        "to": "2026-09-06"
       }
     },
     "shuttle": {
-      "sampleCount": 21,
-      "eligibleSessionCount": 22,
+      "sampleCount": 22,
+      "eligibleSessionCount": 23,
       "unconfirmedExcludedCount": 0,
       "mixedExcludedCount": 1,
       "unknownTypeExcludedCount": 0,
@@ -30,11 +30,11 @@
           }
         },
         "as05": {
-          "sampleCount": 0,
+          "sampleCount": 1,
           "mixedExcludedCount": 1,
           "dateRange": {
-            "from": null,
-            "to": null
+            "from": "2026-09-06",
+            "to": "2026-09-06"
           }
         }
       }
@@ -60,8 +60,8 @@
       "prices": [
         13.5
       ],
-      "sampleCount": 0,
-      "trainingMode": "cold-start"
+      "sampleCount": 1,
+      "trainingMode": "global-only"
     }
   ],
   "court": {
@@ -80,12 +80,12 @@
     "validation": {
       "method": "in-sample",
       "minimumTrainingSessions": 5,
-      "folds": 22,
-      "mae": 0.045,
-      "rmse": 0.213,
-      "exactRate": 0.955,
-      "bias": -0.045,
-      "underPredictionRate": 0.045,
+      "folds": 23,
+      "mae": 0.043,
+      "rmse": 0.209,
+      "exactRate": 0.957,
+      "bias": -0.043,
+      "underPredictionRate": 0.043,
       "overPredictionRate": 0
     }
   },
@@ -178,9 +178,9 @@
       },
       "as05": {
         "typeId": "as05",
-        "trainingMode": "cold-start",
+        "trainingMode": "global-only",
         "formula": "ceil(rawExpected + riskScale * sqrt(max(rawExpected, 1)))",
-        "baseRate": 0.81,
+        "baseRate": 0.578947,
         "riskQuantile": 0.7,
         "riskScale": 0,
         "effects": {
@@ -189,16 +189,17 @@
           "member": {}
         },
         "training": {
-          "sampleCount": 0,
-          "availableSampleCount": 0,
+          "sampleCount": 1,
+          "availableSampleCount": 1,
+          "olderExcludedCount": 0,
           "mixedExcludedCount": 1,
           "dateRange": {
-            "from": null,
-            "to": null
+            "from": "2026-09-06",
+            "to": "2026-09-06"
           }
         },
         "regularization": {
-          "selectedKind": "cold-start",
+          "selectedKind": "global-only",
           "scale": null,
           "multipliers": {
             "gender": 1,
@@ -210,19 +211,12 @@
             0.01,
             0.1
           ],
-          "source": "cold-start"
+          "source": "small-sample-default",
+          "baselineMae": null,
+          "requiredImprovement": null
         },
         "validation": {
           "method": "time-holdout",
-          "raw": {
-            "folds": 0,
-            "mae": null,
-            "rmse": null,
-            "exactRate": null,
-            "bias": null,
-            "underPredictionRate": null,
-            "overPredictionRate": null
-          },
           "folds": 0,
           "mae": null,
           "rmse": null,
@@ -231,15 +225,28 @@
           "underPredictionRate": null,
           "overPredictionRate": null
         },
+        "riskCalibration": {
+          "method": "shrunken-in-sample",
+          "sampleCount": 1,
+          "priorStrength": 5,
+          "maximumScale": 2,
+          "folds": 1,
+          "mae": 1,
+          "rmse": 1,
+          "exactRate": 0,
+          "bias": 1,
+          "underPredictionRate": 0,
+          "overPredictionRate": 1
+        },
         "fit": {
-          "method": "cold-start",
-          "folds": 0,
-          "mae": null,
-          "rmse": null,
-          "exactRate": null,
-          "bias": null,
-          "underPredictionRate": null,
-          "overPredictionRate": null
+          "method": "global-rate",
+          "folds": 1,
+          "mae": 1,
+          "rmse": 1,
+          "exactRate": 0,
+          "bias": 1,
+          "underPredictionRate": 0,
+          "overPredictionRate": 1
         }
       }
     }

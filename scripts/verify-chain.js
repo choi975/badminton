@@ -39,7 +39,8 @@ function cleanChainLine(line) {
 function getChainInputLines(rawInput) {
   const lines = String(rawInput || "").split(/\r?\n/);
   const numberedLines = lines.filter((line) => CHAIN_NUMBER_PREFIX.test(line));
-  return numberedLines.length ? numberedLines : lines;
+  const candidates = numberedLines.length ? numberedLines : lines;
+  return candidates.filter((line) => !String(line || "").includes("锁车"));
 }
 
 function normalizeAlias(value) {
@@ -304,6 +305,8 @@ function formatPaymentComposition(row) {
 
 const aliasIndex = buildAliasIndex();
 const entries = getChainInputLines(input).map((line, index) => parseChainLine(line, index, aliasIndex)).filter((entry) => entry.clean);
+const lockedRoster = getChainInputLines("1. choi\n2. 🔒锁车🔒\n3. 达哥\n4. 🔒🔒锁车🔒🔒");
+if (lockedRoster.join("\n") !== "1. choi\n3. 达哥") throw new Error("Expected 锁车 marker rows to be ignored");
 const sorted = [...entries].sort((a, b) => (b.sortRank - a.sortRank) || (a.index - b.index));
 const output = sorted.map((entry, index) => {
   return `${index + 1}. ${getChainEntryDisplayName(entry)}（${entry.levelText}）`;
