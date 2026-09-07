@@ -53,10 +53,35 @@ assert.equal(readBalance(), 620, "编辑已有记录不应重复扣减EDC余额"
 database.prepare("INSERT INTO booking_sessions (date, venue, court_count, court_fee) VALUES (?, '文体', ?, ?)")
   .run("2026-09-12", 1, 80);
 assert.equal(readBalance(), 620, "非EDC订场不应自动扣减EDC余额");
+database.prepare("INSERT INTO booking_sessions (date, venue, court_count, court_fee) VALUES (?, 'EDC', ?, ?)")
+  .run("2026-09-07", 1.5, 105);
+assert.equal(readBalance(), 500, "1.5 courts should deduct 120 from the EDC balance");
+assert.equal(database.prepare("SELECT court_count FROM booking_sessions WHERE id = 4").get().court_count, 1.5);
 database.close();
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const worker = readFileSync(new URL("../src/worker.js", import.meta.url), "utf8");
+const normalizePriceRows = new Function(`return ${worker.slice(worker.indexOf("function normalizePriceRows("), worker.indexOf("function parseStoredPriceRows("))}`)();
+for (const count of [0.5, 1, 1.5, 2.5]) {
+  assert.deepEqual(normalizePriceRows([{ price: 70, count }], false, false), [{ price: 70, count }]);
+}
+for (const count of [0, -0.5, 1.25, Infinity]) {
+  assert.equal(normalizePriceRows([{ price: 70, count }], false, false), null);
+}
+assert.equal(normalizePriceRows([{ price: 11.3, count: 1.5 }], true, true), null);
+const createPriceRowElement = new Function("document", "formatCompactNumber", `return ${html.slice(html.indexOf("    function createPriceRowElement("), html.indexOf("    function renderPriceRows("))} `)(
+  { createElement: () => ({ children: [], listeners: {}, append(...items) { this.children.push(...items); }, addEventListener(type, handler) { this.listeners[type] = handler; } }) },
+  String,
+);
+const row = { price: 70, count: 1 };
+const element = createPriceRowElement(row, { kind: "court", isLast: true, onlyRow: true });
+const countInput = element.children[2];
+assert.equal(countInput.step, "0.5");
+assert.equal(countInput.inputMode, "decimal");
+countInput.value = "1.5";
+countInput.listeners.input();
+assert.equal(row.count, 1.5);
+assert.equal(row.price * row.count, 105);
 assert.match(worker, /VALID_SESSION_VENUES = new Set\(\["文体", "EDC", "广羽"\]\)/);
 assert.match(html, /const venues = \["EDC", "文体", "广羽"\]/);
 assert.match(html, /id="edcBalanceInput"[^>]*type="number"[^>]*value="860"/);

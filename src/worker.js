@@ -2395,7 +2395,7 @@ function normalizeSessionInput(body, fallbackVenue = "EDC", shuttleTypes = BOOKI
       ? shuttlePriceRows.reduce((sum, row) => sum + row.price * row.count, 0) / shuttleCount
       : 0;
   }
-  if (!Number.isInteger(courtCount) || courtCount <= 0) return null;
+  if (!Number.isInteger(courtCount * 2) || courtCount <= 0) return null;
   if (!Number.isFinite(courtFee) || courtFee < 0) return null;
   if (!Number.isFinite(shuttlePrice) || shuttlePrice < 0) return null;
   if (!Number.isInteger(shuttleCount) || shuttleCount < 0) return null;
@@ -2493,7 +2493,7 @@ function normalizePriceRows(raw, allowEmpty, includeShuttleType, shuttleTypes = 
     const price = Number(item?.price);
     const count = Number(item?.count);
     if (!Number.isFinite(price) || price < 0) return null;
-    if (!Number.isInteger(count) || count <= 0) return null;
+    if (!Number.isInteger(count * (includeShuttleType ? 1 : 2)) || count <= 0) return null;
     if (includeShuttleType) {
       const shuttleTypesById = new Map(shuttleTypes.map((type) => [type.id, type]));
       const explicitType = shuttleTypesById.has(item?.type) ? item.type : null;

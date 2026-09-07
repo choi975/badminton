@@ -4180,7 +4180,7 @@
           </div>
           <div class="field record-basic-fee-field">
             <label for="recordCourtCountInput">订场数量</label>
-            <input id="recordCourtCountInput" type="number" min="1" step="1" inputmode="numeric" autocomplete="off">
+            <input id="recordCourtCountInput" type="number" min="0.5" step="0.5" inputmode="decimal" autocomplete="off">
             <div id="recordCourtCountHint" class="field-hint"></div>
           </div>
           <div class="field record-basic-fee-field">
@@ -7611,8 +7611,8 @@
         courtFee = Number(els.recordCourtFeeInput.value);
         shuttlePrice = Number(els.recordShuttlePriceInput.value);
         shuttleCount = Number(els.recordShuttleCountInput.value);
-        if (!Number.isInteger(courtCount) || courtCount <= 0) {
-          toast("订场数量需要填写大于0的整数");
+        if (!Number.isInteger(courtCount * 2) || courtCount <= 0) {
+          toast("订场数量需要大于0，且为0.5的倍数");
           return;
         }
         if (!Number.isFinite(courtFee) || courtFee < 0 || !Number.isFinite(shuttlePrice) || shuttlePrice < 0) {
@@ -8910,8 +8910,8 @@
       const countInput = document.createElement("input");
       countInput.type = "number";
       countInput.min = "0";
-      countInput.step = "1";
-      countInput.inputMode = "numeric";
+      countInput.step = kind === "court" ? "0.5" : "1";
+      countInput.inputMode = kind === "court" ? "decimal" : "numeric";
       countInput.value = String(row.count);
 
       const addButton = document.createElement("button");
@@ -8931,7 +8931,8 @@
         onChanged?.();
       });
       countInput.addEventListener("input", () => {
-        row.count = Math.max(0, Math.floor(Number(countInput.value) || 0));
+        const units = kind === "court" ? 2 : 1;
+        row.count = Math.max(0, Math.floor((Number(countInput.value) || 0) * units) / units);
         onChanged?.();
       });
       addButton.addEventListener("click", onAdd);
@@ -8952,13 +8953,13 @@
         onAdd: () => {
           const firstType = kind === "shuttle" ? (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes)[0] : null;
           rows.push({ price: Number(firstType?.prices?.[0] || 0), count: 1, ...(firstType ? { type: firstType.id } : {}) });
-          renderPriceRows(container, rows, onChanged);
+          renderPriceRows(container, rows, onChanged, kind);
           onChanged?.();
         },
         onRemove: () => {
           if (rows.length <= 1) return;
           rows.splice(index, 1);
-          renderPriceRows(container, rows, onChanged);
+          renderPriceRows(container, rows, onChanged, kind);
           onChanged?.();
         },
         onChanged,
