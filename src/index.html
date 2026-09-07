@@ -3776,10 +3776,22 @@
     }
 
     @media (max-width: 760px) {
-      body.nav-preview { min-width: 760px; --nav-width: 68px; }
+      body.nav-preview {
+        width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+        --nav-width: 60px;
+      }
       body.nav-preview:has(#paymentSettingsModal.open) { min-width: 0; }
-      .nav-preview-sidebar { width: 68px; }
-      .nav-preview-main { width: calc(100% - 68px); margin-left: 68px; }
+      .nav-preview-sidebar {
+        width: var(--nav-width);
+        padding-inline: 7px;
+      }
+      .nav-preview-main {
+        width: calc(100% - var(--nav-width));
+        min-width: 0;
+        margin-left: var(--nav-width);
+      }
       .nav-preview-brand-copy,
       .nav-preview-label,
       .nav-preview-caret,
@@ -3790,8 +3802,48 @@
       .nav-preview-collapse { margin-left: 0; }
       .nav-preview-item { justify-content: center; padding-inline: 0; }
       .nav-preview-status { justify-content: center; }
-      .nav-preview .modal-backdrop.nav-page { left: 68px; }
-      .nav-preview .modal-backdrop.nav-page .chain-grid { min-width: 1080px; }
+      .nav-preview .modal-backdrop.nav-page {
+        inset: 58px 0 0 var(--nav-width);
+        min-width: 0;
+        padding: 8px;
+        overflow: hidden;
+      }
+      .nav-preview .modal-backdrop.nav-page .modal {
+        min-width: 0;
+      }
+      .nav-preview .modal-backdrop.nav-page .chain-dialog .modal-body {
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding: 8px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .nav-preview .modal-backdrop.nav-page .chain-grid {
+        width: 100%;
+        min-width: 0;
+        height: auto;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto;
+        align-content: start;
+      }
+      .nav-preview .modal-backdrop.nav-page .chain-panel {
+        min-width: 0;
+        min-height: 280px;
+      }
+      .nav-preview .modal-backdrop.nav-page .chain-textarea,
+      .nav-preview .modal-backdrop.nav-page .chain-output-list {
+        min-height: 230px;
+      }
+      .nav-preview .modal-backdrop.nav-page .side-stack {
+        min-width: 0;
+        grid-template-rows: auto auto;
+      }
+      .nav-preview .modal-backdrop.nav-page .chain-head {
+        flex-wrap: wrap;
+      }
+      .nav-preview .modal-backdrop.nav-page .chain-head-actions {
+        max-width: 100%;
+        flex-wrap: wrap;
+      }
       .payment-settings-groups { grid-template-columns: minmax(0, 1fr); }
       .payment-settings-group,
       .payment-settings-group--special {
