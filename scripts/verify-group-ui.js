@@ -21,7 +21,7 @@ assert.match(html, /levelDisplayModeBtn\.setAttribute\(\s*"aria-label",\s*groupe
 assert.match(html, /今天组局成功的概率：--%<\/span>\s*<span[^>]*>明天组局成功的概率：--%/);
 assert.match(html, /\.group-probability-wrap:hover \.group-probability-tooltip/);
 assert.match(html, /\.group-probability-wrap:focus-within \.group-probability-tooltip/);
-assert.match(html, /id="attemptTrialToggle" type="checkbox"/);
+assert.doesNotMatch(html, /id="attemptTrialToggle"|后续名单为试算/);
 assert.match(html, /id="shakeGenderFilter" class="shake-filter-select"/);
 assert.match(html, /id="shakeLevelFilter" class="shake-filter-select"/);
 assert.match(html, /id="shakeFilterReset" class="shake-filter-reset"[^>]*hidden/);

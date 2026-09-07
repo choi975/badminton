@@ -913,7 +913,14 @@
       max-height: min(80vh, 760px);
     }
 
-    #shakePeopleModal { z-index: 100; }
+    #shakePeopleModal {
+      z-index: 100;
+      background: transparent;
+      backdrop-filter: none;
+    }
+    .shake-people-filters[hidden] { display: none; }
+    #shakeFiltersToggle { flex-shrink: 0; }
+    #shakeFiltersToggle[aria-expanded="true"] svg { transform: rotate(180deg); }
     #shortRuleModal { z-index: 110; }
 
     .short-rule-dialog {
@@ -2736,7 +2743,7 @@
       .chain-head--output .chain-head-actions button { flex: 0 0 36px; }
       .chain-head--input .group-probability-wrap { position: static; }
       .chain-head--input .group-probability-tooltip { right: 0; left: auto; }
-      .shake-people-summary-row { align-items: flex-start; flex-direction: column; }
+      .shake-people-summary-row { align-items: center; }
       .shake-people-filters { align-items: stretch; }
       .shake-filter-field, .shake-filter-select { min-width: 0; width: 100%; }
       .shake-filter-reset { width: 100%; margin-left: 0; }
@@ -4403,12 +4410,9 @@
       <div class="modal-body">
         <div class="shake-people-summary-row">
           <p id="shakePeopleSummary" class="shake-people-summary"></p>
-          <label id="attemptTrialToggleLabel" class="attempt-trial-toggle" hidden>
-            <input id="attemptTrialToggle" type="checkbox">
-            <span>后续名单为试算</span>
-          </label>
+          <button id="shakeFiltersToggle" class="chain-icon-btn" type="button" aria-label="展开筛选" title="展开筛选" aria-expanded="false" aria-controls="shakePeopleFilters"><i data-lucide="chevron-down"></i></button>
         </div>
-        <div class="shake-people-filters" aria-label="摇人筛选">
+        <div id="shakePeopleFilters" class="shake-people-filters" aria-label="摇人筛选" hidden>
           <label class="shake-filter-field" for="shakeGenderFilter">
             <span class="shake-filter-label">性别</span>
             <select id="shakeGenderFilter" class="shake-filter-select">
@@ -4744,8 +4748,8 @@
       shakeShortTermRulesBlock: document.getElementById("shakeShortTermRulesBlock"),
       shakeLongTermRulesList: document.getElementById("shakeLongTermRulesList"),
       shakeShortTermRulesList: document.getElementById("shakeShortTermRulesList"),
-      attemptTrialToggleLabel: document.getElementById("attemptTrialToggleLabel"),
-      attemptTrialToggle: document.getElementById("attemptTrialToggle"),
+      shakeFiltersToggle: document.getElementById("shakeFiltersToggle"),
+      shakePeopleFilters: document.getElementById("shakePeopleFilters"),
       newShortRuleBtn: document.getElementById("newShortRuleBtn"),
       shortRuleModal: document.getElementById("shortRuleModal"),
       shortRuleInput: document.getElementById("shortRuleInput"),
@@ -5184,7 +5188,7 @@
         renderShakePeopleModal();
         els.shakeGenderFilter.focus();
       });
-      els.attemptTrialToggle.addEventListener("change", handleAttemptTrialToggle);
+      els.shakeFiltersToggle.addEventListener("click", () => setShakeFiltersExpanded(els.shakePeopleFilters.hidden));
       els.attemptTrialModeBtn.addEventListener("click", () => setAttemptTrialMode(!state.attemptTrialRequested));
       els.groupProbability.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -9334,9 +9338,6 @@
     }
 
     function syncAttemptTrialToggle() {
-      const visible = !state.readOnly && !state.pendingSessionEdit;
-      els.attemptTrialToggleLabel.hidden = !visible;
-      els.attemptTrialToggle.checked = state.attemptTrialRequested;
       els.attemptTrialModeBtn.classList.toggle("active", state.attemptTrialRequested);
       els.attemptTrialModeBtn.setAttribute("aria-pressed", String(state.attemptTrialRequested));
       els.attemptTrialModeBtn.title = state.attemptTrialRequested ? "试算模式已开启，后续名单不计入学习" : "开启后，后续名单不计入学习";
@@ -9422,10 +9423,6 @@
       state.groupAttempt = attempt;
       attemptLoadedDate = attempt.activityDate;
       syncAttemptTrialToggle();
-    }
-
-    function handleAttemptTrialToggle() {
-      setAttemptTrialMode(els.attemptTrialToggle.checked);
     }
 
     async function saveGroupAttemptSnapshot(observation) {
@@ -12564,6 +12561,13 @@
       renderShakeShortTermRules();
     }
 
+    function setShakeFiltersExpanded(expanded) {
+      els.shakePeopleFilters.hidden = !expanded;
+      els.shakeFiltersToggle.setAttribute("aria-expanded", String(expanded));
+      els.shakeFiltersToggle.setAttribute("aria-label", expanded ? "收起筛选" : "展开筛选");
+      els.shakeFiltersToggle.title = expanded ? "收起筛选" : "展开筛选";
+    }
+
     async function openShakePeopleModal() {
       if (state.readOnly) return;
       processChain();
@@ -12658,6 +12662,7 @@
     }
 
     function openModal(id) {
+      if (id === "shakePeopleModal") setShakeFiltersExpanded(false);
       const modal = document.getElementById(id);
       if (!modal) return;
       const opening = !modal.classList.contains("open");
