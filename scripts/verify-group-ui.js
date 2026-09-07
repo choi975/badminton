@@ -22,6 +22,11 @@ assert.match(html, /今天组局成功的概率：--%<\/span>\s*<span[^>]*>明�
 assert.match(html, /\.group-probability-wrap:hover \.group-probability-tooltip/);
 assert.match(html, /\.group-probability-wrap:focus-within \.group-probability-tooltip/);
 assert.match(html, /id="attemptTrialToggle" type="checkbox"/);
+assert.match(html, /id="shakeGenderFilter" class="shake-filter-select"/);
+assert.match(html, /id="shakeLevelFilter" class="shake-filter-select"/);
+assert.match(html, /id="shakeFilterReset" class="shake-filter-reset"[^>]*hidden/);
+assert.match(html, /shakeFilters: \{ gender: "", levelGroup: "" \}/);
+assert.match(html, /function filterShakePeopleRecommendations\(recommendations\)/);
 assert.match(html, /trainingState: observation\.trainingState/);
 assert.match(html, /chainInputUserOwned/);
 assert.match(html, /attemptTrackingObservation\.trainingState = state\.attemptTrialRequested/);
@@ -76,6 +81,24 @@ const orderedRecommendations = orderRecommendationsContext.orderShakePeopleRecom
   { player: { id: 3 } },
 ], [2]);
 assert.equal(orderedRecommendations.map((item) => item.player.id).join(","), "1,3,2");
+
+const filterRecommendationsStart = html.indexOf("function filterShakePeopleRecommendations(");
+const filterRecommendationsEnd = html.indexOf("\n    function renderShakePeopleList(", filterRecommendationsStart);
+assert.ok(filterRecommendationsStart >= 0 && filterRecommendationsEnd > filterRecommendationsStart, "Expected shake filter helper");
+const filterRecommendationsContext = vm.createContext({
+  state: { shakeFilters: { gender: "女", levelGroup: "高手" } },
+  getLevelGroupLabel: (level) => level === "4级" ? "高手" : "不详",
+});
+vm.runInContext(`
+${html.slice(filterRecommendationsStart, filterRecommendationsEnd)}
+globalThis.filterShakePeopleRecommendations = filterShakePeopleRecommendations;
+`, filterRecommendationsContext);
+const filteredRecommendations = filterRecommendationsContext.filterShakePeopleRecommendations([
+  { player: { id: 1, gender: "女", level: "4级" } },
+  { player: { id: 2, gender: "女", level: "3级" } },
+  { player: { id: 3, gender: "男", level: "4级" } },
+]);
+assert.deepEqual(filteredRecommendations.map((item) => item.player.id), [1]);
 
 const appendMemberStart = html.indexOf("function appendMemberToChainInput(");
 const appendMemberEnd = html.indexOf("\n    function addShakePersonToChain(", appendMemberStart);

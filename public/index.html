@@ -936,6 +936,50 @@
 
     .shake-people-summary-row .shake-people-summary { margin: 0; }
 
+    .shake-people-filters {
+      display: flex;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 12px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .shake-filter-field {
+      display: grid;
+      gap: 4px;
+      min-width: 140px;
+    }
+
+    .shake-filter-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .shake-filter-select {
+      min-width: 140px;
+      min-height: 34px;
+      padding: 0 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .shake-filter-reset {
+      min-height: 34px;
+      margin-left: auto;
+      padding: 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .shake-filter-reset[hidden] { display: none; }
+
     .attempt-trial-toggle {
       display: inline-flex;
       align-items: center;
@@ -2693,6 +2737,9 @@
       .chain-head--input .group-probability-wrap { position: static; }
       .chain-head--input .group-probability-tooltip { right: 0; left: auto; }
       .shake-people-summary-row { align-items: flex-start; flex-direction: column; }
+      .shake-people-filters { align-items: stretch; }
+      .shake-filter-field, .shake-filter-select { min-width: 0; width: 100%; }
+      .shake-filter-reset { width: 100%; margin-left: 0; }
       .shake-person-row { grid-template-columns: 1fr; }
       .shake-person-score { justify-content: flex-start; }
       .shake-person-action {
@@ -4361,6 +4408,27 @@
             <span>后续名单为试算</span>
           </label>
         </div>
+        <div class="shake-people-filters" aria-label="摇人筛选">
+          <label class="shake-filter-field" for="shakeGenderFilter">
+            <span class="shake-filter-label">性别</span>
+            <select id="shakeGenderFilter" class="shake-filter-select">
+              <option value="">全部性别</option>
+              <option value="男">男</option>
+              <option value="女">女</option>
+            </select>
+          </label>
+          <label class="shake-filter-field" for="shakeLevelFilter">
+            <span class="shake-filter-label">等级</span>
+            <select id="shakeLevelFilter" class="shake-filter-select">
+              <option value="">全部等级</option>
+              <option value="新手">新手</option>
+              <option value="中手">中手</option>
+              <option value="高手">高手</option>
+              <option value="比赛级高手">比赛级高手</option>
+            </select>
+          </label>
+          <button id="shakeFilterReset" class="shake-filter-reset" type="button" hidden>清除筛选</button>
+        </div>
         <div id="shakePeopleList" class="shake-people-list"></div>
         <div class="shake-rule-accordions">
           <details id="shakeLongTermRulesBlock" class="shake-rule-accordion">
@@ -4578,6 +4646,7 @@
       groupAttempt: null,
       attemptTrialRequested: false,
       shakeBottomedPlayerIds: new Set(),
+      shakeFilters: { gender: "", levelGroup: "" },
       chainInputUserOwned: false,
       trainingAnomaly: null,
       estimatorAdvancedOpen: false,
@@ -4667,6 +4736,9 @@
       shakePeopleModal: document.getElementById("shakePeopleModal"),
       shakePeopleSummary: document.getElementById("shakePeopleSummary"),
       shakePeopleList: document.getElementById("shakePeopleList"),
+      shakeGenderFilter: document.getElementById("shakeGenderFilter"),
+      shakeLevelFilter: document.getElementById("shakeLevelFilter"),
+      shakeFilterReset: document.getElementById("shakeFilterReset"),
       shortTermRulesList: document.getElementById("shortTermRulesList"),
       shakeLongTermRulesBlock: document.getElementById("shakeLongTermRulesBlock"),
       shakeShortTermRulesBlock: document.getElementById("shakeShortTermRulesBlock"),
@@ -5098,6 +5170,20 @@
       });
       els.pasteInputBtn.addEventListener("click", pasteChainInput);
       els.shakePeopleBtn.addEventListener("click", openShakePeopleModal);
+      els.shakeGenderFilter.addEventListener("change", () => {
+        state.shakeFilters.gender = els.shakeGenderFilter.value;
+        renderShakePeopleModal();
+      });
+      els.shakeLevelFilter.addEventListener("change", () => {
+        state.shakeFilters.levelGroup = els.shakeLevelFilter.value;
+        renderShakePeopleModal();
+      });
+      els.shakeFilterReset.addEventListener("click", () => {
+        state.shakeFilters.gender = "";
+        state.shakeFilters.levelGroup = "";
+        renderShakePeopleModal();
+        els.shakeGenderFilter.focus();
+      });
       els.attemptTrialToggle.addEventListener("change", handleAttemptTrialToggle);
       els.attemptTrialModeBtn.addEventListener("click", () => setAttemptTrialMode(!state.attemptTrialRequested));
       els.groupProbability.addEventListener("click", (event) => {
@@ -12140,6 +12226,18 @@
       return [...regular, ...bottomed];
     }
 
+    function filterShakePeopleRecommendations(recommendations) {
+      const { gender, levelGroup } = state.shakeFilters;
+      if (!gender && !levelGroup) return recommendations;
+      return recommendations.filter((item) => {
+        const player = item.player;
+        if (!player) return false;
+        if (gender && player.gender !== gender) return false;
+        if (levelGroup && getLevelGroupLabel(player.level) !== levelGroup) return false;
+        return true;
+      });
+    }
+
     function renderShakePeopleList(recommendations) {
       els.shakePeopleList.replaceChildren();
       if (!recommendations.length) {
@@ -12436,7 +12534,7 @@
       rules.forEach((rule) => els.shortTermRulesList.append(createRuleRow(rule)));
     }
 
-    function renderShakePeopleSummary(recommendations) {
+    function renderShakePeopleSummary(recommendations, totalRecommendations = recommendations.length) {
       const today = getBeijingDateString();
       const todayPercent = state.groupForecast
         ? forecastDisplayPercent(state.groupForecast.todayProbability, state.groupForecast.today?.settled)
@@ -12445,14 +12543,21 @@
         state.shakeBottomedPlayerIds.has(normalizePlayerId(item.player?.id))
       )).length;
       const bottomedSummary = bottomedCount ? ` · 已置底 ${bottomedCount} 人` : "";
-      els.shakePeopleSummary.textContent = `${today} · 当前成局 ${todayPercent}% · 推荐 ${recommendations.length} 人${bottomedSummary}`;
+      const filteredSummary = totalRecommendations !== recommendations.length
+        ? `（筛选后 ${recommendations.length}/${totalRecommendations} 人）`
+        : ` · 推荐 ${recommendations.length} 人`;
+      els.shakePeopleSummary.textContent = `${today} · 当前成局 ${todayPercent}%${filteredSummary}${bottomedSummary}`;
+      els.shakeGenderFilter.value = state.shakeFilters.gender;
+      els.shakeLevelFilter.value = state.shakeFilters.levelGroup;
+      els.shakeFilterReset.hidden = !state.shakeFilters.gender && !state.shakeFilters.levelGroup;
     }
 
     function renderShakePeopleModal() {
       const today = getBeijingDateString();
       renderGroupForecast({ includeCandidates: true });
-      const recommendations = buildShakePeopleRecommendations(today);
-      renderShakePeopleSummary(recommendations);
+      const allRecommendations = buildShakePeopleRecommendations(today);
+      const recommendations = filterShakePeopleRecommendations(allRecommendations);
+      renderShakePeopleSummary(recommendations, allRecommendations.length);
       syncAttemptTrialToggle();
       renderShakePeopleList(recommendations);
       renderShakeLongTermRules();
