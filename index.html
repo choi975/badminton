@@ -7260,6 +7260,17 @@
       }
     }
 
+    function appendTodoCounterMessage(messages, todoCounter) {
+      if (!todoCounter?.eligible) return;
+      if (todoCounter.status === "recorded") {
+        messages.push("羽毛球累计已+1");
+      } else if (todoCounter.status === "already_recorded") {
+        messages.push("羽毛球累计已同步");
+      } else {
+        messages.push("羽毛球累计同步失败，请在todo中补记");
+      }
+    }
+
     function openRecordDialogForChainEdit() {
       const record = state.currentPaymentRecord;
       const pending = state.pendingSessionEdit;
@@ -7329,6 +7340,7 @@
         const savedMessages = ["订场记录已保存"];
         if (balanceMessage) savedMessages.push(balanceMessage);
         if (data.removedShortRuleCount) savedMessages.push(`已删除${data.removedShortRuleCount}条提前返场规则`);
+        appendTodoCounterMessage(savedMessages, data.todoCounter);
         toast(savedMessages.join("，"));
       } catch (error) {
         setSync("保存失败");
@@ -7702,6 +7714,7 @@
         const savedMessages = [editing ? "订场记录已更新" : "订场记录已保存"];
         if (balanceMessage) savedMessages.push(balanceMessage);
         if (data.removedShortRuleCount) savedMessages.push(`已删除${data.removedShortRuleCount}条提前返场规则`);
+        appendTodoCounterMessage(savedMessages, data.todoCounter);
         toast(savedMessages.join("，"));
       } catch (error) {
         setSync("保存失败");

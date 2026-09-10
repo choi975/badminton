@@ -89,6 +89,9 @@ const MEMBER_EXIT_OCR_MODEL = "@cf/qwen/qwen3.8-27b";
 const MAX_MEMBER_EXIT_IMAGE_BYTES = 6 * 1024 * 1024;
 const MAX_MEMBER_EXIT_REQUEST_BYTES = Math.ceil(MAX_MEMBER_EXIT_IMAGE_BYTES * 4 / 3) + 32 * 1024;
 const MAX_MEMBER_EXIT_COUNT = 200;
+const TODO_COUNTER_INTEGRATION_URL = "https://todo.choi975.workers.dev/api/integrations/badminton/counter";
+const TODO_COUNTER_INTEGRATION_TIMEOUT_MS = 5000;
+const TODO_COUNTER_INTEGRATION_TOKEN_HEADER = "X-Badminton-Integration-Token";
 const MEMBER_EXIT_RATE_LIMIT = 5;
 const MEMBER_EXIT_RATE_WINDOW_MS = 60 * 1000;
 const MEMBER_EXIT_ALLOWED_ORIGINS = new Set([
@@ -886,6 +889,7 @@ async function handleApi(request, env, url) {
     const input = normalizeSessionInput(await readJson(request), "EDC", shuttleTypes);
     if (!input) return json({ error: "订场记录数据无效" }, 400);
     const session = await createSession(env.DB, input);
+    const todoCounter = await syncTodoBadmintonCounter(env, session);
     const removedShortRuleCount = await deleteShortTermRulesForEarlyReturn(env.DB, input.date, input.players);
     const groupAttempt = await safelyReconcileGroupAttemptOutcome(env.DB, input.date);
     const estimator = input.trainCourt || input.trainShuttle
@@ -896,6 +900,7 @@ async function handleApi(request, env, url) {
       estimator,
       removedShortRuleCount,
       groupAttempt,
+      todoCounter,
       edcBalance: await getEdcBalance(env.DB),
       edcCharge: input.venue === "EDC" ? input.courtCount * 80 : 0,
     }, 201);
@@ -2589,6 +2594,63 @@ async function updateSession(db, id, input) {
   statements.push(...buildSessionPlayerStatements(db, id, input.players));
   await db.batch(statements);
   return getSessionById(db, id);
+}
+
+function normalizeIntegrationName(value) {
+  return String(value || "").normalize("NFKC").trim().toLocaleLowerCase();
+}
+
+function sessionContainsExactChoi(session) {
+  return (session?.players || []).some((row) => (
+    !row?.isCompanion
+    && Number(row?.slots) > Number(row?.plusCount || 0)
+    && normalizeIntegrationName(row?.playerName) === "choi"
+  ));
+}
+
+async function syncTodoBadmintonCounter(env, session) {
+  if (!sessionContainsExactChoi(session)) {
+    return { eligible: false, status: "skipped" };
+  }
+
+  const secret = String(env.TODO_COUNTER_INTEGRATION_SECRET || "").trim();
+  if (!secret) {
+    console.error("Todo badminton counter integration is not configured");
+    return { eligible: true, status: "unconfigured" };
+  }
+
+  const endpoint = String(env.TODO_COUNTER_INTEGRATION_URL || TODO_COUNTER_INTEGRATION_URL).trim();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TODO_COUNTER_INTEGRATION_TIMEOUT_MS);
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        [TODO_COUNTER_INTEGRATION_TOKEN_HEADER]: secret,
+      },
+      body: JSON.stringify({
+        sessionId: Number(session.id),
+        recordedDate: session.date,
+        recordedAt: new Date().toISOString(),
+      }),
+      signal: controller.signal,
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      console.error("Todo badminton counter integration failed", response.status, data?.error || "unknown_error");
+      return { eligible: true, status: "failed" };
+    }
+    return {
+      eligible: true,
+      status: data?.recorded ? "recorded" : "already_recorded",
+    };
+  } catch (error) {
+    console.error("Todo badminton counter integration request failed", error?.message || error);
+    return { eligible: true, status: "failed" };
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function buildSessionPlayerStatements(db, sessionId, players, useLatestSession = false) {
