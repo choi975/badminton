@@ -586,6 +586,18 @@ async function handleApi(request, env, url) {
   const { pathname } = url;
   const method = request.method.toUpperCase();
 
+  if (pathname === "/api/integrations/todo/status" && method === "GET") {
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以检查累计同步" }, 403);
+    try {
+      const data = await requestTodoCounterIntegration(env, "GET");
+      if (data.ok !== true) throw new Error("invalid_integration_response");
+      return json({ ok: true, counterItemName: data.counterItemName });
+    } catch (error) {
+      console.error("Todo counter integration health check failed", error?.message || error);
+      return json({ ok: false, error: "羽毛球累计同步服务不可用" }, 503);
+    }
+  }
+
   if (pathname === "/api/bootstrap" && method === "GET") {
     const learningNow = new Date();
     const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes, cachedGroupLearningSignals, edcBalance] = await Promise.all([
@@ -2613,34 +2625,18 @@ async function syncTodoBadmintonCounter(env, session) {
     return { eligible: false, status: "skipped" };
   }
 
-  const secret = String(env.TODO_COUNTER_INTEGRATION_SECRET || "").trim();
-  if (!secret) {
+  if (!env.TODO_WORKER?.fetch || !String(env.TODO_COUNTER_INTEGRATION_SECRET || "").trim()) {
     console.error("Todo badminton counter integration is not configured");
     return { eligible: true, status: "unconfigured" };
   }
 
-  const endpoint = String(env.TODO_COUNTER_INTEGRATION_URL || TODO_COUNTER_INTEGRATION_URL).trim();
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TODO_COUNTER_INTEGRATION_TIMEOUT_MS);
   try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        [TODO_COUNTER_INTEGRATION_TOKEN_HEADER]: secret,
-      },
-      body: JSON.stringify({
-        sessionId: Number(session.id),
-        recordedDate: session.date,
-        recordedAt: new Date().toISOString(),
-      }),
-      signal: controller.signal,
+    const data = await requestTodoCounterIntegration(env, "POST", {
+      sessionId: Number(session.id),
+      recordedDate: session.date,
+      recordedAt: new Date().toISOString(),
     });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      console.error("Todo badminton counter integration failed", response.status, data?.error || "unknown_error");
-      return { eligible: true, status: "failed" };
-    }
+    if (typeof data.recorded !== "boolean") throw new Error("invalid_integration_response");
     return {
       eligible: true,
       status: data?.recorded ? "recorded" : "already_recorded",
@@ -2648,6 +2644,28 @@ async function syncTodoBadmintonCounter(env, session) {
   } catch (error) {
     console.error("Todo badminton counter integration request failed", error?.message || error);
     return { eligible: true, status: "failed" };
+  }
+}
+
+async function requestTodoCounterIntegration(env, method, body) {
+  const secret = String(env.TODO_COUNTER_INTEGRATION_SECRET || "").trim();
+  if (!env.TODO_WORKER?.fetch || !secret) throw new Error("integration_not_configured");
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TODO_COUNTER_INTEGRATION_TIMEOUT_MS);
+  try {
+    // Worker-to-Worker calls must use a service binding, not public hostname routing.
+    const response = await env.TODO_WORKER.fetch(TODO_COUNTER_INTEGRATION_URL, {
+      method,
+      headers: {
+        "content-type": "application/json",
+        [TODO_COUNTER_INTEGRATION_TOKEN_HEADER]: secret,
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(`todo_integration_${response.status}: ${data?.error || "unknown_error"}`);
+    return data;
   } finally {
     clearTimeout(timeoutId);
   }

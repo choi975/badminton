@@ -2,6 +2,10 @@ name = "badminton"
 main = "src/worker.js"
 compatibility_date = "2026-07-09"
 
+[[services]]
+binding = "TODO_WORKER"
+service = "todo"
+
 [triggers]
 crons = ["5 4 * * *"]
 
