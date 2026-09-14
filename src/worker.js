@@ -1013,6 +1013,21 @@ async function handleApi(request, env, url) {
     return json({ players: await listPlayers(env.DB) });
   }
 
+  if (pathname === "/api/edc-balance/history" && method === "GET") {
+    const before = url.searchParams.get("before");
+    if (before !== null && (!/^\d+$/.test(before) || !Number.isSafeInteger(Number(before)) || Number(before) < 1)) {
+      return json({ error: "流水分页参数无效" }, 400);
+    }
+    const { results } = await env.DB.prepare(
+      `SELECT id, type, amount, balance_before AS balanceBefore, balance_after AS balanceAfter,
+              session_id AS sessionId, session_date AS sessionDate, court_count AS courtCount,
+              created_at AS createdAt
+       FROM edc_balance_history WHERE id < ? ORDER BY id DESC LIMIT 31`
+    ).bind(before === null ? Number.MAX_SAFE_INTEGER : Number(before)).all();
+    const records = results.slice(0, 30);
+    return json({ records, nextCursor: results.length > 30 ? records.at(-1).id : null });
+  }
+
   if (pathname === "/api/edc-balance" && method === "PUT") {
     if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以修改EDC余额" }, 403);
     const balance = normalizeEdcBalance((await readJson(request))?.balance);
@@ -3115,9 +3130,15 @@ async function getEdcBalance(db) {
 }
 
 async function saveEdcBalance(db, balance) {
-  await db.prepare(
-    "INSERT INTO app_settings (key, value) VALUES ('edc_balance', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
-  ).bind(String(balance)).run();
+  // D1 batch keeps the previous balance, ledger entry and update in one transaction.
+  await db.batch([
+    db.prepare("INSERT OR IGNORE INTO app_settings (key, value) VALUES ('edc_balance', ?)").bind(String(DEFAULT_EDC_BALANCE)),
+    db.prepare(`INSERT INTO edc_balance_history (type, amount, balance_before, balance_after)
+      SELECT 'adjustment', ROUND(? - CAST(value AS REAL), 2), CAST(value AS REAL), ?
+      FROM app_settings WHERE key = 'edc_balance' AND ROUND(CAST(value AS REAL), 2) != ?`
+    ).bind(balance, balance, balance),
+    db.prepare("UPDATE app_settings SET value = ? WHERE key = 'edc_balance'").bind(String(balance)),
+  ]);
 }
 
 async function saveLevelGuide(db, raw) {

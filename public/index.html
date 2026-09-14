@@ -1688,6 +1688,13 @@
       border-top: 1px solid var(--line);
     }
 
+    .edc-balance-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
     .edc-balance-row label {
       color: var(--muted);
       font-size: 13px;
@@ -1717,6 +1724,19 @@
       opacity: 1;
       cursor: not-allowed;
     }
+
+    .edc-history-btn[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+    .edc-history { border-top: 1px solid var(--line); padding-top: 8px; }
+    .edc-history[hidden] { display: none; }
+    .edc-history-heading { margin: 0 0 4px; font-size: 13px; }
+    .edc-history-list { max-height: 260px; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+    .edc-history-entry { padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+    .edc-history-line { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .edc-history-line > :first-child { min-width: 0; overflow-wrap: anywhere; }
+    .edc-history-amount { flex-shrink: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .edc-history-meta, .edc-history-note { color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .edc-history-status { margin: 6px 0; font-size: 12px; }
+    .edc-history-more { width: 100%; margin-top: 6px; font-size: 12px; }
 
     .fee-title-row {
       display: flex;
@@ -4086,12 +4106,22 @@
                 </div>
               </div>
               <div class="edc-balance-row">
-                <label for="edcBalanceInput">EDC余额</label>
+                <div class="edc-balance-label">
+                  <label for="edcBalanceInput">EDC余额</label>
+                  <button id="edcHistoryBtn" class="chain-icon-btn edc-history-btn" type="button" aria-label="查看EDC余额记录" title="扣费与充值记录" aria-expanded="false" aria-controls="edcHistoryPanel"><i data-lucide="history" aria-hidden="true"></i></button>
+                </div>
                 <div class="edc-balance-control">
                   <input id="edcBalanceInput" class="edc-balance-input" type="number" step="0.01" inputmode="decimal" value="860" autocomplete="off">
                   <span aria-hidden="true">元</span>
                 </div>
               </div>
+              <section id="edcHistoryPanel" class="edc-history" aria-labelledby="edcHistoryHeading" hidden>
+                <h3 id="edcHistoryHeading" class="edc-history-heading">余额记录</h3>
+                <div class="edc-history-note">仅包含流水启用后的变动</div>
+                <ol id="edcHistoryList" class="edc-history-list"></ol>
+                <p id="edcHistoryStatus" class="edc-history-status" role="status" aria-live="polite"></p>
+                <button id="edcHistoryMoreBtn" class="edc-history-more" type="button" hidden>加载更早记录</button>
+              </section>
               <div id="shuttleTypeNotice" class="fee-notice" hidden></div>
               <button id="paymentBtn" class="primary-btn" disabled>群收款</button>
             </div>
@@ -4601,6 +4631,7 @@
       paymentOrders: { "球友": [], "Hytronik": [] },
       edcBalance: DEFAULT_EDC_BALANCE,
       edcBalanceSaving: false,
+      edcHistory: { records: [], nextCursor: null, loading: false, error: "", loaded: false, revision: 0 },
       readOnly: IS_GITHUB_PAGES,
       dataSource: "loading",
       dataTimestamp: null,
@@ -4759,6 +4790,11 @@
       shuttlePriceInput: document.getElementById("shuttlePriceInput"),
       shuttleCountInput: document.getElementById("shuttleCountInput"),
       edcBalanceInput: document.getElementById("edcBalanceInput"),
+      edcHistoryBtn: document.getElementById("edcHistoryBtn"),
+      edcHistoryPanel: document.getElementById("edcHistoryPanel"),
+      edcHistoryList: document.getElementById("edcHistoryList"),
+      edcHistoryStatus: document.getElementById("edcHistoryStatus"),
+      edcHistoryMoreBtn: document.getElementById("edcHistoryMoreBtn"),
       shuttleTypeNotice: document.getElementById("shuttleTypeNotice"),
       feeAdvancedBtn: document.getElementById("feeAdvancedBtn"),
       feeBasicGrid: document.getElementById("feeBasicGrid"),
@@ -5123,6 +5159,13 @@
       els.recordCourtFeeInput.addEventListener("input", onRecordCourtFeeChange);
       els.saveRecordBtn.addEventListener("click", saveRecordDialog);
       els.edcBalanceInput.addEventListener("change", saveEdcBalance);
+      els.edcHistoryBtn.addEventListener("click", () => {
+        const open = els.edcHistoryPanel.hidden;
+        els.edcHistoryPanel.hidden = !open;
+        els.edcHistoryBtn.setAttribute("aria-expanded", String(open));
+        if (open) loadEdcHistory(true);
+      });
+      els.edcHistoryMoreBtn.addEventListener("click", () => loadEdcHistory(!state.edcHistory.loaded));
       els.edcBalanceInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
           event.preventDefault();
@@ -5274,6 +5317,58 @@
       els.edcBalanceInput.title = state.readOnly ? "GitHub备用版只读" : "修改EDC充值余额";
     }
 
+    function renderEdcHistory() {
+      const history = state.edcHistory;
+      els.edcHistoryList.innerHTML = history.records.map((record) => {
+        const title = record.type === "opening" ? "期初余额"
+          : record.type === "charge" ? `${record.sessionDate} 订场扣费 · ${record.courtCount}个场地`
+          : record.amount > 0 ? "充值（修改余额）" : "修改余额";
+        const amount = record.type === "opening" ? "" : `${record.amount > 0 ? "+" : ""}${formatEdcBalance(record.amount)}元`;
+        const date = new Date(`${record.createdAt.replace(" ", "T")}Z`);
+        const timestamp = Number.isNaN(date.getTime()) ? record.createdAt : date.toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", hour12: false });
+        return `<li class="edc-history-entry"><div class="edc-history-line"><span>${escapeHtml(title)}</span><span class="edc-history-amount">${escapeHtml(amount)}</span></div><div class="edc-history-line edc-history-meta"><time>${escapeHtml(timestamp)}</time><span>余额 ${escapeHtml(formatEdcBalance(record.balanceAfter))}元</span></div></li>`;
+      }).join("");
+      els.edcHistoryPanel.setAttribute("aria-busy", String(history.loading));
+      els.edcHistoryStatus.textContent = history.loading ? "正在加载记录…"
+        : history.error ? `加载失败：${history.error}` : !history.records.length ? "暂无余额记录" : "";
+      els.edcHistoryMoreBtn.hidden = !history.error && !history.nextCursor;
+      els.edcHistoryMoreBtn.disabled = history.loading;
+      els.edcHistoryMoreBtn.textContent = history.error ? "重试" : "加载更早记录";
+    }
+
+    async function loadEdcHistory(reset = false) {
+      const history = state.edcHistory;
+      if (history.loading) return;
+      if (reset) {
+        history.records = [];
+        history.nextCursor = null;
+        history.loaded = false;
+      }
+      history.loading = true;
+      history.error = "";
+      const revision = history.revision;
+      renderEdcHistory();
+      try {
+        const query = history.nextCursor ? `?before=${history.nextCursor}` : "";
+        const data = await api(`/api/edc-balance/history${query}`);
+        if (revision !== history.revision) return;
+        history.records.push(...data.records);
+        history.nextCursor = data.nextCursor;
+        history.loaded = true;
+      } catch (error) {
+        if (revision === history.revision) history.error = error.message;
+      } finally {
+        history.loading = false;
+        if (revision !== history.revision && !els.edcHistoryPanel.hidden) loadEdcHistory(true);
+        else renderEdcHistory();
+      }
+    }
+
+    function refreshEdcHistory() {
+      state.edcHistory.revision += 1;
+      if (!els.edcHistoryPanel.hidden) loadEdcHistory(true);
+    }
+
     async function saveEdcBalance() {
       if (state.readOnly || state.edcBalanceSaving) {
         renderEdcBalance();
@@ -5299,6 +5394,7 @@
           body: JSON.stringify({ balance }),
         });
         state.edcBalance = normalizeEdcBalanceValue(data.edcBalance) ?? balance;
+        refreshEdcHistory();
         setSync("已保存");
         toast(`EDC余额已更新为${formatEdcBalance(state.edcBalance)}元`);
       } catch (error) {
@@ -5315,6 +5411,7 @@
       if (balance === null) return "";
       state.edcBalance = balance;
       renderEdcBalance();
+      refreshEdcHistory();
       const charge = normalizeEdcBalanceValue(data?.edcCharge);
       return charge > 0
         ? `EDC余额已扣${formatEdcBalance(charge)}元，剩余${formatEdcBalance(balance)}元`
@@ -10235,6 +10332,8 @@
       const id = Number(playerId);
       if (kind === "dual") {
         state.paymentGroupOverrides[id] = currentGroup === "friends" ? "Hytronik" : "球友";
+      } else if (kind === "friends") {
+        state.paymentGroupOverrides[id] = currentGroup === "friends" ? "特殊" : "球友";
       } else {
         state.paymentGroupOverrides[id] = currentGroup === "heineken" ? "特殊" : "Hytronik";
       }
@@ -10365,6 +10464,7 @@
             : null;
           row.dualGroup = Boolean(player && player.affiliation === "球友+Hytronik");
           row.hytronikOnly = Boolean(player && player.affiliation === "Hytronik");
+          row.friendsOnly = Boolean(player && player.affiliation === "球友");
         });
       });
       renderPaymentGroup(els.paymentFriends, result.groups.friends, {
@@ -11704,7 +11804,7 @@
         main.textContent = `${paymentRowDisplayName(row)}：${formatPaymentRowValue(row)}`;
         line.append(main);
 
-        if (row.playerId && (row.dualGroup || row.hytronikOnly)) {
+        if (row.playerId && (row.dualGroup || row.hytronikOnly || row.friendsOnly)) {
           let currentLabel;
           let nextLabel;
           let kind;
@@ -11712,6 +11812,10 @@
             kind = "dual";
             currentLabel = group === "friends" ? "球友" : "Hytronik";
             nextLabel = group === "friends" ? "Hytronik" : "球友";
+          } else if (row.friendsOnly) {
+            kind = "friends";
+            currentLabel = group === "special" ? "特殊" : "球友";
+            nextLabel = group === "special" ? "球友" : "特殊";
           } else {
             kind = "hytronik";
             currentLabel = group === "special" ? "特殊" : "Hytronik";
