@@ -2938,6 +2938,30 @@
       padding: 0 12px;
     }
 
+    .calendar-toolbar .calendar-layout-toggle {
+      width: 32px;
+      min-width: 32px;
+      min-height: 32px;
+      margin-left: auto;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+    }
+
+    .calendar-layout-toggle svg {
+      width: 15px;
+      height: 15px;
+      stroke-width: 2;
+    }
+
+    .calendar-layout-toggle[aria-pressed="true"],
+    .calendar-summary-toggle[aria-expanded="false"] {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+    }
+
     .calendar-month-label {
       min-width: 130px;
       font-size: 17px;
@@ -3002,7 +3026,52 @@
     }
 
     .calendar-day-panel {
+      position: relative;
       flex: 0 0 auto;
+    }
+
+    .calendar-dialog.calendar-expanded .calendar-scroll {
+      flex: 1 1 auto;
+      height: auto !important;
+    }
+
+    .calendar-dialog.calendar-expanded .calendar-summary-content {
+      max-height: min(16vh, 160px);
+      padding-right: 4px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+    }
+
+    .calendar-summary-toggle {
+      position: absolute;
+      z-index: 2;
+      top: -15px;
+      right: 10px;
+      width: 30px;
+      min-width: 30px;
+      min-height: 28px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      border-color: var(--line-strong);
+      background: var(--panel-soft);
+      color: var(--muted);
+    }
+
+    .calendar-summary-toggle svg {
+      width: 14px;
+      height: 14px;
+      stroke-width: 2;
+    }
+
+    .calendar-day-panel.is-collapsed {
+      min-height: 8px;
+      padding-top: 8px;
+    }
+
+    .calendar-day-panel.is-collapsed .calendar-summary-content {
+      display: none;
     }
 
     .calendar-scroll:focus-visible {
@@ -3140,13 +3209,20 @@
     @media (max-width: 560px) {
       .calendar-toolbar {
         display: grid;
-        grid-template-columns: 34px minmax(0, 1fr) 34px 44px;
+        grid-template-columns: 34px minmax(0, 1fr) 34px 44px 40px;
         gap: 3px;
       }
 
       .calendar-toolbar button {
         min-height: 40px;
         padding-inline: 0;
+      }
+
+      .calendar-toolbar .calendar-layout-toggle {
+        width: 40px;
+        min-width: 40px;
+        min-height: 40px;
+        margin-left: 0;
       }
 
       .calendar-month-label {
@@ -3794,7 +3870,20 @@
       grid-template-columns: 300px minmax(560px, 1fr) 320px;
     }
 
-    .nav-preview .modal-backdrop.nav-page .calendar-dialog .modal-body,
+    .nav-preview .modal-backdrop.nav-page .calendar-dialog {
+      grid-template-rows: minmax(0, 1fr);
+    }
+
+    .nav-preview .modal-backdrop.nav-page .calendar-dialog .modal-body {
+      height: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    .nav-preview .modal-backdrop.nav-page .calendar-dialog.calendar-expanded .modal-body {
+      overflow: hidden;
+    }
+
     .nav-preview .modal-backdrop.nav-page .guide-dialog .modal-body {
       overflow: auto;
     }
@@ -4258,6 +4347,7 @@
           <strong id="calendarMonthLabel" class="calendar-month-label"></strong>
           <button id="calendarNextBtn" type="button" aria-label="下个月" title="下个月">›</button>
           <button id="calendarTodayBtn" type="button">今天</button>
+          <button id="calendarExpandBtn" class="calendar-layout-toggle" type="button" aria-label="将月历展开到最大高度" title="展开月历" aria-pressed="false" aria-controls="calendarScroll"><i data-lucide="maximize-2" aria-hidden="true"></i></button>
         </div>
         <div class="calendar-summary">
           <span id="calendarSelectionText">当前月份：0 个场</span>
@@ -4272,11 +4362,14 @@
         <div id="calendarScroll" class="calendar-scroll" tabindex="0" aria-label="可上下滚动的订场日历">
           <div id="calendarGrid" class="calendar-continuous-grid"></div>
         </div>
-        <section class="calendar-day-panel">
-          <div class="calendar-day-head">
-            <h3 id="calendarDayTitle">选择日期查看详情</h3>
+        <section id="calendarDayPanel" class="calendar-day-panel">
+          <button id="calendarSummaryToggle" class="calendar-summary-toggle" type="button" aria-label="收起下方汇总区" title="收起汇总区" aria-expanded="true" aria-controls="calendarSummaryContent"><i data-lucide="chevron-down" aria-hidden="true"></i></button>
+          <div id="calendarSummaryContent" class="calendar-summary-content">
+            <div class="calendar-day-head">
+              <h3 id="calendarDayTitle">选择日期查看详情</h3>
+            </div>
+            <div id="calendarDayRecords" class="calendar-day-records"></div>
           </div>
-          <div id="calendarDayRecords" class="calendar-day-records"></div>
         </section>
       </div>
     </div>
@@ -4700,6 +4793,9 @@
         rangeStart: null,
         rangeEnd: null,
         scrollRaf: 0,
+        resizeRaf: 0,
+        expanded: false,
+        summaryCollapsed: false,
       },
       pendingSessionEdit: null,
       returnToCalendar: false,
@@ -4742,10 +4838,13 @@
       calendarPrevBtn: document.getElementById("calendarPrevBtn"),
       calendarNextBtn: document.getElementById("calendarNextBtn"),
       calendarTodayBtn: document.getElementById("calendarTodayBtn"),
+      calendarExpandBtn: document.getElementById("calendarExpandBtn"),
       calendarMonthLabel: document.getElementById("calendarMonthLabel"),
       calendarSelectionText: document.getElementById("calendarSelectionText"),
       calendarScroll: document.getElementById("calendarScroll"),
       calendarGrid: document.getElementById("calendarGrid"),
+      calendarDayPanel: document.getElementById("calendarDayPanel"),
+      calendarSummaryToggle: document.getElementById("calendarSummaryToggle"),
       calendarDayTitle: document.getElementById("calendarDayTitle"),
       calendarDayRecords: document.getElementById("calendarDayRecords"),
       calendarDetailModal: document.getElementById("calendarDetailModal"),
@@ -5116,6 +5215,8 @@
       els.calendarPrevBtn.addEventListener("click", () => shiftCalendarMonth(-1));
       els.calendarNextBtn.addEventListener("click", () => shiftCalendarMonth(1));
       els.calendarTodayBtn.addEventListener("click", goToCalendarToday);
+      els.calendarExpandBtn.addEventListener("click", toggleCalendarExpanded);
+      els.calendarSummaryToggle.addEventListener("click", toggleCalendarSummary);
       els.chainBtn.addEventListener("click", () => {
         syncAutoCourtFeeForActivityDate();
         updateShakePeopleButtonVisibility();
@@ -5266,6 +5367,7 @@
       document.addEventListener("paste", handleMemberExitPaste);
       els.calendarGrid.addEventListener("mousemove", handleCalendarDragMove);
       els.calendarScroll.addEventListener("scroll", handleCalendarScroll, { passive: true });
+      window.addEventListener("resize", handleCalendarResize, { passive: true });
       document.addEventListener("keydown", handleGlobalKeydown);
     }
 
@@ -7892,7 +7994,11 @@
         rangeStart: null,
         rangeEnd: null,
         scrollRaf: 0,
+        resizeRaf: 0,
+        expanded: false,
+        summaryCollapsed: false,
       };
+      updateCalendarLayoutControls();
       openModal("calendarModal");
       renderCalendar({ resetRange: true, preserveScroll: false });
       resizeCalendarToActiveMonth();
@@ -8152,8 +8258,11 @@
     }
 
     function resizeCalendarToActiveMonth() {
-      const activeKey = calendarMonthKey(state.calendar.year, state.calendar.month);
-      const buttons = [...els.calendarGrid.querySelectorAll(`[data-month="${activeKey}"]`)];
+      if (state.calendar.expanded) {
+        els.calendarScroll.style.removeProperty("height");
+        return;
+      }
+      const buttons = [...els.calendarGrid.querySelectorAll(".calendar-day[data-date]")].slice(0, 35);
       if (!buttons.length) return;
       const first = buttons[0];
       const last = buttons.at(-1);
@@ -8161,6 +8270,53 @@
       const contentBottom = last.getBoundingClientRect().bottom;
       const padding = 14;
       els.calendarScroll.style.height = `${Math.max(1, Math.ceil(contentBottom - contentTop + padding))}px`;
+    }
+
+    function replaceCalendarControlIcon(button, iconName) {
+      const icon = document.createElement("i");
+      icon.setAttribute("data-lucide", iconName);
+      icon.setAttribute("aria-hidden", "true");
+      button.replaceChildren(icon);
+      window.lucide?.createIcons({ attrs: { "aria-hidden": "true" } });
+    }
+
+    function updateCalendarLayoutControls() {
+      const expanded = Boolean(state.calendar.expanded);
+      const summaryCollapsed = Boolean(state.calendar.summaryCollapsed);
+      els.calendarModal.querySelector(".calendar-dialog")?.classList.toggle("calendar-expanded", expanded);
+      els.calendarDayPanel.classList.toggle("is-collapsed", summaryCollapsed);
+
+      els.calendarExpandBtn.setAttribute("aria-pressed", String(expanded));
+      els.calendarExpandBtn.title = expanded ? "还原为五行" : "展开月历";
+      els.calendarExpandBtn.setAttribute("aria-label", expanded ? "将月历还原为五行高度" : "将月历展开到最大高度");
+      replaceCalendarControlIcon(els.calendarExpandBtn, expanded ? "minimize-2" : "maximize-2");
+
+      els.calendarSummaryToggle.setAttribute("aria-expanded", String(!summaryCollapsed));
+      els.calendarSummaryToggle.title = summaryCollapsed ? "展开汇总区" : "收起汇总区";
+      els.calendarSummaryToggle.setAttribute("aria-label", summaryCollapsed ? "展开下方汇总区" : "收起下方汇总区");
+      replaceCalendarControlIcon(els.calendarSummaryToggle, summaryCollapsed ? "chevron-up" : "chevron-down");
+    }
+
+    function toggleCalendarExpanded() {
+      const scrollTop = els.calendarScroll.scrollTop;
+      state.calendar.expanded = !state.calendar.expanded;
+      updateCalendarLayoutControls();
+      resizeCalendarToActiveMonth();
+      els.calendarScroll.scrollTop = scrollTop;
+    }
+
+    function toggleCalendarSummary() {
+      state.calendar.summaryCollapsed = !state.calendar.summaryCollapsed;
+      updateCalendarLayoutControls();
+    }
+
+    function handleCalendarResize() {
+      if (!els.calendarModal.classList.contains("open") || !state.calendar.year || state.calendar.resizeRaf) return;
+      state.calendar.resizeRaf = requestAnimationFrame(() => {
+        state.calendar.resizeRaf = 0;
+        resizeCalendarToActiveMonth();
+        scrollCalendarToMonth(state.calendar.year, state.calendar.month, "auto");
+      });
     }
 
     function renderCalendar({ resetRange = false, preserveScroll = true } = {}) {
