@@ -21,7 +21,13 @@ for (const [kind, from, to, expected] of [
   toggle(1, from, kind);
   assert.equal(state.paymentGroupOverrides[1], expected, `${kind}: ${from} -> ${to}`);
 }
-assert.equal(rendered, 6);
+toggle(1, "friends", "dual", "friends");
+assert.equal(state.paymentGroupOverrides[1], "特殊", "dual members in a shared friends group move to special");
+toggle(1, "heineken", "dual", "heineken");
+assert.equal(state.paymentGroupOverrides[1], "特殊", "dual members in a shared Hytronik group move to special");
+toggle(1, "special", "dual", "heineken");
+assert.equal(state.paymentGroupOverrides[1], "Hytronik", "dual members return to the shared Hytronik group");
+assert.equal(rendered, 9);
 const node = () => ({ children: [], attrs: {}, classList: { toggle() {} },
   append(...items) { this.children.push(...items); },
   setAttribute(name, value) { this.attrs[name] = value; },
@@ -34,12 +40,13 @@ const render = new Function("document", "getPaymentRowHighlights", "paymentRowDi
 for (const [flags, group, target] of [
   [{ friendsOnly: true }, "friends", "特殊"], [{ friendsOnly: true }, "special", "球友"],
   [{ dualGroup: true }, "friends", "Hytronik"], [{ dualGroup: true }, "heineken", "球友"],
+  [{ dualGroup: true }, "friends", "特殊", "friends"], [{ dualGroup: true }, "heineken", "特殊", "heineken"],
   [{ hytronikOnly: true }, "heineken", "特殊"], [{ hytronikOnly: true }, "special", "Hytronik"],
   [{}, "special", null], [{ playerId: null }, "friends", null],
 ]) {
   const row = { playerId: 1, name: "测试成员", amount: 80, ...flags };
   const container = { replaceChildren(...items) { this.children = items; } };
-  render(container, [row], { showTotal: false, femaleCapApplied: false, group });
+  render(container, [row], { showTotal: false, femaleCapApplied: false, group, sharedPaymentGroup: target === "特殊" ? group : null });
   const buttons = container.children[0].children.filter((item) => item.className === "payment-group-toggle");
   assert.equal(buttons.length, target ? 1 : 0);
   if (target) {

@@ -10484,10 +10484,16 @@
       if (els.paymentModal.classList.contains("open")) openPaymentModal();
     }
 
-    function togglePaymentGroup(playerId, currentGroup, kind) {
+    function togglePaymentGroup(playerId, currentGroup, kind, sharedPaymentGroup = null) {
       const id = Number(playerId);
       if (kind === "dual") {
-        state.paymentGroupOverrides[id] = currentGroup === "friends" ? "Hytronik" : "球友";
+        if (currentGroup === "friends") {
+          state.paymentGroupOverrides[id] = sharedPaymentGroup === "friends" ? "特殊" : "Hytronik";
+        } else if (currentGroup === "heineken") {
+          state.paymentGroupOverrides[id] = sharedPaymentGroup === "heineken" ? "特殊" : "球友";
+        } else {
+          state.paymentGroupOverrides[id] = sharedPaymentGroup === "heineken" ? "Hytronik" : "球友";
+        }
       } else if (kind === "friends") {
         state.paymentGroupOverrides[id] = currentGroup === "friends" ? "特殊" : "球友";
       } else {
@@ -10627,16 +10633,19 @@
         showTotal: true,
         femaleCapApplied: result.femaleCapApplied,
         group: "friends",
+        sharedPaymentGroup: result.sharedPaymentGroup,
       });
       renderPaymentGroup(els.paymentHeineken, result.groups.heineken, {
         showTotal: true,
         femaleCapApplied: result.femaleCapApplied,
         group: "heineken",
+        sharedPaymentGroup: result.sharedPaymentGroup,
       });
       renderPaymentGroup(els.paymentSpecial, result.groups.special, {
         showTotal: false,
         femaleCapApplied: result.femaleCapApplied,
         group: "special",
+        sharedPaymentGroup: result.sharedPaymentGroup,
       });
       els.paymentFriendsCard.hidden = result.groups.friends.length === 0;
       els.paymentHeinekenCard.hidden = result.groups.heineken.length === 0;
@@ -11827,6 +11836,7 @@
         femalePerPerson,
         malePerPerson,
         femaleCapApplied,
+        sharedPaymentGroup,
         groups: {
           friends: mapToPaymentRows(groups.friends, PAYMENT_GROUPS.friends),
           heineken: mapToPaymentRows(groups.heineken, PAYMENT_GROUPS.heineken),
@@ -11947,7 +11957,7 @@
       return `${formatMoney(row.amount)}元`;
     }
 
-    function renderPaymentGroup(container, rows, { showTotal, femaleCapApplied, group = "" }) {
+    function renderPaymentGroup(container, rows, { showTotal, femaleCapApplied, group = "", sharedPaymentGroup = null }) {
       const elements = rows.map((row) => {
         const highlights = getPaymentRowHighlights(row, femaleCapApplied);
         const line = document.createElement("div");
@@ -11966,8 +11976,14 @@
           let kind;
           if (row.dualGroup) {
             kind = "dual";
-            currentLabel = group === "friends" ? "球友" : "Hytronik";
-            nextLabel = group === "friends" ? "Hytronik" : "球友";
+            currentLabel = group === "friends" ? "球友" : group === "heineken" ? "Hytronik" : "特殊";
+            if (group === "friends") {
+              nextLabel = sharedPaymentGroup === "friends" ? "特殊" : "Hytronik";
+            } else if (group === "heineken") {
+              nextLabel = sharedPaymentGroup === "heineken" ? "特殊" : "球友";
+            } else {
+              nextLabel = sharedPaymentGroup === "heineken" ? "Hytronik" : "球友";
+            }
           } else if (row.friendsOnly) {
             kind = "friends";
             currentLabel = group === "special" ? "特殊" : "球友";
@@ -11984,7 +12000,7 @@
           toggle.title = `当前${currentLabel}，点击切换到${nextLabel}`;
           toggle.setAttribute("aria-label", `把${paymentRowDisplayName(row)}切换到${nextLabel}`);
           toggle.setAttribute("data-html2canvas-ignore", "true");
-          toggle.addEventListener("click", () => togglePaymentGroup(row.playerId, group, kind));
+          toggle.addEventListener("click", () => togglePaymentGroup(row.playerId, group, kind, sharedPaymentGroup));
           line.append(toggle);
         }
 
