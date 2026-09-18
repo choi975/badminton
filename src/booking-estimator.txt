@@ -1,32 +1,32 @@
 {
   "version": 5,
-  "generatedAt": "2026-09-18T02:04:33.940Z",
-  "trainingRevision": 444,
+  "generatedAt": "2026-09-17T02:12:24.779Z",
+  "trainingRevision": 416,
   "training": {
     "dateRange": {
-      "from": "2026-07-01",
-      "to": "2026-09-18"
+      "from": "2026-07-13",
+      "to": "2026-09-16"
     },
     "court": {
-      "sampleCount": 33,
+      "sampleCount": 31,
       "dateRange": {
-        "from": "2026-07-01",
-        "to": "2026-09-18"
+        "from": "2026-07-13",
+        "to": "2026-09-16"
       }
     },
     "shuttle": {
-      "sampleCount": 28,
-      "eligibleSessionCount": 31,
+      "sampleCount": 27,
+      "eligibleSessionCount": 30,
       "unconfirmedExcludedCount": 0,
       "mixedExcludedCount": 2,
       "unknownTypeExcludedCount": 0,
       "byType": {
         "rsl3": {
-          "sampleCount": 27,
+          "sampleCount": 26,
           "mixedExcludedCount": 2,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-09-18"
+            "to": "2026-09-16"
           }
         },
         "as05": {
@@ -50,7 +50,7 @@
         11.3,
         11.5
       ],
-      "sampleCount": 27,
+      "sampleCount": 26,
       "trainingMode": "global-only"
     },
     {
@@ -80,12 +80,12 @@
     "validation": {
       "method": "in-sample",
       "minimumTrainingSessions": 5,
-      "folds": 33,
-      "mae": 0.03,
-      "rmse": 0.174,
-      "exactRate": 0.97,
-      "bias": -0.03,
-      "underPredictionRate": 0.03,
+      "folds": 31,
+      "mae": 0.032,
+      "rmse": 0.18,
+      "exactRate": 0.968,
+      "bias": -0.032,
+      "underPredictionRate": 0.032,
       "overPredictionRate": 0
     }
   },
@@ -107,7 +107,7 @@
         "typeId": "rsl3",
         "trainingMode": "global-only",
         "formula": "ceil(rawExpected + riskScale * sqrt(max(rawExpected, 1)))",
-        "baseRate": 0.800303,
+        "baseRate": 0.804314,
         "riskQuantile": 0.7,
         "riskScale": 0,
         "effects": {
@@ -116,13 +116,13 @@
           "member": {}
         },
         "training": {
-          "sampleCount": 27,
-          "availableSampleCount": 27,
+          "sampleCount": 26,
+          "availableSampleCount": 26,
           "olderExcludedCount": 0,
           "mixedExcludedCount": 2,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-09-18"
+            "to": "2026-09-16"
           }
         },
         "regularization": {
@@ -139,18 +139,18 @@
             0.1
           ],
           "source": "time-holdout-conservative-grid-search",
-          "baselineMae": 2.52,
+          "baselineMae": 2.555,
           "requiredImprovement": 0.25
         },
         "validation": {
           "method": "time-holdout",
           "folds": 5,
-          "mae": 2.52,
-          "rmse": 2.906,
+          "mae": 2.555,
+          "rmse": 2.911,
           "exactRate": 0,
-          "bias": 2.451,
-          "underPredictionRate": 0.2,
-          "overPredictionRate": 0.8
+          "bias": 1.088,
+          "underPredictionRate": 0.4,
+          "overPredictionRate": 0.6
         },
         "riskCalibration": {
           "method": "time-holdout",
@@ -161,19 +161,19 @@
           "mae": 2.8,
           "rmse": 3.286,
           "exactRate": 0.2,
-          "bias": 2.8,
-          "underPredictionRate": 0,
-          "overPredictionRate": 0.8
+          "bias": 1.6,
+          "underPredictionRate": 0.2,
+          "overPredictionRate": 0.6
         },
         "fit": {
           "method": "global-rate",
-          "folds": 27,
-          "mae": 2.185,
-          "rmse": 2.701,
-          "exactRate": 0.148,
-          "bias": 0.926,
-          "underPredictionRate": 0.296,
-          "overPredictionRate": 0.556
+          "folds": 26,
+          "mae": 2.154,
+          "rmse": 2.689,
+          "exactRate": 0.154,
+          "bias": 0.846,
+          "underPredictionRate": 0.308,
+          "overPredictionRate": 0.538
         }
       },
       "as05": {
