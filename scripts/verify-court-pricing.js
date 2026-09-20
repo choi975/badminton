@@ -3,28 +3,24 @@ import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
 const STANDARD_COURT_UNIT_PRICE = 70;
-const FRIDAY_SATURDAY_COURT_UNIT_PRICE = 80;
 
 function parseLocalDate(value) {
   const parts = String(value || "").split("-").map(Number);
   return new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
 }
 
-function getCourtUnitPriceForDate(dateString) {
-  const weekday = parseLocalDate(dateString).getDay();
-  return weekday === 5 || weekday === 6
-    ? FRIDAY_SATURDAY_COURT_UNIT_PRICE
-    : STANDARD_COURT_UNIT_PRICE;
+function getCourtUnitPriceForDate() {
+  return STANDARD_COURT_UNIT_PRICE;
 }
 
 assert.equal(getCourtUnitPriceForDate("2026-08-17"), 70, "周一应为每场 70 元");
 assert.equal(getCourtUnitPriceForDate("2026-08-18"), 70, "周二应为每场 70 元");
 assert.equal(getCourtUnitPriceForDate("2026-08-19"), 70, "周三应为每场 70 元");
 assert.equal(getCourtUnitPriceForDate("2026-08-20"), 70, "周四应为每场 70 元");
-assert.equal(getCourtUnitPriceForDate("2026-08-21"), 80, "周五应为每场 80 元");
-assert.equal(getCourtUnitPriceForDate("2026-08-22"), 80, "周六应为每场 80 元");
+assert.equal(getCourtUnitPriceForDate("2026-08-21"), 70, "周五应为每场 70 元");
+assert.equal(getCourtUnitPriceForDate("2026-08-22"), 70, "周六应为每场 70 元");
 assert.equal(getCourtUnitPriceForDate("2026-08-23"), 70, "周日应为每场 70 元");
-assert.equal(4 * getCourtUnitPriceForDate("2026-08-21"), 320, "周五 4 个场地应为 320 元");
+assert.equal(4 * getCourtUnitPriceForDate("2026-08-21"), 280, "周五 4 个场地应为 280 元");
 
 const balanceMigration = readFileSync(new URL("../migrations/0022_edc_balance.sql", import.meta.url), "utf8");
 const database = new DatabaseSync(":memory:");
@@ -84,6 +80,10 @@ assert.equal(row.count, 1.5);
 assert.equal(row.price * row.count, 105);
 assert.match(worker, /VALID_SESSION_VENUES = new Set\(\["文体", "EDC", "广羽"\]\)/);
 assert.match(html, /const venues = \["EDC", "文体", "广羽"\]/);
+assert.match(html, /els\.recordModal\.dataset\.venue = editing \? session\.venue : "广羽"/);
+assert.match(html, /venue: editing \? \(els\.recordModal\.dataset\.venue \|\| "文体"\) : "广羽"/);
+assert.doesNotMatch(html, /FRIDAY_SATURDAY_COURT_UNIT_PRICE|paymentWeekendNotice|周五周六场地80元/);
+assert.match(worker, /normalizeSessionInput\(await readJson\(request\), "广羽", shuttleTypes\)/);
 assert.doesNotMatch(html, /id="edcBalanceInput"|id="edcHistoryBtn"|id="edcHistoryPanel"/);
 assert.match(worker, /pathname === "\/api\/edc-balance" && method === "PUT"/);
 assert.match(worker, /edcCharge: input\.venue === "EDC" \? input\.courtCount \* 80 : 0/);

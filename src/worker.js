@@ -898,7 +898,7 @@ async function handleApi(request, env, url) {
 
   if (pathname === "/api/sessions" && method === "POST") {
     const shuttleTypes = await listShuttleTypes(env.DB);
-    const input = normalizeSessionInput(await readJson(request), "EDC", shuttleTypes);
+    const input = normalizeSessionInput(await readJson(request), "广羽", shuttleTypes);
     if (!input) return json({ error: "订场记录数据无效" }, 400);
     const session = await createSession(env.DB, input);
     const todoCounter = await syncTodoBadmintonCounter(env, session);
@@ -2394,7 +2394,7 @@ function normalizeSessionVenue(value) {
   return VALID_SESSION_VENUES.has(venue) ? venue : null;
 }
 
-function normalizeSessionInput(body, fallbackVenue = "EDC", shuttleTypes = BOOKING_ESTIMATOR_DATA.shuttleTypes || []) {
+function normalizeSessionInput(body, fallbackVenue = "广羽", shuttleTypes = BOOKING_ESTIMATOR_DATA.shuttleTypes || []) {
   const date = String(body?.date || "").trim();
   if (!SESSION_DATE_PATTERN.test(date)) return null;
   const [year, month, day] = date.split("-").map(Number);

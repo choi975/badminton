@@ -2023,14 +2023,6 @@
       text-align: right;
     }
 
-    .payment-weekend-notice {
-      grid-column: 1 / -1;
-      padding: 8px 12px 0;
-      color: var(--muted);
-      font-size: 12px;
-      text-align: right;
-    }
-
     .payment-settings-dialog { width: min(1180px, 100%); }
 
     .payment-settings-dialog .modal-body {
@@ -4200,7 +4192,6 @@
               <strong id="paymentLedgerAmount">0.0</strong>
             </div>
           </section>
-          <div id="paymentWeekendNotice" class="payment-weekend-notice" hidden>周五周六场地80元</div>
           <div id="paymentReportDate" class="payment-report-date"></div>
         </div>
       </div>
@@ -4564,7 +4555,6 @@
     ];
     const FEMALE_PAYMENT_CAP = 25;
     const STANDARD_COURT_UNIT_PRICE = 70;
-    const FRIDAY_SATURDAY_COURT_UNIT_PRICE = 80;
     const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
     const DEFAULT_ESTIMATOR = {
@@ -4831,7 +4821,6 @@
       paymentSpecial: document.getElementById("paymentSpecial"),
       paymentCostSummary: document.getElementById("paymentCostSummary"),
       paymentLedgerAmount: document.getElementById("paymentLedgerAmount"),
-      paymentWeekendNotice: document.getElementById("paymentWeekendNotice"),
       paymentReportDate: document.getElementById("paymentReportDate"),
       trainingAnomalyModal: document.getElementById("trainingAnomalyModal"),
       trainingAnomalyTitle: document.getElementById("trainingAnomalyTitle"),
@@ -6806,11 +6795,8 @@
       return new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
     }
 
-    function getCourtUnitPriceForDate(dateString) {
-      const weekday = parseLocalDate(dateString || getLocalDateString()).getDay();
-      return weekday === 5 || weekday === 6
-        ? FRIDAY_SATURDAY_COURT_UNIT_PRICE
-        : STANDARD_COURT_UNIT_PRICE;
+    function getCourtUnitPriceForDate() {
+      return STANDARD_COURT_UNIT_PRICE;
     }
 
     function getChainActivityDate() {
@@ -7305,7 +7291,7 @@
       try {
         const body = {
           date: getLocalDateString(),
-          venue: "EDC",
+          venue: "广羽",
           courtCount,
           courtFee: record.courtFee,
           shuttlePrice: record.shuttlePrice,
@@ -7381,7 +7367,7 @@
       renderRecordMembers(state.recordRawPlayers);
       els.recordModal.dataset.editing = editing ? "1" : "0";
       els.recordModal.dataset.sessionId = editing ? String(session.id) : "";
-      els.recordModal.dataset.venue = editing ? session.venue : "EDC";
+      els.recordModal.dataset.venue = editing ? session.venue : "广羽";
       els.recordModal.dataset.trainCourt = editing && session.trainCourt === false ? "0" : "1";
       els.recordModal.dataset.trainShuttle = editing && session.trainShuttle === false ? "0" : "1";
       els.recordModal.dataset.actualShuttleConfirmed = editing && session.actualShuttleConfirmed === false ? "0" : "1";
@@ -7669,7 +7655,7 @@
       try {
       const body = {
           date,
-          venue: editing ? (els.recordModal.dataset.venue || "文体") : "EDC",
+          venue: editing ? (els.recordModal.dataset.venue || "文体") : "广羽",
           courtCount,
           courtFee,
           shuttlePrice,
@@ -10458,10 +10444,6 @@
       );
       els.paymentLedgerAmount.textContent = formatMoney(calculateLedgerAmount(result.groups, courtFee));
       const reportDate = state.pendingSessionEdit ? state.pendingSessionEdit.date : getLocalDateString();
-      const reportWeekday = parseLocalDate(reportDate).getDay();
-      const isWeekend = reportWeekday === 5 || reportWeekday === 6;
-      const feeIsEightyMultiple = Number.isFinite(courtFee) && courtFee > 0 && courtFee % 80 === 0;
-      els.paymentWeekendNotice.hidden = !(isWeekend && feeIsEightyMultiple);
       els.paymentReportDate.textContent = formatPaymentDate(reportDate);
       state.currentPaymentRecord = {
         courtFee,
