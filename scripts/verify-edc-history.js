@@ -70,10 +70,7 @@ assert.equal(new Set([...first.body.records, ...second.body.records].map((row) =
 for (const value of ["", "0", "-1", "1.5", "abc", "9007199254740992"]) {
   assert.equal((await get({ DB: adapter }, new URL(`https://example.com/api/edc-balance/history?before=${value}`))).status, 400);
 }
-assert.match(html, /id="edcHistoryBtn"[^>]*aria-expanded="false"[^>]*aria-controls="edcHistoryPanel"/);
-assert.match(html, /data-lucide="history"/);
-assert.match(html, /class="edc-balance-label">\s*<label for="edcBalanceInput">EDC余额<\/label>\s*<button id="edcHistoryBtn"/);
-assert.doesNotMatch(html.match(/<div class="edc-balance-control">([\s\S]*?)<\/div>/)?.[1] || "", /edcHistoryBtn/);
+assert.doesNotMatch(html, /id="edcBalanceInput"|id="edcHistoryBtn"|id="edcHistoryPanel"/);
 assert.match(html, /timeZone: "Asia\/Shanghai"/);
 db.close();
 console.log("EDC ledger upgrade, charging, adjustments and pagination verification passed.");
