@@ -102,15 +102,53 @@ assert.deepEqual(filteredRecommendations.map((item) => item.player.id), [1]);
 
 const appendMemberStart = html.indexOf("function appendMemberToChainInput(");
 const appendMemberEnd = html.indexOf("\n    function addShakePersonToChain(", appendMemberStart);
+const sharedParserStart = html.indexOf("function parseSharedChainLevelPrefix(");
+const sharedParserEnd = html.indexOf("\n    function getChainInputLines(", sharedParserStart);
 assert.ok(appendMemberStart >= 0 && appendMemberEnd > appendMemberStart, "Expected chain append helper");
+assert.ok(sharedParserStart >= 0 && sharedParserEnd > sharedParserStart, "Expected shared-chain parser helpers");
 const appendMemberContext = vm.createContext({});
 vm.runInContext(`
 const CHAIN_NUMBER_PREFIX = /^\\s*\\d+\\s*[\\.、\\):：-]\\s*/;
+const SHARED_CHAIN_METADATA_PREFIXES = ["组织者", "活动时间", "活动地点", "收费类型", "AA预收费用", "已报名"];
+${html.slice(sharedParserStart, sharedParserEnd)}
 ${html.slice(appendMemberStart, appendMemberEnd)}
+globalThis.parseMiniProgramChain = parseMiniProgramChain;
 globalThis.appendMemberToChainInput = appendMemberToChainInput;
 `, appendMemberContext);
 assert.equal(appendMemberContext.appendMemberToChainInput("", "甲"), "1. 甲");
 assert.equal(appendMemberContext.appendMemberToChainInput("1. 甲\n3. 乙\n", "丙"), "1. 甲\n3. 乙\n4. 丙");
 assert.equal(appendMemberContext.appendMemberToChainInput("甲\n乙", "丙"), "甲\n乙\n丙");
+
+const miniProgramInput = `周一   19点  广羽（马安店）
+组织者：choi&#x20;
+活动时间：09-21 (周一) 19:00 ~ 22:00
+活动地点：广羽体育俱乐部（马安店）
+收费类型:AA收款(多退少补)
+AA预收费用：￥20.00起
+已报名：2/21(男2女0)
+
+【场地：1，2 号场】
+
+1、【2.5级】choi
+2、【3级】阿达
+
+[庆祝]报名链接：weixin://dl/business/?t=720doSHSe1i
+活动开始前可退款，超时费用照A！`;
+const parsedMiniProgram = appendMemberContext.parseMiniProgramChain(miniProgramInput);
+assert.equal(parsedMiniProgram.outputText, `周一   19点  广羽（马安店）
+【场地：1，2 号场】
+
+1、【2.5级】choi
+2、【3级】阿达
+
+[庆祝]报名链接：weixin://dl/business/?t=720doSHSe1i`);
+assert.match(
+  appendMemberContext.appendMemberToChainInput(miniProgramInput, "新球友", "3.5级"),
+  /2、【3级】阿达\n3、【3\.5级】新球友\n\n\[庆祝\]报名链接/
+);
+assert.match(html, /id="chainSpecialOutput"[^>]*aria-label="删减后的活动接龙文本"/);
+assert.match(html, /function handleChainInputPaste\(event\)/);
+assert.match(html, /copySpecialChainOutput\(\{ automatic: true \}\)/);
+assert.match(html, /setChainOutputActionIcon\("copy"\)/);
 
 console.log("Group probability controls, accessibility, tracking triggers, and inline syntax checks passed.");

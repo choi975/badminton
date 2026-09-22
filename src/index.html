@@ -1467,6 +1467,8 @@
       padding: 9px 10px;
     }
 
+    .chain-textarea[hidden] { display: none; }
+
     .chain-output-list {
       width: 100%;
       min-width: 100%;
@@ -4089,6 +4091,7 @@
               </div>
             </div>
             <div id="chainOutput" class="chain-output-list" role="list" aria-label="整理后的接龙人员"></div>
+            <textarea id="chainSpecialOutput" class="chain-textarea" aria-label="删减后的活动接龙文本" spellcheck="false" hidden></textarea>
           </section>
           <aside class="side-stack">
             <section class="summary-panel">
@@ -4545,6 +4548,7 @@
     const GENDERS = ["男", "女"];
     const AFFILIATIONS = ["球友", "Hytronik", "球友+Hytronik", "特殊"];
     const CHAIN_NUMBER_PREFIX = /^\s*\d+\s*[\.、\):：-]\s*/;
+    const SHARED_CHAIN_METADATA_PREFIXES = ["组织者", "活动时间", "活动地点", "收费类型", "AA预收费用", "已报名"];
     const PLUS_LEVEL_LABELS = [["比赛级高手", "6级"], ["新手", "2级"], ["中手", "3级"], ["高手", "4级"]];
     const PLUS_GROUP_LEVEL_OPTIONS = [
       { label: "不详", level: "不详", text: "等级不详" },
@@ -4648,6 +4652,8 @@
       editing: null,
       chainEntries: [],
       chainLevelMode: IS_GITHUB_PAGES ? "group" : "exact",
+      specialChain: null,
+      specialChainSource: "",
       plusOverrides: {},
       autoFeeDefaults: { fee: 70, shuttle: 4, courts: 1 },
       feeMode: "basic",
@@ -4768,6 +4774,7 @@
       chainModal: document.getElementById("chainModal"),
       chainInput: document.getElementById("chainInput"),
       chainOutput: document.getElementById("chainOutput"),
+      chainSpecialOutput: document.getElementById("chainSpecialOutput"),
       chainStats: document.getElementById("chainStats"),
       estimatorAdvancedBtn: document.getElementById("estimatorAdvancedBtn"),
       estimatorAdvancedPanel: document.getElementById("estimatorAdvancedPanel"),
@@ -5126,6 +5133,7 @@
         processChain();
         setTimeout(() => els.chainInput.focus(), 0);
       });
+      els.chainInput.addEventListener("paste", handleChainInputPaste);
       els.chainInput.addEventListener("input", () => {
         state.chainInputUserOwned = true;
         processChain();
@@ -5231,7 +5239,7 @@
           saveShortRule();
         }
       });
-      if (!IS_GITHUB_PAGES) els.levelDisplayModeBtn.addEventListener("click", toggleChainLevelMode);
+      els.levelDisplayModeBtn.addEventListener("click", handleChainOutputAction);
 
       document.addEventListener("click", (event) => {
         if (!event.target.closest("#groupProbabilityWrap")) els.groupProbabilityWrap.classList.remove("tooltip-open");
@@ -8302,7 +8310,7 @@
       const courtParts = [...courtGroups.values()]
         .sort((a, b) => (a.fallback ? Number.POSITIVE_INFINITY : a.price) - (b.fallback ? Number.POSITIVE_INFINITY : b.price))
         .map((part) => part.fallback
-          ? `共${formatMoney(part.total)}元（${part.count}个场）`
+          ? `${formatCompactNumber(part.total / part.count)}元×${part.count}个`
           : `${formatCompactNumber(part.price)}元×${part.count}个`);
       const shuttleParts = [...shuttleGroups.entries()]
         .sort((a, b) => a[0] - b[0])
@@ -9525,9 +9533,11 @@
     }
 
     function processChain() {
+      const rawInput = els.chainInput.value;
+      const specialChain = parseMiniProgramChain(rawInput);
       const aliasIndex = buildAliasIndex();
       const identityCounts = new Map();
-      const entries = getChainInputLines(els.chainInput.value)
+      const entries = getChainInputLines(rawInput)
         .map((line, index) => {
           const identity = normalizeAlias(cleanChainLine(line));
           const occurrence = identityCounts.get(identity) || 0;
@@ -9545,7 +9555,7 @@
       const sorted = [...entries].sort((a, b) => (b.sortRank - a.sortRank) || (a.index - b.index));
       state.chainEntries = entries;
       const estimate = estimateBooking(entries);
-      renderChainOutput(sorted);
+      renderChainOutputMode(sorted, specialChain, rawInput);
       updateFeeDefaults(entries, estimate);
       renderChainStats(sorted, estimate);
       updatePaymentButton();
@@ -9634,6 +9644,14 @@
       dialog.style.height = `${Math.round(Math.min(maxHeight, Math.max(minHeight, estimatedHeight)))}px`;
     }
 
+    function handleChainOutputAction() {
+      if (state.specialChain) {
+        copySpecialChainOutput();
+        return;
+      }
+      if (!IS_GITHUB_PAGES) toggleChainLevelMode();
+    }
+
     function toggleChainLevelMode() {
       state.chainLevelMode = state.chainLevelMode === "exact" ? "group" : "exact";
       renderChainLevelModeButton();
@@ -9641,6 +9659,17 @@
     }
 
     function renderChainLevelModeButton() {
+      if (state.specialChain) {
+        els.levelDisplayModeBtn.hidden = false;
+        els.levelDisplayModeBtn.classList.remove("active");
+        els.levelDisplayModeBtn.removeAttribute("aria-pressed");
+        els.levelDisplayModeBtn.setAttribute("aria-label", "复制删减后的活动接龙");
+        els.levelDisplayModeBtn.title = "复制删减后的活动接龙";
+        setChainOutputActionIcon("copy");
+        return;
+      }
+
+      els.levelDisplayModeBtn.hidden = IS_GITHUB_PAGES;
       const grouped = state.chainLevelMode === "group";
       els.levelDisplayModeBtn.classList.toggle("active", grouped);
       els.levelDisplayModeBtn.setAttribute("aria-pressed", String(grouped));
@@ -9651,6 +9680,14 @@
       els.levelDisplayModeBtn.title = grouped
         ? "当前为分组显示，点击切换为精确等级"
         : "当前为精确等级，点击切换为分组显示";
+      setChainOutputActionIcon("arrow-left-right");
+    }
+
+    function setChainOutputActionIcon(iconName) {
+      if (els.levelDisplayModeBtn.dataset.icon === iconName) return;
+      els.levelDisplayModeBtn.dataset.icon = iconName;
+      els.levelDisplayModeBtn.innerHTML = `<i data-lucide="${iconName}"></i>`;
+      window.lucide?.createIcons({ attrs: { "aria-hidden": "true" } });
     }
 
     function getChainLevelDisplay(entry) {
@@ -9672,9 +9709,11 @@
 
     function parseChainLine(line, index, aliasIndex, overrideKey = "", override = null) {
       const rawClean = cleanChainLine(line);
-      const playerMatch = findPlayerMatchForLine(rawClean, aliasIndex);
+      const sharedLevel = parseSharedChainLevelPrefix(rawClean);
+      const playerText = sharedLevel?.name || rawClean;
+      const playerMatch = findPlayerMatchForLine(playerText, aliasIndex);
       const matchedPlayer = playerMatch.player;
-      const plusMetadata = parsePlusEntryMetadata(rawClean, matchedPlayer);
+      const plusMetadata = parsePlusEntryMetadata(playerText, matchedPlayer);
       const clean = plusMetadata.displayName;
       const preservedSnapshot = override?.preserveSnapshot === true;
       const preservedPlayerId = preservedSnapshot ? normalizePlayerId(override.playerId) : null;
@@ -9685,10 +9724,10 @@
       const player = plusMetadata.plusEntry ? null : (getPlayerById(preservedPlayerId) || matchedPlayer);
       const ownerPlayer = getPlayerById(preservedOwnerPlayerId) || matchedPlayer;
       const knownLevel = player?.level || "不详";
-      const detectedLevelText = plusMetadata.plusEntry ? plusMetadata.levelText : knownLevel;
+      const detectedLevelText = plusMetadata.plusEntry ? plusMetadata.levelText : (sharedLevel?.level || knownLevel);
       const detectedGender = plusMetadata.plusEntry
         ? (plusMetadata.isFemale ? "女" : "不详")
-        : (player?.gender === "女" ? "女" : player?.gender === "男" ? "男" : "不详");
+        : (playerText.includes("🌸") ? "女" : player?.gender === "女" ? "女" : player?.gender === "男" ? "男" : "不详");
       const levelText = (preservedSnapshot || plusMetadata.plusEntry) && override?.levelText
         ? override.levelText
         : detectedLevelText;
@@ -9750,6 +9789,18 @@
       const levelDisplay = getChainLevelDisplay(entry);
       const levelSuffix = entry.plusEntry && entry.levelText === "不详" ? "" : `（${levelDisplay}）`;
       return `${index + 1}. ${getChainEntryDisplayName(entry)}${levelSuffix}`;
+    }
+
+    function renderChainOutputMode(entries, specialChain, rawInput) {
+      state.specialChain = specialChain;
+      els.chainOutput.hidden = Boolean(specialChain);
+      els.chainSpecialOutput.hidden = !specialChain;
+      if (specialChain && state.specialChainSource !== rawInput) {
+        els.chainSpecialOutput.value = specialChain.outputText;
+      }
+      state.specialChainSource = specialChain ? rawInput : "";
+      renderChainLevelModeButton();
+      if (!specialChain) renderChainOutput(entries);
     }
 
     function renderChainOutput(entries) {
@@ -11872,10 +11923,52 @@
         state.chainInputUserOwned = true;
         processChain();
         scheduleGroupAttemptSnapshot("paste");
-        toast("已粘贴");
+        if (state.specialChain) await copySpecialChainOutput({ automatic: true });
+        else toast("已粘贴");
       } catch (error) {
         toast("浏览器没有允许读取剪贴板");
       }
+    }
+
+    function handleChainInputPaste(event) {
+      const pastedText = event.clipboardData?.getData("text/plain") || "";
+      if (!parseMiniProgramChain(pastedText)) return;
+      event.preventDefault();
+      const selectionStart = els.chainInput.selectionStart ?? 0;
+      const selectionEnd = els.chainInput.selectionEnd ?? selectionStart;
+      els.chainInput.setRangeText(pastedText, selectionStart, selectionEnd, "end");
+      state.chainInputUserOwned = true;
+      processChain();
+      scheduleGroupAttemptSnapshot("paste");
+      void copySpecialChainOutput({ automatic: true });
+    }
+
+    async function copySpecialChainOutput({ automatic = false } = {}) {
+      const text = els.chainSpecialOutput.value;
+      if (!text.trim()) return;
+      try {
+        await copyPlainText(text);
+        toast(automatic ? "已整理并自动复制" : "删减后的活动接龙已复制");
+      } catch (error) {
+        toast(automatic ? "已整理，可点击右上角复制" : "复制失败，请手动选择文本复制");
+      }
+    }
+
+    async function copyPlainText(text) {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const fallback = document.createElement("textarea");
+      fallback.value = text;
+      fallback.setAttribute("readonly", "");
+      fallback.style.position = "fixed";
+      fallback.style.opacity = "0";
+      document.body.append(fallback);
+      fallback.select();
+      const copied = document.execCommand("copy");
+      fallback.remove();
+      if (!copied) throw new Error("copy unavailable");
     }
 
     function getBeijingDateString(date = new Date()) {
@@ -12428,10 +12521,26 @@
       }
     }
 
-    function appendMemberToChainInput(rawInput, displayName) {
+    function appendMemberToChainInput(rawInput, displayName, levelText = "") {
       const value = String(rawInput || "").replace(/\s+$/, "");
       const cleanName = String(displayName || "").trim();
       if (!cleanName) return value;
+      const specialChain = parseMiniProgramChain(value);
+      if (specialChain) {
+        const lines = value.split(/\r?\n/);
+        const participantIndexes = lines
+          .map((line, index) => parseSharedChainLevelPrefix(cleanChainLine(line)) ? index : -1)
+          .filter((index) => index >= 0);
+        const lineNumbers = participantIndexes
+          .map((index) => Number(lines[index].match(/^\s*(\d+)/)?.[1]))
+          .filter(Number.isFinite);
+        const nextNumber = lineNumbers.length ? Math.max(...lineNumbers) + 1 : 1;
+        const level = String(levelText || "").trim() || "等级不详";
+        const nextLine = `${nextNumber}、【${level}】${cleanName}`;
+        lines.splice(participantIndexes.at(-1) + 1, 0, nextLine);
+        return lines.join("\n");
+      }
+
       const lines = value.split(/\r?\n/).filter((line) => line.trim());
       const numberedLines = lines.filter((line) => CHAIN_NUMBER_PREFIX.test(line));
       const lineNumbers = numberedLines
@@ -12455,7 +12564,7 @@
 
       const displayName = firstName(player?.name);
       if (!displayName) return;
-      els.chainInput.value = appendMemberToChainInput(els.chainInput.value, displayName);
+      els.chainInput.value = appendMemberToChainInput(els.chainInput.value, displayName, player?.level);
       state.chainInputUserOwned = true;
       processChain();
       scheduleGroupAttemptSnapshot("input");
@@ -12829,6 +12938,37 @@
       els.toast.classList.add("show");
       clearTimeout(toast.timer);
       toast.timer = setTimeout(() => els.toast.classList.remove("show"), 2600);
+    }
+
+    function parseSharedChainLevelPrefix(value) {
+      const match = String(value || "").match(/^\s*[【[]\s*((?:\d+(?:\.\d+)?)级|等级不详|不详)\s*[】\]]\s*(.+?)\s*$/);
+      return match ? { level: match[1], name: match[2] } : null;
+    }
+
+    function parseMiniProgramChain(rawInput) {
+      const lines = String(rawInput || "").replace(/\r\n?/g, "\n").split("\n");
+      const trimmedLines = lines.map((line) => line.trim());
+      const participantLines = trimmedLines.filter((line) => (
+        CHAIN_NUMBER_PREFIX.test(line) && parseSharedChainLevelPrefix(cleanChainLine(line))
+      ));
+      const metadataCount = SHARED_CHAIN_METADATA_PREFIXES.filter((prefix) => (
+        trimmedLines.some((line) => line.startsWith(`${prefix}：`) || line.startsWith(`${prefix}:`))
+      )).length;
+      const courtLine = trimmedLines.find((line) => /^【场地[:：].+】$/.test(line)) || "";
+      const signupLine = trimmedLines.find((line) => /报名链接[:：].*weixin:\/\/dl\/business\//i.test(line)) || "";
+      const firstMetadataIndex = trimmedLines.findIndex((line) => SHARED_CHAIN_METADATA_PREFIXES.some((prefix) => (
+        line.startsWith(`${prefix}：`) || line.startsWith(`${prefix}:`)
+      )));
+      const titleCandidates = trimmedLines.slice(0, firstMetadataIndex >= 0 ? firstMetadataIndex : trimmedLines.length);
+      const title = titleCandidates.find((line) => line && !CHAIN_NUMBER_PREFIX.test(line) && !line.startsWith("【")) || "";
+      if (!title || !courtLine || !signupLine || metadataCount < 3 || !participantLines.length) return null;
+      return {
+        title,
+        courtLine,
+        participantLines,
+        signupLine,
+        outputText: [title, courtLine, "", ...participantLines, "", signupLine].join("\n"),
+      };
     }
 
     function cleanChainLine(line) {
