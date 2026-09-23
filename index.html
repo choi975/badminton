@@ -1910,7 +1910,7 @@
       font-weight: 700;
     }
 
-    .payment-line.female-cap-highlight {
+    .payment-line.female-discount-highlight {
       border-left-color: #df5b8a;
       background: #fff0f5;
       font-weight: 700;
@@ -1951,7 +1951,7 @@
     }
 
     .payment-line-badge.companion { color: #9a5b00; }
-    .payment-line-badge.female-cap { color: #b4235a; }
+    .payment-line-badge.female-discount { color: #b4235a; }
 
     .payment-total-line {
       margin-top: 5px;
@@ -1983,17 +1983,19 @@
     }
 
     .payment-cost-row span {
+      flex: 0 0 auto;
       color: var(--muted);
       font-size: 12px;
       font-weight: 400;
     }
 
     .payment-cost-row strong {
-      overflow: hidden;
+      min-width: 0;
       color: var(--text);
       font-size: 13px;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      text-align: right;
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
 
     .payment-ledger-summary {
@@ -4070,6 +4072,7 @@
               <span>接龙人员</span>
               <div class="chain-head-actions">
                 <button id="attemptTrialModeBtn" class="chain-icon-btn" type="button" aria-label="试算模式" aria-pressed="false" title="开启后，后续名单不计入学习"><i data-lucide="flask-conical"></i></button>
+                <button id="extractRosterBtn" class="chain-icon-btn" type="button" aria-label="只保留报名名单" title="移除活动说明，只保留报名名单并按数据库等级排序" disabled><i data-lucide="list-filter"></i></button>
                 <div id="groupProbabilityWrap" class="group-probability-wrap">
                   <output id="groupProbability" class="group-probability" tabindex="0" data-tone="loading" aria-label="正在计算组局成功概率" aria-describedby="groupProbabilityTooltip">--%</output>
                   <div id="groupProbabilityTooltip" class="group-probability-tooltip" role="tooltip">
@@ -4192,7 +4195,7 @@
             </div>
             <div class="payment-ledger-summary" data-html2canvas-ignore="true" aria-label="私人记账金额">
               <span>记账</span>
-              <strong id="paymentLedgerAmount">0.0</strong>
+              <strong id="paymentLedgerAmount">0.00</strong>
             </div>
           </section>
           <div id="paymentReportDate" class="payment-report-date"></div>
@@ -4557,7 +4560,7 @@
       { label: "高手", level: "4级", text: "高手（4级）" },
       { label: "比赛级高手", level: "6级", text: "比赛级高手（6级）" },
     ];
-    const FEMALE_PAYMENT_CAP = 25;
+    const FEMALE_PAYMENT_DISCOUNT = 3.5;
     const STANDARD_COURT_UNIT_PRICE = 70;
     const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
@@ -4784,6 +4787,7 @@
       todayProbabilityText: document.getElementById("todayProbabilityText"),
       tomorrowProbabilityText: document.getElementById("tomorrowProbabilityText"),
       attemptTrialModeBtn: document.getElementById("attemptTrialModeBtn"),
+      extractRosterBtn: document.getElementById("extractRosterBtn"),
       pasteInputBtn: document.getElementById("pasteInputBtn"),
       shakePeopleBtn: document.getElementById("shakePeopleBtn"),
       shakePeopleModal: document.getElementById("shakePeopleModal"),
@@ -4926,7 +4930,7 @@
       els.paymentSettingsBtn.hidden = IS_GITHUB_PAGES;
       els.guideBtn.hidden = IS_GITHUB_PAGES;
       els.exportBtn.hidden = IS_GITHUB_PAGES;
-      els.levelDisplayModeBtn.hidden = IS_GITHUB_PAGES;
+      els.levelDisplayModeBtn.hidden = IS_GITHUB_PAGES && !state.chainEntries.some((entry) => entry.sharedRoster);
       updateDatabaseToggleButton();
       applyReadOnlyUi();
       if (IS_GITHUB_PAGES) {
@@ -5227,6 +5231,7 @@
       });
       els.shakeFiltersToggle.addEventListener("click", () => setShakeFiltersExpanded(els.shakePeopleFilters.hidden));
       els.attemptTrialModeBtn.addEventListener("click", () => setAttemptTrialMode(!state.attemptTrialRequested));
+      els.extractRosterBtn.addEventListener("click", extractMiniProgramRoster);
       els.groupProbability.addEventListener("click", (event) => {
         event.stopPropagation();
         els.groupProbabilityWrap.classList.toggle("tooltip-open");
@@ -9532,9 +9537,22 @@
       }, 1500);
     }
 
+    function extractMiniProgramRoster() {
+      const specialChain = parseMiniProgramChain(els.chainInput.value);
+      if (!specialChain) return;
+      els.chainInput.value = specialChain.participantLines.join("\n");
+      state.chainInputUserOwned = true;
+      state.chainLevelMode = "exact";
+      processChain();
+      scheduleGroupAttemptSnapshot("input");
+      els.chainInput.focus();
+      toast("已只保留报名名单，等级以数据库或手动选择为准");
+    }
+
     function processChain() {
       const rawInput = els.chainInput.value;
       const specialChain = parseMiniProgramChain(rawInput);
+      els.extractRosterBtn.disabled = !specialChain;
       const aliasIndex = buildAliasIndex();
       const identityCounts = new Map();
       const entries = getChainInputLines(rawInput)
@@ -9625,10 +9643,10 @@
           entry.plusEntry = true;
           entry.detectedLevelText = "不详";
           entry.detectedLevelGroupLabel = "不详";
-          entry.detectedGender = "不详";
+          entry.detectedGender = entry.sharedRoster ? entry.detectedGender : "不详";
           entry.levelText = override?.levelText || "不详";
           entry.levelGroupLabel = override?.levelGroupLabel || "不详";
-          entry.gender = override?.gender || "不详";
+          entry.gender = entry.sharedRoster && !entry.preservedSnapshot ? entry.detectedGender : (override?.gender || "不详");
           entry.isFemale = entry.gender === "女";
           entry.sortRank = levelRank(entry.levelText);
         });
@@ -9649,7 +9667,7 @@
         copySpecialChainOutput();
         return;
       }
-      if (!IS_GITHUB_PAGES) toggleChainLevelMode();
+      if (!IS_GITHUB_PAGES || state.chainEntries.some((entry) => entry.sharedRoster)) toggleChainLevelMode();
     }
 
     function toggleChainLevelMode() {
@@ -9669,7 +9687,7 @@
         return;
       }
 
-      els.levelDisplayModeBtn.hidden = IS_GITHUB_PAGES;
+      els.levelDisplayModeBtn.hidden = IS_GITHUB_PAGES && !state.chainEntries.some((entry) => entry.sharedRoster);
       const grouped = state.chainLevelMode === "group";
       els.levelDisplayModeBtn.classList.toggle("active", grouped);
       els.levelDisplayModeBtn.setAttribute("aria-pressed", String(grouped));
@@ -9710,10 +9728,11 @@
     function parseChainLine(line, index, aliasIndex, overrideKey = "", override = null) {
       const rawClean = cleanChainLine(line);
       const sharedLevel = parseSharedChainLevelPrefix(rawClean);
+      const sharedRoster = Boolean(sharedLevel);
       const playerText = sharedLevel?.name || rawClean;
       const playerMatch = findPlayerMatchForLine(playerText, aliasIndex);
       const matchedPlayer = playerMatch.player;
-      const plusMetadata = parsePlusEntryMetadata(playerText, matchedPlayer);
+      const plusMetadata = parsePlusEntryMetadata(playerText, matchedPlayer, { allowNumberedCompanion: sharedRoster });
       const clean = plusMetadata.displayName;
       const preservedSnapshot = override?.preserveSnapshot === true;
       const preservedPlayerId = preservedSnapshot ? normalizePlayerId(override.playerId) : null;
@@ -9724,15 +9743,18 @@
       const player = plusMetadata.plusEntry ? null : (getPlayerById(preservedPlayerId) || matchedPlayer);
       const ownerPlayer = getPlayerById(preservedOwnerPlayerId) || matchedPlayer;
       const knownLevel = player?.level || "不详";
-      const detectedLevelText = plusMetadata.plusEntry ? plusMetadata.levelText : (sharedLevel?.level || knownLevel);
-      const detectedGender = plusMetadata.plusEntry
+      const detectedLevelText = sharedRoster ? knownLevel : (plusMetadata.plusEntry ? plusMetadata.levelText : knownLevel);
+      const detectedGender = sharedRoster
+        ? (playerText.includes("🌸") ? "女" : "男")
+        : plusMetadata.plusEntry
         ? (plusMetadata.isFemale ? "女" : "不详")
         : (playerText.includes("🌸") ? "女" : player?.gender === "女" ? "女" : player?.gender === "男" ? "男" : "不详");
-      const levelText = (preservedSnapshot || plusMetadata.plusEntry) && override?.levelText
+      const levelEditable = plusMetadata.plusEntry || (sharedRoster && !player);
+      const levelText = (preservedSnapshot || levelEditable) && override?.levelText
         ? override.levelText
         : detectedLevelText;
-      const detectedLevelGroupLabel = plusMetadata.plusEntry ? plusMetadata.levelGroupLabel : null;
-      const levelGroupLabel = (preservedSnapshot || plusMetadata.plusEntry) && override?.levelGroupLabel
+      const detectedLevelGroupLabel = !sharedRoster && plusMetadata.plusEntry ? plusMetadata.levelGroupLabel : null;
+      const levelGroupLabel = (preservedSnapshot || levelEditable) && override?.levelGroupLabel
         ? override.levelGroupLabel
         : (detectedLevelGroupLabel || getLevelGroupLabel(levelText));
       const overrideGender = (preservedSnapshot || plusMetadata.plusEntry)
@@ -9742,11 +9764,12 @@
             ? (override.isFemale ? "女" : "男")
             : null)
         : null;
-      const gender = overrideGender || detectedGender;
+      const gender = sharedRoster && !preservedSnapshot ? detectedGender : (overrideGender || detectedGender);
       const isFemale = gender === "女";
       return {
         index,
         raw: line,
+        sharedRoster,
         clean,
         player,
         ownerPlayer,
@@ -9785,9 +9808,13 @@
       return `${name}🌸`;
     }
 
+    function canEditChainEntryLevel(entry) {
+      return entry.plusEntry || (entry.sharedRoster && !entry.player);
+    }
+
     function formatChainOutputLine(entry, index) {
       const levelDisplay = getChainLevelDisplay(entry);
-      const levelSuffix = entry.plusEntry && entry.levelText === "不详" ? "" : `（${levelDisplay}）`;
+      const levelSuffix = canEditChainEntryLevel(entry) && entry.levelText === "不详" ? "" : `（${levelDisplay}）`;
       return `${index + 1}. ${getChainEntryDisplayName(entry)}${levelSuffix}`;
     }
 
@@ -9814,7 +9841,7 @@
         text.textContent = formatChainOutputLine(entry, index);
         row.append(text);
 
-        if (entry.plusEntry) row.append(createInlinePlusControls(entry));
+        if (canEditChainEntryLevel(entry)) row.append(createInlinePlusControls(entry));
         return row;
       }));
     }
@@ -9862,7 +9889,8 @@
       levelSelect.value = getInlinePlusLevelLabel(entry);
       levelSelect.addEventListener("change", () => setInlinePlusLevel(entry.overrideKey, levelSelect.value));
 
-      controls.append(genderChoice, levelSelect);
+      if (!entry.sharedRoster) controls.append(genderChoice);
+      controls.append(levelSelect);
       return controls;
     }
 
@@ -9926,12 +9954,13 @@
       return "";
     }
 
-    function parsePlusEntryMetadata(value, matchedPlayer = null) {
+    function parsePlusEntryMetadata(value, matchedPlayer = null, { allowNumberedCompanion = false } = {}) {
       const displayName = String(value || "");
       const memberSuffix = getMemberLineSuffix(displayName, matchedPlayer);
       const suffixMatch = memberSuffix.match(/^(?:[+＋➕]\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|代\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|加\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+))/);
       const genericSuffixMatch = displayName.match(/(?:[+＋➕]\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|代\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|加\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+))/);
-      const isCompanionLine = matchedPlayer ? Boolean(suffixMatch) : Boolean(genericSuffixMatch);
+      const numberedCompanion = allowNumberedCompanion && matchedPlayer && /^\d+$/.test(memberSuffix);
+      const isCompanionLine = matchedPlayer ? Boolean(suffixMatch || numberedCompanion) : Boolean(genericSuffixMatch);
       if (!isCompanionLine) return { plusEntry: false, displayName, levelText: null, isFemale: false };
 
       const suffix = memberSuffix || displayName.slice((genericSuffixMatch?.index || 0) + (genericSuffixMatch?.[0]?.length || 0));
@@ -10003,10 +10032,10 @@
       if (!payment?.payerCount) {
         line.append(
           document.createTextNode("预计人均 "),
-          createEstimateValue("0"),
+          createEstimateValue("0.00"),
           document.createTextNode(" 元"),
         );
-      } else if (payment.femaleCapApplied) {
+      } else if (payment.femaleDiscountApplied) {
         line.append(
           document.createTextNode("预计人均 男 "),
           createEstimateValue(formatMoney(payment.malePerPerson)),
@@ -10346,38 +10375,40 @@
       render(els.paymentHeinekenSortBtn, "Hytronik");
     }
 
-    function renderPaymentCostSummary(courtFee, courtRows, shuttleRows, shuttleCost, payerCount, femaleCount, maleCount, femaleCapApplied) {
+    function renderPaymentCostSummary(courtFee, courtRows, shuttleRows, shuttleCost, payment) {
+      const { payerCount, femaleCount, maleCount, femaleDiscountApplied, femaleDiscount, femalePerPerson, malePerPerson, perPerson } = payment;
       const courtParts = courtRows.length
-        ? courtRows.map((row) => `${formatCompactNumber(row.price)}元*${row.count}个`).join("+")
+        ? courtRows.map((row) => `${formatMoney(row.price)}元*${row.count}个`).join("+")
         : "";
       const shuttleParts = shuttleRows.length
-        ? shuttleRows.map((row) => `${formatCompactNumber(row.price)}元*${row.count}个`).join("+")
+        ? shuttleRows.map((row) => `${formatMoney(row.price)}元*${row.count}个`).join("+")
         : "";
       const courtText = courtParts
-        ? `${courtParts}=${formatCompactNumber(courtFee)}元`
-        : `${formatCompactNumber(courtFee)}元`;
+        ? `${courtParts}=${formatMoney(courtFee)}元`
+        : `${formatMoney(courtFee)}元`;
       const shuttleText = shuttleParts
-        ? `${shuttleParts}=${formatCompactNumber(shuttleCost)}元`
-        : `${formatCompactNumber(shuttleCost)}元`;
-      const totalCost = courtFee + shuttleCost;
-      const perPerson = payerCount > 0 ? totalCost / payerCount : 0;
+        ? `${shuttleParts}=${formatMoney(shuttleCost)}元`
+        : `${formatMoney(shuttleCost)}元`;
       const lines = [
         { label: "场地费", text: courtText },
         { label: "球费", text: shuttleText },
       ];
-      if (femaleCapApplied && femaleCount > 0 && maleCount > 0) {
-        const malePerPerson = ceilOneDecimal((totalCost - FEMALE_PAYMENT_CAP * femaleCount) / maleCount);
-        lines.push({ label: "女性", text: `${FEMALE_PAYMENT_CAP}元` });
+      if (femaleDiscountApplied && femaleCount > 0 && maleCount > 0) {
+        lines.push({
+          label: "女性",
+          text: `${formatMoney(malePerPerson)} - ${formatMoney(femaleDiscount)} = ${formatMoney(femalePerPerson)}元${femaleDiscount < FEMALE_PAYMENT_DISCOUNT ? "（最低0元）" : ""}`,
+        });
         lines.push({
           label: "男性",
-          text: `（${formatCompactNumber(courtFee)} + ${formatCompactNumber(shuttleCost)} - ${FEMALE_PAYMENT_CAP}*${femaleCount}）/ ${maleCount} ≈ ${formatMoney(malePerPerson)}元`,
+          text: femaleDiscount < FEMALE_PAYMENT_DISCOUNT
+            ? `（${formatMoney(courtFee)} + ${formatMoney(shuttleCost)}）/ ${maleCount} ≈ ${formatMoney(malePerPerson)}元`
+            : `（${formatMoney(courtFee)} + ${formatMoney(shuttleCost)} + ${formatMoney(FEMALE_PAYMENT_DISCOUNT)}*${femaleCount}）/ ${payerCount} ≈ ${formatMoney(malePerPerson)}元`,
         });
       } else {
-        const roundedPerPerson = ceilOneDecimal(perPerson);
         lines.push({
           label: "人均",
           text: payerCount > 0
-            ? `（${formatCompactNumber(courtFee)} + ${formatCompactNumber(shuttleCost)}）/ ${payerCount} ≈ ${formatMoney(roundedPerPerson)}元`
+            ? `（${formatMoney(courtFee)} + ${formatMoney(shuttleCost)}）/ ${payerCount} ≈ ${formatMoney(perPerson)}元`
             : "（...）/ 0 ≈ -",
         });
       }
@@ -10462,19 +10493,22 @@
       });
       renderPaymentGroup(els.paymentFriends, result.groups.friends, {
         showTotal: true,
-        femaleCapApplied: result.femaleCapApplied,
+        femaleDiscountApplied: result.femaleDiscountApplied,
+        femaleDiscount: result.femaleDiscount,
         group: "friends",
         sharedPaymentGroup: result.sharedPaymentGroup,
       });
       renderPaymentGroup(els.paymentHeineken, result.groups.heineken, {
         showTotal: true,
-        femaleCapApplied: result.femaleCapApplied,
+        femaleDiscountApplied: result.femaleDiscountApplied,
+        femaleDiscount: result.femaleDiscount,
         group: "heineken",
         sharedPaymentGroup: result.sharedPaymentGroup,
       });
       renderPaymentGroup(els.paymentSpecial, result.groups.special, {
         showTotal: false,
-        femaleCapApplied: result.femaleCapApplied,
+        femaleDiscountApplied: result.femaleDiscountApplied,
+        femaleDiscount: result.femaleDiscount,
         group: "special",
         sharedPaymentGroup: result.sharedPaymentGroup,
       });
@@ -10488,10 +10522,7 @@
         courtRows,
         shuttleRows,
         shuttleCost,
-        result.payerCount,
-        result.femaleCount,
-        result.maleCount,
-        result.femaleCapApplied
+        result
       );
       els.paymentLedgerAmount.textContent = formatMoney(calculateLedgerAmount(result.groups, courtFee));
       const reportDate = state.pendingSessionEdit ? state.pendingSessionEdit.date : getLocalDateString();
@@ -11610,18 +11641,41 @@
       }
     }
 
+    function calculatePaymentRates(totalCost, payerCount, femaleCount) {
+      const maleCount = payerCount - femaleCount;
+      // Work in integer cents so rounding never creates a spurious extra cent.
+      const totalCents = Math.max(0, Math.round(ceilTwoDecimals(totalCost) * 100));
+      const perPerson = payerCount > 0 ? Math.ceil(totalCents / payerCount) / 100 : 0;
+      const femaleDiscountApplied = femaleCount > 0 && maleCount > 0 && totalCents > 0;
+      let maleCents = Math.round(perPerson * 100);
+      let femaleCents = maleCents;
+      if (femaleDiscountApplied) {
+        const discountCents = Math.round(FEMALE_PAYMENT_DISCOUNT * 100);
+        // M * male + F * (male - discount) = total cost.
+        maleCents = Math.ceil((totalCents + discountCents * femaleCount) / payerCount);
+        femaleCents = maleCents - discountCents;
+        if (femaleCents < 0) {
+          // Very small bills must never produce a negative female payment.
+          femaleCents = 0;
+          maleCents = Math.ceil(totalCents / maleCount);
+        }
+      }
+      return {
+        payerCount, femaleCount, maleCount, perPerson,
+        malePerPerson: maleCents / 100,
+        femalePerPerson: femaleCents / 100,
+        femaleDiscount: femaleDiscountApplied ? (maleCents - femaleCents) / 100 : 0,
+        femaleDiscountApplied,
+      };
+    }
+
     function calculatePayment(entries, courtFee, shuttlePrice, shuttleCount) {
       const payingEntries = entries.filter(shouldCountForPayment);
       const payerCount = payingEntries.length;
       const femaleCount = payingEntries.filter((entry) => entry.isFemale).length;
-      const maleCount = payerCount - femaleCount;
       const totalCost = courtFee + shuttlePrice * shuttleCount;
-      const perPerson = ceilOneDecimal(totalCost / Math.max(1, payerCount));
-      const femaleCapApplied = femaleCount > 0 && maleCount > 0 && perPerson > FEMALE_PAYMENT_CAP;
-      const femalePerPerson = femaleCapApplied ? FEMALE_PAYMENT_CAP : perPerson;
-      const malePerPerson = femaleCapApplied
-        ? ceilOneDecimal((totalCost - femalePerPerson * femaleCount) / maleCount)
-        : perPerson;
+      const rates = calculatePaymentRates(totalCost, payerCount, femaleCount);
+      const { femalePerPerson, malePerPerson } = rates;
       const groups = { friends: new Map(), heineken: new Map(), special: new Map() };
       const sharedPaymentGroup = getSharedPaymentGroup(entries);
       let nextSequence = 0;
@@ -11656,13 +11710,7 @@
       }
 
       return {
-        payerCount,
-        perPerson,
-        femaleCount,
-        maleCount,
-        femalePerPerson,
-        malePerPerson,
-        femaleCapApplied,
+        ...rates,
         sharedPaymentGroup,
         groups: {
           friends: mapToPaymentRows(groups.friends, PAYMENT_GROUPS.friends),
@@ -11784,13 +11832,13 @@
       return `${formatMoney(row.amount)}元`;
     }
 
-    function renderPaymentGroup(container, rows, { showTotal, femaleCapApplied, group = "", sharedPaymentGroup = null }) {
+    function renderPaymentGroup(container, rows, { showTotal, femaleDiscountApplied, femaleDiscount = FEMALE_PAYMENT_DISCOUNT, group = "", sharedPaymentGroup = null }) {
       const elements = rows.map((row) => {
-        const highlights = getPaymentRowHighlights(row, femaleCapApplied);
+        const highlights = getPaymentRowHighlights(row, femaleDiscountApplied);
         const line = document.createElement("div");
         line.className = "payment-line";
         line.classList.toggle("companion-highlight", highlights.companion);
-        line.classList.toggle("female-cap-highlight", highlights.femaleCap);
+        line.classList.toggle("female-discount-highlight", highlights.femaleDiscount);
 
         const main = document.createElement("span");
         main.className = "payment-line-main";
@@ -11831,11 +11879,11 @@
           line.append(toggle);
         }
 
-        if (highlights.companion || highlights.femaleCap) {
+        if (highlights.companion || highlights.femaleDiscount) {
           const badges = document.createElement("span");
           badges.className = "payment-line-badges";
           if (highlights.companion) badges.append(createPaymentBadge(formatPaymentComposition(row), "companion"));
-          if (highlights.femaleCap) badges.append(createPaymentBadge("25封顶", "female-cap"));
+          if (highlights.femaleDiscount) badges.append(createPaymentBadge(`少${formatMoney(femaleDiscount)}元`, "female-discount"));
           line.append(badges);
         }
         return line;
@@ -11857,10 +11905,10 @@
       return badge;
     }
 
-    function getPaymentRowHighlights(row, femaleCapApplied) {
+    function getPaymentRowHighlights(row, femaleDiscountApplied) {
       return {
         companion: Number(row?.guestCount) > 0,
-        femaleCap: Boolean(femaleCapApplied && row?.slots > 0 && row?.hasFemale && !row?.hasMale),
+        femaleDiscount: Boolean(femaleDiscountApplied && row?.slots > 0 && row?.hasFemale && !row?.hasMale),
       };
     }
 
@@ -13001,12 +13049,12 @@
       return Number.isFinite(number) ? number : -1;
     }
 
-    function ceilOneDecimal(value) {
-      return Math.ceil((value + Number.EPSILON) * 10) / 10;
+    function ceilTwoDecimals(value) {
+      return Math.ceil(value * 100 - 1e-9) / 100;
     }
 
     function formatMoney(value) {
-      return (Math.round(value * 10) / 10).toFixed(1);
+      return (Math.round((value + Number.EPSILON) * 100) / 100).toFixed(2);
     }
 
     function formatCompactNumber(value) {

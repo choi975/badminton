@@ -34,7 +34,7 @@ const node = () => ({ children: [], attrs: {}, classList: { toggle() {} },
   addEventListener(name, fn) { this[name] = fn; },
 });
 const render = new Function("document", "getPaymentRowHighlights", "paymentRowDisplayName", "formatPaymentRowValue", "togglePaymentGroup", `return ${extract("renderPaymentGroup", "createPaymentBadge")}`)(
-  { createElement: node }, () => ({ companion: false, femaleCap: false }), (row) => row.name,
+  { createElement: node }, () => ({ companion: false, femaleDiscount: false }), (row) => row.name,
   (row) => `${row.amount}元`, toggle,
 );
 for (const [flags, group, target] of [
@@ -46,7 +46,7 @@ for (const [flags, group, target] of [
 ]) {
   const row = { playerId: 1, name: "测试成员", amount: 80, ...flags };
   const container = { replaceChildren(...items) { this.children = items; } };
-  render(container, [row], { showTotal: false, femaleCapApplied: false, group, sharedPaymentGroup: target === "特殊" ? group : null });
+  render(container, [row], { showTotal: false, femaleDiscountApplied: false, femaleDiscount: 0, group, sharedPaymentGroup: target === "特殊" ? group : null });
   const buttons = container.children[0].children.filter((item) => item.className === "payment-group-toggle");
   assert.equal(buttons.length, target ? 1 : 0);
   if (target) {

@@ -1,3 +1,7 @@
+import { loadPaymentFunctions } from "./payment-test-helpers.js";
+
+const { calculatePaymentRates, formatMoney } = loadPaymentFunctions(["calculatePaymentRates", "ceilTwoDecimals", "formatMoney"]);
+
 const collator = new Intl.Collator("zh-Hans-CN-u-co-pinyin", { numeric: true, sensitivity: "base" });
 
 const players = [
@@ -21,7 +25,6 @@ const PLUS_LEVEL_OPTIONS = [
   { label: "高手", level: "4级" },
   { label: "比赛级高手", level: "6级" },
 ];
-const FEMALE_PAYMENT_CAP = 25;
 
 const input = `1. choi
 2. 达哥
@@ -188,14 +191,6 @@ function getPaymentGroup(player) {
   return "friends";
 }
 
-function ceilOneDecimal(value) {
-  return Math.ceil((value + Number.EPSILON) * 10) / 10;
-}
-
-function formatMoney(value) {
-  return (Math.round(value * 10) / 10).toFixed(1);
-}
-
 function calculateLedgerAmount(groups, courtFee) {
   return Object.values(groups)
     .flat()
@@ -248,12 +243,7 @@ function calculatePayment(entries, courtFee, shuttlePrice, shuttleCount) {
   const femaleCount = payingEntries.filter((entry) => entry.isFemale).length;
   const maleCount = payerCount - femaleCount;
   const totalCost = courtFee + shuttlePrice * shuttleCount;
-  const perPerson = ceilOneDecimal(totalCost / Math.max(1, payerCount));
-  const femaleCapApplied = femaleCount > 0 && maleCount > 0 && perPerson > FEMALE_PAYMENT_CAP;
-  const femalePerPerson = femaleCapApplied ? FEMALE_PAYMENT_CAP : perPerson;
-  const malePerPerson = femaleCapApplied
-    ? ceilOneDecimal((totalCost - femalePerPerson * femaleCount) / maleCount)
-    : perPerson;
+  const { perPerson, femalePerPerson, malePerPerson, femaleDiscountApplied } = calculatePaymentRates(totalCost, payerCount, femaleCount);
   const groups = { friends: new Map(), heineken: new Map(), special: new Map() };
   let sequence = 0;
   for (const entry of entries) {
@@ -279,7 +269,7 @@ function calculatePayment(entries, courtFee, shuttlePrice, shuttleCount) {
     maleCount,
     femalePerPerson,
     malePerPerson,
-    femaleCapApplied,
+    femaleDiscountApplied,
     friends: mapToPaymentRows(groups.friends, "球友"),
     heineken: mapToPaymentRows(groups.heineken, "Hytronik"),
     special: mapToPaymentRows(groups.special),
@@ -292,10 +282,10 @@ function paymentRowDisplayName(row) {
   return `${name}🌸`;
 }
 
-function getPaymentRowHighlights(row, femaleCapApplied) {
+function getPaymentRowHighlights(row, femaleDiscountApplied) {
   return {
     companion: Number(row?.slots) > 1,
-    femaleCap: Boolean(femaleCapApplied && row?.slots > 0 && row?.hasFemale && !row?.hasMale),
+    femaleDiscount: Boolean(femaleDiscountApplied && row?.slots > 0 && row?.hasFemale && !row?.hasMale),
   };
 }
 
@@ -331,15 +321,15 @@ console.log(output.join("\n"));
 console.log(JSON.stringify({ payerCount: payment.payerCount, perPerson: formatMoney(payment.perPerson), friends: payment.friends, heineken: payment.heineken, special: payment.special }, null, 2));
 
 if (payment.payerCount !== 8) throw new Error(`Expected payerCount 8, got ${payment.payerCount}`);
-if (formatMoney(payment.perPerson) !== "15.9") throw new Error(`Expected 15.9, got ${formatMoney(payment.perPerson)}`);
+if (formatMoney(payment.perPerson) !== "15.82") throw new Error(`Expected 15.82, got ${formatMoney(payment.perPerson)}`);
 const liuzhaodaRow = payment.heineken.find((row) => row.name === "海尼克-刘赵达");
-if (formatMoney(liuzhaodaRow?.amount || 0) !== "47.7" || liuzhaodaRow?.slots !== 3) {
+if (formatMoney(liuzhaodaRow?.amount || 0) !== "48.75" || liuzhaodaRow?.slots !== 3) {
   throw new Error("Expected 刘赵达 and his two companions to merge into one Hytronik payment row");
 }
 if (payment.heineken.some((row) => row.name === "达哥的领导" || row.name === "海尼克-徐攀")) throw new Error("Expected special members to stay out of heineken group");
-if (formatMoney(payment.special.find((row) => row.name === "达哥的领导")?.amount || 0) !== "15.9") throw new Error("Expected every special member to participate in payment");
-if (formatMoney(payment.special.find((row) => row.name === "海尼克-徐攀")?.amount || 0) !== "15.9") throw new Error("Expected paying special member amount");
-if (formatMoney(calculateLedgerAmount({ friends: payment.friends, heineken: payment.heineken, special: payment.special }, 70)) !== "41.3") {
+if (formatMoney(payment.special.find((row) => row.name === "达哥的领导")?.amount || 0) !== "16.25") throw new Error("Expected every special member to participate in payment");
+if (formatMoney(payment.special.find((row) => row.name === "海尼克-徐攀")?.amount || 0) !== "16.25") throw new Error("Expected paying special member amount");
+if (formatMoney(calculateLedgerAmount({ friends: payment.friends, heineken: payment.heineken, special: payment.special }, 70)) !== "40.25") {
   throw new Error("Expected ledger amount to exclude choi and subtract court fee");
 }
 const choiCompanionEntries = ["choi", "choi+1", "甲乙丙"]
@@ -352,10 +342,10 @@ if (formatMoney(calculateLedgerAmount({
   friends: choiCompanionPayment.friends,
   heineken: choiCompanionPayment.heineken,
   special: choiCompanionPayment.special,
-}, 70)) !== "-45.0") {
+}, 70)) !== "-30.16") {
   throw new Error("Expected ledger amount to exclude the companion amount collected through choi");
 }
-if (formatMoney(payment.special.find((row) => row.name === "choi")?.amount || 0) !== "15.9") throw new Error("Expected choi to remain visible in the special group");
+if (formatMoney(payment.special.find((row) => row.name === "choi")?.amount || 0) !== "16.25") throw new Error("Expected choi to remain visible in the special group");
 if (!output.some((line) => line.includes("甲乙丙🌸（3级）"))) throw new Error("Expected female flower suffix");
 if (!groupedOutput.some((line) => line.includes("甲乙丙🌸（中手）"))) throw new Error("Expected grouped female output");
 if (paymentRowDisplayName(payment.friends.find((row) => row.name === "甲乙丙")) !== "甲乙丙🌸") {
@@ -469,27 +459,27 @@ if (detectedCompetitionFriend.levelText !== "6级" || detectedCompetitionFriend.
   throw new Error("Expected competition friend annotation to map to 比赛级高手 / 6级");
 }
 
-const cappedEntries = [
+const discountedEntries = [
   { clean: "男甲", player: null, isFemale: false },
   { clean: "男乙", player: null, isFemale: false },
   { clean: "男丙", player: null, isFemale: false },
   { clean: "女丁", player: null, isFemale: true },
 ];
-const cappedPayment = calculatePayment(cappedEntries, 115, 0, 0);
-if (!cappedPayment.femaleCapApplied) throw new Error("Expected female payment cap to apply");
-if (formatMoney(cappedPayment.femalePerPerson) !== "25.0") throw new Error("Expected capped female share 25.0");
-if (formatMoney(cappedPayment.malePerPerson) !== "30.0") throw new Error("Expected remaining cost to be split as 30.0 per male");
-const cappedFemaleRow = cappedPayment.friends.find((row) => row.name === "女丁");
-if (formatMoney(cappedFemaleRow?.amount || 0) !== "25.0") throw new Error("Expected female row amount 25.0");
-if (paymentRowDisplayName(cappedFemaleRow) !== "女丁🌸") throw new Error("Expected capped female row flower suffix");
-if (!getPaymentRowHighlights(cappedFemaleRow, cappedPayment.femaleCapApplied).femaleCap) {
-  throw new Error("Expected capped female row highlight");
+const discountedPayment = calculatePayment(discountedEntries, 115, 0, 0);
+if (!discountedPayment.femaleDiscountApplied) throw new Error("Expected female payment discount to apply");
+if (formatMoney(discountedPayment.femalePerPerson) !== "26.13") throw new Error("Expected discounted female share 26.13");
+if (formatMoney(discountedPayment.malePerPerson) !== "29.63") throw new Error("Expected remaining cost to be split as 29.63 per male");
+const discountedFemaleRow = discountedPayment.friends.find((row) => row.name === "女丁");
+if (formatMoney(discountedFemaleRow?.amount || 0) !== "26.13") throw new Error("Expected female row amount 26.13");
+if (paymentRowDisplayName(discountedFemaleRow) !== "女丁🌸") throw new Error("Expected discounted female row flower suffix");
+if (!getPaymentRowHighlights(discountedFemaleRow, discountedPayment.femaleDiscountApplied).femaleDiscount) {
+  throw new Error("Expected discounted female row highlight");
 }
 if (!getPaymentRowHighlights({ slots: 3, hasFemale: false, hasMale: true }, false).companion) {
   throw new Error("Expected multi-slot payment row highlight");
 }
-if (getPaymentRowHighlights({ slots: 1, hasFemale: true, hasMale: true }, true).femaleCap) {
-  throw new Error("Expected mixed-gender payment row not to use female-cap highlight");
+if (getPaymentRowHighlights({ slots: 1, hasFemale: true, hasMale: true }, true).femaleDiscount) {
+  throw new Error("Expected mixed-gender payment row not to use female-discount highlight");
 }
 const compositionMap = new Map();
 addPaymentLine(compositionMap, "带人测试", 50, null, 1, 99, 0, false);
@@ -505,8 +495,8 @@ if (formatPaymentComposition({ maleSlots: 2, femaleSlots: 0 }) !== "🍀x2") {
 if (formatPaymentComposition({ maleSlots: 0, femaleSlots: 3 }) !== "🌸x3") {
   throw new Error("Expected zero male count to be hidden");
 }
-if (formatMoney(cappedPayment.friends.reduce((sum, row) => sum + row.amount, 0)) !== "115.0") {
-  throw new Error("Expected capped payment rows to cover the full cost");
+if (formatMoney(discountedPayment.friends.reduce((sum, row) => sum + row.amount, 0)) !== "115.02") {
+  throw new Error("Expected discounted payment rows to cover the full cost");
 }
 
 paymentOrders["Hytronik"] = [8, 7];
