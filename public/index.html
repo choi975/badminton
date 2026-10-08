@@ -1713,6 +1713,23 @@
       font-weight: 600;
     }
 
+    .payment-rule-settings {
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .payment-rule-settings select { width: 100%; min-width: 0; }
+    .payment-rule-amount[hidden] { display: none; }
+    .payment-rule-hint, .payment-rule-summary {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+    .payment-rule-hint.is-error { color: var(--danger); }
+    .payment-rule-summary { margin-bottom: 10px; }
+
     .fee-advanced-rows {
       display: grid;
       gap: 5px;
@@ -4133,7 +4150,21 @@
                   <div class="fee-advanced-label">球</div>
                   <div id="shuttlePriceRows" class="fee-advanced-rows"></div>
                 </div>
+                <div class="fee-advanced-group payment-rule-settings">
+                  <label class="fee-advanced-label" for="paymentRuleSelect">群收款规则</label>
+                  <select id="paymentRuleSelect" class="filter-select" aria-describedby="paymentRuleHint">
+                    <option value="equal">男女平 A</option>
+                    <option value="discount">女生比男生少 A</option>
+                    <option value="cap">女生金额封顶</option>
+                  </select>
+                  <div id="paymentRuleAmountField" class="field payment-rule-amount" hidden>
+                    <label id="paymentRuleAmountLabel" for="paymentRuleAmountInput">每位女生少 A（元）</label>
+                    <input id="paymentRuleAmountInput" inputmode="decimal" autocomplete="off" aria-describedby="paymentRuleHint" disabled>
+                  </div>
+                  <p id="paymentRuleHint" class="payment-rule-hint" aria-live="polite">所有人按人数均摊，不区分性别。</p>
+                </div>
               </div>
+              <p id="paymentRuleSummary" class="payment-rule-summary" aria-live="polite">群收款：男女平 A</p>
               <div id="shuttleTypeNotice" class="fee-notice" hidden></div>
               <button id="paymentBtn" class="primary-btn" disabled>群收款</button>
             </div>
@@ -4560,7 +4591,6 @@
       { label: "高手", level: "4级", text: "高手（4级）" },
       { label: "比赛级高手", level: "6级", text: "比赛级高手（6级）" },
     ];
-    const FEMALE_PAYMENT_DISCOUNT = 3.5;
     const STANDARD_COURT_UNIT_PRICE = 70;
     const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
@@ -4660,6 +4690,7 @@
       plusOverrides: {},
       autoFeeDefaults: { fee: 70, shuttle: 4, courts: 1 },
       feeMode: "basic",
+      paymentRule: { mode: "equal", amount: 0 },
       advancedRows: { court: [], shuttle: [] },
       advancedAutoDefaults: null,
       recordRows: { court: [], shuttle: [] },
@@ -4815,6 +4846,12 @@
       feeAdvancedBtn: document.getElementById("feeAdvancedBtn"),
       feeBasicGrid: document.getElementById("feeBasicGrid"),
       feeAdvancedArea: document.getElementById("feeAdvancedArea"),
+      paymentRuleSelect: document.getElementById("paymentRuleSelect"),
+      paymentRuleAmountField: document.getElementById("paymentRuleAmountField"),
+      paymentRuleAmountLabel: document.getElementById("paymentRuleAmountLabel"),
+      paymentRuleAmountInput: document.getElementById("paymentRuleAmountInput"),
+      paymentRuleHint: document.getElementById("paymentRuleHint"),
+      paymentRuleSummary: document.getElementById("paymentRuleSummary"),
       courtPriceRows: document.getElementById("courtPriceRows"),
       shuttlePriceRows: document.getElementById("shuttlePriceRows"),
       paymentBtn: document.getElementById("paymentBtn"),
@@ -5162,6 +5199,17 @@
         }
       });
       els.feeAdvancedBtn.addEventListener("click", toggleFeeMode);
+      els.paymentRuleSelect.addEventListener("change", () => {
+        const mode = els.paymentRuleSelect.value;
+        state.paymentRule = { mode, amount: mode === "discount" ? 3.5 : mode === "cap" ? 25 : 0 };
+        renderPaymentRuleSettings(true);
+        processChain();
+      });
+      els.paymentRuleAmountInput.addEventListener("input", () => {
+        state.paymentRule.amount = els.paymentRuleAmountInput.value;
+        renderPaymentRuleSettings();
+        processChain();
+      });
       els.paymentBtn.addEventListener("click", openPaymentModal);
       els.paymentFriendsSortBtn.addEventListener("click", () => togglePaymentSortMode("球友"));
       els.paymentHeinekenSortBtn.addEventListener("click", () => togglePaymentSortMode("Hytronik"));
@@ -8496,6 +8544,7 @@
       };
       state.returnToCalendar = true;
       updateShakePeopleButtonVisibility();
+      resetPaymentRule();
       const chainInput = buildChainInputFromSession(session);
       state.chainInputUserOwned = false;
       els.chainInput.value = chainInput.text;
@@ -8541,6 +8590,7 @@
         toast("当前为只读模式，不能新增订场记录");
         return;
       }
+      resetPaymentRule();
       state.pendingSessionEdit = { id: null, date: dateString };
       state.returnToCalendar = true;
       updateShakePeopleButtonVisibility();
@@ -9027,7 +9077,10 @@
 
     function renderFeeAdvancedRows(kind) {
       const container = kind === "court" ? els.courtPriceRows : els.shuttlePriceRows;
-      renderPriceRows(container, state.advancedRows[kind], updatePaymentButton, kind);
+      renderPriceRows(container, state.advancedRows[kind], () => {
+        updatePaymentButton();
+        renderChainStats(state.chainEntries, estimateBooking(state.chainEntries));
+      }, kind);
     }
 
     function renderAllFeeAdvancedRows() {
@@ -9064,6 +9117,36 @@
       };
     }
 
+    function renderPaymentRuleSettings(syncInput = false) {
+      const rule = state.paymentRule;
+      const valid = isPaymentRuleValid(rule);
+      const equal = rule.mode === "equal";
+      const capped = rule.mode === "cap";
+      els.paymentRuleSelect.value = rule.mode;
+      els.paymentRuleAmountField.hidden = equal;
+      els.paymentRuleAmountInput.disabled = equal;
+      els.paymentRuleAmountInput.required = !equal;
+      if (syncInput) els.paymentRuleAmountInput.value = equal ? "" : String(rule.amount);
+      els.paymentRuleAmountLabel.textContent = capped ? "每位女生封顶（元）" : "每位女生少 A（元）";
+      els.paymentRuleAmountInput.setAttribute("aria-invalid", String(!valid));
+      els.paymentRuleHint.classList.toggle("is-error", !valid);
+      els.paymentRuleHint.textContent = !valid
+        ? "请输入不小于 0 的有效金额，最多两位小数。"
+        : equal ? "所有人按人数均摊，不区分性别。"
+        : capped
+          ? "先均摊，女生超出上限的部分由男生分摊。只有一种性别时仍均摊；性别不详按男生计算。"
+          : "女生最低付 0 元，其余费用由男生分摊。只有一种性别时仍均摊；性别不详按男生计算。";
+      els.paymentRuleSummary.textContent = !valid ? "群收款：金额无效，请在高级设置中修改"
+        : equal ? "群收款：男女平 A"
+        : capped ? `群收款：女生每人 ${formatMoney(Number(rule.amount))} 元封顶`
+        : `群收款：女生每人比男生少 A ${formatMoney(Number(rule.amount))} 元`;
+    }
+
+    function resetPaymentRule() {
+      state.paymentRule = { mode: "equal", amount: 0 };
+      renderPaymentRuleSettings(true);
+    }
+
     function toggleFeeMode() {
       if (state.feeMode === "basic") enterAdvancedFeeMode();
       else exitAdvancedFeeMode();
@@ -9087,7 +9170,11 @@
 
       state.advancedRows = { court: courtRows, shuttle: shuttleRows };
       state.feeMode = "advanced";
-      state.advancedAutoDefaults = { courts, courtUnit: getCourtUnitPriceForDate(getChainActivityDate()), shuttleCount };
+      // Track the estimate, not the edited count, so changing payment rules cannot overwrite it.
+      state.advancedAutoDefaults = {
+        courts, courtUnit: getCourtUnitPriceForDate(getChainActivityDate()),
+        shuttleCount: predictedShuttleCountForPrice(estimate, Number(els.shuttlePriceInput.value)),
+      };
       els.feeBasicGrid.hidden = true;
       els.feeAdvancedArea.hidden = false;
       els.feeAdvancedBtn.textContent = "基础";
@@ -9985,9 +10072,10 @@
       const courtFeeRaw = els.courtFeeInput.value.trim();
       const shuttlePriceRaw = els.shuttlePriceInput.value.trim();
       const shuttleCountRaw = els.shuttleCountInput.value.trim();
-      const courtFee = courtFeeRaw === "" ? null : Number(courtFeeRaw);
-      const shuttlePrice = shuttlePriceRaw === "" ? null : Number(shuttlePriceRaw);
-      const shuttleCount = shuttleCountRaw === "" ? null : Number(shuttleCountRaw);
+      const advanced = state.feeMode === "advanced" ? getAdvancedTotals() : null;
+      const courtFee = advanced ? advanced.courtFee : courtFeeRaw === "" ? null : Number(courtFeeRaw);
+      const shuttlePrice = advanced ? advanced.shuttlePrice : shuttlePriceRaw === "" ? null : Number(shuttlePriceRaw);
+      const shuttleCount = advanced ? advanced.shuttleCount : shuttleCountRaw === "" ? null : Number(shuttleCountRaw);
       const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
       const typeByPrice = findShuttleTypeByPrice(shuttlePrice);
       const type = typeByPrice
@@ -9996,7 +10084,9 @@
         || { id: "rsl3", name: "亚3" };
 
       let courts = estimate?.courts || 0;
-      if (Number.isFinite(courtFee) && courtFee > 0) {
+      if (advanced) {
+        courts = advanced.courtCount;
+      } else if (Number.isFinite(courtFee) && courtFee > 0) {
         courts = inferPreferredCourtCount(courtFee) ?? "?";
       }
 
@@ -10323,6 +10413,10 @@
     }
 
     function updatePaymentButton() {
+      if (!isPaymentRuleValid(state.paymentRule)) {
+        els.paymentBtn.disabled = true;
+        return;
+      }
       if (state.feeMode === "advanced") {
         const totals = getAdvancedTotals();
         const hasShuttleRow = state.advancedRows.shuttle.length > 0;
@@ -10376,7 +10470,7 @@
     }
 
     function renderPaymentCostSummary(courtFee, courtRows, shuttleRows, shuttleCost, payment) {
-      const { payerCount, femaleCount, maleCount, femaleDiscountApplied, femaleDiscount, femalePerPerson, malePerPerson, perPerson } = payment;
+      const { payerCount, femaleCount, maleCount, femaleDiscountApplied, femaleDiscount, femalePerPerson, malePerPerson, perPerson, femaleCapApplied, paymentRule = { mode: "equal", amount: 0 } } = payment;
       const courtParts = courtRows.length
         ? courtRows.map((row) => `${formatMoney(row.price)}元*${row.count}个`).join("+")
         : "";
@@ -10393,18 +10487,33 @@
         { label: "场地费", text: courtText },
         { label: "球费", text: shuttleText },
       ];
-      if (femaleDiscountApplied && femaleCount > 0 && maleCount > 0) {
+      lines.push({
+        label: "规则",
+        text: paymentRule.mode === "equal" ? "男女平 A"
+          : paymentRule.mode === "cap" ? `女生每人 ${formatMoney(paymentRule.amount)} 元封顶`
+          : `女生每人比男生少 A ${formatMoney(paymentRule.amount)} 元`,
+      });
+      if (femaleCapApplied) {
+        lines.push({ label: "女性", text: `${formatMoney(femalePerPerson)}元（封顶）` });
+        lines.push({ label: "男性", text: `（${formatMoney(courtFee)} + ${formatMoney(shuttleCost)} - ${formatMoney(femalePerPerson)}*${femaleCount}）/ ${maleCount} ≈ ${formatMoney(malePerPerson)}元` });
+      } else if (femaleDiscountApplied && femaleCount > 0 && maleCount > 0) {
         lines.push({
           label: "女性",
-          text: `${formatMoney(malePerPerson)} - ${formatMoney(femaleDiscount)} = ${formatMoney(femalePerPerson)}元${femaleDiscount < FEMALE_PAYMENT_DISCOUNT ? "（最低0元）" : ""}`,
+          text: `${formatMoney(malePerPerson)} - ${formatMoney(femaleDiscount)} = ${formatMoney(femalePerPerson)}元${femaleDiscount < paymentRule.amount ? "（最低0元）" : ""}`,
         });
         lines.push({
           label: "男性",
-          text: femaleDiscount < FEMALE_PAYMENT_DISCOUNT
+          text: femaleDiscount < paymentRule.amount
             ? `（${formatMoney(courtFee)} + ${formatMoney(shuttleCost)}）/ ${maleCount} ≈ ${formatMoney(malePerPerson)}元`
-            : `（${formatMoney(courtFee)} + ${formatMoney(shuttleCost)} + ${formatMoney(FEMALE_PAYMENT_DISCOUNT)}*${femaleCount}）/ ${payerCount} ≈ ${formatMoney(malePerPerson)}元`,
+            : `（${formatMoney(courtFee)} + ${formatMoney(shuttleCost)} + ${formatMoney(paymentRule.amount)}*${femaleCount}）/ ${payerCount} ≈ ${formatMoney(malePerPerson)}元`,
         });
       } else {
+        if (paymentRule.mode !== "equal" && payerCount > 0) {
+          lines.push({ label: "说明", text: courtFee + shuttleCost === 0 ? "总费用为 0 元，无需收款"
+            : femaleCount === 0 || maleCount === 0
+            ? "只有一种性别，按人数均摊"
+            : paymentRule.mode === "cap" ? "均摊金额未超过封顶金额" : "减免为 0 元，按人数均摊" });
+        }
         lines.push({
           label: "人均",
           text: payerCount > 0
@@ -10425,6 +10534,10 @@
     }
 
     function openPaymentModal() {
+      if (!isPaymentRuleValid(state.paymentRule)) {
+        toast("请在费用计算的高级设置中填写有效的群收款金额");
+        return;
+      }
       processChain();
       const ownerIssueEntry = state.chainEntries.find((entry) => entry.ownerIssue);
       if (ownerIssueEntry) {
@@ -10495,6 +10608,8 @@
         showTotal: true,
         femaleDiscountApplied: result.femaleDiscountApplied,
         femaleDiscount: result.femaleDiscount,
+        femaleCapApplied: result.femaleCapApplied,
+        femaleCap: result.paymentRule.amount,
         group: "friends",
         sharedPaymentGroup: result.sharedPaymentGroup,
       });
@@ -10502,6 +10617,8 @@
         showTotal: true,
         femaleDiscountApplied: result.femaleDiscountApplied,
         femaleDiscount: result.femaleDiscount,
+        femaleCapApplied: result.femaleCapApplied,
+        femaleCap: result.paymentRule.amount,
         group: "heineken",
         sharedPaymentGroup: result.sharedPaymentGroup,
       });
@@ -10509,6 +10626,8 @@
         showTotal: false,
         femaleDiscountApplied: result.femaleDiscountApplied,
         femaleDiscount: result.femaleDiscount,
+        femaleCapApplied: result.femaleCapApplied,
+        femaleCap: result.paymentRule.amount,
         group: "special",
         sharedPaymentGroup: result.sharedPaymentGroup,
       });
@@ -11641,16 +11760,31 @@
       }
     }
 
-    function calculatePaymentRates(totalCost, payerCount, femaleCount) {
+    function isPaymentRuleValid(rule) {
+      if (!rule || rule.mode === "equal") return true;
+      if (!["discount", "cap"].includes(rule.mode)) return false;
+      const value = String(rule.amount ?? "").trim();
+      const amount = Number(value);
+      return /^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/.test(value)
+        && Number.isFinite(amount) && amount >= 0 && Number.isSafeInteger(Math.round(amount * 100));
+    }
+
+    function normalizePaymentRule(rule) {
+      if (!rule || rule.mode === "equal" || !isPaymentRuleValid(rule)) return { mode: "equal", amount: 0 };
+      return { mode: rule.mode, amount: Math.round(Number(rule.amount) * 100) / 100 };
+    }
+
+    function calculatePaymentRates(totalCost, payerCount, femaleCount, paymentRule) {
+      const rule = normalizePaymentRule(paymentRule);
       const maleCount = payerCount - femaleCount;
       // Work in integer cents so rounding never creates a spurious extra cent.
       const totalCents = Math.max(0, Math.round(ceilTwoDecimals(totalCost) * 100));
       const perPerson = payerCount > 0 ? Math.ceil(totalCents / payerCount) / 100 : 0;
-      const femaleDiscountApplied = femaleCount > 0 && maleCount > 0 && totalCents > 0;
+      const mixed = femaleCount > 0 && maleCount > 0 && totalCents > 0;
       let maleCents = Math.round(perPerson * 100);
       let femaleCents = maleCents;
-      if (femaleDiscountApplied) {
-        const discountCents = Math.round(FEMALE_PAYMENT_DISCOUNT * 100);
+      if (mixed && rule.mode === "discount") {
+        const discountCents = Math.round(rule.amount * 100);
         // M * male + F * (male - discount) = total cost.
         maleCents = Math.ceil((totalCents + discountCents * femaleCount) / payerCount);
         femaleCents = maleCents - discountCents;
@@ -11660,7 +11794,17 @@
           maleCents = Math.ceil(totalCents / maleCount);
         }
       }
+      if (mixed && rule.mode === "cap") {
+        femaleCents = Math.min(femaleCents, Math.round(rule.amount * 100));
+        // Keep an equal split until the cap actually lowers the female share.
+        if (femaleCents < Math.round(perPerson * 100)) {
+          maleCents = Math.ceil((totalCents - femaleCents * femaleCount) / maleCount);
+        }
+      }
+      const femaleDiscountApplied = mixed && femaleCents < maleCents;
       return {
+        paymentRule: rule,
+        femaleCapApplied: femaleDiscountApplied && rule.mode === "cap",
         payerCount, femaleCount, maleCount, perPerson,
         malePerPerson: maleCents / 100,
         femalePerPerson: femaleCents / 100,
@@ -11669,12 +11813,12 @@
       };
     }
 
-    function calculatePayment(entries, courtFee, shuttlePrice, shuttleCount) {
+    function calculatePayment(entries, courtFee, shuttlePrice, shuttleCount, paymentRule = state.paymentRule) {
       const payingEntries = entries.filter(shouldCountForPayment);
       const payerCount = payingEntries.length;
       const femaleCount = payingEntries.filter((entry) => entry.isFemale).length;
       const totalCost = courtFee + shuttlePrice * shuttleCount;
-      const rates = calculatePaymentRates(totalCost, payerCount, femaleCount);
+      const rates = calculatePaymentRates(totalCost, payerCount, femaleCount, paymentRule);
       const { femalePerPerson, malePerPerson } = rates;
       const groups = { friends: new Map(), heineken: new Map(), special: new Map() };
       const sharedPaymentGroup = getSharedPaymentGroup(entries);
@@ -11832,7 +11976,7 @@
       return `${formatMoney(row.amount)}元`;
     }
 
-    function renderPaymentGroup(container, rows, { showTotal, femaleDiscountApplied, femaleDiscount = FEMALE_PAYMENT_DISCOUNT, group = "", sharedPaymentGroup = null }) {
+    function renderPaymentGroup(container, rows, { showTotal, femaleDiscountApplied, femaleDiscount = 0, femaleCapApplied = false, femaleCap = 0, group = "", sharedPaymentGroup = null }) {
       const elements = rows.map((row) => {
         const highlights = getPaymentRowHighlights(row, femaleDiscountApplied);
         const line = document.createElement("div");
@@ -11883,7 +12027,7 @@
           const badges = document.createElement("span");
           badges.className = "payment-line-badges";
           if (highlights.companion) badges.append(createPaymentBadge(formatPaymentComposition(row), "companion"));
-          if (highlights.femaleDiscount) badges.append(createPaymentBadge(`少${formatMoney(femaleDiscount)}元`, "female-discount"));
+          if (highlights.femaleDiscount) badges.append(createPaymentBadge(femaleCapApplied ? `${formatMoney(femaleCap)}元封顶` : `少${formatMoney(femaleDiscount)}元`, "female-discount"));
           line.append(badges);
         }
         return line;
