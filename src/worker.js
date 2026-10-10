@@ -1,3 +1,5 @@
+import "../court-pricing.js";
+import COURT_PRICING_JS from "./court-pricing.txt";
 import INDEX_HTML from "./index.html";
 import HTML2CANVAS_JS from "./html2canvas.txt";
 import BOOTSTRAP_SNAPSHOT from "./bootstrap-snapshot.txt";
@@ -12,6 +14,7 @@ import {
   GROUP_LEARNING_VERSION,
 } from "./group-learning-core.js";
 
+const CourtPricing = globalThis.BadmintonCourtPricing;
 const BOOKING_ESTIMATOR_DATA = JSON.parse(BOOKING_ESTIMATOR);
 
 const DEFAULT_LEVEL_GUIDE_RAW = `中羽等级表格
@@ -180,6 +183,15 @@ export default {
           headers: {
             "content-type": "text/javascript; charset=utf-8",
             "cache-control": "public, max-age=31536000, immutable",
+          },
+        });
+      }
+
+      if (url.pathname === "/court-pricing.js") {
+        return new Response(COURT_PRICING_JS, {
+          headers: {
+            "content-type": "text/javascript; charset=utf-8",
+            "cache-control": "no-cache",
           },
         });
       }
@@ -2418,8 +2430,8 @@ function normalizeSessionInput(body, fallbackVenue = "广羽", shuttleTypes = BO
   let shuttlePrice = Number(body?.shuttlePrice);
   let shuttleCount = Number(body?.shuttleCount);
   if (courtPriceRows) {
-    courtCount = courtPriceRows.reduce((sum, row) => sum + row.count, 0);
-    courtFee = courtPriceRows.reduce((sum, row) => sum + row.price * row.count, 0);
+    courtCount = CourtPricing.sumCounts(courtPriceRows);
+    courtFee = courtPriceRows.reduce((sum, row) => sum + CourtPricing.rowFee(row), 0);
   }
   if (shuttlePriceRows) {
     shuttleCount = shuttlePriceRows.reduce((sum, row) => sum + row.count, 0);
@@ -2427,7 +2439,7 @@ function normalizeSessionInput(body, fallbackVenue = "广羽", shuttleTypes = BO
       ? shuttlePriceRows.reduce((sum, row) => sum + row.price * row.count, 0) / shuttleCount
       : 0;
   }
-  if (!Number.isInteger(courtCount * 2) || courtCount <= 0) return null;
+  if (!Number.isFinite(courtCount) || courtCount <= 0 || (!courtPriceRows && !CourtPricing.isValidCount(courtCount))) return null;
   if (!Number.isFinite(courtFee) || courtFee < 0) return null;
   if (!Number.isFinite(shuttlePrice) || shuttlePrice < 0) return null;
   if (!Number.isInteger(shuttleCount) || shuttleCount < 0) return null;
@@ -2525,7 +2537,7 @@ function normalizePriceRows(raw, allowEmpty, includeShuttleType, shuttleTypes = 
     const price = Number(item?.price);
     const count = Number(item?.count);
     if (!Number.isFinite(price) || price < 0) return null;
-    if (!Number.isInteger(count * (includeShuttleType ? 1 : 2)) || count <= 0) return null;
+    if (includeShuttleType ? !Number.isInteger(count) || count <= 0 : !CourtPricing.isValidCount(count)) return null;
     if (includeShuttleType) {
       const shuttleTypesById = new Map(shuttleTypes.map((type) => [type.id, type]));
       const explicitType = shuttleTypesById.has(item?.type) ? item.type : null;

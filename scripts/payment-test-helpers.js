@@ -1,9 +1,11 @@
+import "../court-pricing.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 export const paymentHtml = readFileSync(new URL("../index.html", import.meta.url), "utf8").replaceAll("\r\n", "\n");
 
 export function loadPaymentFunctions(names, dependencies = {}) {
+  dependencies = { CourtPricing: globalThis.BadmintonCourtPricing, ...dependencies };
   names = [...new Set(["isPaymentRuleValid", "normalizePaymentRule", ...names])];
   const sources = names.map((name) => {
     const start = paymentHtml.indexOf(`    function ${name}(`);

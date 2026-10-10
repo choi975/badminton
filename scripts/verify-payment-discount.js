@@ -279,4 +279,8 @@ assert.equal(preview.shuttle, 0);
 assert.equal(preview.payment.malePerPerson, 40, "Preview uses advanced fees, not the stale basic 115 yuan input");
 assert.equal(preview.payment.femalePerPerson, 25);
 assert.match(paymentHtml, /renderPriceRows\(container, state\.advancedRows\[kind\], \(\) => \{[\s\S]*?renderChainStats/);
+api.renderPaymentCostSummary(94, [{ price: 70, count: 1.333 }], [], 0, calculateRates(94, 4, 0, { mode: "equal", amount: 0 }));
+assert.match(text(els.paymentCostSummary), /70\.00元\*1个\+24\.00元（1小时）\*1个=94\.00元/);
+api.renderPaymentCostSummary(117, [{ price: 70, count: 1.666 }], [], 0, calculateRates(117, 4, 0, { mode: "equal", amount: 0 }));
+assert.match(text(els.paymentCostSummary), /47\.00元（2小时）\*1个=117\.00元/);
 console.log(`Payment rules passed (${checked} rate combinations, production calculations, ownership, session amounts, copy, summary, badges, settings UI and validation).`);

@@ -7,6 +7,7 @@
   <title>羽球助手</title>
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js" crossorigin="anonymous"></script>
   <script src="./group-probability.js"></script>
+  <script src="./court-pricing.js"></script>
   <style>
     :root {
       --bg: #f2f6f5;
@@ -1761,6 +1762,16 @@
       min-height: 32px;
       padding: 4px 7px;
     }
+
+    .court-count-control { display: flex; min-width: 0; position: relative; }
+    .court-count-control input { width: 100%; padding-right: 26px; appearance: textfield; }
+    .court-count-control input::-webkit-inner-spin-button,
+    .court-count-control input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+    .court-count-steps { display: grid; position: absolute; top: 1px; bottom: 1px; right: 1px; width: 24px; }
+    .court-count-steps button { min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 3px; color: var(--muted); background: transparent; }
+    .court-count-steps button:hover { background: var(--accent-soft); color: var(--text); }
+    .court-count-steps button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .court-count-steps svg { width: 12px; height: 10px; display: block; margin: auto; }
 
     .fee-grid[hidden],
     .fee-advanced-area[hidden] {
@@ -4145,6 +4156,7 @@
                 <div class="fee-advanced-group">
                   <div class="fee-advanced-label">场地</div>
                   <div id="courtPriceRows" class="fee-advanced-rows"></div>
+                  <p class="payment-rule-hint">1 场按 3 小时计 70 元；提前结束：1 小时 24 元，2 小时 47 元。数量按 1 → 1.333 → 1.666 → 2 递增。</p>
                 </div>
                 <div class="fee-advanced-group">
                   <div class="fee-advanced-label">球</div>
@@ -4252,7 +4264,7 @@
           </div>
           <div class="field record-basic-fee-field">
             <label for="recordCourtCountInput">订场数量</label>
-            <input id="recordCourtCountInput" type="number" min="0.5" step="0.5" inputmode="decimal" autocomplete="off">
+            <input id="recordCourtCountInput" type="number" min="0.333" step="any" inputmode="decimal" autocomplete="off">
             <div id="recordCourtCountHint" class="field-hint"></div>
           </div>
           <div class="field record-basic-fee-field">
@@ -4591,6 +4603,7 @@
       { label: "高手", level: "4级", text: "高手（4级）" },
       { label: "比赛级高手", level: "6级", text: "比赛级高手（6级）" },
     ];
+    const CourtPricing = globalThis.BadmintonCourtPricing;
     const STANDARD_COURT_UNIT_PRICE = 70;
     const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
@@ -7235,14 +7248,16 @@
     function inferCourtCounts(fee) {
       if (!Number.isFinite(fee) || fee <= 0) return [];
       const candidates = new Set();
-      if (fee % 70 === 0) candidates.add(fee / 70);
+      const hourlyCount = CourtPricing.countForFee(fee);
+      if (hourlyCount !== null) candidates.add(hourlyCount);
       if (fee % 80 === 0) candidates.add(fee / 80);
       return [...candidates].sort((a, b) => a - b);
     }
 
     function inferPreferredCourtCount(fee) {
       if (!Number.isFinite(fee) || fee <= 0) return null;
-      if (fee % 70 === 0) return fee / 70;
+      const hourlyCount = CourtPricing.countForFee(fee);
+      if (hourlyCount !== null) return hourlyCount;
       if (fee % 80 === 0) return fee / 80;
       return null;
     }
@@ -7250,9 +7265,10 @@
     function makeCourtCountHint(fee, candidates) {
       if (!Number.isFinite(fee)) return "";
       if (fee === 0) return "场地费为0，请填写订场数量";
+      if (candidates.length === 1 && CourtPricing.countForFee(fee) === candidates[0]) return "已按3小时70元、1小时24元、2小时47元自动推算";
       if (candidates.length === 1) return `已按${formatCompactNumber(fee / candidates[0])}元/场自动推算`;
       if (candidates.length > 1) return `可能是${candidates.map((count) => `${count}个场`).join("或")}，请确认`;
-      return "无法按70/80元/场推算，请确认订场数量";
+      return "无法按标准场地费推算，请确认订场数量";
     }
 
     function onRecordCourtFeeChange() {
@@ -7653,8 +7669,8 @@
           toast("请至少填写一行有效的场地单价和个数");
           return;
         }
-        courtCount = courtPriceRows.reduce((sum, row) => sum + row.count, 0);
-        courtFee = courtPriceRows.reduce((sum, row) => sum + row.price * row.count, 0);
+        courtCount = CourtPricing.sumCounts(courtPriceRows);
+        courtFee = courtPriceRows.reduce((sum, row) => sum + CourtPricing.rowFee(row), 0);
         shuttleCount = shuttlePriceRows.reduce((sum, row) => sum + row.count, 0);
         const shuttleCost = shuttlePriceRows.reduce((sum, row) => sum + row.price * row.count, 0);
         shuttlePrice = shuttleCount > 0 ? shuttleCost / shuttleCount : 0;
@@ -7663,8 +7679,8 @@
         courtFee = Number(els.recordCourtFeeInput.value);
         shuttlePrice = Number(els.recordShuttlePriceInput.value);
         shuttleCount = Number(els.recordShuttleCountInput.value);
-        if (!Number.isInteger(courtCount * 2) || courtCount <= 0) {
-          toast("订场数量需要大于0，且为0.5的倍数");
+        if (!CourtPricing.isValidCount(courtCount)) {
+          toast("订场数量需要大于0，按1小时填写，如0.333、0.666、1、1.333、1.666");
           return;
         }
         if (!Number.isFinite(courtFee) || courtFee < 0 || !Number.isFinite(shuttlePrice) || shuttlePrice < 0) {
@@ -8309,6 +8325,7 @@
       const fee = Number(session.courtFee) || 0;
       if (count <= 0) return [];
       if (fee === 0) return [{ price: 0, count }];
+      if (Math.abs(CourtPricing.rowFee({ price: 70, count }) - fee) < 1e-9) return [{ price: 70, count }];
       const average = fee / count;
       if (Math.abs(average - 70) < 1e-9) return [{ price: 70, count }];
       if (Math.abs(average - 80) < 1e-9) return [{ price: 80, count }];
@@ -8332,10 +8349,10 @@
         const courtRows = session.courtPriceRows && session.courtPriceRows.length
           ? session.courtPriceRows
           : courtPriceBreakdown(session);
-        for (const part of courtRows) {
-          const key = part.fallback ? `f:${part.total}` : `p:${part.price}`;
+        for (const part of courtRows.flatMap(CourtPricing.parts)) {
+          const key = part.fallback ? `f:${part.total}` : `p:${part.price}:${part.hours || 3}`;
           const current = courtGroups.get(key) || (
-            part.fallback ? { fallback: true, total: 0, count: 0 } : { price: part.price, count: 0 }
+            part.fallback ? { fallback: true, total: 0, count: 0 } : { price: part.price, count: 0, hours: part.hours }
           );
           current.count += part.count;
           if (part.fallback) current.total += part.total;
@@ -8364,7 +8381,7 @@
         .sort((a, b) => (a.fallback ? Number.POSITIVE_INFINITY : a.price) - (b.fallback ? Number.POSITIVE_INFINITY : b.price))
         .map((part) => part.fallback
           ? `${formatCompactNumber(part.total / part.count)}元×${part.count}个`
-          : `${formatCompactNumber(part.price)}元×${part.count}个`);
+          : `${formatCompactNumber(part.price)}元${part.hours ? `（${part.hours}小时）` : ""}×${part.count}个`);
       const shuttleParts = [...shuttleGroups.entries()]
         .sort((a, b) => a[0] - b[0])
         .map(([price, count]) => `${formatCompactNumber(price)}元×${count}个`);
@@ -9019,9 +9036,48 @@
       const countInput = document.createElement("input");
       countInput.type = "number";
       countInput.min = "0";
-      countInput.step = kind === "court" ? "0.5" : "1";
+      countInput.step = kind === "court" ? "any" : "1";
       countInput.inputMode = kind === "court" ? "decimal" : "numeric";
       countInput.value = String(row.count);
+      priceInput.setAttribute("aria-label", kind === "court" ? "场地单价（元/3小时）" : "球单价");
+      countInput.setAttribute("aria-label", kind === "court" ? "场地数量（每场3小时）" : "球个数");
+      let countControl = countInput;
+      if (kind === "court") {
+        countControl = document.createElement("div");
+        countControl.className = "court-count-control";
+        const steps = document.createElement("div");
+        steps.className = "court-count-steps";
+        const stepCount = (direction) => {
+          const current = Number(countInput.value) || 0;
+          const hours = CourtPricing.toHours(current);
+          const nextHours = hours === null
+            ? (direction > 0 ? Math.floor(current * 3) + 1 : Math.ceil(current * 3) - 1)
+            : hours + direction;
+          row.count = CourtPricing.fromHours(Math.max(0, nextHours));
+          countInput.value = String(row.count);
+          onChanged?.();
+        };
+        for (const direction of [1, -1]) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.title = direction > 0 ? "增加1小时" : "减少1小时";
+          button.setAttribute("aria-label", button.title);
+          button.innerHTML = '<svg viewBox="0 0 12 10" aria-hidden="true"><path d="' + (direction > 0 ? 'M3 6 L6 3 L9 6' : 'M3 3 L6 6 L9 3') + '" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+          button.addEventListener("click", () => stepCount(direction));
+          steps.append(button);
+        }
+        countInput.addEventListener("keydown", (event) => {
+          if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+          event.preventDefault();
+          stepCount(event.key === "ArrowUp" ? 1 : -1);
+        });
+        countInput.addEventListener("change", () => {
+          row.count = CourtPricing.fromHours(Math.round(Math.max(0, Number(countInput.value) || 0) * 3));
+          countInput.value = String(row.count);
+          onChanged?.();
+        });
+        countControl.append(countInput, steps);
+      }
 
       const addButton = document.createElement("button");
       addButton.type = "button";
@@ -9040,8 +9096,8 @@
         onChanged?.();
       });
       countInput.addEventListener("input", () => {
-        const units = kind === "court" ? 2 : 1;
-        row.count = Math.max(0, Math.floor((Number(countInput.value) || 0) * units) / units);
+        const count = Math.max(0, Number(countInput.value) || 0);
+        row.count = kind === "court" ? CourtPricing.fromHours(Math.round(count * 3)) : Math.floor(count);
         onChanged?.();
       });
       addButton.addEventListener("click", onAdd);
@@ -9050,7 +9106,7 @@
       if (!isLast) addButton.hidden = true;
       if (onlyRow) removeButton.disabled = true;
 
-      div.append(priceInput, times, countInput, addButton, removeButton);
+      div.append(priceInput, times, countControl, addButton, removeButton);
       return div;
     }
 
@@ -9102,8 +9158,8 @@
     function getAdvancedTotals() {
       const courtRows = state.advancedRows.court.filter((row) => row.count > 0);
       const shuttleRows = state.advancedRows.shuttle.filter((row) => row.count > 0);
-      const courtFee = courtRows.reduce((sum, row) => sum + row.price * row.count, 0);
-      const courtCount = courtRows.reduce((sum, row) => sum + row.count, 0);
+      const courtFee = courtRows.reduce((sum, row) => sum + CourtPricing.rowFee(row), 0);
+      const courtCount = CourtPricing.sumCounts(courtRows);
       const shuttleCount = shuttleRows.reduce((sum, row) => sum + row.count, 0);
       const shuttleCost = shuttleRows.reduce((sum, row) => sum + row.price * row.count, 0);
       return {
@@ -9154,8 +9210,8 @@
 
     function enterAdvancedFeeMode() {
       const estimate = estimateBooking(state.chainEntries);
-      const courts = estimate.courts || 1;
       const currentFee = Number(els.courtFeeInput.value) || 0;
+      const courts = inferPreferredCourtCount(currentFee) || estimate.courts || 1;
       const breakdown = courtPriceBreakdown({ courtCount: courts, courtFee: currentFee });
       const courtRows = breakdown.length && !breakdown[0].fallback
         ? breakdown
@@ -9172,7 +9228,7 @@
       state.feeMode = "advanced";
       // Track the estimate, not the edited count, so changing payment rules cannot overwrite it.
       state.advancedAutoDefaults = {
-        courts, courtUnit: getCourtUnitPriceForDate(getChainActivityDate()),
+        courts: estimate.courts || 1, courtUnit: getCourtUnitPriceForDate(getChainActivityDate()),
         shuttleCount: predictedShuttleCountForPrice(estimate, Number(els.shuttlePriceInput.value)),
       };
       els.feeBasicGrid.hidden = true;
@@ -10472,7 +10528,7 @@
     function renderPaymentCostSummary(courtFee, courtRows, shuttleRows, shuttleCost, payment) {
       const { payerCount, femaleCount, maleCount, femaleDiscountApplied, femaleDiscount, femalePerPerson, malePerPerson, perPerson, femaleCapApplied, paymentRule = { mode: "equal", amount: 0 } } = payment;
       const courtParts = courtRows.length
-        ? courtRows.map((row) => `${formatMoney(row.price)}元*${row.count}个`).join("+")
+        ? courtRows.flatMap(CourtPricing.parts).map((row) => `${formatMoney(row.price)}元${row.hours ? `（${row.hours}小时）` : ""}*${row.count}个`).join("+")
         : "";
       const shuttleParts = shuttleRows.length
         ? shuttleRows.map((row) => `${formatMoney(row.price)}元*${row.count}个`).join("+")
