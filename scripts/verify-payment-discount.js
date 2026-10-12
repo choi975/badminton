@@ -125,7 +125,7 @@ api.renderPaymentCostSummary(100, [], [], 0, rates(100, 3, 3));
 assert.match(text(els.paymentCostSummary), /33\.34元/);
 api.renderPaymentCostSummary(1, [], [], 0, rates(1, 2, 1));
 assert.match(text(els.paymentCostSummary), /1\.00 - 1\.00 = 0\.00元（最低0元）/);
-// Default equal split, custom discounts, caps, and single-gender exceptions.
+// Explicit equal split / unspecified pure-function fallback, custom discounts, caps, and single-gender exceptions.
 const share = (result) => [result.malePerPerson, result.femalePerPerson];
 assert.deepEqual(share(calculateRates(115, 4, 1)), [28.75, 28.75]);
 assert.deepEqual(share(calculateRates(115, 4, 1, { mode: "discount", amount: 5 })), [30, 25]);
@@ -198,13 +198,13 @@ state.advancedRows = { court: [{ price: 70, count: 1 }], shuttle: [{ price: 11.3
 for (const name of ["chainInput", "courtFeeInput", "shuttlePriceInput", "shuttleCountInput"]) els[name].value = "1";
 api.resetPaymentRule();
 api.updatePaymentButton();
-assert.deepEqual(state.paymentRule, { mode: "equal", amount: 0 });
-assert.equal(els.paymentRuleSelect.value, "equal");
-assert.equal(els.paymentRuleAmountField.hidden, true);
-assert.equal(els.paymentRuleAmountInput.disabled, true);
-assert.equal(els.paymentRuleAmountInput.required, false);
+assert.deepEqual(state.paymentRule, { mode: "discount", amount: 3.5 });
+assert.equal(els.paymentRuleSelect.value, "discount");
+assert.equal(els.paymentRuleAmountField.hidden, false);
+assert.equal(els.paymentRuleAmountInput.disabled, false);
+assert.equal(els.paymentRuleAmountInput.required, true);
 assert.equal(els.paymentBtn.disabled, false);
-assert.match(els.paymentRuleSummary.textContent, /男女平 A/);
+assert.match(els.paymentRuleSummary.textContent, /女生每人比男生少 A 3\.50 元/);
 for (const mode of ["discount", "cap"]) {
   state.paymentRule = { mode, amount: "12.5" };
   api.renderPaymentRuleSettings(true);
@@ -240,10 +240,12 @@ for (const mode of ["discount", "cap"]) {
   assert.match(text(els.paymentCostSummary), /无需收款/);
 }
 api.resetPaymentRule();
-assert.deepEqual(state.paymentRule, { mode: "equal", amount: 0 });
-assert.equal(els.paymentRuleAmountInput.value, "");
+assert.deepEqual(state.paymentRule, { mode: "discount", amount: 3.5 });
+assert.equal(els.paymentRuleAmountInput.value, "3.5");
 assert.equal(els.paymentRuleAmountInput.attrs["aria-invalid"], "false");
-assert.match(els.paymentRuleSummary.textContent, /男女平 A/);
+assert.match(els.paymentRuleSummary.textContent, /女生每人比男生少 A 3\.50 元/);
+assert.deepEqual(share(api.calculatePayment(entries, 115, 0, 0)), [30.5, 27], "Default collection charges women 3.50 less (two women, two men)");
+assert.match(paymentHtml, /paymentRule: \{ mode: "discount", amount: 3\.5 \}/);
 assert.match(paymentHtml, /function openChainForNewDate[\s\S]*?resetPaymentRule\(\)/);
 assert.match(paymentHtml, /paymentRuleSelect\.addEventListener\("change"/);
 assert.match(paymentHtml, /paymentRuleAmountInput\.addEventListener\("input"/);

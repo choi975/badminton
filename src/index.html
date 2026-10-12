@@ -4235,17 +4235,17 @@
                   <label class="fee-advanced-label" for="paymentRuleSelect">群收款规则</label>
                   <select id="paymentRuleSelect" class="filter-select" aria-describedby="paymentRuleHint">
                     <option value="equal">男女平 A</option>
-                    <option value="discount">女生比男生少 A</option>
+                    <option value="discount" selected>女生比男生少 A</option>
                     <option value="cap">女生金额封顶</option>
                   </select>
-                  <div id="paymentRuleAmountField" class="field payment-rule-amount" hidden>
+                  <div id="paymentRuleAmountField" class="field payment-rule-amount">
                     <label id="paymentRuleAmountLabel" for="paymentRuleAmountInput">每位女生少 A（元）</label>
-                    <input id="paymentRuleAmountInput" inputmode="decimal" autocomplete="off" aria-describedby="paymentRuleHint" disabled>
+                    <input id="paymentRuleAmountInput" inputmode="decimal" autocomplete="off" aria-describedby="paymentRuleHint" value="3.5" required>
                   </div>
-                  <p id="paymentRuleHint" class="payment-rule-hint" aria-live="polite">所有人按人数均摊，不区分性别。</p>
+                  <p id="paymentRuleHint" class="payment-rule-hint" aria-live="polite">女生最低付 0 元，其余费用由男生分摊。只有一种性别时仍均摊；性别不详按男生计算。</p>
                 </div>
               </div>
-              <p id="paymentRuleSummary" class="payment-rule-summary" aria-live="polite">群收款：男女平 A</p>
+              <p id="paymentRuleSummary" class="payment-rule-summary" aria-live="polite">群收款：女生每人比男生少 A 3.50 元</p>
               <div id="shuttleTypeNotice" class="fee-notice" hidden></div>
               <button id="paymentBtn" class="primary-btn" disabled>群收款</button>
             </div>
@@ -4774,7 +4774,7 @@
       plusOverrides: {},
       autoFeeDefaults: { fee: 70, shuttle: 4, courts: 1 },
       feeMode: "basic",
-      paymentRule: { mode: "equal", amount: 0 },
+      paymentRule: { mode: "discount", amount: 3.5 },
       advancedRows: { court: [], shuttle: [] },
       advancedAutoDefaults: null,
       recordRows: { court: [], shuttle: [] },
@@ -8062,7 +8062,7 @@
       const todayString = getLocalDateString();
       const dateString = getLocalDateString(date);
       const daySessions = getSessionsOnDate(dateString);
-      const courts = daySessions.reduce((sum, session) => sum + session.courtCount, 0);
+      const courts = CourtPricing.sumCounts(daySessions.map((session) => ({ count: session.courtCount })));
       const button = document.createElement("button");
       button.type = "button";
       button.className = "calendar-day";
@@ -8372,7 +8372,7 @@
     function renderCalendarSelection() {
       const selection = state.calendar.selectedDates;
       const sessions = getSessionsForSelection();
-      const totalCourts = sessions.reduce((sum, session) => sum + session.courtCount, 0);
+      const totalCourts = CourtPricing.sumCounts(sessions.map((session) => ({ count: session.courtCount })));
       const monthLabel = formatCalendarSummaryMonth(state.calendar.year, state.calendar.month);
       els.calendarSelectionText.textContent = selection.length
         ? `选中 ${selection.length} 天：${totalCourts} 个场`
@@ -8448,23 +8448,50 @@
       return [{ fallback: true, total: fee, count }];
     }
 
+    function getCalendarGenderStats(sessions) {
+      const stats = {
+        male: { totalAmount: 0, totalSlots: 0 },
+        female: { totalAmount: 0, totalSlots: 0 },
+        unknownSlots: 0,
+      };
+      for (const row of sessions.flatMap((session) => session.players || [])) {
+        const slots = Math.max(0, Math.floor(Number(row.slots) || 0));
+        if (!slots) continue; // Non-participant payment rows must not inflate either average.
+        const gender = row.gender || (row.isFemale ? "女" : "不详");
+        // Legacy payer rows can combine people of different genders without itemized amounts.
+        // Do not guess the guests' gender or invent the owner's share of that combined bill.
+        if (slots !== 1 || Number(row.plusCount) > 0 || !["男", "女"].includes(gender)) {
+          stats.unknownSlots += slots;
+          continue;
+        }
+        const group = gender === "女" ? stats.female : stats.male;
+        group.totalAmount += Number(row.amount) || 0;
+        group.totalSlots += slots;
+      }
+      return stats;
+    }
+
     function buildCalendarSummaryLine(sessions) {
       const courtGroups = new Map();
       const shuttleGroups = new Map();
       let totalAmount = 0;
-      let totalSlots = 0;
 
       for (const session of sessions) {
         const courtRows = session.courtPriceRows && session.courtPriceRows.length
           ? session.courtPriceRows
           : courtPriceBreakdown(session);
         for (const part of courtRows.flatMap(CourtPricing.parts)) {
-          const key = part.fallback ? `f:${part.total}` : `p:${part.price}:${part.hours || 3}`;
-          const current = courtGroups.get(key) || (
-            part.fallback ? { fallback: true, total: 0, count: 0 } : { price: part.price, count: 0, hours: part.hours }
+          const standardHourly = !part.fallback && (
+            (Number(part.price) === 24 && Number(part.hours) === 1)
+            || (Number(part.price) === 47 && Number(part.hours) === 2)
           );
-          current.count += part.count;
-          if (part.fallback) current.total += part.total;
+          const price = standardHourly ? 70 : Number(part.price);
+          const hours = standardHourly ? 3 : Number(part.hours) || 3;
+          const count = Number(part.count) * (standardHourly ? Number(part.hours) / 3 : 1);
+          const key = part.fallback ? `f:${part.total}` : `p:${price}:${hours}`;
+          const current = courtGroups.get(key) || { price, hours, fallback: part.fallback, total: 0, rows: [] };
+          current.rows.push({ count });
+          if (part.fallback) current.total += Number(part.total);
           courtGroups.set(key, current);
         }
 
@@ -8480,27 +8507,30 @@
           }
         }
 
-        const amounts = (session.players || []).reduce((sum, row) => sum + row.amount, 0);
-        const slots = (session.players || []).reduce((sum, row) => sum + (row.slots > 0 ? row.slots : 0), 0);
-        totalAmount += amounts;
-        totalSlots += slots;
+        totalAmount += (session.players || []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
       }
 
       const courtParts = [...courtGroups.values()]
+        .map((group) => ({ ...group, count: CourtPricing.sumCounts(group.rows) }))
         .sort((a, b) => (a.fallback ? Number.POSITIVE_INFINITY : a.price) - (b.fallback ? Number.POSITIVE_INFINITY : b.price))
         .map((part) => part.fallback
           ? `${formatCompactNumber(part.total / part.count)}元×${part.count}个`
-          : `${formatCompactNumber(part.price)}元${part.hours ? `（${part.hours}小时）` : ""}×${part.count}个`);
+          : `${formatCompactNumber(part.price)}元${part.hours !== 3 ? `（${part.hours}小时）` : ""}×${part.count}个`);
       const shuttleParts = [...shuttleGroups.entries()]
         .sort((a, b) => a[0] - b[0])
         .map(([price, count]) => `${formatCompactNumber(price)}元×${count}个`);
 
-      const separator = courtParts.length + shuttleParts.length <= 2 ? "，" : "；";
-      const average = totalSlots > 0 ? totalAmount / totalSlots : 0;
+      const separator = "；";
+      const genderStats = getCalendarGenderStats(sessions);
+      const averageText = (label, group) => group.totalSlots > 0
+        ? `${label}平均${formatMoney(group.totalAmount / group.totalSlots)}元/人次`
+        : `${label}平均暂无数据`;
 
       let line = `场地 ${courtParts.join("、") || "0元×0个"}`;
       if (shuttleParts.length) line += `${separator}球 ${shuttleParts.join("、")}`;
-      line += `${separator}共${formatMoney(totalAmount)}元，平均${formatMoney(average)}元/人次。`;
+      line += `${separator}共${formatMoney(totalAmount)}元，${averageText("男性", genderStats.male)}，${averageText("女性", genderStats.female)}`;
+      if (genderStats.unknownSlots) line += `（另有${genderStats.unknownSlots}人次因性别或费用拆分不详，未纳入性别均值）`;
+      line += "。";
       return line;
     }
 
@@ -9308,7 +9338,7 @@
     }
 
     function resetPaymentRule() {
-      state.paymentRule = { mode: "equal", amount: 0 };
+      state.paymentRule = { mode: "discount", amount: 3.5 };
       renderPaymentRuleSettings(true);
     }
 

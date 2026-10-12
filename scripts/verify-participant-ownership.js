@@ -321,7 +321,7 @@ assert.ok(!/\?\?[^\n]*row\.playerId/.test(ownerKeySection), "明确删除的 own
 
 assert.ok(/slotsInput\.readOnly\s*=\s*true/.test(recordMemberSection), "聚合确认页人数必须返回接龙助手修改");
 const calendarSummarySection = functionSection(indexHtml, "buildCalendarSummaryLine", "setCalendarRecordMetaText");
-assert.ok(/totalAmount\s*\/\s*totalSlots/.test(calendarSummarySection), "多场平均费用必须按总金额除以总人次");
+assert.ok(/group\.totalAmount\s*\/\s*group\.totalSlots/.test(calendarSummarySection), "男女多场平均费用必须分别按该性别总金额除以总人次");
 const paymentLineSection = functionSection(indexHtml, "addPaymentLine", "mapToPaymentRows");
 assert.ok(/if \(slots > 0\)/.test(paymentLineSection), "零付款 owner 不能污染随行者的性别封顶标识");
 
