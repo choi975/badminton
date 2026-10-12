@@ -2947,6 +2947,33 @@
       font-size: 13px;
     }
 
+    .calendar-summary .calendar-ledger-toggle {
+      min-height: 28px;
+      margin-left: auto;
+      padding: 3px 9px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .calendar-ledger-toggle[aria-pressed="true"] {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+    }
+
+    .calendar-ledger-toggle:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .calendar-ledger-total {
+      margin-bottom: 7px;
+      color: var(--accent-dark);
+      font-size: 13px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
     .calendar-summary strong {
       color: var(--accent-dark);
       font-size: 15px;
@@ -3110,6 +3137,24 @@
       white-space: nowrap;
     }
 
+    .calendar-day-ledger {
+      position: absolute;
+      right: 5px;
+      bottom: 3px;
+      max-width: calc(100% - 10px);
+      overflow: hidden;
+      color: var(--accent-dark);
+      font-size: 11px;
+      line-height: 1.2;
+      font-variant-numeric: tabular-nums;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .calendar-day-ledger::before {
+      content: "¥";
+    }
+
     .calendar-day-badge {
       display: inline-flex;
       align-items: baseline;
@@ -3208,6 +3253,30 @@
       .calendar-day {
         min-height: 68px;
         padding-inline: 3px;
+      }
+
+      .calendar-summary .calendar-ledger-toggle {
+        min-height: 36px;
+      }
+
+      .calendar-continuous-grid.show-ledger .calendar-day {
+        min-height: 88px;
+      }
+
+      .calendar-day-ledger {
+        right: 1px;
+        bottom: 4px;
+        max-width: calc(100% - 2px);
+        overflow: visible;
+        font-size: 9px;
+        font-weight: 400;
+        text-align: right;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+
+      .calendar-day-ledger::before {
+        content: none;
       }
 
       .calendar-day.has-bookings {
@@ -4316,6 +4385,7 @@
         </div>
         <div class="calendar-summary">
           <span id="calendarSelectionText">当前月份：0 个场</span>
+          <button id="calendarLedgerToggle" class="calendar-ledger-toggle" type="button" aria-pressed="false" aria-controls="calendarGrid calendarLedgerTotal" title="显示日期和汇总栏中的记账金额">显示记账</button>
         </div>
         <div class="calendar-hint">
           <span class="calendar-hint-desktop">上下滚动连续查看日期 · 单击日期查看当天记录 · Ctrl/Shift/拖动可多选 · 左右按钮/今天可返回月份统计</span>
@@ -4333,6 +4403,7 @@
             <div class="calendar-day-head">
               <h3 id="calendarDayTitle">选择日期查看详情</h3>
             </div>
+            <div id="calendarLedgerTotal" class="calendar-ledger-total" aria-live="polite" hidden></div>
             <div id="calendarDayRecords" class="calendar-day-records"></div>
           </div>
         </section>
@@ -4761,6 +4832,7 @@
         resizeRaf: 0,
         expanded: false,
         summaryCollapsed: false,
+        showLedger: false,
       },
       pendingSessionEdit: null,
       returnToCalendar: false,
@@ -4803,6 +4875,8 @@
       calendarPrevBtn: document.getElementById("calendarPrevBtn"),
       calendarNextBtn: document.getElementById("calendarNextBtn"),
       calendarTodayBtn: document.getElementById("calendarTodayBtn"),
+      calendarLedgerToggle: document.getElementById("calendarLedgerToggle"),
+      calendarLedgerTotal: document.getElementById("calendarLedgerTotal"),
       calendarExpandBtn: document.getElementById("calendarExpandBtn"),
       calendarMonthLabel: document.getElementById("calendarMonthLabel"),
       calendarSelectionText: document.getElementById("calendarSelectionText"),
@@ -5178,6 +5252,7 @@
       els.calendarPrevBtn.addEventListener("click", () => shiftCalendarMonth(-1));
       els.calendarNextBtn.addEventListener("click", () => shiftCalendarMonth(1));
       els.calendarTodayBtn.addEventListener("click", goToCalendarToday);
+      els.calendarLedgerToggle.addEventListener("click", toggleCalendarLedger);
       els.calendarExpandBtn.addEventListener("click", toggleCalendarExpanded);
       els.calendarSummaryToggle.addEventListener("click", toggleCalendarSummary);
       els.chainBtn.addEventListener("click", () => {
@@ -7854,6 +7929,7 @@
         resizeRaf: 0,
         expanded: false,
         summaryCollapsed: false,
+        showLedger: false,
       };
       updateCalendarLayoutControls();
       openModal("calendarModal");
@@ -8040,6 +8116,15 @@
         meta.append(badge, venue);
         button.append(meta);
       }
+      if (state.calendar.showLedger && daySessions.length) {
+        const amount = formatMoney(calculateSessionsLedgerAmount(daySessions));
+        const ledger = document.createElement("span");
+        ledger.className = "calendar-day-ledger";
+        ledger.textContent = amount;
+        ledger.title = `当天记账：${amount}元`;
+        button.setAttribute("aria-label", `${button.getAttribute("aria-label")}，记账${amount}元`);
+        button.append(ledger);
+      }
       button.addEventListener("mousedown", (event) => {
         if (event.button !== 0) return;
         event.preventDefault();
@@ -8154,6 +8239,25 @@
       replaceCalendarControlIcon(els.calendarSummaryToggle, summaryCollapsed ? "chevron-up" : "chevron-down");
     }
 
+    function updateCalendarLedgerControls() {
+      const visible = Boolean(state.calendar.showLedger);
+      els.calendarLedgerToggle.textContent = visible ? "隐藏记账" : "显示记账";
+      els.calendarLedgerToggle.setAttribute("aria-pressed", String(visible));
+      els.calendarLedgerToggle.title = visible ? "隐藏日期和汇总栏中的记账金额" : "显示日期和汇总栏中的记账金额";
+      els.calendarGrid.classList.toggle("show-ledger", visible);
+    }
+
+    function toggleCalendarLedger() {
+      const viewportTop = els.calendarScroll.getBoundingClientRect().top;
+      const anchor = [...els.calendarGrid.children].find((day) => day.getBoundingClientRect().bottom > viewportTop);
+      const anchorTop = anchor?.getBoundingClientRect().top;
+      state.calendar.showLedger = !state.calendar.showLedger;
+      renderCalendar();
+      resizeCalendarToActiveMonth();
+      const nextAnchor = anchor && els.calendarGrid.querySelector(`[data-date="${anchor.dataset.date}"]`);
+      if (nextAnchor) els.calendarScroll.scrollTop += nextAnchor.getBoundingClientRect().top - anchorTop;
+    }
+
     function toggleCalendarExpanded() {
       const scrollTop = els.calendarScroll.scrollTop;
       state.calendar.expanded = !state.calendar.expanded;
@@ -8177,6 +8281,7 @@
     }
 
     function renderCalendar({ resetRange = false, preserveScroll = true } = {}) {
+      updateCalendarLedgerControls();
       const activeIndex = calendarMonthIndex(state.calendar.year, state.calendar.month);
       const previousScrollTop = els.calendarScroll.scrollTop;
       if (resetRange || state.calendar.rangeStart === null || state.calendar.rangeEnd === null) {
@@ -8277,6 +8382,10 @@
     function renderCalendarDayPanel() {
       const selection = state.calendar.selectedDates;
       const sessions = getSessionsForSelection();
+      els.calendarLedgerTotal.hidden = !state.calendar.showLedger;
+      els.calendarLedgerTotal.textContent = state.calendar.showLedger
+        ? `记账合计：¥${formatMoney(calculateSessionsLedgerAmount(sessions))}`
+        : "";
       const dayHead = els.calendarDayTitle.parentElement;
       if (selection.length === 1) {
         const dateString = selection[0];
@@ -11918,6 +12027,18 @@
           special: mapToPaymentRows(groups.special),
         },
       };
+    }
+
+    function calculateSessionsLedgerAmount(sessions) {
+      // Use saved participant amounts (including adjustments), grouped by the payer just like group collection.
+      return sessions.reduce((total, session) => {
+        const rows = projectSessionParticipants(session.players).map((group) => ({
+          playerId: group.ownerPlayerId,
+          name: group.ownerName,
+          amount: group.amount,
+        }));
+        return total + calculateLedgerAmount({ saved: rows }, Number(session.courtFee) || 0);
+      }, 0);
     }
 
     function calculateLedgerAmount(groups, courtFee) {
