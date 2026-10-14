@@ -932,6 +932,7 @@
       margin: 0 0 12px;
       color: var(--muted);
       font-size: 13px;
+      white-space: pre-wrap;
     }
 
     .shake-people-summary-row {
@@ -12872,18 +12873,20 @@
         score.className = "shake-person-score";
         if (Number.isFinite(Number(item.attendanceProbability))) {
           const attendance = document.createElement("span");
-          attendance.append(document.createTextNode("预计到场 "));
+          attendance.append(document.createTextNode("到场概率 "));
           const value = document.createElement("strong");
           value.textContent = `${probabilityPercent(item.attendanceProbability)}%`;
+          attendance.title = "根据当前接龙、历史出勤和成员规则估计的到场概率。";
           attendance.append(value);
           score.append(attendance);
         }
         if (Number.isFinite(Number(item.uplift))) {
           const impact = document.createElement("span");
           impact.className = "shake-person-impact";
-          impact.append(document.createTextNode("成局 "));
+          impact.append(document.createTextNode("成局概率 "));
           const value = document.createElement("strong");
-          value.textContent = `+${formatProbabilityPointLift(item.uplift)}个百分点`;
+          value.textContent = `+${formatProbabilityPointLift(item.uplift)}%`;
+          impact.title = "该成员确定到场与不到场两种情形的成局概率差；+28% 表示提升28个百分点，并非当前概率直接加28%。";
           impact.append(value);
           score.append(impact);
         }
@@ -13007,7 +13010,10 @@
       els.shakeLongTermRulesList.replaceChildren();
       const longRules = [
         "只推荐未接龙的人；已接龙的人不推荐。",
-        "按预计到场概率与对成局概率的提升综合排序。",
+        "按到场概率与对成局概率的提升综合排序。",
+        "成局概率 +N%：该成员确定到场与不到场两种情形相差N个百分点，不是当前概率直接加N%。",
+        "模型每天北京时间12:05自动训练；近期参与标签也会随已完成的订场记录更新。",
+        "新成员从首次实际参与或资料登记起统计；样本少时展示近期参与天数，不凭空推断习惯。",
         "综合历史出勤、随行人员、同场关系、水平、星期和体力。",
         "短期明确不打的人排除；偏好大局的判断按历史样本量降权。",
       ];
@@ -13117,7 +13123,7 @@
       const filteredSummary = totalRecommendations !== recommendations.length
         ? `（筛选后 ${recommendations.length}/${totalRecommendations} 人）`
         : ` · 推荐 ${recommendations.length} 人`;
-      els.shakePeopleSummary.textContent = `${today} · 当前成局 ${todayPercent}%${filteredSummary}${bottomedSummary}`;
+      els.shakePeopleSummary.textContent = `${today}   当前成局概率 ${todayPercent}%${filteredSummary}${bottomedSummary}`;
       els.shakeGenderFilter.value = state.shakeFilters.gender;
       els.shakeLevelFilter.value = state.shakeFilters.levelGroup;
       els.shakeFilterReset.hidden = !state.shakeFilters.gender && !state.shakeFilters.levelGroup;

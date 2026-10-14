@@ -1220,8 +1220,47 @@
     return (presentSuccesses - absentSuccesses) / simulations;
   }
 
+  // Live booking evidence complements the daily attempt-trained model for new
+  // members. Count distinct completed days, never guests or today's trial roster.
+  function recentAttendanceEvidence(model, targetDate) {
+    const windowStart = addDays(targetDate, -30);
+    const days = new Map();
+    for (const session of model.sessions) {
+      if (session.participantCount < SUCCESS_THRESHOLD || session.date < windowStart || session.date >= targetDate) continue;
+      const ids = days.get(session.date) || new Set();
+      for (const id of session.selfIds) ids.add(id);
+      days.set(session.date, ids);
+    }
+    const result = new Map();
+    for (const player of model.players) {
+      const firstAttendance = [...(model.history.statsById.get(player.id)?.dates || [])].sort(compareDates)[0];
+      const rawCreated = String(player.createdAt ?? player.created_at ?? player.joinedAt ?? player.joined_at ?? "").trim();
+      // D1 timestamps are UTC, including rows entered after the first booking.
+      const timestamp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(rawCreated)
+        ? rawCreated.replace(" ", "T") + "Z" : rawCreated;
+      const created = parseIsoDate(rawCreated) ? rawCreated
+        : timestamp && Number.isFinite(Date.parse(timestamp)) ? beijingNowParts(timestamp).date : "";
+      const membershipStart = [created, firstAttendance].filter(Boolean).sort(compareDates)[0] || targetDate;
+      let opportunities = 0;
+      let attendedDays = 0;
+      const pairedDays = new Map();
+      for (const [date, ids] of days) {
+        if (date < membershipStart) continue;
+        opportunities += 1;
+        if (!ids.has(player.id)) continue;
+        attendedDays += 1;
+        for (const id of ids) {
+          if (id !== player.id) pairedDays.set(id, (pairedDays.get(id) || 0) + 1);
+        }
+      }
+      result.set(player.id, { opportunities, attendedDays, pairedDays });
+    }
+    return result;
+  }
+
   function candidateRows(model, todayContext, attendanceCounts, simulationCount, seed, counterfactualSimulations) {
     const currentIds = todayContext.current.selfIds;
+    const recentEvidence = recentAttendanceEvidence(model, todayContext.targetDate);
     const rows = [];
     for (let index = 0; index < model.players.length; index += 1) {
       const player = model.players[index];
@@ -1248,9 +1287,17 @@
       const uplift = Math.max(0, rawUplift);
       const reasons = [];
       const risks = [];
-      if (social > 0.02) reasons.push("常与已接龙成员同场");
-      if (learningSignal?.participationRate !== null && learningSignal?.participationReliability > 0
-        && learningSignal.participationRate > todayContext.resolvedPriors.participationRate + 0.08) reasons.push("近期更常来");
+      const recent = recentEvidence.get(player.id);
+      const recentFrequent = recent.attendedDays >= 2
+        && recent.attendedDays / Math.max(1, recent.opportunities) >= 0.5;
+      const recentPartner = [...currentIds].some((id) => (
+        (recent.pairedDays.get(id) || 0) >= 2
+        && recent.pairedDays.get(id) / Math.max(1, recent.attendedDays) >= 0.5
+      ));
+      if (social > 0.02 || recentPartner) reasons.push("常与已接龙成员同场");
+      const learnedFrequent = learningSignal?.participationRate !== null && learningSignal?.participationReliability > 0
+        && learningSignal.participationRate > todayContext.resolvedPriors.participationRate + 0.08;
+      if (recentFrequent || learnedFrequent) reasons.push("近期更常来");
       if ((stats?.rawPlayCount || 0) >= Math.max(3, model.history.rawSuccessfulSessions / 3)) reasons.push("历史参与较多");
       if ((stats?.rawGuestTotal || 0) >= 2) reasons.push("常带随行人员");
       if (learningSignal?.companionReliability > 0.25
@@ -1259,10 +1306,17 @@
       if (todayContext.lowLevelJoined && rank >= 0 && rank < 3) reasons.push("水平相近");
       if (blocked) risks.push("规则显示当天不打");
       if (fatigued) risks.push("超过连续打球体力上限");
-      if (largeConfidence > 0) risks.push("不足10人时可能退出");
-      if (learningSignal?.participationRate !== null && learningSignal?.participationReliability > 0
+      // A single large booking is not evidence of a withdrawal habit. Keep
+      // explicit preferences and learned repeated behavior, including newcomers.
+      const explicitLargePreference = listValue(model.longTermLists, "onlyLargeSessions").present
+        && model.longTerm.largeIds.has(player.id);
+      const repeatedLargeEvidence = (stats?.rawPlayCount || 0) >= 3
+        || (learningSignal?.largePreferenceEvidence || 0) >= 2;
+      if (largeConfidence > 0 && (explicitLargePreference || repeatedLargeEvidence)) risks.push("不足10人时可能退出");
+      if (!recentFrequent && learningSignal?.participationRate !== null && learningSignal?.participationReliability > 0
         && learningSignal.participationRate < todayContext.resolvedPriors.participationRate - 0.08) risks.push("近期较少参与");
       if ((stats?.rawPlayCount || 0) < 2) risks.push((stats?.rawPlayCount || 0) === 0 ? "新成员样本少" : "历史样本较少");
+      if (!reasons.length && recent.attendedDays > 0) reasons.push(`近30天参与${recent.attendedDays}天`);
       rows.push({
         playerId: player.id,
         name: String(player.name || `#${player.id}`),
@@ -1326,6 +1380,7 @@
       baselines,
       historyStart,
       historyEnd,
+      longTermLists: input.longTermLists,
       longTerm: buildLongTermProfile(players, history, input.longTermLists),
       shortTermRules: Array.isArray(input.shortTermRules) ? input.shortTermRules : [],
       nowParts,

@@ -1,37 +1,37 @@
 {
   "version": 5,
-  "generatedAt": "2026-09-17T02:12:24.779Z",
-  "trainingRevision": 416,
+  "generatedAt": "2026-10-14T02:27:08.438Z",
+  "trainingRevision": 809,
   "training": {
     "dateRange": {
-      "from": "2026-07-13",
-      "to": "2026-09-16"
+      "from": "2026-07-01",
+      "to": "2026-10-12"
     },
     "court": {
-      "sampleCount": 31,
+      "sampleCount": 40,
       "dateRange": {
-        "from": "2026-07-13",
-        "to": "2026-09-16"
+        "from": "2026-07-01",
+        "to": "2026-10-12"
       }
     },
     "shuttle": {
-      "sampleCount": 27,
-      "eligibleSessionCount": 30,
+      "sampleCount": 36,
+      "eligibleSessionCount": 41,
       "unconfirmedExcludedCount": 0,
-      "mixedExcludedCount": 2,
+      "mixedExcludedCount": 4,
       "unknownTypeExcludedCount": 0,
       "byType": {
         "rsl3": {
-          "sampleCount": 26,
-          "mixedExcludedCount": 2,
+          "sampleCount": 35,
+          "mixedExcludedCount": 4,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-09-16"
+            "to": "2026-10-12"
           }
         },
         "as05": {
           "sampleCount": 1,
-          "mixedExcludedCount": 2,
+          "mixedExcludedCount": 4,
           "dateRange": {
             "from": "2026-09-06",
             "to": "2026-09-06"
@@ -50,8 +50,8 @@
         11.3,
         11.5
       ],
-      "sampleCount": 26,
-      "trainingMode": "global-only"
+      "sampleCount": 35,
+      "trainingMode": "hierarchical"
     },
     {
       "id": "as05",
@@ -80,13 +80,13 @@
     "validation": {
       "method": "in-sample",
       "minimumTrainingSessions": 5,
-      "folds": 31,
-      "mae": 0.032,
-      "rmse": 0.18,
-      "exactRate": 0.968,
-      "bias": -0.032,
-      "underPredictionRate": 0.032,
-      "overPredictionRate": 0
+      "folds": 40,
+      "mae": 0.075,
+      "rmse": 0.274,
+      "exactRate": 0.925,
+      "bias": 0.025,
+      "underPredictionRate": 0.025,
+      "overPredictionRate": 0.05
     }
   },
   "shuttle": {
@@ -105,29 +105,99 @@
     "models": {
       "rsl3": {
         "typeId": "rsl3",
-        "trainingMode": "global-only",
+        "trainingMode": "hierarchical",
         "formula": "ceil(rawExpected + riskScale * sqrt(max(rawExpected, 1)))",
-        "baseRate": 0.804314,
+        "baseRate": 0.770697,
         "riskQuantile": 0.7,
-        "riskScale": 0,
+        "riskScale": 0.132271,
         "effects": {
-          "gender": {},
-          "genderLevel": {},
-          "member": {}
+          "gender": {
+            "不详": -0.036605,
+            "男": 0.06009,
+            "女": -0.253241
+          },
+          "genderLevel": {
+            "不详|不详": -0.036152,
+            "男|2.5级": -0.072849,
+            "男|2级": -0.562185,
+            "男|3.5级": -0.326257,
+            "男|3级": 0.360959,
+            "男|4.5级": 0.31238,
+            "男|4级": -0.126922,
+            "男|5级": 0.773189,
+            "女|2.5级": -0.664683,
+            "女|2级": 0.064436,
+            "女|3.5级": 0.204628,
+            "女|3级": 0.054146,
+            "女|4级": -0.190817
+          },
+          "member": {
+            "1": -0.417573,
+            "4": 0.436915,
+            "5": 0.126568,
+            "6": 0.513217,
+            "7": 0.349657,
+            "8": 1.06254,
+            "9": -0.940099,
+            "10": -0.198696,
+            "11": 0.468047,
+            "12": 0.392142,
+            "13": 0.218192,
+            "14": 0.631858,
+            "15": -0.853979,
+            "16": 0.774063,
+            "17": 0.191559,
+            "19": -0.019418,
+            "20": -0.092399,
+            "24": -0.465722,
+            "26": 0.941492,
+            "29": -0.657954,
+            "31": 0.712495,
+            "33": -0.084653,
+            "35": 0.387752,
+            "36": -0.44178,
+            "37": -0.316674,
+            "38": 0.073423,
+            "39": -0.391111,
+            "40": 0.402536,
+            "41": -0.801771,
+            "44": 1.198193,
+            "45": -0.035602,
+            "48": 0.071872,
+            "49": -0.521739,
+            "51": -0.830581,
+            "53": -0.520892,
+            "54": -0.799703,
+            "59": 0.951866,
+            "60": -0.613552,
+            "73": -0.817463,
+            "74": -0.376183,
+            "75": 0.737807,
+            "78": 0.089894,
+            "82": -0.723102,
+            "83": -0.480506,
+            "88": 0.094134,
+            "89": -0.327428,
+            "94": -0.04379,
+            "95": -0.197219,
+            "97": -0.808931,
+            "99": -0.769361,
+            "108": -0.07584
+          }
         },
         "training": {
-          "sampleCount": 26,
-          "availableSampleCount": 26,
+          "sampleCount": 35,
+          "availableSampleCount": 35,
           "olderExcludedCount": 0,
-          "mixedExcludedCount": 2,
+          "mixedExcludedCount": 4,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-09-16"
+            "to": "2026-10-12"
           }
         },
         "regularization": {
-          "selectedKind": "global-only",
-          "scale": null,
+          "selectedKind": "hierarchical",
+          "scale": 0.001,
           "multipliers": {
             "gender": 1,
             "genderLevel": 2,
@@ -139,18 +209,18 @@
             0.1
           ],
           "source": "time-holdout-conservative-grid-search",
-          "baselineMae": 2.555,
+          "baselineMae": 1.511,
           "requiredImprovement": 0.25
         },
         "validation": {
           "method": "time-holdout",
           "folds": 5,
-          "mae": 2.555,
-          "rmse": 2.911,
+          "mae": 1.148,
+          "rmse": 1.532,
           "exactRate": 0,
-          "bias": 1.088,
-          "underPredictionRate": 0.4,
-          "overPredictionRate": 0.6
+          "bias": -0.405,
+          "underPredictionRate": 0.6,
+          "overPredictionRate": 0.4
         },
         "riskCalibration": {
           "method": "time-holdout",
@@ -158,22 +228,22 @@
           "priorStrength": 5,
           "maximumScale": 2,
           "folds": 5,
-          "mae": 2.8,
-          "rmse": 3.286,
+          "mae": 1.4,
+          "rmse": 1.732,
           "exactRate": 0.2,
-          "bias": 1.6,
+          "bias": 0.6,
           "underPredictionRate": 0.2,
           "overPredictionRate": 0.6
         },
         "fit": {
-          "method": "global-rate",
-          "folds": 26,
-          "mae": 2.154,
-          "rmse": 2.689,
-          "exactRate": 0.154,
-          "bias": 0.846,
-          "underPredictionRate": 0.308,
-          "overPredictionRate": 0.538
+          "method": "regularized-hierarchical-poisson",
+          "folds": 35,
+          "mae": 1.086,
+          "rmse": 1.331,
+          "exactRate": 0.229,
+          "bias": 0.971,
+          "underPredictionRate": 0.057,
+          "overPredictionRate": 0.714
         }
       },
       "as05": {
@@ -192,7 +262,7 @@
           "sampleCount": 1,
           "availableSampleCount": 1,
           "olderExcludedCount": 0,
-          "mixedExcludedCount": 2,
+          "mixedExcludedCount": 4,
           "dateRange": {
             "from": "2026-09-06",
             "to": "2026-09-06"

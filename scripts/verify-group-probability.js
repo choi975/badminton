@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
 
 await import("../group-probability.js");
 
@@ -113,7 +112,18 @@ function estimate(overrides = {}) {
   });
 }
 
-const snapshot = JSON.parse(fs.readFileSync(new URL("../data/bootstrap-snapshot.json", import.meta.url), "utf8")).data;
+// Freeze the historical baseline fixture: deployment snapshots change whenever
+// D1 is refreshed and must not change the expected numerical regression values.
+const baselineBookingDates = [
+  "2026-07-13", "2026-07-17", "2026-07-21", "2026-07-24", "2026-07-26", "2026-07-30",
+  "2026-08-01", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-08",
+  "2026-08-10", "2026-08-13", "2026-08-16", "2026-08-19", "2026-08-21", "2026-08-23",
+  "2026-08-25", "2026-08-28", "2026-09-01", "2026-09-02",
+];
+const snapshot = {
+  players: makePlayers(),
+  sessions: baselineBookingDates.map((date) => session(date, [1, 2, 3, 4, 5, 6])),
+};
 const realBaseline = probabilityApi.estimate({
   ...snapshot,
   entries: [],
@@ -1039,5 +1049,69 @@ const impossible = estimate({ players: [], sessions: [], entries: [], simulation
 assert.equal(impossible.todayProbability, 0, "without players or entries a group cannot form");
 assert.equal(impossible.tomorrowProbability, 0);
 assert.deepEqual(impossible.candidates, []);
+
+
+// New-member badges use current completed bookings even before the next daily
+// model rebuild or when booking-only dates have no eligible tracked snapshots.
+const badgePlayers = makePlayers(14).map((player) => ({ ...player, createdAt: "2026-07-01 00:00:00" }));
+badgePlayers[13].createdAt = "2026-10-12 02:00:00"; // entered after first actual play
+const badgeHistory = [
+  ...Array.from({ length: 20 }, (_, index) => session(isoDate(Date.parse("2026-09-15T00:00:00Z") + index * 86400000), [1, 2, 3, 4, 5, 6])),
+  session("2026-10-11", [1, 2, 3, 4, 5, 14]),
+  session("2026-10-12", [1, 2, 3, 4, 5, 14]),
+];
+function badgeForecast(overrides = {}) {
+  return estimate({
+    players: badgePlayers, sessions: badgeHistory,
+    entries: [regularEntry(badgePlayers[0])],
+    targetDate: "2026-10-14", now: "2026-10-14T09:00:00+08:00",
+    simulations: 100, calibrationSimulations: 80, counterfactualSimulations: 60,
+    ...overrides,
+  });
+}
+function newcomerBadge(overrides = {}) {
+  return badgeForecast(overrides).candidates.find((row) => row.playerId === 14);
+}
+const freshBadge = newcomerBadge();
+assert.ok(freshBadge.reasons.includes("近期更常来"), "new members must not be penalized for games before they joined");
+assert.ok(freshBadge.reasons.includes("常与已接龙成员同场"), "two recent shared days support a same-court tag without a learned model");
+assert.ok(!freshBadge.risks.includes("不足10人时可能退出"));
+const oneDayHistory = badgeHistory.slice(0, -1);
+const sparseBadge = newcomerBadge({ sessions: oneDayHistory, entries: [] });
+assert.ok(sparseBadge.reasons.includes("近30天参与1天"), "sparse newcomers should get factual feedback rather than no label");
+assert.ok(!sparseBadge.reasons.includes("近期更常来"));
+const duplicateDay = newcomerBadge({ sessions: [...oneDayHistory, oneDayHistory.at(-1)], entries: [] });
+assert.ok(!duplicateDay.reasons.includes("近期更常来"), "two courts on one day are not two attendance days");
+assert.ok(duplicateDay.reasons.includes("近30天参与1天"));
+const noCurrentLeak = newcomerBadge({ sessions: [...oneDayHistory, session("2026-10-14", [1, 2, 3, 4, 5, 14]), session("2026-10-15", [1, 2, 3, 4, 5, 14])], entries: [] });
+assert.ok(!noCurrentLeak.reasons.includes("近期更常来"), "today and future bookings must not train historical tags");
+const guestOnlyHistory = badgeHistory.slice(0, -2).concat([
+  session("2026-10-11", [1, 2, 3, 4, 5, 6], { 14: 2 }),
+  session("2026-10-12", [1, 2, 3, 4, 5, 6], { 14: 1 }),
+]);
+assert.equal(newcomerBadge({ sessions: guestOnlyHistory }), undefined, "an absent owner must not earn attendance tags from guests");
+const noJoinedPartner = newcomerBadge({ entries: [] });
+assert.ok(!noJoinedPartner.reasons.includes("常与已接龙成员同场"));
+const afterWindow = newcomerBadge({ targetDate: "2026-11-14", now: "2026-11-14T09:00:00+08:00", entries: [] });
+assert.ok(!afterWindow.reasons.includes("近期更常来"), "booking-based recent badges age out automatically");
+assert.ok(!afterWindow.reasons.some((text) => text.startsWith("近30天参与")));
+const misleadingOldModel = newcomerBadge({
+  groupLearningSignals: {
+    generatedAt: "2026-10-13T04:05:00.000Z",
+    priors: { participationRate: 0.3, participationEvidence: 200 },
+    members: { 14: { participationRate: 0.05, participationReliability: 0.5 } },
+  },
+});
+assert.ok(misleadingOldModel.reasons.includes("近期更常来"));
+assert.ok(!misleadingOldModel.risks.includes("近期较少参与"), "current attendance must not conflict with stale negative labels");
+const largeSingle = [...badgeHistory.slice(0, -2), session("2026-10-12", [1, 2, 3, 4, 5, 6, 7, 8, 9, 14])];
+assert.ok(!newcomerBadge({ sessions: largeSingle, longTermLists: {} }).risks.includes("不足10人时可能退出"), "one large game does not prove a withdrawal habit");
+assert.ok(newcomerBadge({ sessions: largeSingle, longTermLists: { onlyLargeSessions: { members: [14] } } }).risks.includes("不足10人时可能退出"), "explicit large-game preferences still apply to newcomers");
+const learnedWithdrawal = newcomerBadge({ groupLearningSignals: {
+  generatedAt: "2026-10-13T04:05:00.000Z",
+  priors: { largePreferenceRate: 0.08, largePreferenceEvidence: 20 },
+  members: { 14: { largePreferenceConfidence: 0.9, largePreferenceEvidence: 3 } },
+} });
+assert.ok(learnedWithdrawal.risks.includes("不足10人时可能退出"), "repeated learned withdrawal evidence applies equally to new members");
 
 console.log("Group probability verification passed.");

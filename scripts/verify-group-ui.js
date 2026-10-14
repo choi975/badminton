@@ -4,6 +4,15 @@ import vm from "node:vm";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
+assert.ok(html.includes('document.createTextNode("到场概率 ")'));
+assert.ok(html.includes('document.createTextNode("成局概率 ")'));
+assert.ok(html.includes('value.textContent = \x60+\x24{formatProbabilityPointLift(item.uplift)}%\x60;'));
+assert.ok(html.includes('\x60\x24{today}   当前成局概率 \x24{todayPercent}%'));
+assert.match(html, /\.shake-people-summary \{[^}]*white-space: pre-wrap/);
+assert.ok(html.includes("并非当前概率直接加28%"));
+assert.ok(html.includes("模型每天北京时间12:05自动训练"));
+assert.doesNotMatch(html, /document\.createTextNode\("预计到场 "\)/);
+
 const probabilityIndex = html.indexOf('id="groupProbability"');
 const trialIndex = html.indexOf('id="attemptTrialModeBtn"');
 const shakeIndex = html.indexOf('id="shakePeopleBtn"');
