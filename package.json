@@ -8,7 +8,7 @@
     "estimator": "node scripts/train-estimator.js",
     "snapshot": "node scripts/generate-snapshot.js",
     "build:fresh": "npm run estimator && npm run snapshot && npm run build",
-    "test": "npm run test:chain && npm run test:special-roster && npm run test:payment && npm run test:calendar-summary && npm run test:calendar-ledger && npm run test:participant-ownership && npm run test:member-exit-analysis && npm run test:best-partners && npm run test:court-pricing && npm run test:short-term-rules && npm run test:group-learning && npm run test:group-probability && npm run test:group-attempts && npm run test:group-ui && npm run test:todo-sync && npm run test:estimator",
+    "test": "npm run test:chain && npm run test:special-roster && npm run test:payment && npm run test:calendar-summary && npm run test:calendar-ledger && npm run test:participant-ownership && npm run test:member-exit-analysis && npm run test:best-partners && npm run test:court-pricing && npm run test:short-term-rules && npm run test:group-learning && npm run test:group-probability && npm run test:group-attempts && npm run test:group-ui && npm run test:database-ui && npm run test:todo-sync && npm run test:estimator",
     "test:chain": "node scripts/verify-chain.js && node scripts/verify-payment-group-toggle.js",
     "test:participant-ownership": "node scripts/verify-participant-ownership.js",
     "test:member-exit-analysis": "node scripts/verify-member-exit-analysis.js",
@@ -30,7 +30,8 @@
     "test:payment": "node scripts/verify-payment-discount.js",
     "test:special-roster": "node scripts/verify-special-roster.js",
     "test:calendar-ledger": "node scripts/verify-calendar-ledger.js",
-    "test:calendar-summary": "node scripts/verify-calendar-summary.js"
+    "test:calendar-summary": "node scripts/verify-calendar-summary.js",
+    "test:database-ui": "node scripts/verify-database-ui.js"
   },
   "devDependencies": {
     "wrangler": "latest"

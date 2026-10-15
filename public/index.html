@@ -305,12 +305,27 @@
       position: relative;
     }
 
-    .column-visibility-btn {
+    .table-tool-btn {
+      display: inline-grid;
+      place-items: center;
+      width: 34px;
+      min-width: 34px;
+      height: 34px;
       min-height: 34px;
-      padding: 0 10px;
-      background: #fbfdfc;
-      color: #30413d;
-      font-size: 13px;
+      padding: 0;
+    }
+
+    .table-tool-btn svg { width: 18px; height: 18px; }
+
+    .column-visibility-btn {
+      background: var(--panel);
+      color: var(--muted);
+    }
+
+    .table-empty-state {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--muted);
     }
 
     .column-visibility-menu {
@@ -760,6 +775,39 @@
 
     .modal.wide { width: min(1360px, 100%); }
     .modal.medium { width: min(760px, 100%); }
+
+    #memberCreateModal { z-index: 100; }
+
+    .modal.member-create-dialog {
+      width: min(560px, 100%);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+
+    .member-create-hint {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .member-create-fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .member-create-fields .field { min-width: 0; }
+    .member-create-full { grid-column: 1 / -1; }
+    .member-create-fields textarea { display: block; min-height: 88px; resize: vertical; }
+    .member-create-fields [aria-invalid="true"] { border-color: var(--danger); }
+
+    .member-create-error {
+      margin: 16px 0 0;
+      color: var(--danger);
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
     .modal.photo-dialog {
       width: min(760px, 100%);
     }
@@ -2687,7 +2735,7 @@
       .fee-grid { grid-template-columns: 1fr; }
       .app-shell { height: auto; min-height: 100vh; }
       .table-wrap { min-height: 58vh; }
-      .table-tools { justify-content: space-between; }
+      .table-tools { justify-content: flex-end; }
       .payment-settings-groups {
         grid-template-columns: repeat(2, minmax(280px, 1fr));
       }
@@ -2703,7 +2751,9 @@
       .topbar { padding: 12px; }
       .toolbar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .toolbar button { width: 100%; padding-inline: 8px; }
-      .column-visibility-menu { right: auto; left: 0; }
+      .column-visibility-menu { right: 0; left: auto; }
+      .table-tool-btn { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
+      .member-create-fields { gap: 14px; }
       .modal-backdrop { padding: 0; }
       .modal, .modal.medium, .modal.wide, .modal.guide-dialog {
         width: 100%;
@@ -4107,8 +4157,13 @@
         <input id="globalSearch" class="search-input" placeholder="搜索名称、等级、所属、备注（多人用逗号分隔）" autocomplete="off">
         <div></div>
         <div class="table-tools">
+          <button id="newMemberBtn" class="table-tool-btn primary-btn" type="button" title="新建成员 (Alt+N)" aria-label="新建成员" aria-keyshortcuts="Alt+N" aria-haspopup="dialog" aria-controls="memberCreateModal" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
           <div class="column-menu-wrap">
-            <button id="columnVisibilityBtn" class="column-visibility-btn" type="button" aria-haspopup="true" aria-expanded="false">☷ 显示列</button>
+            <button id="columnVisibilityBtn" class="table-tool-btn column-visibility-btn" type="button" title="显示列" aria-label="显示列" aria-haspopup="true" aria-expanded="false" aria-controls="columnVisibilityMenu">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg>
+            </button>
             <div id="columnVisibilityMenu" class="column-visibility-menu" role="menu" hidden></div>
           </div>
           <div id="rowCount" class="count-pill">0人</div>
@@ -4123,6 +4178,45 @@
       </section>
     </div>
   </main>
+  </div>
+
+  <div id="memberCreateModal" class="modal-backdrop">
+    <form id="memberCreateForm" class="modal member-create-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle" aria-describedby="memberCreateHint" autocomplete="off" novalidate>
+      <div class="modal-header">
+        <h2 id="memberCreateTitle" class="modal-title">新建成员</h2>
+        <button class="modal-close-btn" type="button" data-close="memberCreateModal" aria-label="关闭" title="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="memberCreateHint" class="member-create-hint">填写成员资料后统一保存，群序号自动分配。</p>
+        <div class="member-create-fields">
+          <div class="field member-create-full">
+            <label for="memberNameInput">名称（必填）</label>
+            <input id="memberNameInput" name="name" required aria-describedby="memberCreateError">
+          </div>
+          <div class="field">
+            <label for="memberGenderInput">性别</label>
+            <select id="memberGenderInput" class="filter-select" name="gender" required></select>
+          </div>
+          <div class="field">
+            <label for="memberLevelInput">中羽等级</label>
+            <select id="memberLevelInput" class="filter-select" name="level" required></select>
+          </div>
+          <div class="field member-create-full">
+            <label for="memberNotesInput">备注</label>
+            <textarea id="memberNotesInput" name="notes" rows="3"></textarea>
+          </div>
+          <div class="field member-create-full">
+            <label for="memberAffiliationInput">所属</label>
+            <select id="memberAffiliationInput" class="filter-select" name="affiliation" required></select>
+          </div>
+        </div>
+        <p id="memberCreateError" class="member-create-error" role="alert" hidden></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" data-close="memberCreateModal">取消</button>
+        <button id="saveMemberBtn" class="primary-btn" type="submit">新建成员</button>
+      </div>
+    </form>
   </div>
 
   <div id="guideModal" class="modal-backdrop nav-page">
@@ -4721,14 +4815,14 @@
       { key: "photo", label: "照片", width: "10%", sortable: false },
       { key: "gender", label: "性别", width: "8%", filter: "enum", options: GENDERS, sortable: true, cycle: GENDERS },
       { key: "level", label: "中羽等级", width: "12%", filter: "multi-enum", options: LEVELS, sortable: true },
-      { key: "description", label: "该等级的介绍", width: "28%", sortable: false },
+      { key: "notes", label: "备注", width: "28%", filter: "text", sortable: false },
       { key: "affiliation", label: "所属", width: "14%", filter: "enum", options: AFFILIATIONS, sortable: true, cycle: AFFILIATIONS },
       { key: "friendsJoinNumber", label: "球友群序号", width: "8%", sortable: true },
       { key: "hytronikJoinNumber", label: "Hytronik群序号", width: "8%", sortable: true },
       { key: "playCount", label: "打球次数", width: "8%", sortable: true },
       { key: "guestCount", label: "带人数", width: "8%", sortable: true },
       { key: "amountTotal", label: "A钱总额", width: "10%", sortable: true },
-      { key: "notes", label: "备注", width: "18%", filter: "text", sortable: false },
+      { key: "description", label: "该等级的介绍", width: "28%", sortable: false },
     ];
 
     const CALENDAR_DETAIL_COLUMNS = [
@@ -4740,8 +4834,7 @@
       { key: "change", label: "较上期变化", numeric: true, sortKey: "change" },
     ];
 
-    const DEFAULT_DRAFT = Object.freeze({
-      id: null,
+    const DEFAULT_NEW_MEMBER = Object.freeze({
       name: "",
       gender: "男",
       level: "不详",
@@ -4753,7 +4846,7 @@
     const state = {
       players: [],
       sessions: [],
-      draft: { ...DEFAULT_DRAFT },
+      creatingPlayer: false,
       levelDescriptions: {},
       levelGuideRaw: "",
       estimator: DEFAULT_ESTIMATOR,
@@ -4763,10 +4856,10 @@
       dataSource: "loading",
       dataTimestamp: null,
       filters: {},
-      hiddenColumns: new Set(["photo", "notes", "playCount", "guestCount", "amountTotal"]),
+      hiddenColumns: new Set(["photo", "description", "playCount", "guestCount", "amountTotal"]),
       mainColumnOrder: COLUMNS.map((column) => column.key),
       sort: { key: "friendsJoinNumber", dir: "asc" },
-      selected: { rowKey: "draft", col: 0 },
+      selected: { rowKey: "", col: 0 },
       editing: null,
       chainEntries: [],
       chainLevelMode: IS_GITHUB_PAGES ? "group" : "exact",
@@ -4861,6 +4954,16 @@
       tableHead: document.getElementById("tableHead"),
       tableBody: document.getElementById("tableBody"),
       globalSearch: document.getElementById("globalSearch"),
+      newMemberBtn: document.getElementById("newMemberBtn"),
+      memberCreateModal: document.getElementById("memberCreateModal"),
+      memberCreateForm: document.getElementById("memberCreateForm"),
+      memberNameInput: document.getElementById("memberNameInput"),
+      memberGenderInput: document.getElementById("memberGenderInput"),
+      memberLevelInput: document.getElementById("memberLevelInput"),
+      memberNotesInput: document.getElementById("memberNotesInput"),
+      memberAffiliationInput: document.getElementById("memberAffiliationInput"),
+      memberCreateError: document.getElementById("memberCreateError"),
+      saveMemberBtn: document.getElementById("saveMemberBtn"),
       columnVisibilityBtn: document.getElementById("columnVisibilityBtn"),
       columnVisibilityMenu: document.getElementById("columnVisibilityMenu"),
       guideBtn: document.getElementById("guideBtn"),
@@ -5201,6 +5304,8 @@
 
     function applyReadOnlyUi() {
       const readOnly = state.readOnly;
+      els.newMemberBtn.disabled = readOnly || state.dataSource !== "cloud" || state.creatingPlayer;
+      els.newMemberBtn.title = readOnly ? "只读模式下无法新建成员" : "新建成员 (Alt+N)";
       els.paymentSettingsBtn.disabled = readOnly || !state.players.length;
       els.paymentRecordBtn.hidden = readOnly;
       els.guideEditor.readOnly = readOnly;
@@ -5240,6 +5345,12 @@
       els.globalSearch.addEventListener("input", () => renderTable());
       els.retryConnectionBtn.addEventListener("click", () => loadBootstrap({ retry: true }));
       els.databaseToggleBtn.addEventListener("click", toggleDatabaseArea);
+      els.newMemberBtn.addEventListener("click", openMemberCreateModal);
+      els.memberCreateForm.addEventListener("submit", submitNewMember);
+      els.memberNameInput.addEventListener("input", () => {
+        els.memberNameInput.removeAttribute("aria-invalid");
+        els.memberCreateError.hidden = true;
+      });
       els.columnVisibilityBtn.addEventListener("click", (event) => {
         event.stopPropagation();
         toggleColumnVisibilityMenu();
@@ -5717,7 +5828,7 @@
 
     function renderTable() {
       ensureSelectedColumnVisible();
-      const rows = getDisplayRows(!state.readOnly);
+      const rows = getDisplayRows();
       if (!rows.some((row) => row.key === state.selected.rowKey)) {
         state.selected = { rowKey: rows[0]?.key || "", col: 0 };
       }
@@ -5738,7 +5849,7 @@
           const cell = document.createElement("div");
           cell.className = "cell";
           cell.tabIndex = td.classList.contains("selected") ? 0 : -1;
-          cell.append(renderCellContent(row.player, column, row.draft));
+          cell.append(renderCellContent(row.player, column));
           td.append(cell);
 
           td.addEventListener("click", () => selectCell(row.key, colIndex));
@@ -5748,13 +5859,24 @@
         fragment.append(tr);
       });
 
+      if (!rows.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = getVisibleColumns().length;
+        td.className = "table-empty-state";
+        td.textContent = state.players.length
+          ? "没有匹配的成员，请调整搜索或筛选条件。"
+          : (state.readOnly ? "暂无成员数据。" : "暂无成员，点击右上角 + 或按 Alt+N 新建。");
+        tr.append(td);
+        fragment.append(tr);
+      }
       els.tableBody.replaceChildren(fragment);
-      const filteredCount = getDisplayRows(false).length;
+      const filteredCount = rows.length;
       els.rowCount.textContent = `${filteredCount} / ${state.players.length}人`;
       focusSelectedCell();
     }
 
-    function renderCellContent(player, column, isDraft) {
+    function renderCellContent(player, column) {
       const wrapper = document.createDocumentFragment();
       const value = getCellValue(player, column.key);
 
@@ -5767,7 +5889,7 @@
       }
 
       if (column.key === "level") {
-        const rowKey = isDraft ? "draft" : String(player.id);
+        const rowKey = String(player.id);
         const box = document.createElement("div");
         box.className = "level-cell-content";
         const select = document.createElement("select");
@@ -5821,7 +5943,7 @@
       }
 
       if (column.key === "affiliation") {
-        const rowKey = isDraft ? "draft" : String(player.id);
+        const rowKey = String(player.id);
         const select = document.createElement("select");
         select.className = "affiliation-select";
         select.title = "选择所属群组";
@@ -5850,7 +5972,7 @@
 
       if (["friendsJoinNumber", "hytronikJoinNumber"].includes(column.key)) {
         const affiliation = column.key === "friendsJoinNumber" ? "球友" : "Hytronik";
-        if (isDraft || !hasPlayerAffiliation(player, affiliation)) {
+        if (!hasPlayerAffiliation(player, affiliation)) {
           wrapper.append(document.createTextNode(""));
           return wrapper;
         }
@@ -5896,25 +6018,23 @@
         const span = document.createElement("span");
         if (!value) {
           span.className = "empty-hint";
-          span.textContent = isDraft ? "新建人物" : "未命名";
+          span.textContent = "未命名";
         } else {
           span.textContent = value;
         }
         box.append(span);
 
-        if (!isDraft) {
-          const button = document.createElement("button");
-          button.className = "delete-member-btn";
-          button.type = "button";
-          button.title = "删除成员";
-          button.setAttribute("aria-label", `删除${firstName(player.name) || "成员"}`);
-          button.textContent = "×";
-          button.addEventListener("click", (event) => {
-            event.stopPropagation();
-            deletePlayer(String(player.id));
-          });
-          box.append(button);
-        }
+        const button = document.createElement("button");
+        button.className = "delete-member-btn";
+        button.type = "button";
+        button.title = "删除成员";
+        button.setAttribute("aria-label", `删除${firstName(player.name) || "成员"}`);
+        button.textContent = "×";
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          deletePlayer(String(player.id));
+        });
+        box.append(button);
 
         wrapper.append(box);
         return wrapper;
@@ -5954,9 +6074,9 @@
         } else {
           const hint = document.createElement("span");
           hint.className = "empty-hint";
-          hint.textContent = isDraft ? "" : "暂无照片";
+          hint.textContent = "暂无照片";
           box.append(hint);
-          if (!state.readOnly && !isDraft) {
+          if (!state.readOnly) {
             box.append(createCellActionButton("上传照片", () => triggerPhotoUpload(String(player.id))));
           }
         }
@@ -5970,14 +6090,14 @@
         if (!value) {
           const hint = document.createElement("span");
           hint.className = "empty-hint";
-          hint.textContent = isDraft ? "" : "暂无备注";
+          hint.textContent = "暂无备注";
           box.append(hint);
         } else {
           const span = document.createElement("span");
           span.textContent = value;
           box.append(span);
         }
-        if (!state.readOnly && !isDraft) {
+        if (!state.readOnly) {
           box.append(createCellActionButton("编辑", () => startNotesEdit(rowKeyFor(player))));
         }
         wrapper.append(box);
@@ -6005,7 +6125,7 @@
     }
 
     function rowKeyFor(player) {
-      return player.id ? String(player.id) : "draft";
+      return String(player.id);
     }
 
     function getJoinNumber(playerId, affiliation) {
@@ -6027,14 +6147,13 @@
       return player?.affiliation === "特殊";
     }
 
-    function getDisplayRows(includeDraft) {
+    function getDisplayRows() {
       const searchTerms = splitSearchTerms(els.globalSearch.value);
       let rows = state.players
-        .map((player) => ({ key: String(player.id), player, draft: false }))
+        .map((player) => ({ key: String(player.id), player }))
         .filter((row) => passesSearch(row.player, searchTerms) && passesFilters(row.player));
 
       if (state.sort.key) rows = rows.sort((a, b) => compareRows(a.player, b.player, state.sort.key, state.sort.dir));
-      if (includeDraft) rows.push({ key: "draft", player: state.draft, draft: true });
       return rows;
     }
 
@@ -6105,7 +6224,7 @@
     function focusSelectedCell() {
       requestAnimationFrame(() => {
         const cell = els.tableBody.querySelector("td.selected .cell");
-        if (cell && !state.editing && !isTextControl(document.activeElement)) cell.focus({ preventScroll: true });
+        if (cell && !state.editing && !isAnyModalOpen() && !isTextControl(document.activeElement)) cell.focus({ preventScroll: true });
       });
     }
 
@@ -6163,6 +6282,11 @@
         els.globalSearch.select();
         return;
       }
+      if (event.altKey && !event.ctrlKey && !event.metaKey && !event.isComposing && event.key.toLowerCase() === "n" && !els.databaseArea.hidden) {
+        event.preventDefault();
+        openMemberCreateModal();
+        return;
+      }
       if (state.editing || isTextControl(document.activeElement)) return;
 
       if (state.readOnly) {
@@ -6173,17 +6297,6 @@
         return;
       }
 
-      if (event.altKey && event.key.toLowerCase() === "n") {
-        event.preventDefault();
-        if (state.hiddenColumns.delete("name")) {
-          renderColumnVisibilityMenu();
-          renderHeader();
-        }
-        state.selected = { rowKey: "draft", col: 0 };
-        renderTable();
-        startNameEdit("draft", "replace");
-        return;
-      }
 
       const { rowKey, col } = state.selected;
       const column = COLUMNS[col];
@@ -6221,8 +6334,7 @@
       }
       if (column.key === "name" && event.key === "Delete") {
         event.preventDefault();
-        if (rowKey === "draft") saveCell(rowKey, "name", "");
-        else deletePlayer(rowKey);
+        deletePlayer(rowKey);
         return;
       }
       if (column.key === "name" && isPrintableKey(event)) {
@@ -6232,7 +6344,7 @@
     }
 
     function moveSelection(key) {
-      const rows = getDisplayRows(!state.readOnly);
+      const rows = getDisplayRows();
       if (!rows.length) return;
       let rowIndex = rows.findIndex((row) => row.key === state.selected.rowKey);
       if (rowIndex < 0) rowIndex = 0;
@@ -6292,7 +6404,7 @@
       const player = getPlayerByKey(rowKey);
       const columnIndex = COLUMNS.findIndex((column) => column.key === "notes");
       const td = els.tableBody.querySelector(`td[data-row-key="${cssEscape(rowKey)}"][data-col="${columnIndex}"]`);
-      if (!td || !player || rowKey === "draft") return;
+      if (!td || !player) return;
       state.editing = { rowKey, col: columnIndex };
 
       const textarea = document.createElement("textarea");
@@ -6493,15 +6605,6 @@
       const player = getPlayerByKey(rowKey);
       if (!player) return;
 
-      if (rowKey === "draft") {
-        state.draft = { ...state.draft, [key]: value };
-        if (!state.draft.name.trim()) {
-          renderTable();
-          return;
-        }
-        await createPlayerFromDraft();
-        return;
-      }
 
       if (player[key] === value) {
         renderTable();
@@ -6563,28 +6666,101 @@
       renderTable();
     }
 
-    async function createPlayerFromDraft() {
-      if (state.readOnly) return;
-      const draft = { ...state.draft, name: state.draft.name.trim() };
-      state.draft = { ...DEFAULT_DRAFT };
-      renderTable();
-      setSync("正在新建");
+    function openMemberCreateModal() {
+      if (state.readOnly || state.dataSource !== "cloud") {
+        toast("连接云端后才可新建成员");
+        return;
+      }
+      if (state.creatingPlayer || els.memberCreateModal.classList.contains("open")) return;
+      closeColumnVisibilityMenu();
+      closeMultiFilterMenus();
+      els.memberCreateForm.reset();
+      els.memberNameInput.value = DEFAULT_NEW_MEMBER.name;
+      els.memberNotesInput.value = DEFAULT_NEW_MEMBER.notes;
+      [
+        [els.memberGenderInput, GENDERS, DEFAULT_NEW_MEMBER.gender],
+        [els.memberLevelInput, LEVELS, DEFAULT_NEW_MEMBER.level],
+        [els.memberAffiliationInput, AFFILIATIONS, DEFAULT_NEW_MEMBER.affiliation],
+      ].forEach(([select, values, defaultValue]) => {
+        select.replaceChildren(...values.map((value) => new Option(value, value)));
+        select.value = defaultValue;
+      });
+      els.memberCreateError.textContent = "";
+      els.memberCreateError.hidden = true;
+      els.memberNameInput.removeAttribute("aria-invalid");
+      setMemberCreateSaving(false);
+      openModal("memberCreateModal");
+      els.memberNameInput.focus();
+    }
+
+    function setMemberCreateSaving(saving) {
+      state.creatingPlayer = saving;
+      els.memberCreateForm.setAttribute("aria-busy", String(saving));
+      els.memberCreateForm.querySelectorAll("input, select, textarea, button").forEach((control) => {
+        control.disabled = saving;
+      });
+      els.saveMemberBtn.textContent = saving ? "正在保存…" : "新建成员";
+      els.newMemberBtn.disabled = saving || state.readOnly || state.dataSource !== "cloud";
+    }
+
+    async function submitNewMember(event) {
+      event.preventDefault();
+      if (state.creatingPlayer) return;
+      if (state.readOnly || state.dataSource !== "cloud") {
+        els.memberCreateError.textContent = "当前无法写入数据库，请恢复云端连接后重试。";
+        els.memberCreateError.hidden = false;
+        return;
+      }
+      const member = {
+        name: els.memberNameInput.value.trim(),
+        gender: els.memberGenderInput.value,
+        level: els.memberLevelInput.value,
+        notes: els.memberNotesInput.value.trim(),
+        affiliation: els.memberAffiliationInput.value,
+      };
+      if (!member.name) {
+        els.memberCreateError.textContent = "请填写成员名称。";
+        els.memberCreateError.hidden = false;
+        els.memberNameInput.setAttribute("aria-invalid", "true");
+        els.memberNameInput.focus();
+        return;
+      }
+      els.memberNameInput.removeAttribute("aria-invalid");
+      els.memberCreateError.hidden = true;
+      setMemberCreateSaving(true);
+      setSync("正在新建成员");
+      let createdPlayer = null;
       try {
         const data = await api("/api/players", {
           method: "POST",
-          body: JSON.stringify(draft),
+          body: JSON.stringify(member),
         });
         state.players.push(data.player);
         applyPaymentOrderState(data);
-        state.selected = { rowKey: String(data.player.id), col: 0 };
-        setSync("已保存");
+        createdPlayer = data.player;
       } catch (error) {
-        state.draft = draft;
-        state.selected = { rowKey: "draft", col: 0 };
         setSync("新建失败");
-        toast(`新建失败：${error.message}`);
+        els.memberCreateError.textContent = `新建失败：${error.message}。填写内容已保留，请重试。`;
+        els.memberCreateError.hidden = false;
+      } finally {
+        setMemberCreateSaving(false);
       }
+      if (!createdPlayer) {
+        els.saveMemberBtn.focus();
+        return;
+      }
+      const rowKey = String(createdPlayer.id);
+      state.selected = { rowKey, col: COLUMNS.findIndex((column) => column.key === "name") };
+      closeModal("memberCreateModal");
       renderTable();
+      setSync("已保存");
+      const visible = getDisplayRows().some((row) => row.key === rowKey);
+      toast(visible ? `已新建：${createdPlayer.name}` : `已新建：${createdPlayer.name}；当前筛选条件下未显示`);
+      if (visible && !els.databaseArea.hidden) {
+        requestAnimationFrame(() => {
+          els.tableBody.querySelector(`tr[data-row-key="${cssEscape(rowKey)}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+        });
+      }
     }
 
     async function deletePlayer(rowKey, { confirmMessage = "", skipConfirm = false } = {}) {
@@ -6593,14 +6769,14 @@
         return false;
       }
       const player = getPlayerByKey(rowKey);
-      if (!player || rowKey === "draft") return false;
+      if (!player) return false;
 
       const label = firstName(player.name) || player.name || "这个成员";
       if (!skipConfirm && !window.confirm(confirmMessage || `确定删除“${label}”吗？`)) return false;
 
       const previousPlayers = [...state.players];
       state.players = state.players.filter((item) => String(item.id) !== String(player.id));
-      state.selected = { rowKey: "draft", col: 0 };
+      state.selected = { rowKey: "", col: 0 };
       renderTable();
       setSync("正在删除");
 
@@ -6628,7 +6804,6 @@
     }
 
     function getPlayerByKey(rowKey) {
-      if (rowKey === "draft") return state.draft;
       return state.players.find((player) => String(player.id) === String(rowKey));
     }
 
@@ -8918,7 +9093,7 @@
       }
       const selectedColumns = COLUMNS.filter((column) => selectedKeys.includes(column.key));
       const rows = [selectedColumns.map((column) => column.label)];
-      for (const row of getDisplayRows(false)) rows.push(selectedColumns.map((column) => getCellValue(row.player, column.key)));
+      for (const row of getDisplayRows()) rows.push(selectedColumns.map((column) => getCellValue(row.player, column.key)));
       const blob = new Blob([createXlsx(rows)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
@@ -13261,6 +13436,7 @@
     }
 
     function closeModal(id) {
+      if (id === "memberCreateModal" && state.creatingPlayer) return;
       if (id === "trainingAnomalyModal" && !state.trainingAnomaly?.confirmed) state.trainingAnomaly = null;
       const modal = document.getElementById(id);
       if (!modal?.classList.contains("open")) return;
@@ -13308,6 +13484,12 @@
         if (topId) appShell.setAttribute("aria-hidden", "true");
         else appShell.removeAttribute("aria-hidden");
       }
+      const memberCreateOpen = openIds.includes("memberCreateModal");
+      document.querySelectorAll(".nav-preview-sidebar, .nav-preview-header").forEach((element) => {
+        element.inert = memberCreateOpen;
+        if (memberCreateOpen) element.setAttribute("aria-hidden", "true");
+        else element.removeAttribute("aria-hidden");
+      });
     }
 
     function getModalFocusableElements(modal) {
