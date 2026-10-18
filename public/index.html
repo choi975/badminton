@@ -1315,14 +1315,6 @@
 
     .short-rule-name { font-weight: 700; }
 
-    .short-rule-type {
-      display: block;
-      margin-top: 2px;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 400;
-    }
-
     .short-rule-schedule { font-variant-numeric: tabular-nums; }
     .short-rule-note { color: var(--muted); }
 
@@ -13192,10 +13184,6 @@
       const name = document.createElement("span");
       name.className = "short-rule-name";
       name.textContent = player ? firstName(player.name) : `#${rule.playerId}`;
-      const type = document.createElement("small");
-      type.className = "short-rule-type";
-      type.textContent = isLongTermRuleType(rule) ? "长期" : "短期";
-      name.append(type);
       const schedule = document.createElement("span");
       schedule.className = "short-rule-schedule";
       schedule.textContent = shortRuleSchedule(rule);

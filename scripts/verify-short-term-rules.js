@@ -166,17 +166,18 @@ assert.deepEqual(displayRow.children.map((cell) => cell.className || cell.tagNam
   "short-rule-name", "short-rule-schedule", "short-rule-note", "button",
 ]);
 assert.equal(displayRow.children[0].textContent, "果花");
-assert.equal(displayRow.children[0].children[0].textContent, "短期");
+assert.equal(displayRow.children[0].children.length, 0, "Names must not have a short-term subtitle");
 assert.equal(displayRow.children[1].textContent, "9.3（星期四） 再打");
 assert.equal(displayRow.children[2].textContent, "培训");
 displayRow.children[3].listeners.click();
 assert.equal(deletedRuleId, 42);
 const weeklyRow = context.createRuleRow(notDays);
-assert.equal(weeklyRow.children[0].children[0].textContent, "长期");
+assert.equal(weeklyRow.children[0].children.length, 0, "Names must not have a long-term subtitle");
 assert.equal(weeklyRow.children[1].textContent, "周五、周六、周日 不打");
 assert.equal(weeklyRow.children[2].textContent, "—");
 assert.equal(context.createRuleRow({ playerId: 999, rule: { note: "<b>原样显示</b>" } }).children[2].textContent, "<b>原样显示</b>");
 assert.equal(context.createRuleRow({ playerId: 999 }).children[0].textContent, "#999");
+assert.doesNotMatch(indexHtml, /short-rule-type/);
 assert.match(indexHtml, /\.short-rule-row \{\s*display: grid;/);
 assert.match(indexHtml, /\.short-rule-note \{ grid-column: 2; grid-row: 2; \}/);
 
