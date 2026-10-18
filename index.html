@@ -1291,10 +1291,10 @@
     }
 
     .short-rule-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr) 44px;
+      align-items: start;
+      gap: 8px;
       padding: 7px 9px;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -1311,6 +1311,30 @@
     .short-rule-row span {
       min-width: 0;
       overflow-wrap: anywhere;
+    }
+
+    .short-rule-name { font-weight: 700; }
+
+    .short-rule-type {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 400;
+    }
+
+    .short-rule-schedule { font-variant-numeric: tabular-nums; }
+    .short-rule-note { color: var(--muted); }
+
+    @media (max-width: 560px) {
+      .short-rule-row {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr) 44px;
+        row-gap: 4px;
+      }
+      .short-rule-name { grid-column: 1; grid-row: 1 / span 2; }
+      .short-rule-schedule { grid-column: 2; grid-row: 1; }
+      .short-rule-note { grid-column: 2; grid-row: 2; }
+      .short-rule-row button { grid-column: 3; grid-row: 1 / span 2; }
     }
 
     .short-rule-help {
@@ -12628,9 +12652,15 @@
       return [...new Set((weekdays || []).map((day) => labels[day]).filter(Boolean))].join("、");
     }
 
+    function formatRuleWeekdaySuffix(dateString) {
+      if (!isValidIsoDate(dateString)) return "";
+      return `（星期${"日一二三四五六"[getBeijingWeekday(dateString)]}）`;
+    }
+
     function formatShortRuleDate(dateString) {
-      const [, month, day] = String(dateString || "").split("-").map(Number);
-      return Number.isInteger(month) && Number.isInteger(day) ? `${month}.${day}` : "日期未知";
+      if (!isValidIsoDate(dateString)) return "日期未知";
+      const [, month, day] = dateString.split("-").map(Number);
+      return `${month}.${day}${formatRuleWeekdaySuffix(dateString)}`;
     }
 
     function normalizeShortRuleNote(value) {
@@ -13159,14 +13189,24 @@
       const player = getPlayerById(rule.playerId);
       const row = document.createElement("div");
       row.className = "short-rule-row";
-      const text = document.createElement("span");
-      const typeLabel = isLongTermRuleType(rule) ? "长期" : "短期";
-      text.textContent = `[${typeLabel}] ${player ? firstName(player.name) : `#${rule.playerId}`} ${shortRuleDescription(rule)}`;
+      const name = document.createElement("span");
+      name.className = "short-rule-name";
+      name.textContent = player ? firstName(player.name) : `#${rule.playerId}`;
+      const type = document.createElement("small");
+      type.className = "short-rule-type";
+      type.textContent = isLongTermRuleType(rule) ? "长期" : "短期";
+      name.append(type);
+      const schedule = document.createElement("span");
+      schedule.className = "short-rule-schedule";
+      schedule.textContent = shortRuleSchedule(rule);
+      const note = document.createElement("span");
+      note.className = "short-rule-note";
+      note.textContent = normalizeShortRuleNote(rule.rule?.note) || "—";
       const deleteButton = document.createElement("button");
       deleteButton.type = "button";
       deleteButton.textContent = "删除";
       deleteButton.addEventListener("click", () => deleteShortRule(rule.id));
-      row.append(text, deleteButton);
+      row.append(name, schedule, note, deleteButton);
       return row;
     }
 
@@ -13264,13 +13304,17 @@
       shortRules.forEach((rule) => els.shakeShortTermRulesList.append(createRuleRow(rule)));
     }
 
-    function shortRuleDescription(rule) {
-      const note = normalizeShortRuleNote(rule.rule?.note);
-      const suffix = note ? ` ${note}` : "";
-      if (rule.type === "only_days") return `只打 ${formatWeekdayNames(rule.rule?.weekdays)}${suffix}`;
-      if (rule.type === "not_days") return `${formatWeekdayNames(rule.rule?.weekdays)} 不打${suffix}`;
-      if (rule.expiresOn) return `${formatShortRuleDate(addDaysToIsoDate(rule.expiresOn, 1))} 再打${suffix}`;
+    function shortRuleSchedule(rule) {
+      if (rule.type === "only_days") return `只打 ${formatWeekdayNames(rule.rule?.weekdays)}`;
+      if (rule.type === "not_days") return `${formatWeekdayNames(rule.rule?.weekdays)} 不打`;
+      if (rule.expiresOn) return `${formatShortRuleDate(addDaysToIsoDate(rule.expiresOn, 1))} 再打`;
       return "短期规则";
+    }
+
+    function shortRuleDescription(rule) {
+      const schedule = shortRuleSchedule(rule);
+      const note = normalizeShortRuleNote(rule.rule?.note);
+      return note && schedule !== "短期规则" ? `${schedule} ${note}` : schedule;
     }
 
     function renderShortTermRulesList() {
@@ -13298,7 +13342,7 @@
       const filteredSummary = totalRecommendations !== recommendations.length
         ? `（筛选后 ${recommendations.length}/${totalRecommendations} 人）`
         : ` · 推荐 ${recommendations.length} 人`;
-      els.shakePeopleSummary.textContent = `${today}   当前成局概率 ${todayPercent}%${filteredSummary}${bottomedSummary}`;
+      els.shakePeopleSummary.textContent = `${today}${formatRuleWeekdaySuffix(today)}   当前成局概率 ${todayPercent}%${filteredSummary}${bottomedSummary}`;
       els.shakeGenderFilter.value = state.shakeFilters.gender;
       els.shakeLevelFilter.value = state.shakeFilters.levelGroup;
       els.shakeFilterReset.hidden = !state.shakeFilters.gender && !state.shakeFilters.levelGroup;
