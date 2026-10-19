@@ -1,3 +1,4 @@
+import "../level-groups.js";
 import { execFile } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -94,6 +95,7 @@ const players = playerRows.map((row) => ({
   updatedAt: row.updated_at,
 }));
 const levelDescriptions = Object.fromEntries(levelRows.map((row) => [row.level, row.description]));
+const levelGroups = globalThis.BadmintonLevelGroups.fromStored(settingRows.find((row) => row.key === "level_groups")?.value);
 const levelGuideRaw = settingRows.find((row) => row.key === "level_guide_raw")?.value || "";
 const storedEdcBalance = Number(settingRows.find((row) => row.key === "edc_balance")?.value);
 const edcBalance = Number.isFinite(storedEdcBalance) ? storedEdcBalance : 860;
@@ -287,6 +289,7 @@ const snapshot = {
     players,
     levelDescriptions,
     levelGuideRaw,
+    levelGroups,
     edcBalance,
     groupJoinNumbers,
     paymentOrders,

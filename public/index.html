@@ -8,6 +8,7 @@
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js" crossorigin="anonymous"></script>
   <script src="./group-probability.js"></script>
   <script src="./court-pricing.js"></script>
+  <script src="./level-groups.js"></script>
   <style>
     :root {
       --bg: #f2f6f5;
@@ -1654,6 +1655,29 @@
     .estimator-type-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 6px; margin-top: 8px; }
     .estimator-type-editor input { min-height: 30px; }
     .estimator-type-editor button { grid-column: 1 / -1; min-height: 30px; }
+
+    .summary-panel:has(.estimator-advanced-panel:not([hidden])) { overflow-y: auto; overscroll-behavior-y: contain; }
+    .summary-panel:has(.estimator-advanced-panel:not([hidden])) > .summary-head { position: sticky; top: 0; z-index: 2; }
+    @media (max-width: 760px) {
+      .summary-panel:has(.estimator-advanced-panel:not([hidden])) { overflow: visible; }
+      .summary-panel:has(.estimator-advanced-panel:not([hidden])) > .summary-head { position: static; }
+    }
+    .level-group-editor { display: grid; gap: 10px; padding-bottom: 14px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+    .level-group-editor h3 { margin: 0; color: var(--text); font-size: 14px; }
+    .level-group-editor p { margin: 0; overflow-wrap: anywhere; }
+    .level-group-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px 8px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+    .level-group-row label { display: grid; gap: 3px; min-width: 0; }
+    .level-group-row .level-group-name { grid-column: 1 / 3; }
+    .level-group-row input, .level-group-row select { width: 100%; min-width: 0; min-height: 36px; padding: 6px 8px; font-size: 14px; }
+    .level-group-delete { align-self: end; min-height: 36px; color: var(--danger); }
+    .level-group-row [aria-invalid="true"] { border-color: var(--danger); }
+    .level-group-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .level-group-actions button { min-height: 36px; }
+    .level-group-feedback { color: var(--muted); }
+    .level-group-feedback[data-error="true"] { color: var(--danger); }
+    @media (pointer: coarse) {
+      .level-group-row input, .level-group-row select, .level-group-editor button { min-height: 44px; }
+    }
 
     .stats-box {
       border: 0;
@@ -4308,7 +4332,7 @@
             <section class="summary-panel">
               <div class="summary-head">
                 <span>人数统计</span>
-                <button id="estimatorAdvancedBtn" class="fee-advanced-toggle" type="button">高级</button>
+                <button id="estimatorAdvancedBtn" class="fee-advanced-toggle" type="button" aria-expanded="false" aria-controls="estimatorAdvancedPanel">高级</button>
               </div>
               <div id="chainStats" class="stats-box"></div>
               <div id="estimatorAdvancedPanel" class="estimator-advanced-panel" hidden></div>
@@ -4777,14 +4801,8 @@
     const AFFILIATIONS = ["球友", "Hytronik", "球友+Hytronik", "特殊"];
     const CHAIN_NUMBER_PREFIX = /^\s*\d+\s*[\.、\):：-]\s*/;
     const SHARED_CHAIN_METADATA_PREFIXES = ["组织者", "活动时间", "活动地点", "收费类型", "AA预收费用", "已报名"];
-    const PLUS_LEVEL_LABELS = [["比赛级高手", "6级"], ["新手", "2级"], ["中手", "3级"], ["高手", "4级"]];
-    const PLUS_GROUP_LEVEL_OPTIONS = [
-      { label: "不详", level: "不详", text: "等级不详" },
-      { label: "新手", level: "2级", text: "新手（2级）" },
-      { label: "中手", level: "3级", text: "中手（3级）" },
-      { label: "高手", level: "4级", text: "高手（4级）" },
-      { label: "比赛级高手", level: "6级", text: "比赛级高手（6级）" },
-    ];
+    const LevelGroups = globalThis.BadmintonLevelGroups;
+    const LEVEL_GROUPS_LOCAL_KEY = "badminton-level-groups-v1";
     const CourtPricing = globalThis.BadmintonCourtPricing;
     const STANDARD_COURT_UNIT_PRICE = 70;
     const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
@@ -4924,6 +4942,9 @@
       chainInputUserOwned: false,
       trainingAnomaly: null,
       estimatorAdvancedOpen: false,
+      levelGroups: LevelGroups.normalize(null),
+      levelGroupDraft: null,
+      levelGroupsSaving: false,
       selectedEstimateShuttleTypeId: "rsl3",
       calendarDetailEntries: [],
       calendarDetailColumnOrder: CALENDAR_DETAIL_COLUMNS.map((column) => column.key),
@@ -5251,10 +5272,20 @@
     }
 
     function applyBootstrapData(data, source, generatedAt) {
+      const cleanGroupDraft = !state.levelGroupDraft || JSON.stringify(state.levelGroupDraft) === JSON.stringify(state.levelGroups);
       state.players = Array.isArray(data.players) ? data.players : [];
       state.sessions = normalizeSessions(data.sessions);
       state.levelDescriptions = data.levelDescriptions || {};
       state.levelGuideRaw = data.levelGuideRaw || "";
+      state.levelGroups = LevelGroups.normalize(data.levelGroups);
+      if (IS_GITHUB_PAGES || source !== "cloud") {
+        try {
+          const localGroups = localStorage.getItem(LEVEL_GROUPS_LOCAL_KEY);
+          if (localGroups) state.levelGroups = LevelGroups.fromStored(localGroups);
+        } catch { /* Browser storage may be unavailable. */ }
+      }
+      if (cleanGroupDraft) state.levelGroupDraft = null;
+      renderShakeLevelOptions();
       state.estimator = normalizeEstimator(data.estimator);
       state.shortTermRules = Array.isArray(data.shortTermRules) ? data.shortTermRules : state.shortTermRules;
       state.groupAttemptOutcomes = Array.isArray(data.groupAttemptOutcomes) ? data.groupAttemptOutcomes : state.groupAttemptOutcomes;
@@ -5274,6 +5305,8 @@
       state.dataSource = source;
       state.dataTimestamp = generatedAt || null;
       state.readOnly = IS_GITHUB_PAGES || source !== "cloud";
+      refreshLevelGroupEditor();
+      refreshLevelGroupEditor();
       groupForecastCacheKey = "";
       applyReadOnlyUi();
       updateDataStatus();
@@ -10119,7 +10152,7 @@
           entry.detectedLevelGroupLabel = "不详";
           entry.detectedGender = entry.sharedRoster ? entry.detectedGender : "不详";
           entry.levelText = override?.levelText || "不详";
-          entry.levelGroupLabel = override?.levelGroupLabel || "不详";
+          entry.levelGroupLabel = getLevelGroupLabel(entry.levelText);
           entry.gender = entry.sharedRoster && !entry.preservedSnapshot ? entry.detectedGender : (override?.gender || "不详");
           entry.isFemale = entry.gender === "女";
           entry.sortRank = levelRank(entry.levelText);
@@ -10184,19 +10217,13 @@
 
     function getChainLevelDisplay(entry) {
       const display = state.chainLevelMode === "group"
-        ? (entry.levelGroupLabel || getLevelGroupLabel(entry.levelText))
+        ? getLevelGroupLabel(entry.levelText)
         : entry.levelText;
       return display === "不详" ? "等级不详" : display;
     }
 
     function getLevelGroupLabel(level) {
-      if (!level || level === "不详" || level === "等级不详") return "不详";
-      const rank = levelRank(level);
-      if (rank >= 0.5 && rank <= 2) return "新手";
-      if (rank >= 2.5 && rank <= 3.5) return "中手";
-      if (rank >= 4 && rank <= 5) return "高手";
-      if (rank >= 6 && rank <= 9) return "比赛级高手";
-      return "不详";
+      return LevelGroups.getLabel(level, state.levelGroups);
     }
 
     function parseChainLine(line, index, aliasIndex, overrideKey = "", override = null) {
@@ -10227,10 +10254,7 @@
       const levelText = (preservedSnapshot || levelEditable) && override?.levelText
         ? override.levelText
         : detectedLevelText;
-      const detectedLevelGroupLabel = !sharedRoster && plusMetadata.plusEntry ? plusMetadata.levelGroupLabel : null;
-      const levelGroupLabel = (preservedSnapshot || levelEditable) && override?.levelGroupLabel
-        ? override.levelGroupLabel
-        : (detectedLevelGroupLabel || getLevelGroupLabel(levelText));
+      const levelGroupLabel = getLevelGroupLabel(levelText);
       const overrideGender = (preservedSnapshot || plusMetadata.plusEntry)
         ? (typeof override?.gender === "string"
           ? override.gender
@@ -10261,7 +10285,7 @@
         preservedIsCompanion: preservedSnapshot ? Boolean(override.isCompanion) : plusMetadata.plusEntry,
         preservedProfileSnapshotReliable,
         detectedLevelText,
-        detectedLevelGroupLabel,
+        detectedLevelGroupLabel: getLevelGroupLabel(detectedLevelText),
         detectedGender,
         gender,
         levelText,
@@ -10369,7 +10393,7 @@
     }
 
     function getInlinePlusLevelOptions() {
-      if (state.chainLevelMode === "group") return PLUS_GROUP_LEVEL_OPTIONS;
+      if (state.chainLevelMode === "group") return LevelGroups.options(state.levelGroups);
       return [
         { label: "不详", level: "不详", text: "等级不详" },
         ...LEVELS.filter((level) => level !== "不详").map((level) => ({ label: level, level, text: level })),
@@ -10379,9 +10403,10 @@
     function getInlinePlusLevelLabel(entry) {
       const options = getInlinePlusLevelOptions();
       const currentLabel = state.chainLevelMode === "group"
-        ? (entry.levelGroupLabel || getLevelGroupLabel(entry.levelText))
+        ? getLevelGroupLabel(entry.levelText)
         : entry.levelText;
-      const option = options.find((item) => item.label === currentLabel || item.level === currentLabel);
+      const option = options.find((item) => item.label === currentLabel || item.level === currentLabel
+        || (currentLabel === "未分组" && item.level === entry.levelText));
       return option?.label || "不详";
     }
 
@@ -10438,7 +10463,7 @@
       if (!isCompanionLine) return { plusEntry: false, displayName, levelText: null, isFemale: false };
 
       const suffix = memberSuffix || displayName.slice((genericSuffixMatch?.index || 0) + (genericSuffixMatch?.[0]?.length || 0));
-      const levelMapping = PLUS_LEVEL_LABELS.find(([label]) => suffix.includes(label));
+      const levelMapping = LevelGroups.annotationLabels(state.levelGroups).find(([label]) => suffix.includes(label));
       let cleanedDisplayName = displayName;
 
       if (levelMapping) {
@@ -10450,7 +10475,7 @@
         displayName: cleanedDisplayName,
         explicitOwnerName: extractCompanionOwnerName(displayName),
         levelText: levelMapping?.[1] || "不详",
-        levelGroupLabel: levelMapping?.[0] || "不详",
+        levelGroupLabel: getLevelGroupLabel(levelMapping?.[1]),
         isFemale: displayName.includes("🌸"),
       };
     }
@@ -10617,10 +10642,197 @@
       renderEstimatorAdvancedPanel();
     }
 
+    function renderShakeLevelOptions() {
+      const names = state.levelGroups.map(group => group.name).concat(["未分组", "不详"]);
+      if (!names.includes(state.shakeFilters.levelGroup)) state.shakeFilters.levelGroup = "";
+      const options = [{ name: "全部等级", value: "" }, ...names.map(name => ({ name: name === "不详" ? "等级不详" : name, value: name }))];
+      els.shakeLevelFilter.replaceChildren(...options.map(item => {
+        const option = document.createElement("option");
+        option.value = item.value;
+        option.textContent = item.name;
+        return option;
+      }));
+      els.shakeLevelFilter.value = state.shakeFilters.levelGroup;
+    }
+
+    function usesCloudLevelGroups() {
+      return IS_WORKER_APP && !state.readOnly && state.dataSource === "cloud";
+    }
+
+    function createLevelGroupEditor() {
+      if (!state.levelGroupDraft) state.levelGroupDraft = state.levelGroups.map(group => ({ ...group }));
+      const editor = document.createElement("section");
+      editor.className = "level-group-editor";
+      editor.setAttribute("aria-labelledby", "levelGroupTitle");
+      const title = document.createElement("h3");
+      title.id = "levelGroupTitle";
+      title.textContent = "等级分组";
+      const hint = document.createElement("p");
+      hint.textContent = "范围包含起止等级，不能重叠；未覆盖的已知等级计入“未分组”。修改分组不会改动成员等级和历史账单。";
+      const scope = document.createElement("p");
+      scope.textContent = usesCloudLevelGroups()
+        ? "保存到云端，在其他设备重新打开后生效。"
+        : "当前为只读版或离线状态，分组仅保存在本浏览器，不修改云端。";
+      const feedback = document.createElement("p");
+      feedback.id = "levelGroupFeedback";
+      feedback.className = "level-group-feedback";
+      feedback.setAttribute("role", "status");
+      feedback.setAttribute("aria-live", "polite");
+      editor.append(title, hint, scope);
+      state.levelGroupDraft.forEach((group, index) => {
+        const row = document.createElement("div");
+        row.className = "level-group-row";
+        const addField = (field, text) => {
+          const label = document.createElement("label");
+          if (field === "name") label.className = "level-group-name";
+          const caption = document.createElement("span");
+          caption.textContent = text;
+          const input = document.createElement(field === "name" ? "input" : "select");
+          input.id = "level-group-" + index + "-" + field;
+          input.dataset.index = index;
+          input.dataset.field = field;
+          input.setAttribute("aria-label", "分组" + (index + 1) + " · " + text);
+          input.setAttribute("aria-describedby", feedback.id);
+          if (field === "name") { input.maxLength = 20; input.placeholder = "填写分组名称"; }
+          else LevelGroups.ranks.forEach(rank => {
+            const option = document.createElement("option");
+            option.value = rank;
+            option.textContent = rank + "级";
+            input.append(option);
+          });
+          input.value = group[field];
+          input.disabled = state.levelGroupsSaving;
+          input.addEventListener(field === "name" ? "input" : "change", () => {
+            group[field] = field === "name" ? input.value : Number(input.value);
+            updateLevelGroupFeedback(editor);
+          });
+          label.append(caption, input);
+          return label;
+        };
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "level-group-delete";
+        remove.textContent = "删除";
+        remove.setAttribute("aria-label", "删除分组" + (index + 1));
+        remove.disabled = state.levelGroupsSaving || state.levelGroupDraft.length === 1;
+        remove.addEventListener("click", () => {
+          state.levelGroupDraft.splice(index, 1);
+          refreshLevelGroupEditor("level-group-" + Math.min(index, state.levelGroupDraft.length - 1) + "-name");
+        });
+        row.append(addField("name", "分组名称"), remove, addField("min", "起始等级"), addField("max", "结束等级"));
+        editor.append(row);
+      });
+      const actions = document.createElement("div");
+      actions.className = "level-group-actions";
+      const addAction = (text, handler, disabled = false, primary = false) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = text;
+        button.disabled = state.levelGroupsSaving || disabled;
+        if (primary) button.className = "primary-btn";
+        button.addEventListener("click", handler);
+        actions.append(button);
+        return button;
+      };
+      addAction("新增分组", () => {
+        const rank = LevelGroups.ranks.find(rank => !state.levelGroupDraft.some(group => rank >= group.min && rank <= group.max)) || 0.5;
+        state.levelGroupDraft.push({ name: "", min: rank, max: rank });
+        refreshLevelGroupEditor("level-group-" + (state.levelGroupDraft.length - 1) + "-name");
+      }, state.levelGroupDraft.length >= LevelGroups.ranks.length);
+      addAction("恢复默认", () => {
+        state.levelGroupDraft = LevelGroups.normalize(null);
+        refreshLevelGroupEditor("level-group-0-name");
+      });
+      addAction("取消修改", () => {
+        state.levelGroupDraft = null;
+        refreshLevelGroupEditor("level-group-0-name");
+      });
+      const save = addAction(state.levelGroupsSaving ? "保存中…" : "保存分组", saveLevelGroups, false, true);
+      save.id = "saveLevelGroupsBtn";
+      editor.append(actions, feedback);
+      updateLevelGroupFeedback(editor);
+      return editor;
+    }
+
+    function refreshLevelGroupEditor(focusId) {
+      const oldEditor = els.estimatorAdvancedPanel.querySelector(".level-group-editor");
+      if (oldEditor) oldEditor.replaceWith(createLevelGroupEditor());
+      if (focusId) document.getElementById(focusId)?.focus();
+    }
+
+    function updateLevelGroupFeedback(editor) {
+      const result = LevelGroups.validate(state.levelGroupDraft);
+      const feedback = editor.querySelector(".level-group-feedback");
+      feedback.dataset.error = String(Boolean(result.error));
+      editor.querySelectorAll("[data-field]").forEach(input => {
+        const invalid = Number(input.dataset.index) === result.index && input.dataset.field === result.field;
+        input.setAttribute("aria-invalid", String(invalid));
+      });
+      if (result.error) feedback.textContent = result.error;
+      else {
+        const uncovered = LevelGroups.ranks.filter(rank => LevelGroups.getLabel(rank + "级", result.groups) === "未分组");
+        const dirty = JSON.stringify(result.groups) !== JSON.stringify(state.levelGroups);
+        feedback.textContent = (dirty ? "有未保存的修改。" : "随行人员选组时，按下拉框括号内的等级计算。")
+          + (uncovered.length ? "未分组：" + uncovered.map(rank => rank + "级").join("、") + "。" : "");
+      }
+      return result;
+    }
+
+    async function saveLevelGroups() {
+      if (state.levelGroupsSaving) return;
+      const editor = els.estimatorAdvancedPanel.querySelector(".level-group-editor");
+      const result = updateLevelGroupFeedback(editor);
+      if (result.error) {
+        editor.querySelector('[aria-invalid="true"]')?.focus();
+        return;
+      }
+      const cloud = usesCloudLevelGroups();
+      state.levelGroupsSaving = true;
+      refreshLevelGroupEditor();
+      try {
+        let groups = result.groups;
+        if (cloud) {
+          const data = await api("/api/level-groups", { method: "PUT", body: JSON.stringify({ levelGroups: groups }) });
+          if (LevelGroups.validate(data.levelGroups).error) throw new Error("云端返回的分组无效，请重试");
+          groups = LevelGroups.normalize(data.levelGroups);
+          const cached = readCachedBootstrap();
+          if (cached?.data) cacheBootstrap({ ...cached.data, levelGroups: groups });
+        } else {
+          localStorage.setItem(LEVEL_GROUPS_LOCAL_KEY, JSON.stringify(groups));
+        }
+        // Group edits change classification, not the numeric level already chosen for a companion.
+        state.chainEntries.filter(canEditChainEntryLevel).forEach(entry => {
+          if (!entry.overrideKey) return;
+          state.plusOverrides[entry.overrideKey] = {
+            ...(state.plusOverrides[entry.overrideKey] || {}),
+            levelText: entry.levelText,
+            gender: entry.gender,
+          };
+        });
+        state.levelGroups = groups;
+        state.levelGroupDraft = null;
+        renderShakeLevelOptions();
+        processChain();
+        if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
+        toast(cloud ? "分组已保存到云端" : "分组已保存在本浏览器");
+      } catch (error) {
+        // Keep the draft and old effective groups when persistence fails.
+        state.levelGroupsSaving = false;
+        refreshLevelGroupEditor("saveLevelGroupsBtn");
+        const feedback = els.estimatorAdvancedPanel.querySelector(".level-group-feedback");
+        feedback.dataset.error = "true";
+        feedback.textContent = "保存失败，修改已保留：" + error.message;
+        return;
+      }
+      state.levelGroupsSaving = false;
+      refreshLevelGroupEditor("saveLevelGroupsBtn");
+    }
+
     function toggleEstimatorAdvancedPanel() {
       state.estimatorAdvancedOpen = !state.estimatorAdvancedOpen;
       els.estimatorAdvancedPanel.hidden = !state.estimatorAdvancedOpen;
       els.estimatorAdvancedBtn.textContent = state.estimatorAdvancedOpen ? "收起" : "高级";
+      els.estimatorAdvancedBtn.setAttribute("aria-expanded", String(state.estimatorAdvancedOpen));
       renderEstimatorAdvancedPanel();
     }
 
@@ -10628,7 +10840,8 @@
       if (!state.estimatorAdvancedOpen) return;
       const model = state.estimator || DEFAULT_ESTIMATOR;
       const panel = els.estimatorAdvancedPanel;
-      panel.replaceChildren();
+      const groupEditor = panel.querySelector(".level-group-editor") || createLevelGroupEditor();
+      panel.replaceChildren(groupEditor);
       const lines = [
         `场地：每场约${formatCompactNumber(model.court?.peoplePerCourt || 0)}人，训练${model.training?.court?.sampleCount || 0}场`,
         `用球：型号 × 性别 × 等级 × 成员`,
@@ -10789,14 +11002,7 @@
     }
 
     function buildGroupedLevelStats(entries) {
-      const counts = new Map();
-      for (const entry of entries) {
-        const group = entry.levelGroupLabel || getLevelGroupLabel(entry.levelText);
-        counts.set(group, (counts.get(group) || 0) + 1);
-      }
-      return ["比赛级高手", "高手", "中手", "新手", "不详"]
-        .filter((group) => counts.has(group))
-        .map((group) => `${group === "不详" ? "等级不详" : group}：${counts.get(group)}人`);
+      return LevelGroups.stats(entries, state.levelGroups);
     }
 
     function updatePaymentButton() {
@@ -13332,7 +13538,7 @@
         : ` · 推荐 ${recommendations.length} 人`;
       els.shakePeopleSummary.textContent = `${today}${formatRuleWeekdaySuffix(today)}   当前成局概率 ${todayPercent}%${filteredSummary}${bottomedSummary}`;
       els.shakeGenderFilter.value = state.shakeFilters.gender;
-      els.shakeLevelFilter.value = state.shakeFilters.levelGroup;
+      renderShakeLevelOptions();
       els.shakeFilterReset.hidden = !state.shakeFilters.gender && !state.shakeFilters.levelGroup;
     }
 

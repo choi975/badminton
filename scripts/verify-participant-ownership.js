@@ -1,3 +1,4 @@
+import "../level-groups.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -281,8 +282,8 @@ for (const field of ["ownerPlayerId", "ownerName", "isCompanion"]) {
 for (const column of ["owner_player_id", "owner_name_snapshot", "is_companion"]) {
   assert.ok(new RegExp(`\\b${column}\\b`).test(workerSource), `Worker 应读写 ${column}`);
 }
-assert.ok(/\[\s*["']比赛级高手["']\s*,\s*["']6级["']\s*\]/.test(indexHtml), "生产映射应将比赛级高手保存为 6级");
-assert.ok(!/\[\s*["']比赛级高手["']\s*,\s*["']5级["']\s*\]/.test(indexHtml), "生产代码不得继续将比赛级高手保存为 5级");
+assert.equal(globalThis.BadmintonLevelGroups.options().find(option => option.label === "比赛级高手").level, "6级", "生产映射应将比赛级高手保存为 6级");
+
 assert.ok(/sample\.participantCount/.test(estimatorSource), "预估核心应继续消费总人数");
 assert.ok(!/genderLevelWeights/.test(estimatorSource), "当前预估公式不得悄悄启用性别/水平权重");
 for (const label of ["球友名", "在球友群的序号", "Hytronik成员名", "在Hytronik群的序号", "特殊成员名"]) {

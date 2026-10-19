@@ -1,3 +1,5 @@
+import "../level-groups.js";
+import LEVEL_GROUPS_JS from "./level-groups.txt";
 import "../court-pricing.js";
 import COURT_PRICING_JS from "./court-pricing.txt";
 import INDEX_HTML from "./index.html";
@@ -14,6 +16,7 @@ import {
   GROUP_LEARNING_VERSION,
 } from "./group-learning-core.js";
 
+const LevelGroups = globalThis.BadmintonLevelGroups;
 const CourtPricing = globalThis.BadmintonCourtPricing;
 const BOOKING_ESTIMATOR_DATA = JSON.parse(BOOKING_ESTIMATOR);
 
@@ -185,6 +188,13 @@ export default {
             "cache-control": "public, max-age=31536000, immutable",
           },
         });
+      }
+
+      if (url.pathname === "/level-groups.js") {
+        return new Response(LEVEL_GROUPS_JS, { headers: {
+          "content-type": "text/javascript; charset=utf-8",
+          "cache-control": "no-cache",
+        } });
       }
 
       if (url.pathname === "/court-pricing.js") {
@@ -612,7 +622,7 @@ async function handleApi(request, env, url) {
 
   if (pathname === "/api/bootstrap" && method === "GET") {
     const learningNow = new Date();
-    const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes, cachedGroupLearningSignals, edcBalance] = await Promise.all([
+    const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes, cachedGroupLearningSignals, edcBalance, levelGroups] = await Promise.all([
       listPlayers(env.DB),
       getLevelGuide(env.DB),
       getPaymentOrderState(env.DB),
@@ -621,6 +631,7 @@ async function handleApi(request, env, url) {
       listGroupAttemptOutcomes(env.DB),
       getCachedGroupLearningSignals(env.DB),
       getEdcBalance(env.DB),
+      getLevelGroups(env.DB),
     ]);
     const groupLearningSignals = cachedGroupLearningSignals || buildGroupLearningColdStart(players, sessions, learningNow);
     return json({
@@ -632,6 +643,7 @@ async function handleApi(request, env, url) {
       groupAttemptOutcomes,
       groupLearningSignals,
       edcBalance,
+      levelGroups,
     });
   }
 
@@ -1046,6 +1058,19 @@ async function handleApi(request, env, url) {
     if (balance === null) return json({ error: "EDC余额需要填写有效金额" }, 400);
     await saveEdcBalance(env.DB, balance);
     return json({ edcBalance: await getEdcBalance(env.DB) });
+  }
+
+  if (pathname === "/api/level-groups" && method === "GET") {
+    return json({ levelGroups: await getLevelGroups(env.DB) });
+  }
+
+  if (pathname === "/api/level-groups" && method === "PUT") {
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以修改云端分组" }, 403);
+    const result = LevelGroups.validate((await readJson(request))?.levelGroups);
+    if (result.error) return json({ error: result.error }, 400);
+    await env.DB.prepare("INSERT INTO app_settings (key, value) VALUES ('level_groups', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+      .bind(JSON.stringify(result.groups)).run();
+    return json({ levelGroups: result.groups });
   }
 
   if (pathname === "/api/level-guide" && method === "GET") {
@@ -3117,6 +3142,11 @@ async function getPlayerById(db, id) {
   const row = await db.prepare("SELECT * FROM players WHERE id = ?").bind(id).first();
   if (!row) throw new Error("保存后读取人物档案失败");
   return normalizePlayer(row);
+}
+
+async function getLevelGroups(db) {
+  const row = await db.prepare("SELECT value FROM app_settings WHERE key = 'level_groups'").first();
+  return LevelGroups.fromStored(row?.value);
 }
 
 async function getLevelGuide(db) {

@@ -1,3 +1,4 @@
+import "../level-groups.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
@@ -46,6 +47,7 @@ const state={
 const els={ chainInput:node(), extractRosterBtn:node(), chainOutput:node(), chainSpecialOutput:node(), levelDisplayModeBtn:node() };
 const scheduled=[];
 const deps={
+  LevelGroups: globalThis.BadmintonLevelGroups,
   state, els, document:{createElement:node}, IS_GITHUB_PAGES:true,
   CHAIN_NUMBER_PREFIX:/^\s*\d+\s*[\.、\):：-]\s*/,
   SHARED_CHAIN_METADATA_PREFIXES:["组织者","活动时间","活动地点","收费类型","AA预收费用","已报名"],

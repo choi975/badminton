@@ -21,6 +21,8 @@ const groupProbabilityTarget = resolve("public/group-probability.js");
 const workerGroupProbabilityTarget = resolve("src/group-probability.txt");
 
 mkdirSync(dirname(target), { recursive: true });
+copyFileSync(resolve("level-groups.js"), resolve("public/level-groups.js"));
+copyFileSync(resolve("level-groups.js"), resolve("src/level-groups.txt"));
 copyFileSync(source, target);
 copyFileSync(source, workerHtmlTarget);
 copyFileSync(html2canvasSource, html2canvasTarget);
