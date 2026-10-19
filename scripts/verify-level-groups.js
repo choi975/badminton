@@ -139,3 +139,36 @@ assert.equal(localWrites, 1);
 assert.equal(requests, 2, "Local mode must not write through the cloud API");
 assert.equal(JSON.stringify(uiState.levelGroups), JSON.stringify(defaults));
 console.log("Level group editor saves: duplicate guard, failure/retry, draft retention, companion levels and local/cloud isolation passed");
+
+// Compact editor contract: one line per group, accessible fields, only add/save actions.
+const makeElement = tag => ({
+  tag, children: [], dataset: {}, attrs: {}, className: "", textContent: "",
+  append(...children) { this.children.push(...children); },
+  setAttribute(key, value) { this.attrs[key] = value; },
+  addEventListener() {},
+});
+const editorContext = vm.createContext({
+  document: { createElement: makeElement }, LevelGroups,
+  state: { levelGroups: defaults, levelGroupDraft: null, levelGroupsSaving: false },
+  updateLevelGroupFeedback() {}, saveLevelGroups() {}, refreshLevelGroupEditor() {},
+});
+vm.runInContext(front("createLevelGroupEditor"), editorContext);
+const compactEditor = editorContext.createLevelGroupEditor();
+const rows = compactEditor.children.filter(child => child.className === "level-group-row");
+assert.equal(rows.length, 4);
+rows.forEach((row, index) => {
+  assert.deepEqual(Array.from(row.children, child => child.tag), ["label", "label", "span", "label", "button"]);
+  assert.equal(row.children[2].textContent, "~");
+  for (const [position, field] of [[0, "分组名称"], [1, "起始等级"], [3, "结束等级"]]) {
+    assert.equal(row.children[position].children.length, 1, "Visible field captions must be removed");
+    assert.equal(row.children[position].children[0].attrs["aria-label"], "分组" + (index + 1) + " · " + field);
+  }
+  assert.equal(row.children[4].textContent, "");
+  assert.match(row.children[4].innerHTML, /<svg/);
+  assert.equal(row.children[4].attrs["aria-label"], "删除分组" + (index + 1));
+});
+const actions = compactEditor.children.find(child => child.className === "level-group-actions");
+assert.deepEqual(Array.from(actions.children, child => child.textContent), ["新增分组", "保存分组"]);
+assert.equal(compactEditor.children.filter(child => child.tag === "p").length, 1, "Only contextual validation feedback remains, no introduction paragraphs");
+assert.match(html, /grid-template-columns: minmax\(0, 1fr\) 56px 10px 56px 24px/);
+console.log("Compact level group editor: single-row field order, hidden captions, X delete icon, two actions and accessible names passed");

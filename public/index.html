@@ -1662,21 +1662,26 @@
       .summary-panel:has(.estimator-advanced-panel:not([hidden])) { overflow: visible; }
       .summary-panel:has(.estimator-advanced-panel:not([hidden])) > .summary-head { position: static; }
     }
-    .level-group-editor { display: grid; gap: 10px; padding-bottom: 14px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
-    .level-group-editor h3 { margin: 0; color: var(--text); font-size: 14px; }
+    .level-group-editor { display: grid; gap: 8px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+    .level-group-editor h3 { margin: 0 0 2px; color: var(--text); font-size: 14px; }
     .level-group-editor p { margin: 0; overflow-wrap: anywhere; }
-    .level-group-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px 8px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
-    .level-group-row label { display: grid; gap: 3px; min-width: 0; }
-    .level-group-row .level-group-name { grid-column: 1 / 3; }
-    .level-group-row input, .level-group-row select { width: 100%; min-width: 0; min-height: 36px; padding: 6px 8px; font-size: 14px; }
-    .level-group-delete { align-self: end; min-height: 36px; color: var(--danger); }
+    .level-group-row { display: grid; grid-template-columns: minmax(0, 1fr) 56px 10px 56px 24px; align-items: center; gap: 4px; }
+    .level-group-row label { display: block; min-width: 0; }
+    .level-group-row input, .level-group-row select { width: 100%; min-width: 0; height: 32px; min-height: 32px; padding: 0 5px; border: 1px solid var(--line-strong); border-radius: 6px; background: #fff; color: var(--text); font-size: 12px; }
+    .level-group-row select { padding-inline: 3px 0; }
+    .level-group-range-separator { color: var(--muted); text-align: center; }
+    .level-group-delete { display: grid; place-items: center; width: 24px; height: 32px; min-height: 32px; padding: 0; border-color: transparent; background: transparent; color: var(--muted); box-shadow: none; }
+    .level-group-delete svg { width: 14px; height: 14px; pointer-events: none; }
+    .level-group-delete:not(:disabled):hover { background: #fff0ef; color: var(--danger); border-color: transparent; }
+    .level-group-delete:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
     .level-group-row [aria-invalid="true"] { border-color: var(--danger); }
-    .level-group-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-    .level-group-actions button { min-height: 36px; }
+    .level-group-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 2px; }
+    .level-group-actions button { min-height: 32px; padding: 5px 10px; font-size: 12px; }
     .level-group-feedback { color: var(--muted); }
+    .level-group-feedback:empty { display: none; }
     .level-group-feedback[data-error="true"] { color: var(--danger); }
     @media (pointer: coarse) {
-      .level-group-row input, .level-group-row select, .level-group-editor button { min-height: 44px; }
+      .level-group-row input, .level-group-row select, .level-group-editor button { height: 36px; min-height: 36px; }
     }
 
     .stats-box {
@@ -10667,26 +10672,18 @@
       const title = document.createElement("h3");
       title.id = "levelGroupTitle";
       title.textContent = "等级分组";
-      const hint = document.createElement("p");
-      hint.textContent = "范围包含起止等级，不能重叠；未覆盖的已知等级计入“未分组”。修改分组不会改动成员等级和历史账单。";
-      const scope = document.createElement("p");
-      scope.textContent = usesCloudLevelGroups()
-        ? "保存到云端，在其他设备重新打开后生效。"
-        : "当前为只读版或离线状态，分组仅保存在本浏览器，不修改云端。";
       const feedback = document.createElement("p");
       feedback.id = "levelGroupFeedback";
       feedback.className = "level-group-feedback";
       feedback.setAttribute("role", "status");
       feedback.setAttribute("aria-live", "polite");
-      editor.append(title, hint, scope);
+      editor.append(title);
       state.levelGroupDraft.forEach((group, index) => {
         const row = document.createElement("div");
         row.className = "level-group-row";
         const addField = (field, text) => {
           const label = document.createElement("label");
           if (field === "name") label.className = "level-group-name";
-          const caption = document.createElement("span");
-          caption.textContent = text;
           const input = document.createElement(field === "name" ? "input" : "select");
           input.id = "level-group-" + index + "-" + field;
           input.dataset.index = index;
@@ -10706,20 +10703,25 @@
             group[field] = field === "name" ? input.value : Number(input.value);
             updateLevelGroupFeedback(editor);
           });
-          label.append(caption, input);
+          label.append(input);
           return label;
         };
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "level-group-delete";
-        remove.textContent = "删除";
+        remove.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+        remove.title = "删除分组" + (index + 1);
         remove.setAttribute("aria-label", "删除分组" + (index + 1));
         remove.disabled = state.levelGroupsSaving || state.levelGroupDraft.length === 1;
         remove.addEventListener("click", () => {
           state.levelGroupDraft.splice(index, 1);
           refreshLevelGroupEditor("level-group-" + Math.min(index, state.levelGroupDraft.length - 1) + "-name");
         });
-        row.append(addField("name", "分组名称"), remove, addField("min", "起始等级"), addField("max", "结束等级"));
+        const separator = document.createElement("span");
+        separator.className = "level-group-range-separator";
+        separator.textContent = "~";
+        separator.setAttribute("aria-hidden", "true");
+        row.append(addField("name", "分组名称"), addField("min", "起始等级"), separator, addField("max", "结束等级"), remove);
         editor.append(row);
       });
       const actions = document.createElement("div");
@@ -10739,14 +10741,6 @@
         state.levelGroupDraft.push({ name: "", min: rank, max: rank });
         refreshLevelGroupEditor("level-group-" + (state.levelGroupDraft.length - 1) + "-name");
       }, state.levelGroupDraft.length >= LevelGroups.ranks.length);
-      addAction("恢复默认", () => {
-        state.levelGroupDraft = LevelGroups.normalize(null);
-        refreshLevelGroupEditor("level-group-0-name");
-      });
-      addAction("取消修改", () => {
-        state.levelGroupDraft = null;
-        refreshLevelGroupEditor("level-group-0-name");
-      });
       const save = addAction(state.levelGroupsSaving ? "保存中…" : "保存分组", saveLevelGroups, false, true);
       save.id = "saveLevelGroupsBtn";
       editor.append(actions, feedback);
@@ -10772,7 +10766,7 @@
       else {
         const uncovered = LevelGroups.ranks.filter(rank => LevelGroups.getLabel(rank + "级", result.groups) === "未分组");
         const dirty = JSON.stringify(result.groups) !== JSON.stringify(state.levelGroups);
-        feedback.textContent = (dirty ? "有未保存的修改。" : "随行人员选组时，按下拉框括号内的等级计算。")
+        feedback.textContent = (dirty ? "有未保存的修改。" : "")
           + (uncovered.length ? "未分组：" + uncovered.map(rank => rank + "级").join("、") + "。" : "");
       }
       return result;
