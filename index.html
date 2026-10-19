@@ -994,6 +994,41 @@
 
     .shake-people-summary-row .shake-people-summary { margin: 0; }
 
+    .shake-summary-actions {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      gap: 6px;
+    }
+
+    .shake-sort-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 34px;
+      padding: 0 8px;
+      border-color: var(--line-strong);
+      background: #fff;
+      color: var(--accent-dark);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .shake-sort-btn svg { width: 15px; height: 15px; }
+    .shake-sort-btn:hover { background: #e8f2ef; }
+    .shake-sort-btn:focus-visible,
+    .shake-person-attendance:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .shake-probability-note {
+      margin: -2px 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
     .shake-people-filters {
       display: flex;
       align-items: flex-end;
@@ -1162,6 +1197,7 @@
 
     .shake-person-score {
       display: flex;
+      flex-wrap: wrap;
       align-items: baseline;
       justify-content: flex-end;
       gap: 12px;
@@ -1177,6 +1213,38 @@
     }
 
     .shake-person-impact strong { color: var(--accent-dark); }
+
+    .shake-person-attendance {
+      min-height: 28px;
+      padding: 0;
+      border: 0;
+      border-radius: 3px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      white-space: nowrap;
+      text-decoration: underline dotted;
+      text-underline-offset: 4px;
+    }
+
+    .shake-person-attendance:hover { background: #eef5f3; }
+    .shake-person-attendance[data-tendency="high"] strong { color: var(--accent-dark); }
+    .shake-person-attendance[data-tendency="low"] strong,
+    .shake-person-attendance[data-tendency="unknown"] strong { color: var(--muted); }
+
+    .shake-attendance-detail {
+      grid-column: 1 / -1;
+      margin: 0;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .shake-attendance-detail[hidden] { display: none; }
 
     .shake-person-meta {
       display: flex;
@@ -2825,7 +2893,8 @@
       .chain-head--output .chain-head-actions button { flex: 0 0 36px; }
       .chain-head--input .group-probability-wrap { position: static; }
       .chain-head--input .group-probability-tooltip { right: 0; left: auto; }
-      .shake-people-summary-row { align-items: center; }
+      .shake-people-summary-row { align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+      .shake-summary-actions { margin-left: auto; }
       .shake-people-filters { align-items: stretch; }
       .shake-filter-field, .shake-filter-select { min-width: 0; width: 100%; }
       .shake-filter-reset { width: 100%; margin-left: 0; }
@@ -4709,7 +4778,10 @@
       <div class="modal-body">
         <div class="shake-people-summary-row">
           <p id="shakePeopleSummary" class="shake-people-summary"></p>
-          <button id="shakeFiltersToggle" class="chain-icon-btn" type="button" aria-label="展开筛选" title="展开筛选" aria-expanded="false" aria-controls="shakePeopleFilters"><i data-lucide="chevron-down"></i></button>
+          <div class="shake-summary-actions">
+            <button id="shakeSortBtn" class="shake-sort-btn" type="button" aria-label="当前按到场概率从高到低排序，点击切换为成局概率" title="切换为按成局概率提升排序" aria-controls="shakePeopleList"><i data-lucide="arrow-down-wide-narrow"></i><span id="shakeSortLabel">到场概率</span></button>
+            <button id="shakeFiltersToggle" class="chain-icon-btn" type="button" aria-label="展开筛选" title="展开筛选" aria-expanded="false" aria-controls="shakePeopleFilters"><i data-lucide="chevron-down"></i></button>
+          </div>
         </div>
         <div id="shakePeopleFilters" class="shake-people-filters" aria-label="摇人筛选" hidden>
           <label class="shake-filter-field" for="shakeGenderFilter">
@@ -4732,7 +4804,8 @@
           </label>
           <button id="shakeFilterReset" class="shake-filter-reset" type="button" hidden>清除筛选</button>
         </div>
-        <div id="shakePeopleList" class="shake-people-list"></div>
+        <p id="shakeProbabilityNote" class="shake-probability-note">到场倾向仅在本次候选人间比较，不是邀约成功率。点击倾向可查看原始估算。</p>
+        <div id="shakePeopleList" class="shake-people-list" aria-describedby="shakeProbabilityNote"></div>
         <div class="shake-rule-accordions">
           <details id="shakeLongTermRulesBlock" class="shake-rule-accordion">
             <summary>长期规则</summary>
@@ -4944,6 +5017,9 @@
       attemptTrialRequested: false,
       shakeBottomedPlayerIds: new Set(),
       shakeFilters: { gender: "", levelGroup: "" },
+      shakeSortMode: "attendanceProbability",
+      shakeAttendanceRange: { min: null, max: null },
+      shakeRecommendations: [],
       chainInputUserOwned: false,
       trainingAnomaly: null,
       estimatorAdvancedOpen: false,
@@ -5057,6 +5133,8 @@
       shakePeopleModal: document.getElementById("shakePeopleModal"),
       shakePeopleSummary: document.getElementById("shakePeopleSummary"),
       shakePeopleList: document.getElementById("shakePeopleList"),
+      shakeSortBtn: document.getElementById("shakeSortBtn"),
+      shakeSortLabel: document.getElementById("shakeSortLabel"),
       shakeGenderFilter: document.getElementById("shakeGenderFilter"),
       shakeLevelFilter: document.getElementById("shakeLevelFilter"),
       shakeFilterReset: document.getElementById("shakeFilterReset"),
@@ -5517,6 +5595,7 @@
       });
       els.pasteInputBtn.addEventListener("click", pasteChainInput);
       els.shakePeopleBtn.addEventListener("click", openShakePeopleModal);
+      els.shakeSortBtn.addEventListener("click", toggleShakePeopleSort);
       els.shakeGenderFilter.addEventListener("change", () => {
         state.shakeFilters.gender = els.shakeGenderFilter.value;
         renderShakePeopleModal();
@@ -13166,7 +13245,41 @@
       if (els.shakePeopleModal.classList.contains("open")) renderShakeLongTermRules();
     }
 
-    function orderShakePeopleRecommendations(recommendations, bottomedPlayerIds) {
+    function shakeProbabilityValue(value) {
+      return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1 ? value : null;
+    }
+
+    function formatShakeAttendanceProbability(value) {
+      const probability = shakeProbabilityValue(value);
+      if (probability === null) return "暂无估算";
+      // Zero Monte Carlo hits are not proof that attendance is impossible.
+      if (probability === 0) return "本轮模拟未观察到到场";
+      const percent = probability * 100;
+      if (percent < 0.1) return "不足0.1%";
+      if (percent > 99.9) return "超过99.9%";
+      return `约${Number(percent.toFixed(1))}%`;
+    }
+
+    function getShakeAttendanceRange(recommendations) {
+      const probabilities = recommendations.map((item) => shakeProbabilityValue(item.attendanceProbability))
+        .filter((value) => value !== null);
+      return probabilities.length
+        ? { min: Math.min(...probabilities), max: Math.max(...probabilities) }
+        : { min: null, max: null };
+    }
+
+    function describeShakeAttendance(value, range) {
+      const probability = shakeProbabilityValue(value);
+      if (probability === null) return { label: "待估算", tone: "unknown" };
+      if (probability === 0 || !(range.max > 0)) return { label: "待观察", tone: "unknown" };
+      if (range.min === range.max) return { label: "相近", tone: "medium" };
+      const relative = probability / range.max;
+      if (relative >= 2 / 3) return { label: "相对较高", tone: "high" };
+      if (relative >= 1 / 3) return { label: "相对中等", tone: "medium" };
+      return { label: "相对较低", tone: "low" };
+    }
+
+    function orderShakePeopleRecommendations(recommendations, bottomedPlayerIds, sortMode = "attendanceProbability") {
       const bottomedIds = bottomedPlayerIds instanceof Set
         ? bottomedPlayerIds
         : new Set(bottomedPlayerIds || []);
@@ -13176,7 +13289,14 @@
         const playerId = Number(item.player?.id ?? item.playerId);
         (bottomedIds.has(playerId) ? bottomed : regular).push(item);
       });
-      return [...regular, ...bottomed];
+      const primaryKey = sortMode === "uplift" ? "uplift" : "attendanceProbability";
+      const secondaryKey = primaryKey === "uplift" ? "attendanceProbability" : "uplift";
+      const compare = (left, right) => (
+        (shakeProbabilityValue(right[primaryKey]) ?? -1) - (shakeProbabilityValue(left[primaryKey]) ?? -1)
+        || (shakeProbabilityValue(right[secondaryKey]) ?? -1) - (shakeProbabilityValue(left[secondaryKey]) ?? -1)
+      );
+      // Stable ties preserve model ordering; manual bottoming wins over either sort.
+      return [...regular.sort(compare), ...bottomed.sort(compare)];
     }
 
     function filterShakePeopleRecommendations(recommendations) {
@@ -13200,7 +13320,7 @@
         els.shakePeopleList.append(empty);
         return;
       }
-      orderShakePeopleRecommendations(recommendations, state.shakeBottomedPlayerIds).forEach((item) => {
+      orderShakePeopleRecommendations(recommendations, state.shakeBottomedPlayerIds, state.shakeSortMode).forEach((item) => {
         const displayName = firstName(item.player.name);
         const playerId = normalizePlayerId(item.player.id);
         const isBottomed = state.shakeBottomedPlayerIds.has(playerId);
@@ -13268,22 +13388,37 @@
 
         const score = document.createElement("div");
         score.className = "shake-person-score";
-        if (Number.isFinite(Number(item.attendanceProbability))) {
-          const attendance = document.createElement("span");
-          attendance.append(document.createTextNode("到场概率 "));
-          const value = document.createElement("strong");
-          value.textContent = `${probabilityPercent(item.attendanceProbability)}%`;
-          attendance.title = "根据当前接龙、历史出勤和成员规则估计的到场概率。";
-          attendance.append(value);
-          score.append(attendance);
-        }
-        if (Number.isFinite(Number(item.uplift))) {
+        const tendency = describeShakeAttendance(item.attendanceProbability, state.shakeAttendanceRange);
+        const attendanceDetail = document.createElement("p");
+        attendanceDetail.id = `shake-attendance-${playerId}`;
+        attendanceDetail.className = "shake-attendance-detail";
+        attendanceDetail.hidden = true;
+        attendanceDetail.textContent = `自然到场估算：${formatShakeAttendanceProbability(item.attendanceProbability)}。这是剩余时间内报名并留下来的预测，临近截止会降低，不是邀约成功率。倾向仅与本次其他候选人比较，筛选或排序不改变档位；待观察不代表绝对不会来。`;
+        const attendance = document.createElement("button");
+        attendance.type = "button";
+        attendance.className = "shake-person-attendance";
+        attendance.dataset.tendency = tendency.tone;
+        attendance.setAttribute("aria-expanded", "false");
+        attendance.setAttribute("aria-controls", attendanceDetail.id);
+        attendance.setAttribute("aria-label", `${displayName}的到场倾向${tendency.label}，点击查看原始估算`);
+        attendance.title = "点击查看到场估算与相对倾向说明";
+        attendance.append(document.createTextNode("到场倾向 "));
+        const attendanceValue = document.createElement("strong");
+        attendanceValue.textContent = tendency.label;
+        attendance.append(attendanceValue);
+        attendance.addEventListener("click", (event) => {
+          event.stopPropagation();
+          attendanceDetail.hidden = !attendanceDetail.hidden;
+          attendance.setAttribute("aria-expanded", String(!attendanceDetail.hidden));
+        });
+        score.append(attendance);
+        if (shakeProbabilityValue(item.uplift) !== null) {
           const impact = document.createElement("span");
           impact.className = "shake-person-impact";
-          impact.append(document.createTextNode("成局概率 "));
+          impact.append(document.createTextNode("成局提升 "));
           const value = document.createElement("strong");
-          value.textContent = `+${formatProbabilityPointLift(item.uplift)}%`;
-          impact.title = "该成员确定到场与不到场两种情形的成局概率差；+28% 表示提升28个百分点，并非当前概率直接加28%。";
+          value.textContent = `+${formatProbabilityPointLift(item.uplift)}个百分点`;
+          impact.title = "该成员确定到场与不到场两种情形的成局概率差；+28个百分点表示两种情形相差28个百分点，不是到场后的最终成局概率，也不能直接加到当前概率上。";
           impact.append(value);
           score.append(impact);
         }
@@ -13300,7 +13435,7 @@
         });
         row.append(primary);
         if (score.childElementCount) row.append(score);
-        row.append(skipButton);
+        row.append(skipButton, attendanceDetail);
         els.shakePeopleList.append(row);
       });
       window.lucide?.createIcons({ attrs: { "aria-hidden": "true" } });
@@ -13413,8 +13548,10 @@
       els.shakeLongTermRulesList.replaceChildren();
       const longRules = [
         "只推荐未接龙的人；已接龙的人不推荐。",
-        "按到场概率与对成局概率的提升综合排序。",
-        "成局概率 +N%：该成员确定到场与不到场两种情形相差N个百分点，不是当前概率直接加N%。",
+        "点击排序按钮可切换按到场概率或成局概率提升从高到低排序，手动置底优先。",
+        "到场倾向是本次候选人间的相对比较，不是绝对概率；点击可查看自然到场估算，临近截止时估算会下降，不等于邀约成功率。",
+        "相对倾向按原始估算与本次最高值的比值分档：达到2/3为相对较高，达到1/3为相对中等，其余为相对较低；数值相同时显示相近。",
+        "成局提升 +N个百分点：该成员确定到场与不到场两种情形的概率差，不是当前概率直接加N%。",
         "模型每天北京时间12:05自动训练；近期参与标签也会随已完成的订场记录更新。",
         "新成员从首次实际参与或资料登记起统计；样本少时展示近期参与天数，不凭空推断习惯。",
         "综合历史出勤、随行人员、同场关系、水平、星期和体力。",
@@ -13536,10 +13673,31 @@
       els.shakeFilterReset.hidden = !state.shakeFilters.gender && !state.shakeFilters.levelGroup;
     }
 
+    function syncShakePeopleSort() {
+      const byAttendance = state.shakeSortMode === "attendanceProbability";
+      const current = byAttendance ? "到场概率" : "成局概率";
+      const next = byAttendance ? "成局概率" : "到场概率";
+      els.shakeSortLabel.textContent = current;
+      els.shakeSortBtn.setAttribute("aria-label", `当前按${current}${byAttendance ? "" : "提升"}从高到低排序，点击切换为${next}`);
+      els.shakeSortBtn.title = byAttendance
+        ? "当前按到场概率从高到低；点击改为按成局概率提升排序"
+        : "当前按成局概率提升从高到低；点击改为按到场概率排序";
+    }
+
+    function toggleShakePeopleSort() {
+      state.shakeSortMode = state.shakeSortMode === "attendanceProbability" ? "uplift" : "attendanceProbability";
+      syncShakePeopleSort();
+      const recommendations = filterShakePeopleRecommendations(state.shakeRecommendations);
+      renderShakePeopleList(recommendations);
+    }
+
     function renderShakePeopleModal() {
       const today = getBeijingDateString();
       renderGroupForecast({ includeCandidates: true });
       const allRecommendations = buildShakePeopleRecommendations(today);
+      state.shakeRecommendations = allRecommendations;
+      state.shakeAttendanceRange = getShakeAttendanceRange(allRecommendations);
+      syncShakePeopleSort();
       const recommendations = filterShakePeopleRecommendations(allRecommendations);
       renderShakePeopleSummary(recommendations, allRecommendations.length);
       syncAttemptTrialToggle();

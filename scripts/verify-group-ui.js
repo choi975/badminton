@@ -4,12 +4,12 @@ import vm from "node:vm";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
-assert.ok(html.includes('document.createTextNode("到场概率 ")'));
-assert.ok(html.includes('document.createTextNode("成局概率 ")'));
-assert.ok(html.includes('value.textContent = \x60+\x24{formatProbabilityPointLift(item.uplift)}%\x60;'));
+assert.ok(html.includes('document.createTextNode("到场倾向 ")'));
+assert.ok(html.includes('document.createTextNode("成局提升 ")'));
+assert.ok(html.includes('value.textContent = \x60+\x24{formatProbabilityPointLift(item.uplift)}个百分点\x60;'));
 assert.ok(html.includes('\x60\x24{today}\x24{formatRuleWeekdaySuffix(today)}   当前成局概率 \x24{todayPercent}%'));
 assert.match(html, /\.shake-people-summary \{[^}]*white-space: pre-wrap/);
-assert.ok(html.includes("并非当前概率直接加28%"));
+assert.ok(html.includes("不是到场后的最终成局概率，也不能直接加到当前概率上"));
 assert.ok(html.includes("模型每天北京时间12:05自动训练"));
 assert.doesNotMatch(html, /document\.createTextNode\("预计到场 "\)/);
 
@@ -76,7 +76,7 @@ const inlineScripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<
 assert.ok(inlineScripts.length > 0, "Expected an inline application script");
 for (const script of inlineScripts) new vm.Script(script[1]);
 
-const orderRecommendationsStart = html.indexOf("function orderShakePeopleRecommendations(");
+const orderRecommendationsStart = html.indexOf("function shakeProbabilityValue(");
 const orderRecommendationsEnd = html.indexOf("\n    function renderShakePeopleList(", orderRecommendationsStart);
 assert.ok(orderRecommendationsStart >= 0 && orderRecommendationsEnd > orderRecommendationsStart, "Expected shake ordering helper");
 const orderRecommendationsContext = vm.createContext({});
@@ -90,6 +90,75 @@ const orderedRecommendations = orderRecommendationsContext.orderShakePeopleRecom
   { player: { id: 3 } },
 ], [2]);
 assert.equal(orderedRecommendations.map((item) => item.player.id).join(","), "1,3,2");
+
+// Small predictions stay honest; no fabricated minimum percentage or false impossibility.
+const display = orderRecommendationsContext.formatShakeAttendanceProbability;
+assert.equal(display(0.008), "约0.8%");
+assert.equal(display(0.012), "约1.2%");
+assert.equal(display(0.0002), "不足0.1%");
+assert.equal(display(0), "本轮模拟未观察到到场");
+assert.equal(display(1), "超过99.9%");
+for (const invalid of [null, undefined, "", "0.5", NaN, Infinity, -0.1, 1.1]) {
+  assert.equal(display(invalid), "暂无估算");
+}
+const rankItems = [
+  { player: { id: 1 }, attendanceProbability: 0.008, uplift: 0.025 },
+  { player: { id: 2 }, attendanceProbability: 0.012, uplift: 0.008 },
+  { player: { id: 3 }, attendanceProbability: 0.012, uplift: 0.033 },
+  { player: { id: 4 }, attendanceProbability: 0, uplift: 0.05 },
+  { player: { id: 5 }, attendanceProbability: null, uplift: null },
+];
+const order = orderRecommendationsContext.orderShakePeopleRecommendations;
+const ids = (items) => items.map((item) => item.player.id).join(",");
+assert.equal(ids(order(rankItems, [], "attendanceProbability")), "3,2,1,4,5");
+assert.equal(ids(order(rankItems, [], "uplift")), "4,3,1,2,5");
+assert.equal(ids(order(rankItems, [3, 4], "attendanceProbability")), "2,1,5,3,4");
+assert.equal(ids(order(rankItems, [3, 4], "uplift")), "1,2,5,4,3");
+assert.equal(ids(rankItems), "1,2,3,4,5", "sorting must not mutate model recommendations");
+const ties = [6, 7, 8].map((id) => ({ player: { id }, attendanceProbability: 0.01, uplift: 0.02 }));
+assert.equal(ids(order(ties, [])), "6,7,8", "equal probabilities preserve stable order");
+assert.equal(order([], []).length, 0);
+const getRange = orderRecommendationsContext.getShakeAttendanceRange;
+const describe = orderRecommendationsContext.describeShakeAttendance;
+const range = getRange(rankItems);
+assert.equal(range.max, 0.012);
+assert.equal(describe(0.012, range).label, "相对较高");
+assert.equal(describe(0.006, range).label, "相对中等");
+assert.equal(describe(0.002, range).label, "相对较低");
+assert.equal(describe(0, range).label, "待观察");
+assert.equal(describe(null, range).label, "待估算");
+assert.equal(describe(0.01, getRange(ties)).label, "相近");
+assert.equal(describe(0, getRange([{attendanceProbability: 0}])).label, "待观察");
+assert.equal(getRange([]).max, null);
+assert.match(html, /state\.shakeAttendanceRange = getShakeAttendanceRange\(allRecommendations\);/);
+assert.match(html, /id="shakeSortBtn"[^>]*aria-controls="shakePeopleList"/);
+assert.match(html, /els\.shakeSortBtn\.addEventListener\("click", toggleShakePeopleSort\)/);
+assert.match(html, /attendance\.setAttribute\("aria-controls", attendanceDetail\.id\)/);
+assert.match(html, /attendanceDetail\.hidden = !attendanceDetail\.hidden/);
+assert.doesNotMatch(html, /probabilityPercent\(item\.attendanceProbability\)/);
+
+const toggleStart = html.indexOf("function syncShakePeopleSort(");
+const toggleEnd = html.indexOf("\n    function renderShakePeopleModal(", toggleStart);
+const button = { setAttribute(key, value) { this[key] = value; } };
+const sortState = { shakeSortMode: "attendanceProbability", shakeRecommendations: rankItems };
+let rendered = null;
+const toggleContext = vm.createContext({
+  state: sortState,
+  els: { shakeSortLabel: {}, shakeSortBtn: button },
+  filterShakePeopleRecommendations: (items) => items,
+  buildShakePeopleRecommendations: () => { throw new Error("sort must not recompute the forecast"); },
+  getBeijingDateString: () => "2026-10-19",
+  renderShakePeopleList: (items) => { rendered = items; },
+});
+vm.runInContext(html.slice(toggleStart, toggleEnd), toggleContext);
+toggleContext.toggleShakePeopleSort();
+assert.equal(sortState.shakeSortMode, "uplift");
+assert.equal(toggleContext.els.shakeSortLabel.textContent, "成局概率");
+assert.match(button["aria-label"], /成局概率提升从高到低/);
+assert.equal(rendered, rankItems);
+toggleContext.toggleShakePeopleSort();
+assert.equal(sortState.shakeSortMode, "attendanceProbability");
+assert.equal(toggleContext.els.shakeSortLabel.textContent, "到场概率");
 
 const filterRecommendationsStart = html.indexOf("function filterShakePeopleRecommendations(");
 const filterRecommendationsEnd = html.indexOf("\n    function renderShakePeopleList(", filterRecommendationsStart);
