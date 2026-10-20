@@ -5,8 +5,8 @@ import vm from "node:vm";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
 assert.ok(html.includes('document.createTextNode("到场概率 ")'));
-assert.ok(html.includes('document.createTextNode("成局提升 ")'));
-assert.ok(html.includes('value.textContent = \x60+\x24{formatProbabilityPointLift(item.uplift)}个百分点\x60;'));
+assert.ok(html.includes('document.createTextNode("成局概率 ")'));
+assert.ok(html.includes('value.textContent = \x60+\x24{formatProbabilityPointLift(item.uplift)}%\x60;'));
 assert.ok(html.includes('\x60\x24{today}\x24{formatRuleWeekdaySuffix(today)}   当前成局概率 \x24{todayPercent}%'));
 assert.match(html, /\.shake-people-summary \{[^}]*white-space: pre-wrap/);
 assert.ok(html.includes("不是到场后的最终成局概率，也不能直接加到当前概率上"));
@@ -151,6 +151,49 @@ assert.equal(rendered, rankItems);
 toggleContext.toggleShakePeopleSort();
 assert.equal(sortState.shakeSortMode, "attendanceProbability");
 assert.equal(toggleContext.els.shakeSortLabel.textContent, "到场概率");
+
+// Showing/hiding the uplift is presentation-only: no sort, forecast, or list rebuild.
+assert.match(html, /shakeImpactVisible: true/);
+assert.match(html, /id="shakeImpactToggle"[^>]*aria-label="隐藏成局概率"[^>]*aria-pressed="true"[^>]*aria-controls="shakePeopleList"/);
+assert.match(html, /data-lucide="eye" class="shake-impact-visible-icon" aria-hidden="true"/);
+assert.match(html, /data-lucide="eye-off" class="shake-impact-hidden-icon" aria-hidden="true"/);
+assert.match(html, /\.shake-people-list\[data-show-impact="false"\] \.shake-person-impact \{ display: none; \}/);
+assert.match(html, /els\.shakeImpactToggle\.addEventListener\("click", toggleShakeImpactVisibility\)/);
+assert.match(html, /state\.shakeRecommendations = allRecommendations;\s*syncShakePeopleSort\(\);\s*syncShakeImpactVisibility\(\)/);
+assert.doesNotMatch(html, /成局提升|\}个百分点/);
+const visibilityStart = html.indexOf("function syncShakeImpactVisibility(");
+const visibilityEnd = html.indexOf("\n    function renderShakePeopleModal(", visibilityStart);
+assert.ok(visibilityStart >= 0 && visibilityEnd > visibilityStart);
+const visibilityButton = { setAttribute(key, value) { this[key] = value; } };
+const visibilityList = { dataset: {} };
+const visibilityState = { shakeImpactVisible: true, shakeSortMode: "attendanceProbability", shakeRecommendations: rankItems };
+const visibilityContext = vm.createContext({
+  state: visibilityState,
+  els: { shakeImpactToggle: visibilityButton, shakePeopleList: visibilityList },
+  renderShakePeopleList: () => { throw new Error("visibility must not rebuild rows or reset expanded details/focus/scroll"); },
+  renderGroupForecast: () => { throw new Error("visibility must not recompute probabilities"); },
+});
+vm.runInContext(html.slice(visibilityStart, visibilityEnd), visibilityContext);
+visibilityContext.syncShakeImpactVisibility();
+assert.equal(visibilityList.dataset.showImpact, "true");
+assert.equal(visibilityButton["aria-pressed"], "true");
+assert.equal(visibilityButton["aria-label"], "隐藏成局概率");
+visibilityContext.toggleShakeImpactVisibility();
+assert.equal(visibilityState.shakeImpactVisible, false);
+assert.equal(visibilityList.dataset.showImpact, "false");
+assert.equal(visibilityButton["aria-pressed"], "false");
+assert.equal(visibilityButton["aria-label"], "显示成局概率");
+assert.equal(visibilityButton.title, "显示成局概率");
+visibilityContext.syncShakeImpactVisibility();
+assert.equal(visibilityList.dataset.showImpact, "false", "reopening or filtering must preserve hidden state");
+visibilityState.shakeSortMode = "uplift";
+visibilityContext.toggleShakeImpactVisibility();
+assert.equal(visibilityState.shakeImpactVisible, true);
+assert.equal(visibilityList.dataset.showImpact, "true");
+assert.equal(visibilityButton["aria-label"], "隐藏成局概率");
+assert.equal(visibilityButton.title, "隐藏成局概率");
+assert.equal(visibilityState.shakeSortMode, "uplift", "visibility must not change sorting");
+assert.equal(visibilityState.shakeRecommendations, rankItems, "visibility must not change recommendations");
 
 const filterRecommendationsStart = html.indexOf("function filterShakePeopleRecommendations(");
 const filterRecommendationsEnd = html.indexOf("\n    function renderShakePeopleList(", filterRecommendationsStart);

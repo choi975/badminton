@@ -1017,6 +1017,7 @@
     .shake-sort-btn svg { width: 15px; height: 15px; }
     .shake-sort-btn:hover { background: #e8f2ef; }
     .shake-sort-btn:focus-visible,
+    #shakeImpactToggle:focus-visible,
     .shake-person-attendance:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
@@ -1213,6 +1214,13 @@
     }
 
     .shake-person-impact strong { color: var(--accent-dark); }
+    .shake-people-list[data-show-impact="false"] .shake-person-impact { display: none; }
+    #shakeImpactToggle[aria-pressed="true"] {
+      border-color: var(--accent);
+      background: #e8f2ef;
+    }
+    #shakeImpactToggle[aria-pressed="true"] .shake-impact-hidden-icon,
+    #shakeImpactToggle[aria-pressed="false"] .shake-impact-visible-icon { display: none; }
 
     .shake-person-attendance {
       min-height: 28px;
@@ -4820,6 +4828,7 @@
           <p id="shakePeopleSummary" class="shake-people-summary"></p>
           <div class="shake-summary-actions">
             <button id="shakeSortBtn" class="shake-sort-btn" type="button" aria-label="当前按到场概率从高到低排序，点击切换为成局概率" title="切换为按成局概率提升排序" aria-controls="shakePeopleList"><i data-lucide="arrow-down-wide-narrow"></i><span id="shakeSortLabel">到场概率</span></button>
+            <button id="shakeImpactToggle" class="chain-icon-btn" type="button" aria-label="隐藏成局概率" title="隐藏成局概率" aria-pressed="true" aria-controls="shakePeopleList"><i data-lucide="eye" class="shake-impact-visible-icon" aria-hidden="true"></i><i data-lucide="eye-off" class="shake-impact-hidden-icon" aria-hidden="true"></i></button>
             <button id="shakeFiltersToggle" class="chain-icon-btn" type="button" aria-label="展开筛选" title="展开筛选" aria-expanded="false" aria-controls="shakePeopleFilters"><i data-lucide="chevron-down"></i></button>
           </div>
         </div>
@@ -4845,7 +4854,7 @@
           <button id="shakeFilterReset" class="shake-filter-reset" type="button" hidden>清除筛选</button>
         </div>
         <p id="shakeProbabilityNote" class="shake-probability-note">到场概率按当天有球局估算，结合历史出勤和当天规则；不是成局概率，也不代表邀约后的答应率。点击百分比查看说明。</p>
-        <div id="shakePeopleList" class="shake-people-list" aria-describedby="shakeProbabilityNote"></div>
+        <div id="shakePeopleList" class="shake-people-list" data-show-impact="true" aria-describedby="shakeProbabilityNote"></div>
         <div class="shake-rule-accordions">
           <details id="shakeLongTermRulesBlock" class="shake-rule-accordion">
             <summary>长期规则</summary>
@@ -5058,6 +5067,7 @@
       shakeBottomedPlayerIds: new Set(),
       shakeFilters: { gender: "", levelGroup: "" },
       shakeSortMode: "attendanceProbability",
+      shakeImpactVisible: true,
       shakeRecommendations: [],
       chainInputUserOwned: false,
       trainingAnomaly: null,
@@ -5175,6 +5185,7 @@
       shakePeopleList: document.getElementById("shakePeopleList"),
       shakeSortBtn: document.getElementById("shakeSortBtn"),
       shakeSortLabel: document.getElementById("shakeSortLabel"),
+      shakeImpactToggle: document.getElementById("shakeImpactToggle"),
       shakeGenderFilter: document.getElementById("shakeGenderFilter"),
       shakeLevelFilter: document.getElementById("shakeLevelFilter"),
       shakeFilterReset: document.getElementById("shakeFilterReset"),
@@ -5636,6 +5647,7 @@
       els.pasteInputBtn.addEventListener("click", pasteChainInput);
       els.shakePeopleBtn.addEventListener("click", openShakePeopleModal);
       els.shakeSortBtn.addEventListener("click", toggleShakePeopleSort);
+      els.shakeImpactToggle.addEventListener("click", toggleShakeImpactVisibility);
       els.shakeGenderFilter.addEventListener("change", () => {
         state.shakeFilters.gender = els.shakeGenderFilter.value;
         renderShakePeopleModal();
@@ -13454,10 +13466,10 @@
         if (shakeProbabilityValue(item.uplift) !== null) {
           const impact = document.createElement("span");
           impact.className = "shake-person-impact";
-          impact.append(document.createTextNode("成局提升 "));
+          impact.append(document.createTextNode("成局概率 "));
           const value = document.createElement("strong");
-          value.textContent = `+${formatProbabilityPointLift(item.uplift)}个百分点`;
-          impact.title = "该成员确定到场与不到场两种情形的成局概率差；+28个百分点表示两种情形相差28个百分点，不是到场后的最终成局概率，也不能直接加到当前概率上。";
+          value.textContent = `+${formatProbabilityPointLift(item.uplift)}%`;
+          impact.title = "该成员确定到场与不到场两种情形的成局概率差；此处+28%表示两种情形相差28个百分点，不是到场后的最终成局概率，也不能直接加到当前概率上。";
           impact.append(value);
           score.append(impact);
         }
@@ -13590,7 +13602,7 @@
         "点击排序按钮可切换按到场概率或成局概率提升从高到低排序，手动置底优先。",
         "到场概率以当天有球局为前提，按个人历史参与率和当天条件估算，不是成局概率或邀约答应率。",
         "只把入群后实际成局日计为参与机会；近期记录权重更高，样本少时平滑，不设虚假百分比下限。",
-        "成局提升 +N个百分点：该成员确定到场与不到场两种情形的概率差，不是当前概率直接加N%。",
+        "成局概率 +N%：该成员确定到场与不到场两种情形的概率差（N个百分点），不是当前概率直接加N%；点击眼睛按钮可显示或隐藏。",
         "模型每天北京时间12:05自动训练；近期参与标签也会随已完成的订场记录更新。",
         "新成员从首次实际参与或资料登记起统计；样本少时展示近期参与天数，不凭空推断习惯。",
         "综合历史出勤、随行人员、同场关系、水平、星期和体力。",
@@ -13730,12 +13742,27 @@
       renderShakePeopleList(recommendations);
     }
 
+    function syncShakeImpactVisibility() {
+      const visible = state.shakeImpactVisible;
+      const label = visible ? "隐藏成局概率" : "显示成局概率";
+      els.shakePeopleList.dataset.showImpact = String(visible);
+      els.shakeImpactToggle.setAttribute("aria-pressed", String(visible));
+      els.shakeImpactToggle.setAttribute("aria-label", label);
+      els.shakeImpactToggle.title = label;
+    }
+
+    function toggleShakeImpactVisibility() {
+      state.shakeImpactVisible = !state.shakeImpactVisible;
+      syncShakeImpactVisibility();
+    }
+
     function renderShakePeopleModal() {
       const today = getBeijingDateString();
       renderGroupForecast({ includeCandidates: true });
       const allRecommendations = buildShakePeopleRecommendations(today);
       state.shakeRecommendations = allRecommendations;
       syncShakePeopleSort();
+      syncShakeImpactVisibility();
       const recommendations = filterShakePeopleRecommendations(allRecommendations);
       renderShakePeopleSummary(recommendations, allRecommendations.length);
       syncAttemptTrialToggle();
