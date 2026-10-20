@@ -3289,6 +3289,19 @@
       font-weight: 700;
     }
 
+    .calendar-day-session-count {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      color: var(--accent-dark);
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 16px;
+    }
+
+    .calendar-day-venue[role="button"] { cursor: pointer; }
+    .calendar-day-venue:not([role="button"]) { cursor: inherit; }
+
     .calendar-day-meta {
       position: absolute;
       top: 50%;
@@ -3444,6 +3457,21 @@
         content: none;
       }
 
+      .calendar-day.has-multiple-sessions { min-height: 84px; }
+
+      .calendar-continuous-grid.show-ledger .calendar-day.has-multiple-sessions { min-height: 102px; }
+
+      .calendar-day-session-count {
+        top: 24px;
+        right: 2px;
+        left: 2px;
+        font-size: 9px;
+        line-height: 12px;
+        text-align: center;
+      }
+
+      .calendar-day.has-multiple-sessions .calendar-day-meta { top: 40px; }
+
       .calendar-day.has-bookings {
         border-color: #b7d5cf;
         background: #f4faf8;
@@ -3482,6 +3510,11 @@
     }
 
     .calendar-day-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
       margin-bottom: 8px;
     }
 
@@ -3494,6 +3527,10 @@
     .calendar-day-records {
       display: grid;
       gap: 8px;
+    }
+
+    .calendar-add-session-btn {
+      margin-top: 8px;
     }
 
     .empty-day-actions {
@@ -3511,6 +3548,7 @@
 
     .calendar-record-head {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
@@ -3682,6 +3720,7 @@
 
     .calendar-record-actions {
       display: flex;
+      flex-wrap: wrap;
       flex: 0 0 auto;
       gap: 6px;
     }
@@ -4614,6 +4653,7 @@
             </div>
             <div id="calendarLedgerTotal" class="calendar-ledger-total" aria-live="polite" hidden></div>
             <div id="calendarDayRecords" class="calendar-day-records"></div>
+            <button id="calendarAddSessionBtn" class="primary-btn calendar-add-session-btn" type="button" hidden>新增记录</button>
           </div>
         </section>
       </div>
@@ -5106,6 +5146,7 @@
       calendarDayPanel: document.getElementById("calendarDayPanel"),
       calendarSummaryToggle: document.getElementById("calendarSummaryToggle"),
       calendarDayTitle: document.getElementById("calendarDayTitle"),
+      calendarAddSessionBtn: document.getElementById("calendarAddSessionBtn"),
       calendarDayRecords: document.getElementById("calendarDayRecords"),
       calendarDetailModal: document.getElementById("calendarDetailModal"),
       calendarDetailTitle: document.getElementById("calendarDetailTitle"),
@@ -7794,15 +7835,15 @@
         toast("当前为只读模式，不能记录订场");
         return;
       }
-      const editing = Boolean(session);
-      const source = state.currentPaymentRecord;
+      const editing = Number.isInteger(Number(session?.id)) && Number(session?.id) > 0;
+      const source = session || state.currentPaymentRecord;
       const advanced = editing
         ? Boolean(session.courtPriceRows?.length || session.shuttlePriceRows?.length || state.feeMode === "advanced")
         : state.feeMode === "advanced";
       const courtFee = editing ? session.courtFee : (source?.courtFee ?? 0);
       const candidates = inferCourtCounts(courtFee);
       els.recordTitle.textContent = editing ? "编辑订场记录" : "记录本次订场";
-      els.recordDateInput.value = editing ? session.date : getLocalDateString();
+      els.recordDateInput.value = session?.date || getLocalDateString();
       els.recordCourtFeeInput.value = formatCompactNumber(courtFee);
       els.recordCourtCountInput.value = editing
         ? String(session.courtCount)
@@ -8378,13 +8419,20 @@
       button.dataset.month = calendarMonthKey(date.getFullYear(), date.getMonth() + 1);
       button.classList.toggle("today", dateString === todayString);
       button.classList.toggle("selected", state.calendar.selectedDates.includes(dateString));
-      button.classList.toggle("has-bookings", courts > 0);
-      button.setAttribute("aria-label", `${dateString}${courts ? `，${courts}个场` : ""}`);
+      button.classList.toggle("has-bookings", daySessions.length > 0);
+      button.classList.toggle("has-multiple-sessions", daySessions.length > 1);
+      button.setAttribute("aria-label", `${dateString}${daySessions.length ? `，${daySessions.length}场球局，${courts}个场地，${[...new Set(daySessions.map((session) => session.venue))].join("、")}` : ""}`);
       const number = document.createElement("span");
       number.className = "calendar-day-number";
       number.textContent = String(date.getDate());
       button.append(number);
-      if (courts > 0) {
+      if (daySessions.length > 1) {
+        const sessionCount = document.createElement("span");
+        sessionCount.className = "calendar-day-session-count";
+        sessionCount.textContent = `${daySessions.length}局`;
+        button.append(sessionCount);
+      }
+      if (daySessions.length > 0) {
         const meta = document.createElement("span");
         meta.className = "calendar-day-meta";
         const badge = document.createElement("span");
@@ -8398,29 +8446,33 @@
         badge.append(count, unit);
         const session = daySessions[0];
         const venue = document.createElement("span");
-        const venueClass = session.venue === "EDC"
+        const venues = [...new Set(daySessions.map((item) => item.venue))];
+        const venueClass = venues.length > 1 ? "venue-mixed" : session.venue === "EDC"
           ? "venue-edc"
           : session.venue === "广羽" ? "venue-guangyu" : "venue-wenti";
         venue.className = `calendar-day-venue ${venueClass}`;
-        venue.textContent = session.venue;
+        venue.textContent = venues.length > 1 ? "多球馆" : session.venue;
         const venueIndex = ["EDC", "文体", "广羽"].indexOf(session.venue);
         const nextVenue = ["EDC", "文体", "广羽"][(venueIndex + 1) % 3];
-        venue.title = state.readOnly ? "只读模式下不能切换球馆" : `点击切换为${nextVenue}`;
-        venue.setAttribute("role", "button");
-        venue.setAttribute("tabindex", "0");
-        venue.setAttribute("aria-label", `${dateString}球馆：${session.venue}，点击切换`);
-        venue.addEventListener("mousedown", (event) => event.stopPropagation());
-        venue.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          void toggleSessionVenue(session);
-        });
-        venue.addEventListener("keydown", (event) => {
-          if (event.key !== "Enter" && event.key !== " ") return;
-          event.preventDefault();
-          event.stopPropagation();
-          void toggleSessionVenue(session);
-        });
+        venue.title = `${venues.join("、")} · ${daySessions.length}场球局，点击日期查看各场记录`;
+        if (daySessions.length === 1 && !state.readOnly) {
+          venue.title = `点击切换为${nextVenue}`;
+          venue.setAttribute("role", "button");
+          venue.setAttribute("tabindex", "0");
+          venue.setAttribute("aria-label", `${dateString}球馆：${session.venue}，点击切换`);
+          venue.addEventListener("mousedown", (event) => event.stopPropagation());
+          venue.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void toggleSessionVenue(session);
+          });
+          venue.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            event.stopPropagation();
+            void toggleSessionVenue(session);
+          });
+        }
         meta.append(badge, venue);
         button.append(meta);
       }
@@ -8683,8 +8735,8 @@
       const totalCourts = CourtPricing.sumCounts(sessions.map((session) => ({ count: session.courtCount })));
       const monthLabel = formatCalendarSummaryMonth(state.calendar.year, state.calendar.month);
       els.calendarSelectionText.textContent = selection.length
-        ? `选中 ${selection.length} 天：${totalCourts} 个场`
-        : `${monthLabel}：${totalCourts} 个场`;
+        ? `选中 ${selection.length} 天：${sessions.length} 场球局 · ${totalCourts} 个场地`
+        : `${monthLabel}：${sessions.length} 场球局 · ${totalCourts} 个场地`;
     }
 
     function renderCalendarDayPanel() {
@@ -8695,10 +8747,14 @@
         ? `记账合计：¥${formatMoney(calculateSessionsLedgerAmount(sessions))}`
         : "";
       const dayHead = els.calendarDayTitle.parentElement;
+      els.calendarAddSessionBtn.hidden = state.readOnly || selection.length !== 1;
       if (selection.length === 1) {
         const dateString = selection[0];
         const dateTitle = formatCalendarDate(dateString);
-        els.calendarDayTitle.textContent = formatCalendarDate(dateString);
+        els.calendarDayTitle.textContent = `${dateTitle} · ${sessions.length}场球局`;
+        els.calendarAddSessionBtn.textContent = "新增记录";
+        els.calendarAddSessionBtn.onclick = () => openChainForNewDate(dateString);
+        if (dayHead) dayHead.hidden = false;
         if (!sessions.length) {
           if (dayHead) dayHead.hidden = false;
           const wrap = document.createElement("div");
@@ -8707,19 +8763,10 @@
           empty.className = "empty-hint";
           empty.textContent = "当天没有订场记录";
           wrap.append(empty);
-          if (!state.readOnly) {
-            const addButton = document.createElement("button");
-            addButton.type = "button";
-            addButton.className = "primary-btn";
-            addButton.textContent = "新增记录";
-            addButton.addEventListener("click", () => openChainForNewDate(dateString));
-            wrap.append(addButton);
-          }
           els.calendarDayRecords.replaceChildren(wrap);
           return;
         }
-        if (dayHead) dayHead.hidden = true;
-        els.calendarDayRecords.replaceChildren(...sessions.map((session) => createCalendarRecordCard(session, dateTitle)));
+        els.calendarDayRecords.replaceChildren(...sessions.map((session, index) => createCalendarRecordCard(session, `第${index + 1}场 · ${session.venue}`)));
         return;
       }
       const monthLabel = formatCalendarSummaryMonth(state.calendar.year, state.calendar.month);
@@ -9056,6 +9103,8 @@
       }
       resetPaymentRule();
       state.pendingSessionEdit = { id: null, date: dateString };
+      state.trainingAnomaly = null;
+      state.currentPaymentRecord = null;
       state.returnToCalendar = true;
       updateShakePeopleButtonVisibility();
       state.chainInputUserOwned = false;
@@ -9093,6 +9142,7 @@
     function createCalendarRecordCard(session, title) {
       const card = document.createElement("div");
       card.className = "calendar-record";
+      card.dataset.sessionId = String(session.id);
       const head = document.createElement("div");
       head.className = "calendar-record-head";
 
@@ -9114,7 +9164,14 @@
         deleteButton.type = "button";
         deleteButton.textContent = "删除";
         deleteButton.addEventListener("click", () => deleteSessionRecord(session));
-        actions.append(editButton, deleteButton);
+        const venueButton = document.createElement("button");
+        venueButton.type = "button";
+        venueButton.textContent = "切换球馆";
+        venueButton.setAttribute("aria-label", `切换${title}的球馆`);
+        venueButton.addEventListener("click", () => void toggleSessionVenue(session));
+        editButton.setAttribute("aria-label", `编辑${title}`);
+        deleteButton.setAttribute("aria-label", `删除${title}`);
+        actions.append(venueButton, editButton, deleteButton);
         head.append(actions);
       }
       card.append(head);
@@ -9146,7 +9203,8 @@
         toast("当前为只读模式，不能删除订场记录");
         return;
       }
-      if (!window.confirm(`确定删除 ${formatCalendarDate(session.date)} 的订场记录吗？`)) return;
+      const sessionIndex = getSessionsOnDate(session.date).findIndex((item) => item.id === session.id) + 1;
+      if (!window.confirm(`确定删除 ${formatCalendarDate(session.date)} 第${sessionIndex}场（${session.venue}）的订场记录吗？其他球局不会受影响。`)) return;
       setSync("正在删除订场记录");
       try {
         const data = await api(`/api/sessions/${session.id}`, { method: "DELETE" });

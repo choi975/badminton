@@ -19,7 +19,7 @@ const state = {
   sessions: [],
   calendar: { year: 2026, month: 10, selectedDates: [], showLedger: false },
 };
-const els = Object.fromEntries(["calendarLedgerToggle", "calendarLedgerTotal", "calendarGrid", "calendarScroll", "calendarDayTitle", "calendarDayRecords"].map((key) => [key, node()]));
+const els = Object.fromEntries(["calendarLedgerToggle", "calendarLedgerTotal", "calendarGrid", "calendarScroll", "calendarDayTitle", "calendarDayRecords", "calendarAddSessionBtn"].map((key) => [key, node()]));
 els.calendarScroll.scrollTop = 120;
 els.calendarDayTitle.parentElement = node();
 const names = [
