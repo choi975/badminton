@@ -1114,4 +1114,108 @@ const learnedWithdrawal = newcomerBadge({ groupLearningSignals: {
 } });
 assert.ok(learnedWithdrawal.risks.includes("不足10人时可能退出"), "repeated learned withdrawal evidence applies equally to new members");
 
+
+// Personal attendance is P(attends | an organized session), not the Monte Carlo
+// probability of a spontaneous signup before cutoff. Keep a large dormant
+// address book from diluting attendance among members who actually play.
+const attendancePlayers = makePlayers(120);
+const attendanceHistory = Array.from({ length: 16 }, (_, i) => {
+  const date = isoDate(Date.parse("2026-09-18T00:00:00Z") + i * 2 * 86400000);
+  return session(date, [1, 3, 4, 5, 6, 7, 8, ...(i % 2 === 0 ? [2] : []),
+    ...(i === 0 ? [10] : []), ...(i === 15 ? [11] : [])]);
+});
+attendancePlayers[10].createdAt = "2026-10-18T00:00:00Z";
+const attendanceInput = {
+  players: attendancePlayers, sessions: attendanceHistory, entries: [],
+  targetDate: "2026-10-20", now: "2026-10-20T09:00:00+08:00",
+  simulations: 400, calibrationSimulations: 200, counterfactualSimulations: 40,
+  longTermLists: { threeDayStreak: { members: attendancePlayers.map(p => p.id) }, onlyLargeSessions: { members: [] } },
+};
+const attendanceMorning = estimate(attendanceInput);
+const personal = (forecast, id) => forecast.candidates.find(row => row.playerId === id);
+const attendanceLate = estimate({ ...attendanceInput, now: "2026-10-20T19:45:00+08:00" });
+assert.ok(personal(attendanceMorning, 2).attendanceProbability > 0.35,
+  "a member attending about half the organized days must not be compressed to a single digit");
+assert.ok(personal(attendanceMorning, 1).attendanceProbability > personal(attendanceMorning, 2).attendanceProbability);
+assert.ok(personal(attendanceMorning, 2).attendanceProbability > personal(attendanceMorning, 10).attendanceProbability);
+for (const row of attendanceMorning.candidates) {
+  assert.equal(row.attendanceBasis, "organized-session");
+  assert.ok(Number.isFinite(row.attendanceProbability) && row.attendanceProbability >= 0 && row.attendanceProbability <= 1);
+  assert.equal(row.attendanceProbability, personal(attendanceLate, row.playerId).attendanceProbability,
+    "clock time alone must not lower personal attendance");
+}
+assert.ok(personal(attendanceLate, 2).naturalAttendanceProbability < personal(attendanceMorning, 2).naturalAttendanceProbability,
+  "the separate group-formation forecast must still account for remaining signup time");
+const smallAttendanceRoster = estimate({ ...attendanceInput, players: attendancePlayers.slice(0, 11) });
+assert.equal(personal(smallAttendanceRoster, 2).attendanceProbability, personal(attendanceMorning, 2).attendanceProbability,
+  "adding people who never signed up must not dilute the personal probability");
+const duplicateAttendance = estimate({ ...attendanceInput, sessions: [...attendanceHistory, ...attendanceHistory] });
+assert.equal(personal(duplicateAttendance, 2).attendanceProbability, personal(attendanceMorning, 2).attendanceProbability);
+assert.equal(personal(duplicateAttendance, 2).attendanceSampleDays, 16, "same-day bookings count as one opportunity");
+assert.equal(personal(attendanceMorning, 2).attendanceAttendedDays, 8);
+assert.equal(personal(attendanceMorning, 11).attendanceSampleDays, 1, "do not count pre-membership absences");
+assert.equal(personal(attendanceMorning, 11).attendanceAttendedDays, 1);
+assert.ok(personal(attendanceMorning, 11).attendanceProbability < 1, "one attendance is not 100% certainty");
+const oldAttendanceMember = estimate({ ...attendanceInput,
+  players: attendancePlayers.map(p => p.id === 11 ? { ...p, createdAt: "2026-09-01" } : p) });
+assert.ok(personal(attendanceMorning, 11).attendanceProbability > personal(oldAttendanceMember, 11).attendanceProbability);
+const attendanceWithFuture = estimate({ ...attendanceInput, sessions: [...attendanceHistory,
+  session("2026-10-20", [1, 2, 3, 4, 5, 6]), session("2026-10-21", [1, 2, 3, 4, 5, 6])] });
+assert.equal(personal(attendanceWithFuture, 2).attendanceProbability, personal(attendanceMorning, 2).attendanceProbability,
+  "today and future bookings must not leak into attendance history");
+const largeAttendanceInput = { ...attendanceInput,
+  longTermLists: { ...attendanceInput.longTermLists, onlyLargeSessions: { members: [2] } } };
+const largeAttendanceMorning = estimate(largeAttendanceInput);
+const largeAttendanceLate = estimate({ ...largeAttendanceInput, now: "2026-10-20T19:45:00+08:00" });
+assert.equal(personal(largeAttendanceMorning, 2).attendanceProbability, personal(largeAttendanceLate, 2).attendanceProbability,
+  "large-session preference must not reintroduce the time-decaying group prior");
+const largeAttendanceJoined = estimate({ ...largeAttendanceInput,
+  entries: attendancePlayers.filter(p => p.id !== 2).slice(0, 10).map(regularEntry) });
+assert.ok(personal(largeAttendanceJoined, 2).attendanceProbability > personal(largeAttendanceMorning, 2).attendanceProbability,
+  "ten actual signups should reduce the risk from large-session preference");
+const impossibleAttendance = estimate({ ...attendanceInput, shortTermRules: [{ playerId: 2, type: "not_days", rule: { weekdays: [2] } }] });
+assert.equal(personal(impossibleAttendance, 2).attendanceProbability, 0, "no fabricated minimum for an unavailable player");
+assert.equal(personal(attendanceMorning, 120), undefined, "never-signed-up profiles remain outside the recommendation pool");
+
+// Two views of the same participation frequency must not multiply its odds.
+const overlappingPlayers = makePlayers(10).map(p => ({ ...p, createdAt: "2026-09-01" }));
+const overlappingHistory = attendanceHistory.map((row, i) => session(row.date,
+  i % 2 === 0 ? [1, 2, 3, 4, 5, 6] : [5, 6, 7, 8, 9, 10]));
+const overlappingInput = { ...attendanceInput, players: overlappingPlayers, sessions: overlappingHistory };
+const bookingOnlyAttendance = estimate(overlappingInput);
+const overlappingSignals = estimate({ ...overlappingInput, groupLearningSignals: {
+  generatedAt: "2026-10-20T00:00:00Z",
+  priors: { participationRate: 0.6, participationEvidence: 100 },
+  members: { 1: { participationRate: 0.5, participationReliability: 1 } },
+} });
+assert.ok(Math.abs(personal(bookingOnlyAttendance, 1).attendanceProbability
+  - personal(overlappingSignals, 1).attendanceProbability) < 0.08,
+  "matching signup evidence should refine, not square, historical frequency differences");
+
+
+// Personal percentages are analytic: changing a simulation's seed/sample count
+// may refine formation/uplift estimates, but must not jitter the displayed rate.
+const resampledAttendance = estimate({ ...attendanceInput, seed: 9173, simulations: 800 });
+const failedDayAttendance = estimate({ ...attendanceInput, sessions: [...attendanceHistory,
+  session("2026-09-19", [2, 3, 4, 5, 6]), session("2026-10-19", [2, 3, 4, 5, 6])] });
+for (const row of attendanceMorning.candidates) {
+  assert.equal(row.attendanceProbability, personal(resampledAttendance, row.playerId).attendanceProbability,
+    "Monte Carlo sampling must not quantize the personal percentage");
+  assert.equal(row.attendanceProbability, personal(failedDayAttendance, row.playerId).attendanceProbability,
+    "unsuccessful calendar days are not organized-session attendance opportunities");
+}
+
+// Equal lifetime counts need not imply equal attendance today: recent evidence
+// should win, without reusing the spontaneous-signup calibration intercept.
+const recentShiftHistory = Array.from({ length: 28 }, (_, i) => session(
+  isoDate(Date.parse("2026-08-24T00:00:00Z") + i * 2 * 86400000),
+  [1, 3, 4, 5, 6, 7, 8, ...(i < 14 ? [2] : [10])],
+));
+const recentShift = estimate({ ...attendanceInput,
+  players: attendancePlayers.map(p => ({ ...p, createdAt: "2026-08-01" })),
+  sessions: recentShiftHistory });
+assert.equal(personal(recentShift, 2).attendanceAttendedDays, personal(recentShift, 10).attendanceAttendedDays);
+assert.ok(personal(recentShift, 10).attendanceProbability > personal(recentShift, 2).attendanceProbability,
+  "recent regular attendance must outweigh equally frequent but older attendance");
+
 console.log("Group probability verification passed.");

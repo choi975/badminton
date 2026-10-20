@@ -4,7 +4,7 @@ import vm from "node:vm";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
-assert.ok(html.includes('document.createTextNode("到场倾向 ")'));
+assert.ok(html.includes('document.createTextNode("到场概率 ")'));
 assert.ok(html.includes('document.createTextNode("成局提升 ")'));
 assert.ok(html.includes('value.textContent = \x60+\x24{formatProbabilityPointLift(item.uplift)}个百分点\x60;'));
 assert.ok(html.includes('\x60\x24{today}\x24{formatRuleWeekdaySuffix(today)}   当前成局概率 \x24{todayPercent}%'));
@@ -93,11 +93,14 @@ assert.equal(orderedRecommendations.map((item) => item.player.id).join(","), "1,
 
 // Small predictions stay honest; no fabricated minimum percentage or false impossibility.
 const display = orderRecommendationsContext.formatShakeAttendanceProbability;
-assert.equal(display(0.008), "约0.8%");
-assert.equal(display(0.012), "约1.2%");
+assert.equal(display(0.62439), "62.4%");
+assert.equal(display(0.5), "50%");
+assert.equal(display(0.99999), "超过99.9%");
+assert.equal(display(0.008), "0.8%");
+assert.equal(display(0.012), "1.2%");
 assert.equal(display(0.0002), "不足0.1%");
-assert.equal(display(0), "本轮模拟未观察到到场");
-assert.equal(display(1), "超过99.9%");
+assert.equal(display(0), "0%");
+assert.equal(display(1), "100%");
 for (const invalid of [null, undefined, "", "0.5", NaN, Infinity, -0.1, 1.1]) {
   assert.equal(display(invalid), "暂无估算");
 }
@@ -118,19 +121,8 @@ assert.equal(ids(rankItems), "1,2,3,4,5", "sorting must not mutate model recomme
 const ties = [6, 7, 8].map((id) => ({ player: { id }, attendanceProbability: 0.01, uplift: 0.02 }));
 assert.equal(ids(order(ties, [])), "6,7,8", "equal probabilities preserve stable order");
 assert.equal(order([], []).length, 0);
-const getRange = orderRecommendationsContext.getShakeAttendanceRange;
-const describe = orderRecommendationsContext.describeShakeAttendance;
-const range = getRange(rankItems);
-assert.equal(range.max, 0.012);
-assert.equal(describe(0.012, range).label, "相对较高");
-assert.equal(describe(0.006, range).label, "相对中等");
-assert.equal(describe(0.002, range).label, "相对较低");
-assert.equal(describe(0, range).label, "待观察");
-assert.equal(describe(null, range).label, "待估算");
-assert.equal(describe(0.01, getRange(ties)).label, "相近");
-assert.equal(describe(0, getRange([{attendanceProbability: 0}])).label, "待观察");
-assert.equal(getRange([]).max, null);
-assert.match(html, /state\.shakeAttendanceRange = getShakeAttendanceRange\(allRecommendations\);/);
+assert.doesNotMatch(html, /相对较高|相对中等|到场倾向|shakeAttendanceRange/);
+assert.match(html, /attendanceValue.textContent = formatShakeAttendanceProbability\(item.attendanceProbability\)/);
 assert.match(html, /id="shakeSortBtn"[^>]*aria-controls="shakePeopleList"/);
 assert.match(html, /els\.shakeSortBtn\.addEventListener\("click", toggleShakePeopleSort\)/);
 assert.match(html, /attendance\.setAttribute\("aria-controls", attendanceDetail\.id\)/);

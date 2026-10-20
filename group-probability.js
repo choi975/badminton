@@ -1258,9 +1258,111 @@
     return result;
   }
 
+  // Personal attendance is conditional on a session being organized, not a
+  // share of the group-wide spontaneous-arrival forecast. Empty calendar days
+  // and members who never signed up are not failed attendance opportunities.
+  function candidateAttendanceEvidence(model, targetDate) {
+    const days = new Map();
+    for (const session of model.sessions) {
+      if (session.participantCount < SUCCESS_THRESHOLD || session.date >= targetDate) continue;
+      const day = days.get(session.date) || { ids: new Set(), large: false };
+      for (const id of session.selfIds) day.ids.add(id);
+      day.large ||= session.participantCount >= LARGE_SESSION_THRESHOLD;
+      days.set(session.date, day);
+    }
+    let dayWeight = 0;
+    let largeDayWeight = 0;
+    let weekdayWeight = 0;
+    let weekdayLargeWeight = 0;
+    for (const [date, day] of days) {
+      const weight = historyWeight(date, targetDate);
+      dayWeight += weight;
+      largeDayWeight += day.large ? weight : 0;
+      if (weekdayOf(date) === weekdayOf(targetDate)) {
+        weekdayWeight += weight;
+        weekdayLargeWeight += day.large ? weight : 0;
+      }
+    }
+    // Estimate size conditional on an organized session, never from the
+    // time-decaying spontaneous-signup simulations used for group formation.
+    const overallLargeRate = dayWeight > 0 ? largeDayWeight / dayWeight : 0.5;
+    const largeSessionRate = (weekdayLargeWeight + MEMBER_PRIOR_STRENGTH * overallLargeRate)
+      / (weekdayWeight + MEMBER_PRIOR_STRENGTH);
+    const result = new Map();
+    let totalAttended = 0;
+    let totalOpportunities = 0;
+    for (const player of model.players) {
+      const firstAttendance = [...(model.history.statsById.get(player.id)?.dates || [])].sort(compareDates)[0];
+      const signal = model.learning.membersById.get(player.id);
+      if (!firstAttendance && !(signal?.joinedWeight > 0)) continue;
+      const rawCreated = String(player.createdAt ?? player.created_at ?? player.joinedAt ?? player.joined_at ?? "").trim();
+      const timestamp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(rawCreated)
+        ? rawCreated.replace(" ", "T") + "Z" : rawCreated;
+      const created = parseIsoDate(rawCreated) ? rawCreated
+        : timestamp && Number.isFinite(Date.parse(timestamp)) ? beijingNowParts(timestamp).date : "";
+      const start = [created, firstAttendance].filter(Boolean).sort(compareDates)[0] || targetDate;
+      const row = { start, attended: 0, opportunities: 0, weekdayAttended: 0, weekdayOpportunities: 0, days: 0, attendedDays: 0 };
+      for (const [date, { ids }] of days) {
+        if (date < start) continue;
+        const weight = historyWeight(date, targetDate);
+        const attended = ids.has(player.id) ? weight : 0;
+        row.opportunities += weight;
+        row.attended += attended;
+        row.days += 1;
+        row.attendedDays += ids.has(player.id) ? 1 : 0;
+        if (weekdayOf(date) === weekdayOf(targetDate)) {
+          row.weekdayOpportunities += weight;
+          row.weekdayAttended += attended;
+        }
+      }
+      result.set(player.id, row);
+      totalAttended += row.attended;
+      totalOpportunities += row.opportunities;
+    }
+    // A prior only smooths sparse history; it is not a minimum probability.
+    const prior = totalOpportunities > 0 ? totalAttended / totalOpportunities : DEFAULT_PARTICIPATION_RATE;
+    return { members: result, prior, largeSessionRate };
+  }
+
+  function candidateAttendanceProbability(context, index, evidence) {
+    const player = context.players[index];
+    const member = context.memberData[index];
+    if (member.blocked) return 0;
+    const row = evidence.members.get(player.id);
+    const overall = ((row?.attended || 0) + MEMBER_PRIOR_STRENGTH * evidence.prior)
+      / ((row?.opportunities || 0) + MEMBER_PRIOR_STRENGTH);
+    const weekdayRate = ((row?.weekdayAttended || 0) + MEMBER_PRIOR_STRENGTH * overall)
+      / ((row?.weekdayOpportunities || 0) + MEMBER_PRIOR_STRENGTH);
+    const signal = context.learning.membersById.get(player.id);
+    // Booking attendance and real-signup participation overlap. Blend their
+    // estimates instead of adding a second frequency lift to personal history.
+    // Reliability only gates an already-shrunk posterior; freshness fades the
+    // source blend back to history. Keep the person's weekday-specific shift.
+    let participationRate = overall;
+    if (signal?.participationRate !== null && signal?.participationReliability > 0) {
+      const learnedRate = sigmoid(logit(evidence.prior)
+        + learnedParticipationEffect(context.resolvedPriors.participationRate, signal, 1));
+      participationRate += 0.5 * context.resolvedPriors.freshness * (learnedRate - overall);
+    }
+    const intent = sigmoid(logit(participationRate) + logit(weekdayRate) - logit(overall)
+      + member.stateEffect
+      + Math.log(fatigueFactorFor(member, member.baseStreak)));
+    // Bookings already record final attendance: do not multiply ordinary
+    // retention a second time. Only apply relative learned withdrawal risk.
+    const retentionAdjustment = learnedRetention(0.95, context.resolvedPriors.regularRetention,
+      signal, context.resolvedPriors.freshness) / 0.95;
+    const largeSessionProbability = context.effectiveCurrentCount >= LARGE_SESSION_THRESHOLD
+      ? 1 : evidence.largeSessionRate;
+    const lowRetentionRatio = clamp(context.largeLowRetention / LARGE_HIGH_RETENTION, 0, 1);
+    const largeStay = lowRetentionRatio
+      + (1 - lowRetentionRatio) * largeSessionProbability;
+    return clamp(intent * retentionAdjustment * (1 - member.largeConfidence * (1 - largeStay)), 0, 1);
+  }
+
   function candidateRows(model, todayContext, attendanceCounts, simulationCount, seed, counterfactualSimulations) {
     const currentIds = todayContext.current.selfIds;
     const recentEvidence = recentAttendanceEvidence(model, todayContext.targetDate);
+    const attendanceEvidence = candidateAttendanceEvidence(model, todayContext.targetDate);
     const rows = [];
     for (let index = 0; index < model.players.length; index += 1) {
       const player = model.players[index];
@@ -1276,7 +1378,8 @@
       const fatigued = priorStreak > 0 && fatigueFactorFor(member, priorStreak) < 0.8;
       const social = member.social;
       const largeConfidence = member.largeConfidence;
-      const attendanceProbability = blocked ? 0 : attendanceCounts[index] / Math.max(1, simulationCount);
+      const naturalAttendanceProbability = blocked ? 0 : attendanceCounts[index] / Math.max(1, simulationCount);
+      const attendanceProbability = candidateAttendanceProbability(todayContext, index, attendanceEvidence);
       const rawUplift = blocked ? 0 : counterfactualUplift(
         model,
         todayContext,
@@ -1321,6 +1424,11 @@
         playerId: player.id,
         name: String(player.name || `#${player.id}`),
         attendanceProbability: round(attendanceProbability),
+        naturalAttendanceProbability: round(naturalAttendanceProbability),
+        attendanceBasis: "organized-session",
+        attendanceSampleDays: attendanceEvidence.members.get(player.id)?.days || 0,
+        attendanceAttendedDays: attendanceEvidence.members.get(player.id)?.attendedDays || 0,
+        attendanceHistoryStart: attendanceEvidence.members.get(player.id)?.start || "",
         uplift: round(uplift),
         score: round(attendanceProbability * Math.max(uplift, 0)),
         eligible: !blocked,
@@ -1482,7 +1590,7 @@
       expectedFinalCount: round(tomorrowCountTotal / simulations, 3),
     };
     return {
-      modelVersion: "group-probability-v1",
+      modelVersion: "group-probability-v2",
       today,
       tomorrow,
       todayProbability: today.probability,
@@ -1501,6 +1609,8 @@
       simulationCount: simulations,
       counterfactualSimulationCount: hardSettled || !includeCandidates ? 0 : counterfactualSimulations,
       assumptions: {
+        candidateAttendanceBasis: "organized-session",
+        candidateAttendancePriorStrength: MEMBER_PRIOR_STRENGTH,
         cutoffTime: "20:00",
         activityTime: "19:00",
         successThreshold: SUCCESS_THRESHOLD,
