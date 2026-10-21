@@ -125,8 +125,16 @@ assert.doesNotMatch(html, /相对较高|相对中等|到场倾向|shakeAttendanc
 assert.match(html, /attendanceValue.textContent = formatShakeAttendanceProbability\(item.attendanceProbability\)/);
 assert.match(html, /id="shakeSortBtn"[^>]*aria-controls="shakePeopleList"/);
 assert.match(html, /els\.shakeSortBtn\.addEventListener\("click", toggleShakePeopleSort\)/);
-assert.match(html, /attendance\.setAttribute\("aria-controls", attendanceDetail\.id\)/);
-assert.match(html, /attendanceDetail\.hidden = !attendanceDetail\.hidden/);
+// Attendance is informational text, not an expandable action.
+assert.ok(html.includes("到场概率根据此人和已接龙人员亲密度、近期出勤率、喜欢周几打、喜欢多少人打、体力是否支持连打（昨天前天是否有打）计算得出，仅供参考。"));
+assert.match(html, /const attendance = document\.createElement\("span"\);/);
+assert.doesNotMatch(html, /attendance\.(?:addEventListener|setAttribute)|attendance\.(?:type|title)\s*=/);
+assert.doesNotMatch(html, /attendanceDetail|shake-attendance-detail|点击百分比|点击查看到场概率/);
+const attendanceCss = html.match(/\.shake-person-attendance \{([^}]*)\}/)?.[1];
+assert.ok(attendanceCss, "Expected attendance text styling");
+assert.doesNotMatch(attendanceCss, /text-decoration|text-underline-offset|cursor:\s*pointer/);
+assert.doesNotMatch(html, /\.shake-person-attendance:(?:hover|focus-visible)/);
+assert.match(html, /event\.target\.closest\("button, \.shake-person-attendance"\)/);
 assert.doesNotMatch(html, /probabilityPercent\(item\.attendanceProbability\)/);
 
 const toggleStart = html.indexOf("function syncShakePeopleSort(");
@@ -170,7 +178,7 @@ const visibilityState = { shakeImpactVisible: true, shakeSortMode: "attendancePr
 const visibilityContext = vm.createContext({
   state: visibilityState,
   els: { shakeImpactToggle: visibilityButton, shakePeopleList: visibilityList },
-  renderShakePeopleList: () => { throw new Error("visibility must not rebuild rows or reset expanded details/focus/scroll"); },
+  renderShakePeopleList: () => { throw new Error("visibility must not rebuild rows or reset focus/scroll"); },
   renderGroupForecast: () => { throw new Error("visibility must not recompute probabilities"); },
 });
 vm.runInContext(html.slice(visibilityStart, visibilityEnd), visibilityContext);

@@ -1017,8 +1017,7 @@
     .shake-sort-btn svg { width: 15px; height: 15px; }
     .shake-sort-btn:hover { background: #e8f2ef; }
     .shake-sort-btn:focus-visible,
-    #shakeImpactToggle:focus-visible,
-    .shake-person-attendance:focus-visible {
+    #shakeImpactToggle:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
     }
@@ -1223,36 +1222,10 @@
     #shakeImpactToggle[aria-pressed="false"] .shake-impact-visible-icon { display: none; }
 
     .shake-person-attendance {
-      min-height: 28px;
-      padding: 0;
-      border: 0;
-      border-radius: 3px;
-      background: transparent;
       color: var(--muted);
-      font: inherit;
       white-space: nowrap;
-      text-decoration: underline dotted;
-      text-underline-offset: 4px;
+      cursor: default;
     }
-
-    .shake-person-attendance:hover { background: #eef5f3; }
-    .shake-person-attendance[data-tendency="high"] strong { color: var(--accent-dark); }
-    .shake-person-attendance[data-tendency="low"] strong,
-    .shake-person-attendance[data-tendency="unknown"] strong { color: var(--muted); }
-
-    .shake-attendance-detail {
-      grid-column: 1 / -1;
-      margin: 0;
-      padding-top: 8px;
-      border-top: 1px solid var(--line);
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.6;
-      white-space: normal;
-      overflow-wrap: anywhere;
-    }
-
-    .shake-attendance-detail[hidden] { display: none; }
 
     .shake-person-meta {
       display: flex;
@@ -4970,7 +4943,7 @@
           </label>
           <button id="shakeFilterReset" class="shake-filter-reset" type="button" hidden>清除筛选</button>
         </div>
-        <p id="shakeProbabilityNote" class="shake-probability-note">到场概率按当天有球局估算，结合历史出勤和当天规则；不是成局概率，也不代表邀约后的答应率。点击百分比查看说明。</p>
+        <p id="shakeProbabilityNote" class="shake-probability-note">到场概率根据此人和已接龙人员亲密度、近期出勤率、喜欢周几打、喜欢多少人打、体力是否支持连打（昨天前天是否有打）计算得出，仅供参考。</p>
         <div id="shakePeopleList" class="shake-people-list" data-show-impact="true" aria-describedby="shakeProbabilityNote"></div>
         <div class="shake-rule-accordions">
           <details id="shakeLongTermRulesBlock" class="shake-rule-accordion">
@@ -13483,7 +13456,7 @@
         row.className = "shake-person-row";
         row.title = "双击快速创建该成员的短期规则";
         row.addEventListener("dblclick", (event) => {
-          if (event.target.closest("button")) return;
+          if (event.target.closest("button, .shake-person-attendance")) return;
           openShortRuleModal(`${displayName} `);
         });
 
@@ -13543,30 +13516,12 @@
 
         const score = document.createElement("div");
         score.className = "shake-person-score";
-        const attendanceDetail = document.createElement("p");
-        attendanceDetail.id = `shake-attendance-${playerId}`;
-        attendanceDetail.className = "shake-attendance-detail";
-        attendanceDetail.hidden = true;
-        const attendanceHistory = item.attendanceSampleDays > 0
-          ? `个人统计范围内的成局日共${item.attendanceSampleDays}天，其中本人出勤${item.attendanceAttendedDays}天；这是原始天数，显示概率还会按近期表现及当天条件调整。`
-          : "历史出勤样本不足，主要参考真实接龙记录和群体先验。";
-        attendanceDetail.textContent = `到场概率：${formatShakeAttendanceProbability(item.attendanceProbability)}。${attendanceHistory}以今天能组织球局为前提，按实际成局日的出勤比例估算；近期记录权重更高，并结合星期、同场关系、体力、人数偏好和当天规则。入群前、没有球局的日期不计为缺席，同一天多场不重复计数；样本少时向有参与记录的成员平均值平滑。这是估算，不是邀约答应率，也不会仅因临近截止就机械降低。`;
-        const attendance = document.createElement("button");
-        attendance.type = "button";
+        const attendance = document.createElement("span");
         attendance.className = "shake-person-attendance";
-        attendance.setAttribute("aria-expanded", "false");
-        attendance.setAttribute("aria-controls", attendanceDetail.id);
-        attendance.setAttribute("aria-label", `${displayName}的到场概率${formatShakeAttendanceProbability(item.attendanceProbability)}，点击查看计算说明`);
-        attendance.title = "点击查看到场概率的计算说明";
         attendance.append(document.createTextNode("到场概率 "));
         const attendanceValue = document.createElement("strong");
         attendanceValue.textContent = formatShakeAttendanceProbability(item.attendanceProbability);
         attendance.append(attendanceValue);
-        attendance.addEventListener("click", (event) => {
-          event.stopPropagation();
-          attendanceDetail.hidden = !attendanceDetail.hidden;
-          attendance.setAttribute("aria-expanded", String(!attendanceDetail.hidden));
-        });
         score.append(attendance);
         if (shakeProbabilityValue(item.uplift) !== null) {
           const impact = document.createElement("span");
@@ -13591,7 +13546,7 @@
         });
         row.append(primary);
         if (score.childElementCount) row.append(score);
-        row.append(skipButton, attendanceDetail);
+        row.append(skipButton);
         els.shakePeopleList.append(row);
       });
       window.lucide?.createIcons({ attrs: { "aria-hidden": "true" } });
