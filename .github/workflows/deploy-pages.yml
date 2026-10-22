@@ -36,6 +36,9 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Verify deployed Cloudflare member statistics
+        run: node scripts/verify-deployed-member-statistics.js
+
       - name: Build static site
         run: npm run build
 
