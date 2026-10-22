@@ -68,7 +68,7 @@ function oddsScaledProbability(probability, multiplier = 0.2) {
 }
 
 const cold = build({ players: players(2) });
-assert.equal(GROUP_LEARNING_VERSION, "group-learning-v1");
+assert.equal(GROUP_LEARNING_VERSION, "group-learning-v2");
 assert.equal(cold.version, GROUP_LEARNING_VERSION);
 assert.equal(cold.generatedAt, NOW);
 assert.equal(cold.generatedDate, "2026-09-04", "generatedDate必须使用北京时间日期边界");

@@ -36,6 +36,7 @@ const context = vm.createContext({
   GROUP_LEARNING_VERSION,
   listPlayers: async () => [],
   listSessions: async () => [],
+  rebuildMemberStatistics: async () => ({ version: "member-statistics-v1" }),
   console: { ...console, error: (...args) => capturedErrors.push(args) },
 });
 vm.runInContext(`
@@ -687,7 +688,7 @@ assert.doesNotMatch(
   /knownPlayerIds|known_player_ids_json|companionsByOwner|companions_by_owner_json|"snapshots"/,
   "缓存不得保存原始名单或快照",
 );
-assert.equal((await getCachedGroupLearningSignals(d1)).version, "group-learning-v1");
+assert.equal((await getCachedGroupLearningSignals(d1)).version, "group-learning-v2");
 
 database.prepare("UPDATE group_attempts SET outcome = 'pending' WHERE activity_date = '2026-09-01'").run();
 database.prepare("UPDATE group_attempts SET outcome = 'success' WHERE activity_date = '2026-09-02'").run();
@@ -715,12 +716,12 @@ const maintenanceResult = await runScheduledGroupLearningMaintenance(
   new Date("2026-09-05T04:05:00.000Z"),
 );
 assert.equal(maintenanceResult.settlement.cutoffDate, "2026-09-04");
-assert.equal(maintenanceResult.groupLearningSignals.version, "group-learning-v1");
+assert.equal(maintenanceResult.groupLearningSignals.version, "group-learning-v2");
 assert.equal(
   parseCachedGroupLearningSignals(database.prepare(
     "SELECT model_json FROM group_learning_model_cache WHERE id = 'current'"
   ).get().model_json).version,
-  "group-learning-v1",
+  "group-learning-v2",
   "定时结算后必须重建并覆盖坏缓存",
 );
 
@@ -750,7 +751,8 @@ assert.match(workerSource, /import \{[\s\S]*buildGroupLearningSignals,[\s\S]*GRO
 assert.match(migrationSource, /trigger_type TEXT NOT NULL,\s+training_state TEXT NOT NULL DEFAULT 'eligible'/);
 assert.match(cacheMigrationSource, /CREATE TABLE IF NOT EXISTS group_learning_model_cache/);
 assert.match(cacheMigrationSource, /CHECK \(id = 'current'\)/);
-assert.match(workerSource, /context\.waitUntil\(runScheduledGroupLearningMaintenance\(env\.DB, now\)\)/);
+assert.match(workerSource, /runScheduledGroupLearningMaintenance\(env\.DB, now\)/);
+assert.match(workerSource, /rebuildMemberStatistics\(env\.DB, now, true\)/);
 
 const bootstrapStart = workerSource.indexOf('if (pathname === "/api/bootstrap" && method === "GET")');
 const bootstrapEnd = workerSource.indexOf('if (pathname === "/api/estimator"', bootstrapStart);

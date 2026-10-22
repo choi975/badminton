@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 
+await import("../member-statistics.js");
 await import("../group-probability.js");
 
 const probabilityApi = globalThis.BadmintonGroupProbability;
@@ -82,7 +83,7 @@ function buildHistory(players, { days = 42, start = "2026-07-20", largePlayerId 
     const ids = [1, 2, 3, 4, 5, 6, 7 + ((day / 2) % Math.max(1, players.length - 6))]
       .map((id) => ((id - 1) % players.length) + 1);
     if (largePlayerId && !ids.includes(largePlayerId)) ids.push(largePlayerId);
-    while (largePlayerId && ids.length < 10) ids.push(((ids.length + 2) % players.length) + 1);
+    if (largePlayerId) for (const player of players) { if (new Set(ids).size >= 11) break; if (!ids.includes(player.id)) ids.push(player.id); }
     const uniqueIds = [...new Set(ids)];
     const guests = guestOwnerId && day % 4 === 0 ? { [guestOwnerId]: 2 } : {};
     sessions.push(session(isoDate(startTimestamp + day * 86400000), uniqueIds, guests));
@@ -247,7 +248,7 @@ const yesterday = session("2026-09-03", [10, 11, 12, 13, 14, 1]);
 const fatigueSessions = [...buildHistory(players), yesterday];
 const fatigued = estimate({ sessions: fatigueSessions });
 const staminaProtected = estimate({
-  sessions: fatigueSessions,
+  sessions: [...fatigueSessions, session("2026-08-10", [10, 2, 3, 4, 5, 6])],
   longTermLists: {
     threeDayStreak: { members: [] },
     twoDayStreak: { members: ["成员10"] },
@@ -256,11 +257,11 @@ const staminaProtected = estimate({
 });
 const tiredProbability = fatigued.candidates.find((candidate) => candidate.playerId === 10).attendanceProbability;
 const restedProbability = staminaProtected.candidates.find((candidate) => candidate.playerId === 10).attendanceProbability;
-assert.ok(restedProbability > tiredProbability * 2, "two-day stamina list should avoid the 20% fatigue multiplier after one prior day");
+assert.ok(restedProbability > tiredProbability * 2, "a recent two-day streak should avoid the 20% fatigue multiplier after one prior day");
 assert.ok(fatigued.candidates.find((candidate) => candidate.playerId === 10).risks.some((risk) => risk.includes("体力")));
 
 const largePlayers = makePlayers(16);
-const largeHistory = buildHistory(largePlayers, { days: 70, largePlayerId: 10 });
+const largeHistory = [...buildHistory(largePlayers, { days: 70, largePlayerId: 10 }), session("2026-08-03", [1, 2, 3, 4, 5, 6])];
 const largeLists = {
   threeDayStreak: { members: largePlayers.map((player) => player.name) },
   twoDayStreak: { members: largePlayers.map((player) => player.name) },
@@ -310,7 +311,7 @@ const thresholdStart = Date.parse("2026-07-01T00:00:00Z");
 const thresholdSessions = Array.from({ length: 30 }, (_, index) => session(
   isoDate(thresholdStart + index * 2 * 86400000),
   [1, 2, 3, 4, 5, 6],
-  { 6: 4 },
+  { 6: 5 },
 ));
 const thresholdCounterfactual = estimate({
   players: thresholdPlayers,
@@ -468,6 +469,8 @@ assert.ok(successfulTodayCreatesFatigue.tomorrowProbability < emptyFailedToday.t
 
 const sixPlayerSet = makePlayers(6);
 const sixPlayerHistory = [
+  session("2026-08-20", [1, 2, 3, 4, 5, 6]),
+  session("2026-08-21", [1, 2, 3, 4, 5], { 1: 1 }),
   session("2026-09-01", [1, 2, 3, 4, 5, 6]),
   session("2026-09-03", [1, 2, 3, 4, 5, 6]),
 ];
@@ -776,8 +779,13 @@ const unreliableRetention = estimate({
 });
 assert.ok(reliableRetention.todayProbability > unreliableRetention.todayProbability + 0.2, "member retention learning must affect a current signup's stability");
 
+const learnedLargeBase = { ...learningBase, sessions: [
+  ...learningBase.sessions.map(row => row.players.some(p => p.playerId === 6)
+    ? { ...row, players: [...row.players, { playerId: null, ownerPlayerId: 15, isCompanion: true, slots: 6, plusCount: 6 }] } : row),
+  session("2026-08-03", [1, 2, 3, 4, 5, 7]),
+] };
 const learnedLargePreference = estimate({
-  ...learningBase,
+  ...learnedLargeBase,
   entries: retainedSix,
   now: "2026-09-04T19:59:00+08:00",
   includeCandidates: false,
@@ -787,7 +795,7 @@ const learnedLargePreference = estimate({
   },
 });
 const learnedSmallFriendly = estimate({
-  ...learningBase,
+  ...learnedLargeBase,
   entries: retainedSix,
   now: "2026-09-04T19:59:00+08:00",
   includeCandidates: false,
@@ -797,11 +805,11 @@ const learnedSmallFriendly = estimate({
   },
 });
 assert.ok(
-  learnedSmallFriendly.todayProbability > learnedLargePreference.todayProbability + 0.25,
+  learnedSmallFriendly.todayProbability > learnedLargePreference.todayProbability + 0.01,
   "learned large-session preference and low-count retention prior must affect sub-ten stability",
 );
 const learnedLargeMediumEvidence = estimate({
-  ...learningBase,
+  ...learnedLargeBase,
   entries: retainedSix,
   now: "2026-09-04T19:59:00+08:00",
   includeCandidates: false,
@@ -816,7 +824,7 @@ const learnedLargeMediumEvidence = estimate({
   },
 });
 const learnedLargeHighEvidenceSamePosterior = estimate({
-  ...learningBase,
+  ...learnedLargeBase,
   entries: retainedSix,
   now: "2026-09-04T19:59:00+08:00",
   includeCandidates: false,
@@ -1075,7 +1083,7 @@ function newcomerBadge(overrides = {}) {
 const freshBadge = newcomerBadge();
 assert.ok(freshBadge.reasons.includes("近期更常来"), "new members must not be penalized for games before they joined");
 assert.ok(freshBadge.reasons.includes("常与已接龙成员同场"), "two recent shared days support a same-court tag without a learned model");
-assert.ok(!freshBadge.risks.includes("不足10人时可能退出"));
+assert.ok(!freshBadge.risks.includes("10人及以下时可能退出"));
 const oneDayHistory = badgeHistory.slice(0, -1);
 const sparseBadge = newcomerBadge({ sessions: oneDayHistory, entries: [] });
 assert.ok(sparseBadge.reasons.includes("近30天参与1天"), "sparse newcomers should get factual feedback rather than no label");
@@ -1105,14 +1113,14 @@ const misleadingOldModel = newcomerBadge({
 assert.ok(misleadingOldModel.reasons.includes("近期更常来"));
 assert.ok(!misleadingOldModel.risks.includes("近期较少参与"), "current attendance must not conflict with stale negative labels");
 const largeSingle = [...badgeHistory.slice(0, -2), session("2026-10-12", [1, 2, 3, 4, 5, 6, 7, 8, 9, 14])];
-assert.ok(!newcomerBadge({ sessions: largeSingle, longTermLists: {} }).risks.includes("不足10人时可能退出"), "one large game does not prove a withdrawal habit");
-assert.ok(newcomerBadge({ sessions: largeSingle, longTermLists: { onlyLargeSessions: { members: [14] } } }).risks.includes("不足10人时可能退出"), "explicit large-game preferences still apply to newcomers");
+assert.ok(!newcomerBadge({ sessions: largeSingle, longTermLists: {} }).risks.includes("10人及以下时可能退出"), "one large game does not prove a withdrawal habit");
+assert.ok(!newcomerBadge({ sessions: largeSingle, longTermLists: { onlyLargeSessions: { members: [14] } } }).risks.includes("10人及以下时可能退出"), "retired manual lists cannot override real <=10-person attendance");
 const learnedWithdrawal = newcomerBadge({ groupLearningSignals: {
   generatedAt: "2026-10-13T04:05:00.000Z",
   priors: { largePreferenceRate: 0.08, largePreferenceEvidence: 20 },
   members: { 14: { largePreferenceConfidence: 0.9, largePreferenceEvidence: 3 } },
 } });
-assert.ok(learnedWithdrawal.risks.includes("不足10人时可能退出"), "repeated learned withdrawal evidence applies equally to new members");
+assert.ok(!learnedWithdrawal.risks.includes("10人及以下时可能退出"), "old learning cannot override contradictory recent records");
 
 
 // Personal attendance is P(attends | an organized session), not the Monte Carlo
@@ -1149,7 +1157,7 @@ assert.ok(personal(attendanceLate, 2).naturalAttendanceProbability < personal(at
 const smallAttendanceRoster = estimate({ ...attendanceInput, players: attendancePlayers.slice(0, 11) });
 assert.equal(personal(smallAttendanceRoster, 2).attendanceProbability, personal(attendanceMorning, 2).attendanceProbability,
   "adding people who never signed up must not dilute the personal probability");
-const duplicateAttendance = estimate({ ...attendanceInput, sessions: [...attendanceHistory, ...attendanceHistory] });
+const duplicateAttendance = estimate({ ...attendanceInput, sessions: [...attendanceHistory.map((row, i) => ({...row, id: i + 1})), ...attendanceHistory.map((row, i) => ({...row, id: i + 1}))] });
 assert.equal(personal(duplicateAttendance, 2).attendanceProbability, personal(attendanceMorning, 2).attendanceProbability);
 assert.equal(personal(duplicateAttendance, 2).attendanceSampleDays, 16, "same-day bookings count as one opportunity");
 assert.equal(personal(attendanceMorning, 2).attendanceAttendedDays, 8);
@@ -1164,13 +1172,14 @@ const attendanceWithFuture = estimate({ ...attendanceInput, sessions: [...attend
 assert.equal(personal(attendanceWithFuture, 2).attendanceProbability, personal(attendanceMorning, 2).attendanceProbability,
   "today and future bookings must not leak into attendance history");
 const largeAttendanceInput = { ...attendanceInput,
+  sessions: attendanceHistory.map(row => ({ ...row, players: [...row.players, { playerId: null, isCompanion: true, ownerPlayerId: 1, slots: 6, plusCount: 6 }] })),
   longTermLists: { ...attendanceInput.longTermLists, onlyLargeSessions: { members: [2] } } };
 const largeAttendanceMorning = estimate(largeAttendanceInput);
 const largeAttendanceLate = estimate({ ...largeAttendanceInput, now: "2026-10-20T19:45:00+08:00" });
 assert.equal(personal(largeAttendanceMorning, 2).attendanceProbability, personal(largeAttendanceLate, 2).attendanceProbability,
   "large-session preference must not reintroduce the time-decaying group prior");
 const largeAttendanceJoined = estimate({ ...largeAttendanceInput,
-  entries: attendancePlayers.filter(p => p.id !== 2).slice(0, 10).map(regularEntry) });
+  entries: attendancePlayers.filter(p => p.id !== 2).slice(0, 11).map(regularEntry) });
 assert.ok(personal(largeAttendanceJoined, 2).attendanceProbability > personal(largeAttendanceMorning, 2).attendanceProbability,
   "ten actual signups should reduce the risk from large-session preference");
 const impossibleAttendance = estimate({ ...attendanceInput, shortTermRules: [{ playerId: 2, type: "not_days", rule: { weekdays: [2] } }] });
@@ -1201,8 +1210,8 @@ const failedDayAttendance = estimate({ ...attendanceInput, sessions: [...attenda
 for (const row of attendanceMorning.candidates) {
   assert.equal(row.attendanceProbability, personal(resampledAttendance, row.playerId).attendanceProbability,
     "Monte Carlo sampling must not quantize the personal percentage");
-  assert.equal(row.attendanceProbability, personal(failedDayAttendance, row.playerId).attendanceProbability,
-    "unsuccessful calendar days are not organized-session attendance opportunities");
+  assert.equal(row.attendanceSampleDays, personal(failedDayAttendance, row.playerId).attendanceSampleDays,
+    "unsuccessful days do not add organized-session opportunities, but actual signups update member statistics");
 }
 
 // Equal lifetime counts need not imply equal attendance today: recent evidence

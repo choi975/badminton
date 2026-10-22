@@ -1,3 +1,5 @@
+import "../member-statistics.js";
+import MEMBER_STATISTICS_JS from "./member-statistics.txt";
 import "../level-groups.js";
 import LEVEL_GROUPS_JS from "./level-groups.txt";
 import "../court-pricing.js";
@@ -206,6 +208,10 @@ export default {
         });
       }
 
+      if (url.pathname === "/member-statistics.js") {
+        return new Response(MEMBER_STATISTICS_JS, { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache" } });
+      }
+
       if (url.pathname === "/group-probability.js") {
         return new Response(GROUP_PROBABILITY_JS, {
           headers: {
@@ -232,7 +238,9 @@ export default {
 
   async scheduled(controller, env, context) {
     const now = new Date(Number(controller?.scheduledTime) || Date.now());
-    context.waitUntil(runScheduledGroupLearningMaintenance(env.DB, now));
+    context.waitUntil(controller?.cron === "5 16 * * *"
+      ? rebuildMemberStatistics(env.DB, now, true)
+      : runScheduledGroupLearningMaintenance(env.DB, now));
   },
 };
 
@@ -622,7 +630,7 @@ async function handleApi(request, env, url) {
 
   if (pathname === "/api/bootstrap" && method === "GET") {
     const learningNow = new Date();
-    const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes, cachedGroupLearningSignals, edcBalance, levelGroups] = await Promise.all([
+    const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes, cachedGroupLearningSignals, edcBalance, levelGroups, statisticsCalendar] = await Promise.all([
       listPlayers(env.DB),
       getLevelGuide(env.DB),
       getPaymentOrderState(env.DB),
@@ -632,6 +640,7 @@ async function handleApi(request, env, url) {
       getCachedGroupLearningSignals(env.DB),
       getEdcBalance(env.DB),
       getLevelGroups(env.DB),
+      readMemberStatisticsCalendar(env.DB),
     ]);
     const groupLearningSignals = cachedGroupLearningSignals || buildGroupLearningColdStart(players, sessions, learningNow);
     return json({
@@ -644,7 +653,19 @@ async function handleApi(request, env, url) {
       groupLearningSignals,
       edcBalance,
       levelGroups,
+      memberStatistics: globalThis.BadmintonMemberStatistics.build({ players, sessions, now: learningNow, calendar: statisticsCalendar }),
     });
+  }
+
+  if (pathname === "/api/member-statistics" && method === "GET") {
+    const [players, sessions, calendar] = await Promise.all([listPlayers(env.DB), listSessions(env.DB), readMemberStatisticsCalendar(env.DB)]);
+    return json({ memberStatistics: globalThis.BadmintonMemberStatistics.build({ players, sessions, calendar }) });
+  }
+
+  if (pathname === "/api/member-statistics/rebuild" && method === "POST") {
+    if (!isAdminRequest(request)) return json({ error: "只有管理版可以刷新成员统计" }, 403);
+    if (!await consumeGroupAttemptRateLimit(request, env)) return json({ error: "刷新过于频繁，请稍后重试" }, 429);
+    return json({ memberStatistics: await rebuildMemberStatistics(env.DB, new Date(), true) });
   }
 
   if (pathname === "/api/estimator" && method === "GET") {
@@ -715,9 +736,9 @@ async function handleApi(request, env, url) {
   }
 
   if (pathname === "/api/short-term-rules" && method === "POST") {
-    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以创建摇人短期规则" }, 403);
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以创建摇人规则" }, 403);
     const input = normalizeShortTermRuleInput(await readJson(request));
-    if (!input) return json({ error: "短期规则格式无效" }, 400);
+    if (!input) return json({ error: "规则格式无效" }, 400);
     if (EXPIRING_SHORT_TERM_RULE_TYPES.has(input.type)) {
       const earlySession = await findEarlyReturnSession(env.DB, input);
       if (earlySession) {
@@ -735,7 +756,7 @@ async function handleApi(request, env, url) {
       return json({
         rule,
         rules: await listShortTermRules(env.DB),
-        message: deletedCount ? "新的日期规则已保存，并替换原有日期规则" : "短期规则已保存",
+        message: deletedCount ? "新的日期规则已保存，并替换原有日期规则" : "规则已保存",
       }, 201);
     }
 
@@ -749,7 +770,7 @@ async function handleApi(request, env, url) {
     }
     const result = await buildShortTermRuleInsert(env.DB, input).run();
     const rule = await getShortTermRuleById(env.DB, Number(result.meta.last_row_id));
-    return json({ rule, rules: await listShortTermRules(env.DB), message: "短期规则已保存" }, 201);
+    return json({ rule, rules: await listShortTermRules(env.DB), message: "规则已保存" }, 201);
   }
 
   if (pathname === "/api/member-exits/confirm" && method === "POST") {
@@ -1091,33 +1112,15 @@ async function handleApi(request, env, url) {
 
   const shakeLongTermListMatch = pathname.match(/^\/api\/shake-long-term-lists\/([a-zA-Z0-9]+)$/);
   if (shakeLongTermListMatch && method === "PUT") {
-    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以编辑摇人长期名单" }, 403);
-    const key = String(shakeLongTermListMatch[1]);
-    if (!SHAKE_LONG_TERM_LIST_KEYS.has(key)) return json({ error: "长期名单类型无效" }, 400);
-    const body = await readJson(request);
-    const members = Array.isArray(body?.members)
-      ? body.members.map((name) => String(name || "").trim()).filter(Boolean)
-      : [];
-    if (members.length > 500 || members.some((name) => name.length > 50)) {
-      return json({ error: "成员名单数据无效" }, 400);
-    }
-    await env.DB.prepare(
-      `INSERT INTO shake_long_term_lists (list_key, label, members_json, updated_at)
-       VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-       ON CONFLICT(list_key) DO UPDATE SET
-         label = excluded.label,
-         members_json = excluded.members_json,
-         updated_at = CURRENT_TIMESTAMP`
-    ).bind(key, body?.label ? String(body.label).slice(0, 120) : key, JSON.stringify(members)).run();
-    return json({ list: await getShakeLongTermList(env.DB, key) });
+    return json({ error: "成员统计由接龙记录自动生成，不再支持手工覆盖；请使用新建规则设置个人安排。" }, 410);
   }
 
   const shortTermRuleMatch = pathname.match(/^\/api\/short-term-rules\/(\d+)$/);
   if (shortTermRuleMatch && method === "DELETE") {
-    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以删除摇人短期规则" }, 403);
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以删除摇人规则" }, 403);
     const id = Number(shortTermRuleMatch[1]);
     const existing = await env.DB.prepare("SELECT id FROM short_term_rules WHERE id = ?").bind(id).first();
-    if (!existing) return json({ error: "找不到这条短期规则" }, 404);
+    if (!existing) return json({ error: "找不到这条规则" }, 404);
     await env.DB.prepare("DELETE FROM short_term_rules WHERE id = ?").bind(id).run();
     return json({ ok: true });
   }
@@ -2135,7 +2138,8 @@ async function settleDueGroupAttempts(db, now = new Date()) {
 async function runScheduledGroupLearningMaintenance(db, now = new Date()) {
   const settlement = await settleDueGroupAttempts(db, now);
   const groupLearningSignals = await safelyRebuildGroupLearningSignals(db, now);
-  return { settlement, groupLearningSignals };
+  const memberStatistics = await rebuildMemberStatistics(db, now);
+  return { settlement, groupLearningSignals, memberStatistics };
 }
 
 function buildShortTermRuleInsert(db, input) {
@@ -3298,4 +3302,53 @@ function corsHeaders() {
     "access-control-allow-headers": "content-type",
     "access-control-max-age": "86400",
   };
+}
+
+async function readMemberStatisticsCalendar(db) {
+  const row = await db.prepare("SELECT statistics_json FROM member_statistics_cache WHERE id = 'current'").first();
+  try {
+    const cached = JSON.parse(row?.statistics_json || "null");
+    return globalThis.BadmintonMemberStatistics.normalizeCalendar(cached?.calendar);
+  } catch {
+    return globalThis.BadmintonMemberStatistics.normalizeCalendar();
+  }
+}
+
+async function refreshMemberStatisticsCalendar(calendar, now) {
+  const core = globalThis.BadmintonMemberStatistics;
+  const today = core.beijingDate(now);
+  const years = [...new Set([Number(core.addDays(today, -59).slice(0, 4)), Number(today.slice(0, 4)), Number(core.addDays(today, 1).slice(0, 4))])];
+  const normalized = core.normalizeCalendar(calendar);
+  for (const year of years) {
+    try {
+      const response = await fetch(`https://raw.githubusercontent.com/NateScarlet/holiday-cn/master/${year}.json`, { signal: AbortSignal.timeout(8000) });
+      if (!response.ok) throw new Error(`Calendar HTTP ${response.status}`);
+      const data = await response.json();
+      if (Number(data.year) !== year || !Array.isArray(data.days) || data.days.length < 10 || data.days.length > 100
+        || !Array.isArray(data.papers) || !data.papers.some((paper) => /^https:\/\/(?:www\.)?gov\.cn\//.test(paper))
+        || data.days.some((day) => !core.validDate(day.date) || !day.date.startsWith(`${year}-`) || typeof day.isOffDay !== "boolean")) {
+        throw new Error(`Invalid holiday calendar for ${year}`);
+      }
+      normalized.knownYears = [...new Set([...normalized.knownYears, year])];
+      normalized.excludedDates = [...new Set([...normalized.excludedDates.filter((date) => !date.startsWith(`${year}-`)), ...data.days.map((day) => day.date)])].sort();
+      normalized.sources[year] = data.papers;
+    } catch (error) {
+      // Missing future announcements never become ordinary-weekday evidence.
+      console.warn(`Calendar ${year} unavailable; retaining verified dates`, error.message);
+    }
+  }
+  return normalized;
+}
+
+async function rebuildMemberStatistics(db, now = new Date(), refreshCalendar = false) {
+  let calendar = await readMemberStatisticsCalendar(db);
+  if (refreshCalendar) calendar = await refreshMemberStatisticsCalendar(calendar, now);
+  const [players, sessions] = await Promise.all([listPlayers(db), listSessions(db)]);
+  const memberStatistics = globalThis.BadmintonMemberStatistics.build({ players, sessions, calendar, now });
+  await db.prepare(`INSERT INTO member_statistics_cache (id, statistics_json, generated_at, updated_at)
+    VALUES ('current', ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(id) DO UPDATE SET statistics_json = excluded.statistics_json,
+      generated_at = excluded.generated_at, updated_at = CURRENT_TIMESTAMP`)
+    .bind(JSON.stringify(memberStatistics), memberStatistics.generatedAt).run();
+  return memberStatistics;
 }

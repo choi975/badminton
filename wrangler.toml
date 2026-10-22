@@ -7,7 +7,7 @@ binding = "TODO_WORKER"
 service = "todo"
 
 [triggers]
-crons = ["5 4 * * *"]
+crons = ["5 4 * * *", "5 16 * * *"]
 
 [ai]
 binding = "AI"

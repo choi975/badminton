@@ -47,3 +47,6 @@ console.log(`Synced ${groupProbabilitySource} -> ${groupProbabilityTarget}`);
 console.log(`Synced ${groupProbabilitySource} -> ${workerGroupProbabilityTarget}`);
 console.log(`Synced ${courtPricingSource} -> ${courtPricingTarget}`);
 console.log(`Synced ${courtPricingSource} -> ${workerCourtPricingTarget}`);
+
+copyFileSync(resolve("member-statistics.js"), resolve("public/member-statistics.js"));
+copyFileSync(resolve("member-statistics.js"), resolve("src/member-statistics.txt"));

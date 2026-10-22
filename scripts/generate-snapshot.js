@@ -1,3 +1,4 @@
+import "../member-statistics.js";
 import "../level-groups.js";
 import { execFile } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -299,6 +300,7 @@ const snapshot = {
     shakeLongTermLists,
     groupAttemptOutcomes,
     groupLearningSignals,
+    memberStatistics: globalThis.BadmintonMemberStatistics.build({ players, sessions }),
   },
 };
 

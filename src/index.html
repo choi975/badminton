@@ -6,6 +6,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b5d56'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='17' fill='white'%3E羽%3C/text%3E%3C/svg%3E">
   <title>羽球助手</title>
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js" crossorigin="anonymous"></script>
+  <script src="./member-statistics.js"></script>
   <script src="./group-probability.js"></script>
   <script src="./court-pricing.js"></script>
   <script src="./level-groups.js"></script>
@@ -4236,6 +4237,13 @@
       }
       .payment-settings-group:first-child { border-top: 0; }
     }
+
+    .member-statistics-note { margin: 0 0 12px; font-size: 12px; line-height: 1.7; color: var(--muted); }
+    .member-statistics-list { margin: 0; font-size: 13px; line-height: 1.7; }
+    .member-statistics-list dt { margin-top: 16px; font-weight: 600; }
+    .member-statistics-list dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+    .member-statistics-ranking { margin: 0; padding-left: 28px; columns: 2 220px; column-gap: 24px; }
+    .member-statistics-ranking li { break-inside: avoid; padding-left: 2px; font-variant-numeric: tabular-nums; }
   </style>
 <script>
 /* Project Index shortcuts v2: 0..3 fixed; 4..9 resolved live with offline fallback. */
@@ -4946,13 +4954,9 @@
         <p id="shakeProbabilityNote" class="shake-probability-note">到场概率根据此人和已接龙人员亲密度、近期出勤率、喜欢周几打、喜欢多少人打、体力是否支持连打（昨天前天是否有打）计算得出，仅供参考。</p>
         <div id="shakePeopleList" class="shake-people-list" data-show-impact="true" aria-describedby="shakeProbabilityNote"></div>
         <div class="shake-rule-accordions">
-          <details id="shakeLongTermRulesBlock" class="shake-rule-accordion">
-            <summary>长期规则</summary>
-            <div id="shakeLongTermRulesList" class="shake-rules-list"></div>
-          </details>
-          <details id="shakeShortTermRulesBlock" class="shake-rule-accordion">
-            <summary>短期规则</summary>
-            <div id="shakeShortTermRulesList" class="shake-rules-list"></div>
+          <details id="shakeMemberStatisticsBlock" class="shake-rule-accordion">
+            <summary>成员统计</summary>
+            <div id="shakeMemberStatisticsList" class="shake-rules-list"></div>
           </details>
         </div>
       </div>
@@ -4982,7 +4986,7 @@
         <div class="short-rule-divider"></div>
         <div class="short-rule-head">
           <h3>现有规则</h3>
-          <span class="short-rule-hint">星期规则归入长期规则，日期规则到期后自动失效</span>
+          <span class="short-rule-hint">星期规则持续有效，日期规则到期后自动失效</span>
         </div>
         <div id="shortTermRulesList" class="short-term-rules-list"></div>
       </div>
@@ -5148,7 +5152,7 @@
       paymentGroupOverrides: {},
       currentPaymentRecord: null,
       shortTermRules: [],
-      longTermMemberLists: {},
+      memberStatistics: null,
       groupAttemptOutcomes: [],
       groupLearningSignals: null,
       groupForecast: null,
@@ -5280,10 +5284,8 @@
       shakeLevelFilter: document.getElementById("shakeLevelFilter"),
       shakeFilterReset: document.getElementById("shakeFilterReset"),
       shortTermRulesList: document.getElementById("shortTermRulesList"),
-      shakeLongTermRulesBlock: document.getElementById("shakeLongTermRulesBlock"),
-      shakeShortTermRulesBlock: document.getElementById("shakeShortTermRulesBlock"),
-      shakeLongTermRulesList: document.getElementById("shakeLongTermRulesList"),
-      shakeShortTermRulesList: document.getElementById("shakeShortTermRulesList"),
+      shakeMemberStatisticsBlock: document.getElementById("shakeMemberStatisticsBlock"),
+      shakeMemberStatisticsList: document.getElementById("shakeMemberStatisticsList"),
       shakeFiltersToggle: document.getElementById("shakeFiltersToggle"),
       shakePeopleFilters: document.getElementById("shakePeopleFilters"),
       newShortRuleBtn: document.getElementById("newShortRuleBtn"),
@@ -5450,7 +5452,7 @@
         applyBootstrapData(data, "cloud", new Date().toISOString());
         try {
           await loadShortTermRules();
-          await loadShakeLongTermLists();
+          await loadMemberStatistics();
         } catch (error) {
           // 摇人规则加载失败不阻断其他数据加载
         }
@@ -5516,12 +5518,7 @@
       state.groupLearningSignals = data.groupLearningSignals && typeof data.groupLearningSignals === "object"
         ? data.groupLearningSignals
         : state.groupLearningSignals;
-      if (Array.isArray(data.shakeLongTermLists)) {
-        state.longTermMemberLists = Object.fromEntries(data.shakeLongTermLists.map((list) => [list.key, {
-          label: list.label,
-          members: Array.isArray(list.members) ? list.members : [],
-        }]));
-      }
+      if (data.memberStatistics) state.memberStatistics = data.memberStatistics;
       if (!state.estimator.shuttleTypes.some((type) => type.id === state.selectedEstimateShuttleTypeId)) {
         state.selectedEstimateShuttleTypeId = state.estimator.shuttleTypes[0]?.id || "rsl3";
       }
@@ -9985,7 +9982,7 @@
         state.groupLearningSignals?.version || "",
         entries,
         rules,
-        state.longTermMemberLists,
+        state.memberStatistics?.calendar,
       ]);
     }
 
@@ -10014,7 +10011,7 @@
           groupLearningSignals: state.groupLearningSignals,
           entries: state.chainEntries,
           shortTermRules: state.shortTermRules,
-          longTermLists: state.longTermMemberLists,
+          memberStatistics: getMemberStatistics(),
           targetDate,
           now: new Date(),
           includeCandidates,
@@ -10066,11 +10063,8 @@
         if (!playerId || !active || !ruleBlocksPlayerToday(rule, playerId, date)) return;
         constraints.set(`${playerId}:${rule.type}`, { playerId, type: rule.type });
       });
-      LONG_TERM_MEMBER_LIST_DEFINITIONS.forEach((definition) => {
-        getVisibleLongTermListValue(definition.key).forEach((name) => {
-          const playerId = getPlayerIdByListedName(name);
-          if (playerId) constraints.set(`${playerId}:${definition.key}`, { playerId, type: definition.key });
-        });
+      getMemberStatistics().lists.filter((list) => ["threeDayStreak", "twoDayStreak", "onlyLargeSessions"].includes(list.key)).forEach((list) => {
+        list.memberIds.forEach((playerId) => constraints.set(`${playerId}:${list.key}`, { playerId, type: list.key }));
       });
       return [...constraints.values()].sort((left, right) => left.playerId - right.playerId || left.type.localeCompare(right.type));
     }
@@ -10186,6 +10180,7 @@
         lastAttemptSnapshotAt = 0;
         processChain();
         void loadCurrentGroupAttempt();
+        void loadMemberStatistics().catch((error) => console.warn("成员统计日历刷新失败，使用本地日历", error));
       }
       groupForecastCacheKey = "";
       renderGroupForecast({ force: true });
@@ -13293,103 +13288,17 @@
         ));
     }
 
-    const LONG_TERM_MEMBER_LIST_DEFINITIONS = [
-      { key: "threeDayStreak", label: "能够连续打三天球的成员" },
-      { key: "twoDayStreak", label: "能够连续打两天球的成员" },
-      { key: "onlyLargeSessions", label: "只参加10人及以上接龙的成员" },
-    ];
-
-    function getLongTermMemberListDefaults() {
-      const attendance = new Map();
-      const sessionSizes = new Map();
-      const sessionDates = [];
-      for (const session of state.sessions || []) {
-        if (!session.date) continue;
-        sessionDates.push(session.date);
-        const size = (session.players || []).reduce((sum, row) => sum + Math.max(0, Number(row.slots) || 0), 0);
-        sessionSizes.set(session.date, size);
-        const seen = new Set();
-        for (const row of session.players || []) {
-          if (row.isCompanion) continue;
-          if (!(Math.max(0, Number(row.slots) || 0) > Math.max(0, Number(row.plusCount) || 0))) continue;
-          const playerId = Number(row.ownerPlayerId ?? row.playerId);
-          if (!Number.isInteger(playerId) || playerId <= 0 || seen.has(playerId)) continue;
-          seen.add(playerId);
-          if (!attendance.has(playerId)) attendance.set(playerId, new Set());
-          attendance.get(playerId).add(session.date);
-        }
-      }
-      const dateDiff = (a, b) => Math.round((new Date(`${b}T00:00:00+08:00`) - new Date(`${a}T00:00:00+08:00`)) / 86400000);
-      const maxStreak = (dates) => {
-        const sorted = [...dates].sort();
-        let best = 0;
-        let current = 0;
-        let previous = null;
-        for (const date of sorted) {
-          if (previous !== null && dateDiff(previous, date) === 1) current += 1;
-          else current = 1;
-          best = Math.max(best, current);
-          previous = date;
-        }
-        return best;
-      };
-      const names = (playerId) => {
-        const player = getPlayerById(playerId);
-        return player ? firstName(player.name) : "";
-      };
-      const result = {
-        threeDayStreak: [],
-        twoDayStreak: [],
-        onlyLargeSessions: [],
-      };
-      const rows = [...attendance.entries()].map(([playerId, dates]) => ({
-        playerId,
-        name: names(playerId),
-        dates,
-        streak: maxStreak(dates),
-        sizes: [...dates].map((date) => sessionSizes.get(date)),
-      })).filter((row) => row.name);
-      rows.sort((a, b) => b.streak - a.streak || collator.compare(a.name, b.name));
-      result.threeDayStreak = rows.filter((row) => row.streak >= 3).map((row) => row.name);
-      result.twoDayStreak = rows.filter((row) => row.streak >= 2).map((row) => row.name);
-      rows
-        .filter((row) => row.sizes.length && row.sizes.every((size) => size >= 10))
-        .sort((a, b) => b.sizes.length - a.sizes.length || collator.compare(a.name, b.name))
-        .forEach((row) => result.onlyLargeSessions.push(row.name));
-      return result;
-    }
-
-    async function loadShakeLongTermLists() {
-      const data = await api("/api/shake-long-term-lists");
-      state.longTermMemberLists = {};
-      (data.lists || []).forEach((list) => {
-        state.longTermMemberLists[list.key] = {
-          label: list.label,
-          members: Array.isArray(list.members) ? list.members : [],
-        };
+    function getMemberStatistics() {
+      return globalThis.BadmintonMemberStatistics.build({
+        players: state.players, sessions: state.sessions, now: new Date(),
+        calendar: state.memberStatistics?.calendar,
       });
-      groupForecastCacheKey = "";
     }
 
-    function getVisibleLongTermListValue(key) {
-      return Object.prototype.hasOwnProperty.call(state.longTermMemberLists, key)
-        ? (state.longTermMemberLists[key]?.members || [])
-        : (getLongTermMemberListDefaults()[key] || []);
-    }
-
-    async function saveShakeLongTermList(key, label, members) {
-      const data = await api(`/api/shake-long-term-lists/${key}`, {
-        method: "PUT",
-        body: JSON.stringify({ label, members }),
-      });
-      state.longTermMemberLists[key] = {
-        label: data.list?.label || label,
-        members: data.list?.members || members,
-      };
+    async function loadMemberStatistics() {
+      const data = await api("/api/member-statistics");
+      state.memberStatistics = data.memberStatistics;
       groupForecastCacheKey = "";
-      renderGroupForecast({ force: true });
-      scheduleGroupAttemptSnapshot("rule_change");
-      if (els.shakePeopleModal.classList.contains("open")) renderShakeLongTermRules();
     }
 
     function shakeProbabilityValue(value) {
@@ -13454,7 +13363,7 @@
         const isBottomed = state.shakeBottomedPlayerIds.has(playerId);
         const row = document.createElement("div");
         row.className = "shake-person-row";
-        row.title = "双击快速创建该成员的短期规则";
+        row.title = "双击快速创建该成员的规则";
         row.addEventListener("dblclick", (event) => {
           if (event.target.closest("button, .shake-person-attendance")) return;
           openShortRuleModal(`${displayName} `);
@@ -13538,7 +13447,7 @@
         skipButton.type = "button";
         skipButton.className = "shake-person-skip";
         skipButton.textContent = "×";
-        skipButton.title = "今天不打球，快速创建短期规则";
+        skipButton.title = "今天不打球，快速创建规则";
         skipButton.setAttribute("aria-label", `${firstName(item.player.name)}今天不打球`);
         skipButton.addEventListener("click", (event) => {
           event.stopPropagation();
@@ -13655,102 +13564,60 @@
         });
     }
 
-    function renderShakeLongTermRules() {
-      els.shakeLongTermRulesList.replaceChildren();
-      const longRules = [
-        "只推荐未接龙的人；已接龙的人不推荐。",
-        "点击排序按钮可切换按到场概率或成局概率提升从高到低排序，手动置底优先。",
-        "到场概率以当天有球局为前提，按个人历史参与率和当天条件估算，不是成局概率或邀约答应率。",
-        "只把入群后实际成局日计为参与机会；近期记录权重更高，样本少时平滑，不设虚假百分比下限。",
-        "成局概率 +N%：该成员确定到场与不到场两种情形的概率差（N个百分点），不是当前概率直接加N%；点击眼睛按钮可显示或隐藏。",
-        "模型每天北京时间12:05自动训练；近期参与标签也会随已完成的订场记录更新。",
-        "新成员从首次实际参与或资料登记起统计；样本少时展示近期参与天数，不凭空推断习惯。",
-        "综合历史出勤、随行人员、同场关系、水平、星期和体力。",
-        "短期明确不打的人排除；偏好大局的判断按历史样本量降权。",
-      ];
-      const fixedHeading = document.createElement("div");
-      fixedHeading.className = "long-term-rule-heading";
-      fixedHeading.textContent = "固定推荐规则";
-      els.shakeLongTermRulesList.append(fixedHeading);
-      longRules.forEach((line) => {
-        const item = document.createElement("div");
-        item.className = "long-term-rule-line";
-        item.textContent = line;
-        els.shakeLongTermRulesList.append(item);
-      });
-
-      const listHeading = document.createElement("div");
-      listHeading.className = "long-term-rule-heading";
-      listHeading.textContent = "成员统计名单（可编辑保存）";
-      els.shakeLongTermRulesList.append(listHeading);
-      LONG_TERM_MEMBER_LIST_DEFINITIONS.forEach((definition) => {
-        const members = getVisibleLongTermListValue(definition.key);
-        const row = document.createElement("div");
-        row.className = "shake-list-edit-row";
-        const label = document.createElement("span");
+    function renderShakeMemberStatistics() {
+      const container = els.shakeMemberStatisticsList;
+      container.replaceChildren();
+      const statistics = getMemberStatistics();
+      const note = document.createElement("p");
+      note.className = "member-statistics-note";
+      note.textContent = `截至${statistics.asOf} · 近60天有接龙记录的成员 ${statistics.activeMemberCount} 人。每天北京时间00:05更新，已完成日期的接龙增改后即时重算；模型每天北京时间12:05自动训练。`;
+      container.append(note);
+      const scope = document.createElement("p");
+      scope.className = "member-statistics-note";
+      scope.textContent = "按已完成的自然日统计，不含当天和未来记录。排名按近15天接龙次数；连打与人数偏好看近60天，星期与每周局数看近30天。10人以上指至少11人；每周为周一至周日，只计算观察期内的场次。节假日和调休不用于星期判断。统计为历史习惯，不代表当天一定不打。";
+      container.append(scope);
+      if (statistics.missingCalendarYears.length) {
+        const warning = document.createElement("p");
+        warning.className = "member-statistics-note";
+        warning.textContent = `${statistics.missingCalendarYears.join("、")}年节假日日历尚未确认，暂不推断“不打周几”。`;
+        container.append(warning);
+      }
+      const byId = new Map(statistics.members.map((member) => [member.playerId, member]));
+      const list = document.createElement("dl");
+      list.className = "member-statistics-list";
+      for (const definition of statistics.lists) {
+        const label = document.createElement("dt");
         label.textContent = `${definition.label}：`;
-        const input = document.createElement("input");
-        input.className = "shake-list-edit-input";
-        input.value = members.join("、");
-        const saveButton = document.createElement("button");
-        saveButton.type = "button";
-        saveButton.className = "shake-list-save-btn";
-        saveButton.textContent = "保存";
-        saveButton.addEventListener("click", async () => {
-          saveButton.disabled = true;
-          try {
-            const nextMembers = input.value.split(/[、，,]/).map((name) => name.trim()).filter(Boolean);
-            await saveShakeLongTermList(definition.key, definition.label, nextMembers);
-            toast(`${definition.label}已保存`);
-          } catch (error) {
-            toast(`保存失败：${error.message}`);
-          } finally {
-            saveButton.disabled = false;
+        const value = document.createElement("dd");
+        if (!definition.memberIds.length) value.textContent = "暂无符合条件的成员";
+        else if (definition.key === "attendance15") {
+          const ranking = document.createElement("ol");
+          ranking.className = "member-statistics-ranking";
+          for (const id of definition.memberIds) {
+            const member = byId.get(id);
+            const item = document.createElement("li");
+            item.value = member.rank15;
+            item.textContent = `${member.name}（${member.attendance15}次）`;
+            ranking.append(item);
           }
-        });
-        row.append(label, input, saveButton);
-        els.shakeLongTermRulesList.append(row);
-      });
-
-      const weeklyHeading = document.createElement("div");
-      weeklyHeading.className = "long-term-rule-heading";
-      weeklyHeading.textContent = "每周固定安排";
-      els.shakeLongTermRulesList.append(weeklyHeading);
-      const weeklyRules = getActiveRules().filter(isLongTermRuleType);
-      if (!weeklyRules.length) {
-        const empty = document.createElement("div");
-        empty.className = "empty-hint";
-        empty.textContent = "暂无每周固定规则";
-        els.shakeLongTermRulesList.append(empty);
-      } else {
-        weeklyRules.forEach((rule) => els.shakeLongTermRulesList.append(createRuleRow(rule)));
+          value.append(ranking);
+        } else value.textContent = definition.memberIds.map((id) => byId.get(id).name).join("、");
+        list.append(label, value);
       }
-    }
-
-    function renderShakeShortTermRules() {
-      els.shakeShortTermRulesList.replaceChildren();
-      const shortRules = getActiveRules().filter((rule) => !isLongTermRuleType(rule));
-      if (!shortRules.length) {
-        const empty = document.createElement("div");
-        empty.className = "empty-hint";
-        empty.textContent = "暂无短期规则";
-        els.shakeShortTermRulesList.append(empty);
-        return;
-      }
-      shortRules.forEach((rule) => els.shakeShortTermRulesList.append(createRuleRow(rule)));
+      container.append(list);
     }
 
     function shortRuleSchedule(rule) {
       if (rule.type === "only_days") return `只打 ${formatWeekdayNames(rule.rule?.weekdays)}`;
       if (rule.type === "not_days") return `${formatWeekdayNames(rule.rule?.weekdays)} 不打`;
       if (rule.expiresOn) return `${formatShortRuleDate(addDaysToIsoDate(rule.expiresOn, 1))} 再打`;
-      return "短期规则";
+      return "规则";
     }
 
     function shortRuleDescription(rule) {
       const schedule = shortRuleSchedule(rule);
       const note = normalizeShortRuleNote(rule.rule?.note);
-      return note && schedule !== "短期规则" ? `${schedule} ${note}` : schedule;
+      return note && schedule !== "规则" ? `${schedule} ${note}` : schedule;
     }
 
     function renderShortTermRulesList() {
@@ -13827,8 +13694,7 @@
       renderShakePeopleSummary(recommendations, allRecommendations.length);
       syncAttemptTrialToggle();
       renderShakePeopleList(recommendations);
-      renderShakeLongTermRules();
-      renderShakeShortTermRules();
+      renderShakeMemberStatistics();
     }
 
     function setShakeFiltersExpanded(expanded) {
@@ -13842,7 +13708,7 @@
       if (state.readOnly) return;
       processChain();
       try {
-        await Promise.all([loadShortTermRules(), loadShakeLongTermLists()]);
+        await Promise.all([loadShortTermRules(), loadMemberStatistics()]);
       } catch (error) {
         toast(`摇人规则加载失败：${error.message}`);
       }
@@ -13925,7 +13791,7 @@
         scheduleGroupAttemptSnapshot("rule_change");
         if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
         if (els.shortRuleModal.classList.contains("open")) renderShortTermRulesList();
-        toast("短期规则已删除");
+        toast("规则已删除");
       } catch (error) {
         toast(`删除失败：${error.message}`);
       }

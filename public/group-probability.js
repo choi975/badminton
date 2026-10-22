@@ -3,7 +3,7 @@
 
   const DAY_MS = 86400000;
   const SUCCESS_THRESHOLD = 6;
-  const LARGE_SESSION_THRESHOLD = 10;
+  const LARGE_SESSION_THRESHOLD = 11;
   const WEEKDAY_PRIOR_STRENGTH = 10;
   const MISSING_BOOKING_SOFT_SUCCESS = 0.05;
   const MEMBER_PRIOR_STRENGTH = 6;
@@ -151,14 +151,6 @@
   function regularRetention(targetDate, nowParts) {
     const remainingHours = (localClockTimestamp(targetDate, ACTIVITY_HOUR) - nowLocalTimestamp(nowParts)) / 3600000;
     return round(0.995 - 0.045 * clamp(remainingHours / 24, 0, 1), 9);
-  }
-
-  function normalizeName(value) {
-    return String(value || "").normalize("NFKC").toLowerCase().replace(/\s+/g, "").trim();
-  }
-
-  function aliasesForPlayer(player) {
-    return String(player?.name || "").split(/[,，]/).map(normalizeName).filter(Boolean);
   }
 
   function normalizePlayerId(value) {
@@ -433,77 +425,30 @@
     };
   }
 
-  function listValue(longTermLists, key) {
-    if (Array.isArray(longTermLists)) {
-      const found = longTermLists.find((item) => item?.key === key || item?.listKey === key);
-      return { present: Boolean(found), members: Array.isArray(found?.members) ? found.members : [] };
-    }
-    if (!longTermLists || typeof longTermLists !== "object") return { present: false, members: [] };
-    const present = Object.prototype.hasOwnProperty.call(longTermLists, key);
-    const raw = longTermLists[key];
-    const members = Array.isArray(raw) ? raw : Array.isArray(raw?.members) ? raw.members : [];
-    return { present, members };
-  }
-
-  function resolveMemberRefs(refs, players, aliasToId) {
-    const ids = new Set();
-    for (const ref of refs || []) {
-      const directId = normalizePlayerId(typeof ref === "object" ? ref?.id ?? ref?.playerId : ref);
-      if (directId && players.some((player) => player.id === directId)) {
-        ids.add(directId);
-        continue;
-      }
-      const normalized = normalizeName(typeof ref === "object" ? ref?.name : ref);
-      if (aliasToId.has(normalized)) ids.add(aliasToId.get(normalized));
-    }
-    return ids;
-  }
-
-  function maximumStreak(dates) {
-    const sorted = [...dates].sort(compareDates);
-    let best = 0;
-    let current = 0;
-    let previous = "";
-    for (const date of sorted) {
-      current = previous && addDays(previous, 1) === date ? current + 1 : 1;
-      best = Math.max(best, current);
-      previous = date;
-    }
-    return best;
-  }
-
-  function buildLongTermProfile(players, history, longTermLists) {
-    const aliasToId = new Map();
-    for (const player of players) {
-      for (const alias of aliasesForPlayer(player)) {
-        if (!aliasToId.has(alias)) aliasToId.set(alias, player.id);
-      }
-    }
-    const three = listValue(longTermLists, "threeDayStreak");
-    const two = listValue(longTermLists, "twoDayStreak");
-    const large = listValue(longTermLists, "onlyLargeSessions");
-    const threeIds = three.present
-      ? resolveMemberRefs(three.members, players, aliasToId)
-      : new Set(players.filter((player) => maximumStreak(history.statsById.get(player.id)?.dates || []) >= 3).map((player) => player.id));
-    const twoIds = two.present
-      ? resolveMemberRefs(two.members, players, aliasToId)
-      : new Set(players.filter((player) => maximumStreak(history.statsById.get(player.id)?.dates || []) >= 2).map((player) => player.id));
-    const largeIds = large.present
-      ? resolveMemberRefs(large.members, players, aliasToId)
-      : new Set(players.filter((player) => {
-        const stats = history.statsById.get(player.id);
-        const largeRate = (stats?.largeSessionWeight || 0) / Math.max(0.0001, stats?.playCount || 0);
-        return (stats?.rawPlayCount || 0) > 0 && largeRate >= 0.8;
-      }).map((player) => player.id));
+  function buildStatisticsProfile(players, statistics) {
+    const byId = new Map(statistics.members.map((member) => [member.playerId, member]));
+    const ids = (key) => new Set(statistics.lists.find((list) => list.key === key)?.memberIds || []);
+    const threeIds = ids("threeDayStreak"), twoIds = ids("twoDayStreak"), largeIds = ids("onlyLargeSessions");
     const capacityById = new Map(players.map((player) => [player.id, threeIds.has(player.id) ? 3 : twoIds.has(player.id) ? 2 : 1]));
     const largeConfidenceById = new Map(players.map((player) => {
-      const stats = history.statsById.get(player.id);
-      const sampleCount = stats?.playCount || 0;
-      const largeRate = (stats?.largeSessionWeight || 0) / Math.max(0.0001, sampleCount);
-      const preferenceRate = large.present ? Number(largeIds.has(player.id)) : (largeIds.has(player.id) ? largeRate : 0);
-      return [player.id, preferenceRate * sampleCount / (sampleCount + LEARNING_EVIDENCE_PRIOR)];
+      const count = byId.get(player.id)?.attendance60 || 0;
+      return [player.id, largeIds.has(player.id) ? count / (count + LEARNING_EVIDENCE_PRIOR) : 0];
     }));
-    return { capacityById, largeConfidenceById, threeIds, twoIds, largeIds };
+    return { capacityById, largeConfidenceById, threeIds, twoIds, largeIds, byId };
+  }
+
+  function memberStatisticsEffect(model, playerId, targetDate) {
+    const member = model.longTerm.byId.get(playerId);
+    if (!member) return { effect: 0, weekdayAvoided: false, weeklyLimitReached: false, weeklyRemaining: null };
+    // Recency is a soft, smoothed signal. Observed habits never act as manual bans.
+    const recentEffect = clamp(Math.log((member.attendance15 + 1) / (member.attendance60 / 4 + 1)), -0.7, 0.7);
+    const weekdayAvoided = root.BadmintonMemberStatistics.isOrdinaryDate(targetDate, model.memberStatistics.calendar)
+      && member.noPlayWeekdays.includes(weekdayOf(targetDate));
+    const week = root.BadmintonMemberStatistics.weekStart(targetDate);
+    const weeklyCount = member.weeklyCounts30[week] || 0;
+    const weeklyRemaining = member.weeklyLimit === null ? null : member.weeklyLimit - weeklyCount;
+    const weeklyLimitReached = weeklyRemaining !== null && weeklyRemaining <= 0;
+    return { effect: recentEffect + (weekdayAvoided ? Math.log(0.25) : 0) + (weeklyLimitReached ? Math.log(0.2) : 0), weekdayAvoided, weeklyLimitReached, weeklyRemaining };
   }
 
   function firstFinite(source, keys) {
@@ -969,10 +914,13 @@
     if (!ignoreRulesAndFatigue && member.blocked) return 0;
     const priorStreak = priorStreakAt(context, index, previousStreaks);
     const fatigue = ignoreRulesAndFatigue ? 1 : fatigueFactorFor(member, priorStreak);
+    // Tomorrow's simulated attendance can consume the last weekly slot.
+    const simulatedWeeklyLimit = !ignoreRulesAndFatigue && previousStreaks && priorStreak > 0
+      && member.weeklyRemaining === 1 && weekdayOf(context.targetDate) !== 1 ? Math.log(0.2) : 0;
     const dayProbability = sigmoid(
       context.intercept
       + member.baseEffect
-      + Math.log(fatigue)
+      + Math.log(fatigue) + simulatedWeeklyLimit
       + (ignoreRulesAndFatigue ? 0 : member.stateEffect)
     );
     return clamp(1 - ((1 - dayProbability) ** (ignoreRulesAndFatigue ? 1 : context.exposure)), 0, 1);
@@ -1116,6 +1064,7 @@
         / Math.max(MEMBER_PRIOR_STRENGTH, context.history.successfulSessions + MEMBER_PRIOR_STRENGTH);
       const participationReference = signal?.participationRate ?? historicalParticipation;
       const capacity = context.longTerm.capacityById.get(player.id) || 1;
+      const statisticsEffect = memberStatisticsEffect(model, player.id, targetDate);
       const fatigueMultiplier = context.resolvedPriors.fatigueMultiplier;
       const staticSecondDayFatigueFactor = capacity >= 2 ? 1 : fatigueMultiplier;
       const staticThirdDayFatigueFactor = capacity >= 3 ? 1 : fatigueMultiplier;
@@ -1131,7 +1080,7 @@
         current: current.selfIds.has(player.id),
         blocked: options.neutral ? false : ruleBlocksPlayer(context.shortTermRules, player.id, targetDate),
         capacity,
-        largeConfidence: learnedLargeConfidence(
+        largeConfidence: !context.longTerm.largeIds.has(player.id) ? 0 : learnedLargeConfidence(
           context.longTerm.largeConfidenceById.get(player.id) || 0,
           context.resolvedPriors.largePreferenceRate,
           signal,
@@ -1140,7 +1089,8 @@
         baseStreak: historicalStreakBefore(context.history, player.id, targetDate),
         baseEffect: memberEffect(context.history, player.id, weekday, context.players.length)
           + learnedParticipationEffect(context.resolvedPriors.participationRate, signal, context.resolvedPriors.freshness),
-        stateEffect: social + levelMatch + countMomentum,
+        ...statisticsEffect,
+        stateEffect: social + levelMatch + countMomentum + (options.neutral ? 0 : statisticsEffect.effect),
         social,
         retention: learnedRetention(
           context.regularRetention,
@@ -1408,14 +1358,11 @@
       const rank = levelRank(player.level);
       if (todayContext.lowLevelJoined && rank >= 0 && rank < 3) reasons.push("水平相近");
       if (blocked) risks.push("规则显示当天不打");
+      if (member.weekdayAvoided) risks.push("近30天未在普通同星期接龙");
+      if (member.weeklyLimitReached) risks.push("已达到近30天观察到的每周局数上限");
       if (fatigued) risks.push("超过连续打球体力上限");
-      // A single large booking is not evidence of a withdrawal habit. Keep
-      // explicit preferences and learned repeated behavior, including newcomers.
-      const explicitLargePreference = listValue(model.longTermLists, "onlyLargeSessions").present
-        && model.longTerm.largeIds.has(player.id);
-      const repeatedLargeEvidence = (stats?.rawPlayCount || 0) >= 3
-        || (learningSignal?.largePreferenceEvidence || 0) >= 2;
-      if (largeConfidence > 0 && (explicitLargePreference || repeatedLargeEvidence)) risks.push("不足10人时可能退出");
+      // Membership is exact 60-day evidence; the probability impact remains sample-smoothed.
+      if (largeConfidence > 0) risks.push("10人及以下时可能退出");
       if (!recentFrequent && learningSignal?.participationRate !== null && learningSignal?.participationReliability > 0
         && learningSignal.participationRate < todayContext.resolvedPriors.participationRate - 0.08) risks.push("近期较少参与");
       if ((stats?.rawPlayCount || 0) < 2) risks.push((stats?.rawPlayCount || 0) === 0 ? "新成员样本少" : "历史样本较少");
@@ -1477,6 +1424,11 @@
       Number.isFinite(Number(input.weekdayPriorStrength)) ? Math.max(0, Number(input.weekdayPriorStrength)) : WEEKDAY_PRIOR_STRENGTH,
       targetDate,
     );
+    const memberStatistics = root.BadmintonMemberStatistics.build({
+      players, sessions: input.sessions, now: input.now || new Date(),
+      asOf: addDays(targetDate < nowParts.date ? targetDate : nowParts.date, -1),
+      calendar: input.memberStatistics?.calendar,
+    });
     const guestDistributionById = new Map(players.map((player) => [player.id, guestDistribution(history, player.id)]));
     return {
       players,
@@ -1488,8 +1440,8 @@
       baselines,
       historyStart,
       historyEnd,
-      longTermLists: input.longTermLists,
-      longTerm: buildLongTermProfile(players, history, input.longTermLists),
+      memberStatistics,
+      longTerm: buildStatisticsProfile(players, memberStatistics),
       shortTermRules: Array.isArray(input.shortTermRules) ? input.shortTermRules : [],
       nowParts,
     };
@@ -1590,7 +1542,8 @@
       expectedFinalCount: round(tomorrowCountTotal / simulations, 3),
     };
     return {
-      modelVersion: "group-probability-v2",
+      modelVersion: "group-probability-v3",
+      memberStatistics: model.memberStatistics,
       today,
       tomorrow,
       todayProbability: today.probability,

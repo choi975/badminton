@@ -69,8 +69,8 @@ const shakePeopleSection = indexHtml.slice(
   indexHtml.indexOf('<div id="shortRuleModal"'),
 );
 assert.match(shakePeopleSection, /id="newShortRuleBtn"[^>]*aria-label="新建规则"[^>]*>\+<\/button>/);
-assert.match(shakePeopleSection, /id="shakeLongTermRulesBlock"/);
-assert.match(shakePeopleSection, /id="shakeShortTermRulesBlock"/);
+assert.match(shakePeopleSection, /id="shakeMemberStatisticsBlock"/);
+assert.doesNotMatch(shakePeopleSection, /id="shakeShortTermRulesBlock"/);
 assert.doesNotMatch(shakePeopleSection, /modal-footer/);
 assert.match(indexHtml, /newShortRuleBtn\.addEventListener\("click", \(\) => openShortRuleModal\(\)\)/);
 assert.doesNotMatch(indexHtml, /newShortRuleBtn\.addEventListener\("click", openShortRuleModal\)/);
