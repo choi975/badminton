@@ -29,12 +29,19 @@ assert.equal(digest(probabilitySource), digest(readFileSync(new URL("../group-pr
 const statistics = JSON.parse(statisticsText).memberStatistics;
 const bootstrap = JSON.parse(bootstrapText);
 assert.equal(statistics.version, globalThis.BadmintonMemberStatistics.VERSION);
-assert.equal(statistics.lists.length, 13);
+assert.equal(statistics.lists.length, 14);
 assert.equal(bootstrap.groupLearningSignals.version, "group-learning-v2");
 const expected = globalThis.BadmintonMemberStatistics.build({
   players: bootstrap.players, sessions: bootstrap.sessions,
   now: bootstrap.memberStatistics.generatedAt, asOf: bootstrap.memberStatistics.asOf, calendar: bootstrap.memberStatistics.calendar,
 });
 assert.deepEqual(bootstrap.memberStatistics.lists, expected.lists, "Worker and browser statistics must agree for live records");
+assert.deepEqual(bootstrap.memberStatistics.bestPartners, expected.bestPartners, "Worker and browser best-partner evidence must agree");
+assert.match(html, /key: "bestPartners", label: "同场最多"/);
+assert.ok(html.includes('function renderBestPartnerStatistics('));
+assert.ok(statistics.lists.filter((list) => list.key.startsWith("noWeekday")).every((list) => list.memberIds.every((id) => statistics.members.find((m) => m.playerId === id).attendance30 > 0)));
+const ranking = statistics.lists.find((list) => list.key === "attendance15");
+const cutoff = Math.max(1, statistics.members[9]?.attendance15 || 0);
+assert.deepEqual(ranking.memberIds, statistics.members.filter((m) => m.attendance15 >= cutoff).map((m) => m.playerId));
 console.log(JSON.stringify({ result: "Cloudflare live verification passed", asOf: statistics.asOf,
-  categories: statistics.lists.length, activeMembers: statistics.activeMemberCount, learningVersion: bootstrap.groupLearningSignals.version }));
+  categories: statistics.lists.length, partnerPairs: statistics.bestPartners.pairs.length, rankingWithTies: ranking.memberIds.length, activeMembers: statistics.activeMemberCount, learningVersion: bootstrap.groupLearningSignals.version }));

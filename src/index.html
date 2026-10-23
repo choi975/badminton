@@ -4242,8 +4242,19 @@
     .member-statistics-list { margin: 0; font-size: 13px; line-height: 1.7; }
     .member-statistics-list dt { margin-top: 16px; font-weight: 600; }
     .member-statistics-list dd { margin: 4px 0 0; overflow-wrap: anywhere; }
-    .member-statistics-ranking { margin: 0; padding-left: 28px; columns: 2 220px; column-gap: 24px; }
-    .member-statistics-ranking li { break-inside: avoid; padding-left: 2px; font-variant-numeric: tabular-nums; }
+    .member-statistics-ranking { margin: 0; padding: 0; list-style: none; columns: 2 220px; column-gap: 24px; }
+    .member-statistics-ranking li { break-inside: avoid; font-variant-numeric: tabular-nums; }
+    .member-partner-pair { border-top: 1px solid var(--line); }
+    .member-partner-pair > summary { padding: 10px 2px; cursor: pointer; overflow-wrap: anywhere; }
+    .member-partner-pair > summary:hover { color: var(--accent); }
+    .member-partner-pair > summary:focus-visible,
+    .member-partner-more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .member-partner-names { font-weight: 600; }
+    .member-partner-count { margin-left: 10px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .member-partner-evidence { margin: 0 0 12px; padding-left: 18px; font-variant-numeric: tabular-nums; }
+    .member-partner-evidence p { margin: 4px 0; }
+    .member-partner-more > summary { padding: 10px 2px; cursor: pointer; font-weight: 600; }
+    .member-partner-scope { margin-top: 8px; }
   </style>
 <script>
 /* Project Index shortcuts v2: 0..3 fixed; 4..9 resolved live with offline fallback. */
@@ -5084,7 +5095,7 @@
       { key: "name", label: "成员", numeric: false },
       { key: "playCount", label: "打球次数", numeric: true, sortKey: "playCount" },
       { key: "guestCount", label: "带人数", numeric: true, sortKey: "guestCount" },
-      { key: "bestPartners", label: "最佳拍档", numeric: false },
+      { key: "bestPartners", label: "同场最多", numeric: false },
       { key: "weekdays", label: "打球日分布", numeric: false },
       { key: "change", label: "较上期变化", numeric: true, sortKey: "change" },
     ];
@@ -13412,7 +13423,7 @@
           ...(Array.isArray(item.reasons) ? item.reasons.slice(0, 2).map((text) => ({ text, risk: false })) : []),
           ...(Array.isArray(item.risks) ? item.risks.slice(0, 2).map((text) => ({ text, risk: true })) : []),
         ].slice(0, 2);
-        if (!badges.length && item.isBestPartner) badges.push({ text: "最佳拍档", risk: false });
+        if (!badges.length && item.isBestPartner) badges.push({ text: "同场最多", risk: false });
         if (badges.length < 2 && item.isLowLevelMatch) badges.push({ text: "水平相近", risk: false });
         badges.forEach((itemBadge) => {
           const badgeElement = document.createElement("span");
@@ -13564,17 +13575,79 @@
         });
     }
 
+
+    function renderBestPartnerPair(pair, expandedPairs = new Set()) {
+      const details = document.createElement("details");
+      details.className = "member-partner-pair";
+      details.dataset.partnerKey = pair.playerIds.join(":");
+      details.open = expandedPairs.has(details.dataset.partnerKey);
+      const summary = document.createElement("summary");
+      const names = document.createElement("span");
+      names.className = "member-partner-names";
+      names.textContent = pair.names.join(" ↔ ");
+      const count = document.createElement("span");
+      count.className = "member-partner-count";
+      count.textContent = `共同出勤 ${pair.togetherDays} 天`;
+      summary.append(names, count);
+      const evidence = document.createElement("div");
+      evidence.className = "member-partner-evidence";
+      const formatRate = (value) => value.opportunities > 0
+        ? `${value.attended}/${value.opportunities}（${Math.round(value.attended / value.opportunities * 1000) / 10}%）`
+        : "暂无对照记录";
+      pair.directions.forEach((direction, index) => {
+        const line = document.createElement("p");
+        line.textContent = `${pair.names[1 - index]}参加时，${pair.names[index]}出勤：${formatRate(direction.withPartner)}；未参加时：${formatRate(direction.withoutPartner)}。`;
+        evidence.append(line);
+      });
+      const scope = document.createElement("p");
+      scope.className = "member-statistics-note member-partner-scope";
+      scope.textContent = `比较范围：${pair.start} 至 ${pair.end}，${pair.opportunityDays} 个有球局的日期；共同 ${pair.togetherSessions} 场。以上为原始场次比例，排序另做近期加权、星期及时期校正，不是邀约成功率。`;
+      evidence.append(scope);
+      details.append(summary, evidence);
+      return details;
+    }
+
+    function renderBestPartnerStatistics(container, statistics, expandedPairs = new Set(), moreOpen = false) {
+      const note = document.createElement("p");
+      note.className = "member-statistics-note";
+      note.textContent = "看近90天，双方近30天均有本人记录；按校正后的双向关联排序。同日多场不重复放大证据，样本不足不推断。仅供约球参考，不代表已确认的朋友关系。";
+      container.append(note);
+      const pairs = statistics?.pairs || [];
+      if (!pairs.length) {
+        const empty = document.createElement("p");
+        empty.textContent = "暂无证据充分的拍档组合";
+        container.append(empty);
+        return;
+      }
+      pairs.slice(0, 10).forEach((pair) => container.append(renderBestPartnerPair(pair, expandedPairs)));
+      if (pairs.length > 10) {
+        const more = document.createElement("details");
+        more.className = "member-partner-more";
+        more.open = moreOpen;
+        const summary = document.createElement("summary");
+        summary.textContent = `查看其余 ${pairs.length - 10} 组`;
+        more.append(summary);
+        pairs.slice(10).forEach((pair) => more.append(renderBestPartnerPair(pair, expandedPairs)));
+        container.append(more);
+      }
+    }
+
     function renderShakeMemberStatistics() {
       const container = els.shakeMemberStatisticsList;
-      container.replaceChildren();
       const statistics = getMemberStatistics();
+      const signature = JSON.stringify([statistics.version, statistics.asOf, statistics.lists, statistics.members, statistics.bestPartners, statistics.calendar]);
+      if (container.dataset.renderSignature === signature) return;
+      const expandedPairs = new Set([...container.querySelectorAll(".member-partner-pair[open]")].map((pair) => pair.dataset.partnerKey));
+      const moreOpen = Boolean(container.querySelector(".member-partner-more[open]"));
+      container.replaceChildren();
+      container.dataset.renderSignature = signature;
       const note = document.createElement("p");
       note.className = "member-statistics-note";
       note.textContent = `截至${statistics.asOf} · 近60天有接龙记录的成员 ${statistics.activeMemberCount} 人。每天北京时间00:05更新，已完成日期的接龙增改后即时重算；模型每天北京时间12:05自动训练。`;
       container.append(note);
       const scope = document.createElement("p");
       scope.className = "member-statistics-note";
-      scope.textContent = "按已完成的自然日统计，不含当天和未来记录。排名按近15天接龙次数；连打与人数偏好看近60天，星期与每周局数看近30天。10人以上指至少11人；每周为周一至周日，只计算观察期内的场次。节假日和调休不用于星期判断。统计为历史习惯，不代表当天一定不打。";
+      scope.textContent = "按已完成订场中本人的记录统计，不含当天、未来安排和未成局的报名过程。排名取近15天前10人，第10人同次数全部保留，0次不上榜；连打与人数偏好看近60天，星期与每周局数看近30天。近30天无记录者不参与“不打周几”；最佳拍档看近90天。10人以上指至少11人；每周为周一至周日。节假日和调休不用于星期判断。统计为历史习惯，不代表当天一定不打。";
       container.append(scope);
       if (statistics.missingCalendarYears.length) {
         const warning = document.createElement("p");
@@ -13589,14 +13662,14 @@
         const label = document.createElement("dt");
         label.textContent = `${definition.label}：`;
         const value = document.createElement("dd");
-        if (!definition.memberIds.length) value.textContent = "暂无符合条件的成员";
+        if (definition.key === "bestPartners") renderBestPartnerStatistics(value, statistics.bestPartners, expandedPairs, moreOpen);
+        else if (!definition.memberIds.length) value.textContent = "暂无符合条件的成员";
         else if (definition.key === "attendance15") {
-          const ranking = document.createElement("ol");
+          const ranking = document.createElement("ul");
           ranking.className = "member-statistics-ranking";
           for (const id of definition.memberIds) {
             const member = byId.get(id);
             const item = document.createElement("li");
-            item.value = member.rank15;
             item.textContent = `${member.name}（${member.attendance15}次）`;
             ranking.append(item);
           }

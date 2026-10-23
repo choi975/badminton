@@ -1,0 +1,1468 @@
+{
+  "asOf": "2026-10-22",
+  "description": "User-supplied positive and negative examples, frozen completed-session evidence; not production overrides.",
+  "players": [
+    {
+      "id": 8,
+      "name": "阿恒，恒教",
+      "createdAt": "2026-07-09 12:08:12"
+    },
+    {
+      "id": 9,
+      "name": "柚子🍀，柚子",
+      "createdAt": "2026-07-09 12:08:17"
+    },
+    {
+      "id": 10,
+      "name": "🌹，霖，霖姐，?",
+      "createdAt": "2026-07-09 12:08:30"
+    },
+    {
+      "id": 13,
+      "name": "甲乙丙，🍭 甲乙丙",
+      "createdAt": "2026-07-09 12:09:22"
+    },
+    {
+      "id": 53,
+      "name": "oi",
+      "createdAt": "2026-07-15 09:47:37"
+    },
+    {
+      "id": 59,
+      "name": "俊，王厂，厂子",
+      "createdAt": "2026-07-28 02:43:57"
+    },
+    {
+      "id": 82,
+      "name": "翠萍，林耽，林翠，Lin",
+      "createdAt": "2026-08-23 13:48:05"
+    },
+    {
+      "id": 122,
+      "name": "罗，Rocket，Zhiyou",
+      "createdAt": "2026-10-12 02:26:15"
+    }
+  ],
+  "sessions": [
+    {
+      "id": 43,
+      "date": "2026-07-01",
+      "players": [
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "date": "2026-07-13",
+      "players": [
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 2,
+          "plusCount": 1
+        },
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "date": "2026-07-17",
+      "players": [
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 2,
+          "plusCount": 1
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "date": "2026-07-21",
+      "players": [
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "date": "2026-07-24",
+      "players": [
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "date": "2026-07-26",
+      "players": [
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 2,
+          "plusCount": 1
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "date": "2026-07-30",
+      "players": [
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 2,
+          "plusCount": 1
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "date": "2026-08-01",
+      "players": [
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 2,
+          "plusCount": 1
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 3,
+          "plusCount": 2
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "date": "2026-08-04",
+      "players": [
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 5,
+          "plusCount": 4
+        },
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 2,
+          "plusCount": 1
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "date": "2026-08-05",
+      "players": [
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "date": "2026-08-06",
+      "players": [
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 4,
+          "plusCount": 3
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "date": "2026-08-07",
+      "players": [
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "date": "2026-08-08",
+      "players": [
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 8,
+          "plusCount": 7
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 2,
+          "plusCount": 1
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "date": "2026-08-10",
+      "players": [
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "date": "2026-08-13",
+      "players": [
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 3,
+          "plusCount": 2
+        },
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 2,
+          "plusCount": 1
+        },
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 59,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "date": "2026-08-16",
+      "players": [
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "date": "2026-08-19",
+      "players": [
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "date": "2026-08-21",
+      "players": [
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "date": "2026-08-23",
+      "players": [
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "date": "2026-08-25",
+      "players": [
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 59,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "date": "2026-08-28",
+      "players": [
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "date": "2026-09-01",
+      "players": [
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "date": "2026-09-02",
+      "players": [
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "date": "2026-09-04",
+      "players": [
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "date": "2026-09-05",
+      "players": [
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "date": "2026-09-06",
+      "players": [
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "date": "2026-09-07",
+      "players": [
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "date": "2026-09-08",
+      "players": [
+        {
+          "playerId": 59,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "date": "2026-09-10",
+      "players": [
+        {
+          "playerId": 59,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "date": "2026-09-11",
+      "players": [
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "date": "2026-09-12",
+      "players": [
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "date": "2026-09-13",
+      "players": [
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "date": "2026-09-14",
+      "players": [
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "date": "2026-09-15",
+      "players": [
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "date": "2026-09-16",
+      "players": [
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "date": "2026-09-17",
+      "players": [
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "date": "2026-09-18",
+      "players": [
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "date": "2026-09-19",
+      "players": [
+        {
+          "playerId": 59,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "date": "2026-09-20",
+      "players": [
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "date": "2026-09-21",
+      "players": [
+        {
+          "playerId": 59,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "date": "2026-09-22",
+      "players": [
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "date": "2026-10-08",
+      "players": [
+        {
+          "playerId": 59,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "date": "2026-10-09",
+      "players": [
+        {
+          "playerId": 59,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "date": "2026-10-10",
+      "players": [
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 59,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "date": "2026-10-11",
+      "players": [
+        {
+          "playerId": 122,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "date": "2026-10-12",
+      "players": [
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 122,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "date": "2026-10-14",
+      "players": [
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 59,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "date": "2026-10-16",
+      "players": [
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "date": "2026-10-17",
+      "players": [
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 122,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "date": "2026-10-17",
+      "players": [
+        {
+          "playerId": 82,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "date": "2026-10-18",
+      "players": [
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "date": "2026-10-19",
+      "players": [
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 122,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "date": "2026-10-21",
+      "players": [
+        {
+          "playerId": 13,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 10,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 9,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 8,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 122,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 53,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": 59,
+          "isCompanion": false,
+          "slots": 1,
+          "plusCount": 0
+        },
+        {
+          "playerId": null,
+          "isCompanion": true,
+          "slots": 1,
+          "plusCount": 1
+        }
+      ]
+    }
+  ],
+  "expected": [
+    {
+      "ids": [
+        8,
+        9
+      ],
+      "qualified": true,
+      "together": 11
+    },
+    {
+      "ids": [
+        10,
+        13
+      ],
+      "qualified": true,
+      "together": 13
+    },
+    {
+      "ids": [
+        53,
+        122
+      ],
+      "qualified": false,
+      "together": 2
+    },
+    {
+      "ids": [
+        59,
+        82
+      ],
+      "qualified": false,
+      "together": 4
+    }
+  ]
+}

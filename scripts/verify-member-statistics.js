@@ -36,7 +36,7 @@ const sessions = [
 const result = core.build({ players, sessions, now });
 const ids = (key, statistics = result) => statistics.lists.find((list) => list.key === key).memberIds;
 const member = (id, statistics = result) => statistics.members.find((row) => row.playerId === id);
-assert.equal(result.lists.length, 13);
+assert.equal(result.lists.length, 14);
 assert.equal(result.asOf, "2026-10-21");
 assert.deepEqual(result.windows, { start15: "2026-10-07", start30: "2026-09-22", start60: "2026-08-23", end: "2026-10-21" });
 for (const excluded of [6, 7, 19, 20]) {
@@ -63,7 +63,9 @@ assert.ok(ids("noWeekday5").includes(13));
 assert.ok(ids("noWeekday6").includes(14));
 assert.ok(!ids("noWeekday5").includes(15));
 assert.ok(!ids("noWeekday6").includes(16));
-assert.ok(ids("noWeekday0").includes(12), "60-day-active members with no 30-day play still qualify for never-played weekdays");
+assert.ok(!ids("noWeekday0").includes(12), "members with no 30-day play do not enter weekday lists");
+assert.ok(result.lists.filter((list) => list.key.startsWith("noWeekday")).every((list) => !list.memberIds.includes(12)));
+assert.ok(member(12).noPlayWeekdays.includes(0), "display eligibility does not change the existing probability-model features");
 assert.equal(member(2).rank15, member(8).rank15, "equal counts have the same rank");
 assert.deepEqual(core.build({ players, sessions: [...sessions, ...sessions], now }).members, result.members, "repeated session IDs are deduplicated");
 assert.deepEqual(core.build({ players, sessions: [...sessions].reverse(), now }).lists, result.lists, "input ordering does not change lists");
@@ -104,6 +106,21 @@ const holidayForecast = estimate({ memberStatistics: { calendar: { ...result.cal
 assert.ok(holidayForecast.candidates.find((row) => row.playerId === 18).attendanceProbability > ordinary.attendanceProbability, "weekday avoidance does not penalize a holiday target");
 assert.notEqual(holidayForecast.todayProbability, forecast.todayProbability, "member statistics must also feed formation simulation");
 assert.ok(forecast.candidates.every((row) => Number.isFinite(row.attendanceProbability) && row.attendanceProbability >= 0 && row.attendanceProbability <= 1));
+
+
+// Top ten PEOPLE, not ten distinct frequencies; zero attendance never fills the list.
+const rankedPlayers = Array.from({ length: 22 }, (_, i) => ({ id: i + 1, name: String(i + 1) }));
+const rankedSessions = Array.from({ length: 15 }, (_, i) => session("2026-10-20", rankedPlayers
+  .filter((p) => (p.id <= 9 ? 16 - p.id : p.id <= 13 ? 5 : p.id <= 20 ? 3 : 0) > i).map((p) => p.id)));
+const ranked = core.build({ players: rankedPlayers, sessions: [...rankedSessions, session("2026-09-01", [21, 22])], now });
+assert.equal(ids("attendance15", ranked).length, 13);
+assert.deepEqual([...ids("attendance15", ranked)].sort((a, b) => a - b), Array.from({ length: 13 }, (_, i) => i + 1));
+assert.ok(ids("attendance15", ranked).every((id) => member(id, ranked).attendance15 >= 5));
+const tied = core.build({ players: rankedPlayers, sessions: [session("2026-10-20", rankedPlayers.map((p) => p.id))], now });
+assert.equal(ids("attendance15", tied).length, 22, "a tie at the tenth person keeps the entire tie");
+const sparse = core.build({ players: rankedPlayers, sessions: [session("2026-10-20", [1, 2]), session("2026-09-01", [3, 4])], now });
+assert.deepEqual(ids("attendance15", sparse), [1, 2], "do not pad a short ranking with zero-count members");
+assert.ok(ids("attendance15", result).every((id) => member(id).attendance15 > 0));
 
 // Execute real cache and refresh helpers against SQLite instead of a string-only contract.
 const worker = readFileSync(new URL("../src/worker.js", import.meta.url), "utf8");
@@ -159,4 +176,4 @@ assert.doesNotMatch(html, /saveShakeLongTermList|getVisibleLongTermListValue/);
 assert.match(worker, /pathname === "\/api\/member-statistics"/);
 assert.match(worker, /memberStatistics: globalThis.BadmintonMemberStatistics.build/);
 assert.match(readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8"), /crons = \["5 4 \* \* \*", "5 16 \* \* \*"\]/);
-console.log("Member statistics passed: 13 groups, boundaries, rankings, ownership, holidays, weekly caps, probability integration, daily expiry, and SQLite cache refresh.");
+console.log("Member statistics passed: 14 groups, boundaries, rankings, ownership, holidays, weekly caps, probability integration, daily expiry, and SQLite cache refresh.");
