@@ -22,6 +22,9 @@ const [html, statisticsText, bootstrapText, statisticsSource, probabilitySource]
   get("/"), get("/api/member-statistics"), get("/api/bootstrap"), get("/member-statistics.js"), get("/group-probability.js"),
 ]);
 assert.ok(html.includes("<summary>成员统计</summary>"));
+assert.match(html, /id="shakeMemberStatisticsBlock"[^>]*\bopen[ >]/);
+assert.match(html, /recentMemberIds\.has\(Number\(candidate.player.id\)\)/);
+assert.match(html, /!recentMemberIds\.has\(playerId\)/);
 assert.doesNotMatch(html, /长期规则|短期规则|成员统计名单|每周固定安排/);
 const digest = (text) => createHash("sha256").update(text.replaceAll("\r\n", "\n").trim()).digest("hex");
 assert.equal(digest(statisticsSource), digest(readFileSync(new URL("../member-statistics.js", import.meta.url), "utf8")), "Cloudflare must serve the current shared statistics module");
@@ -39,7 +42,7 @@ assert.deepEqual(bootstrap.memberStatistics.lists, expected.lists, "Worker and b
 assert.deepEqual(bootstrap.memberStatistics.bestPartners, expected.bestPartners, "Worker and browser best-partner evidence must agree");
 assert.match(html, /key: "bestPartners", label: "同场最多"/);
 assert.ok(html.includes('function renderBestPartnerStatistics('));
-assert.ok(statistics.lists.filter((list) => list.key.startsWith("noWeekday")).every((list) => list.memberIds.every((id) => statistics.members.find((m) => m.playerId === id).attendance30 > 0)));
+assert.ok(statistics.lists.filter((list) => list.key === "onlyLargeSessions" || list.key.startsWith("noWeekday") || list.key.startsWith("weeklyMax")).every((list) => list.memberIds.every((id) => statistics.members.find((m) => m.playerId === id).attendance30 >= 2)));
 const ranking = statistics.lists.find((list) => list.key === "attendance15");
 const cutoff = Math.max(1, statistics.members[9]?.attendance15 || 0);
 assert.deepEqual(ranking.memberIds, statistics.members.filter((m) => m.attendance15 >= cutoff).map((m) => m.playerId));

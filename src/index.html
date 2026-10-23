@@ -4962,10 +4962,10 @@
           </label>
           <button id="shakeFilterReset" class="shake-filter-reset" type="button" hidden>清除筛选</button>
         </div>
-        <p id="shakeProbabilityNote" class="shake-probability-note">到场概率根据此人和已接龙人员亲密度、近期出勤率、喜欢周几打、喜欢多少人打、体力是否支持连打（昨天前天是否有打）计算得出，仅供参考。</p>
+        <p id="shakeProbabilityNote" class="shake-probability-note">仅推荐近30天已完成订场中有本人接龙记录的成员。到场概率根据此人和已接龙人员亲密度、近期出勤率、喜欢周几打、喜欢多少人打、体力是否支持连打（昨天前天是否有打）计算得出，仅供参考。</p>
         <div id="shakePeopleList" class="shake-people-list" data-show-impact="true" aria-describedby="shakeProbabilityNote"></div>
         <div class="shake-rule-accordions">
-          <details id="shakeMemberStatisticsBlock" class="shake-rule-accordion">
+          <details id="shakeMemberStatisticsBlock" class="shake-rule-accordion" open>
             <summary>成员统计</summary>
             <div id="shakeMemberStatisticsList" class="shake-rules-list"></div>
           </details>
@@ -13243,6 +13243,8 @@
     }
 
     function buildShakePeopleRecommendations(today) {
+      const recentMemberIds = new Set(getMemberStatistics().members
+        .filter((member) => member.attendance30 > 0).map((member) => member.playerId));
       const joinedIds = getJoinedPlayerIds();
       const forecast = renderGroupForecast({ includeCandidates: true });
       if (Array.isArray(forecast?.candidates)) {
@@ -13258,6 +13260,7 @@
           .filter((candidate) => (
             candidate.player
             && candidate.eligible !== false
+            && recentMemberIds.has(Number(candidate.player.id))
             && !joinedSelfIds.has(Number(candidate.player.id))
           ));
       }
@@ -13277,7 +13280,7 @@
       return state.players
         .filter((player) => {
           const playerId = Number(player.id);
-          if (!Number.isInteger(playerId) || playerId <= 0 || joinedIds.has(playerId)) return false;
+          if (!Number.isInteger(playerId) || playerId <= 0 || joinedIds.has(playerId) || !recentMemberIds.has(playerId)) return false;
           return !state.shortTermRules.some((rule) => ruleBlocksPlayerToday(rule, playerId, today));
         })
         .map((player) => {
@@ -13647,7 +13650,7 @@
       container.append(note);
       const scope = document.createElement("p");
       scope.className = "member-statistics-note";
-      scope.textContent = "按已完成订场中本人的记录统计，不含当天、未来安排和未成局的报名过程。排名取近15天前10人，第10人同次数全部保留，0次不上榜；连打与人数偏好看近60天，星期与每周局数看近30天。近30天无记录者不参与“不打周几”；最佳拍档看近90天。10人以上指至少11人；每周为周一至周日。节假日和调休不用于星期判断。统计为历史习惯，不代表当天一定不打。";
+      scope.textContent = "按已完成订场中本人的记录统计，不含当天、未来安排和未成局的报名过程。排名取近15天前10人，第10人同次数全部保留，0次不上榜；连打与人数偏好看近60天，星期与每周局数看近30天。“只打10人以上”“不打周几”“每周最多打几局”仅显示近30天本人接龙至少2次的成员；最佳拍档看近90天。10人以上指至少11人；每周为周一至周日。节假日和调休不用于星期判断。统计为历史习惯，不代表当天一定不打。";
       container.append(scope);
       if (statistics.missingCalendarYears.length) {
         const warning = document.createElement("p");
@@ -13785,6 +13788,7 @@
       } catch (error) {
         toast(`摇人规则加载失败：${error.message}`);
       }
+      els.shakeMemberStatisticsBlock.open = true;
       renderShakePeopleModal();
       openModal("shakePeopleModal");
     }
@@ -14300,6 +14304,7 @@
         sourceShakeButton.addEventListener("click", () => {
           if (!state.readOnly) return;
           processChain();
+          els.shakeMemberStatisticsBlock.open = true;
           renderShakePeopleModal();
           openModal("shakePeopleModal");
         });

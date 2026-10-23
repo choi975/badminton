@@ -428,7 +428,9 @@
   function buildStatisticsProfile(players, statistics) {
     const byId = new Map(statistics.members.map((member) => [member.playerId, member]));
     const ids = (key) => new Set(statistics.lists.find((list) => list.key === key)?.memberIds || []);
-    const threeIds = ids("threeDayStreak"), twoIds = ids("twoDayStreak"), largeIds = ids("onlyLargeSessions");
+    const threeIds = ids("threeDayStreak"), twoIds = ids("twoDayStreak");
+    // Display lists have minimum-activity filters; preserve the model's original 60-day evidence.
+    const largeIds = new Set(statistics.members.filter((member) => member.onlyLargeSessions).map((member) => member.playerId));
     const capacityById = new Map(players.map((player) => [player.id, threeIds.has(player.id) ? 3 : twoIds.has(player.id) ? 2 : 1]));
     const largeConfidenceById = new Map(players.map((player) => {
       const count = byId.get(player.id)?.attendance60 || 0;

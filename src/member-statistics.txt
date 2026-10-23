@@ -1,7 +1,7 @@
 (function attachMemberStatistics(root) {
   "use strict";
   const DAY_MS = 86400000;
-  const VERSION = "member-statistics-v2";
+  const VERSION = "member-statistics-v3";
   const DEFINITIONS = [
     { key: "attendance15", label: "近半个月出勤率排名" },
     { key: "threeDayStreak", label: "能够连打三天的成员" },
@@ -267,8 +267,9 @@
       if (key === "bestPartners") return partnerIds.has(member.playerId);
       if (key === "threeDayStreak") return member.streak60 >= 3;
       if (key === "twoDayStreak") return member.streak60 === 2;
+      if (member.attendance30 < 2) return false;
       if (key === "onlyLargeSessions") return member.onlyLargeSessions;
-      if (key.startsWith("noWeekday")) return member.attendance30 > 0 && member.noPlayWeekdays.includes(Number(key.slice(9)));
+      if (key.startsWith("noWeekday")) return member.noPlayWeekdays.includes(Number(key.slice(9)));
       return member.maxWeekly30 === Number(key.slice(-1));
     };
     return {
