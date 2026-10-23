@@ -22,6 +22,9 @@ const [html, statisticsText, bootstrapText, statisticsSource, probabilitySource]
   get("/"), get("/api/member-statistics"), get("/api/bootstrap"), get("/member-statistics.js"), get("/group-probability.js"),
 ]);
 assert.ok(html.includes("<summary>成员统计</summary>"));
+assert.match(html, /id="refreshMemberStatisticsBtn"[^>]*type="button"/);
+assert.match(html, /getShakeRecommendationBadges/);
+assert.match(html, /api\("\/api\/member-statistics\/refresh"/);
 assert.match(html, /id="shakeMemberStatisticsBlock"[^>]*\bopen[ >]/);
 assert.match(html, /recentMemberIds\.has\(Number\(candidate.player.id\)\)/);
 assert.match(html, /!recentMemberIds\.has\(playerId\)/);

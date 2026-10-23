@@ -101,7 +101,7 @@ assert.equal(globalThis.BadmintonGroupProbability.constants.largeSessionThreshol
 const legacyOverrides = estimate({ longTermLists: { threeDayStreak: { members: players.map((player) => player.id) }, onlyLargeSessions: { members: [3] } } });
 assert.deepEqual(legacyOverrides, forecast, "obsolete manual member lists cannot override the model or current statistics");
 const capped = forecast.candidates.find((row) => row.playerId === 18);
-assert.ok(capped.risks.includes("已达到近30天观察到的每周局数上限"));
+assert.ok(capped.risks.includes("每周可能最多打2局"));
 assert.ok(capped.attendanceProbability > 0, "inferred limits are soft evidence, not hard unavailability");
 const manualBlock = estimate({ shortTermRules: [{ playerId: 18, type: "not_days", rule: { weekdays: [4] } }] });
 assert.equal(manualBlock.candidates.find((row) => row.playerId === 18).attendanceProbability, 0);

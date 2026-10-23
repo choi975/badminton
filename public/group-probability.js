@@ -1329,7 +1329,6 @@
       const priorStreak = member.baseStreak;
       const fatigued = priorStreak > 0 && fatigueFactorFor(member, priorStreak) < 0.8;
       const social = member.social;
-      const largeConfidence = member.largeConfidence;
       const naturalAttendanceProbability = blocked ? 0 : attendanceCounts[index] / Math.max(1, simulationCount);
       const attendanceProbability = candidateAttendanceProbability(todayContext, index, attendanceEvidence);
       const rawUplift = blocked ? 0 : counterfactualUplift(
@@ -1340,35 +1339,24 @@
         counterfactualSimulations,
       );
       const uplift = Math.max(0, rawUplift);
-      const reasons = [];
-      const risks = [];
+      const { reasons, risks } = root.BadmintonMemberStatistics.recommendationTags({
+        statistics: model.memberStatistics, playerId: player.id,
+        targetDate: todayContext.targetDate, currentCount: todayContext.effectiveCurrentCount,
+      });
       const recent = recentEvidence.get(player.id);
-      const recentFrequent = recent.attendedDays >= 2
-        && recent.attendedDays / Math.max(1, recent.opportunities) >= 0.5;
+      const recentFrequent = reasons.includes("近期常打");
       const recentPartner = [...currentIds].some((id) => (
         (recent.pairedDays.get(id) || 0) >= 2
         && recent.pairedDays.get(id) / Math.max(1, recent.attendedDays) >= 0.5
       ));
       if (social > 0.02 || recentPartner) reasons.push("常与已接龙成员同场");
-      const learnedFrequent = learningSignal?.participationRate !== null && learningSignal?.participationReliability > 0
-        && learningSignal.participationRate > todayContext.resolvedPriors.participationRate + 0.08;
-      if (recentFrequent || learnedFrequent) reasons.push("近期更常来");
-      if ((stats?.rawPlayCount || 0) >= Math.max(3, model.history.rawSuccessfulSessions / 3)) reasons.push("历史参与较多");
-      if ((stats?.rawGuestTotal || 0) >= 2) reasons.push("常带随行人员");
-      if (learningSignal?.companionReliability > 0.25
-        && (learningSignal.companionMean || 0) >= 0.35) reasons.push("近期常带随行人员");
       const rank = levelRank(player.level);
       if (todayContext.lowLevelJoined && rank >= 0 && rank < 3) reasons.push("水平相近");
       if (blocked) risks.push("规则显示当天不打");
-      if (member.weekdayAvoided) risks.push("近30天未在普通同星期接龙");
-      if (member.weeklyLimitReached) risks.push("已达到近30天观察到的每周局数上限");
       if (fatigued) risks.push("超过连续打球体力上限");
-      // Membership is exact 60-day evidence; the probability impact remains sample-smoothed.
-      if (largeConfidence > 0) risks.push("10人及以下时可能退出");
       if (!recentFrequent && learningSignal?.participationRate !== null && learningSignal?.participationReliability > 0
         && learningSignal.participationRate < todayContext.resolvedPriors.participationRate - 0.08) risks.push("近期较少参与");
       if ((stats?.rawPlayCount || 0) < 2) risks.push((stats?.rawPlayCount || 0) === 0 ? "新成员样本少" : "历史样本较少");
-      if (!reasons.length && recent.attendedDays > 0) reasons.push(`近30天参与${recent.attendedDays}天`);
       rows.push({
         playerId: player.id,
         name: String(player.name || `#${player.id}`),

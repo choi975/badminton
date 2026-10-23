@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-23T04:11:58.284Z",
+  "generatedAt": "2026-10-23T06:43:14.453Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -1394,18 +1394,6 @@
         "participatesPayment": true,
         "createdAt": "2026-10-15 00:55:57",
         "updatedAt": "2026-10-20 02:18:27"
-      },
-      {
-        "id": 131,
-        "name": "陈聪，打杆王",
-        "gender": "男",
-        "level": "3级",
-        "affiliation": "特殊",
-        "notes": "",
-        "photoKey": "",
-        "participatesPayment": true,
-        "createdAt": "2026-10-16 06:06:31",
-        "updatedAt": "2026-10-20 02:13:54"
       },
       {
         "id": 132,
@@ -13603,7 +13591,7 @@
           {
             "playerId": 131,
             "playerName": "陈聪",
-            "ownerPlayerId": 131,
+            "ownerPlayerId": null,
             "ownerName": "陈聪",
             "isCompanion": false,
             "slots": 1,
@@ -14770,7 +14758,7 @@
           {
             "playerId": 131,
             "playerName": "陈聪",
-            "ownerPlayerId": 131,
+            "ownerPlayerId": null,
             "ownerName": "陈聪",
             "isCompanion": false,
             "slots": 1,
@@ -16747,7 +16735,7 @@
     ],
     "groupLearningSignals": {
       "version": "group-learning-v2",
-      "generatedAt": "2026-10-23T04:11:58.284Z",
+      "generatedAt": "2026-10-23T06:43:14.453Z",
       "generatedDate": "2026-10-23",
       "halfLifeDays": 30,
       "training": {
@@ -19189,16 +19177,16 @@
       }
     },
     "memberStatistics": {
-      "version": "member-statistics-v3",
+      "version": "member-statistics-v4",
       "asOf": "2026-10-22",
-      "generatedAt": "2026-10-23T04:12:00.570Z",
+      "generatedAt": "2026-10-23T06:43:21.804Z",
       "windows": {
         "start15": "2026-10-08",
         "start30": "2026-09-23",
         "start60": "2026-08-24",
         "end": "2026-10-22"
       },
-      "activeMemberCount": 84,
+      "activeMemberCount": 83,
       "calendar": {
         "knownYears": [
           2025,
@@ -20442,38 +20430,6 @@
           "rank15": 20
         },
         {
-          "playerId": 131,
-          "name": "陈聪",
-          "attendance15": 2,
-          "attendance30": 2,
-          "attendance60": 2,
-          "dates60": [
-            "2026-10-16",
-            "2026-10-21"
-          ],
-          "weekdays30": [
-            3,
-            5
-          ],
-          "weeklyCounts30": {
-            "2026-10-12": 1,
-            "2026-10-19": 1
-          },
-          "allLarge": true,
-          "streak60": 1,
-          "maxWeekly30": 1,
-          "weeklyLimit": 1,
-          "onlyLargeSessions": true,
-          "noPlayWeekdays": [
-            0,
-            1,
-            2,
-            4,
-            6
-          ],
-          "rank15": 29
-        },
-        {
           "playerId": 6,
           "name": "冯丽美",
           "attendance15": 2,
@@ -20992,7 +20948,7 @@
             5,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 1,
@@ -21028,7 +20984,7 @@
             4,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 137,
@@ -21058,7 +21014,7 @@
             5,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 136,
@@ -21088,7 +21044,7 @@
             5,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 50,
@@ -21118,7 +21074,7 @@
             5,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 44,
@@ -21149,7 +21105,7 @@
             4,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 118,
@@ -21179,7 +21135,7 @@
             5,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 132,
@@ -21209,7 +21165,7 @@
             4,
             5
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 139,
@@ -21239,7 +21195,7 @@
             4,
             5
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 121,
@@ -21269,7 +21225,7 @@
             4,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 138,
@@ -21299,7 +21255,7 @@
             4,
             5
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 69,
@@ -21330,7 +21286,7 @@
             5,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 18,
@@ -21362,7 +21318,7 @@
             5,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 76,
@@ -21392,7 +21348,7 @@
             4,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 124,
@@ -21422,7 +21378,7 @@
             5,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 89,
@@ -21455,7 +21411,7 @@
             5,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 92,
@@ -21486,7 +21442,7 @@
             5,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 108,
@@ -21519,7 +21475,7 @@
             5,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 78,
@@ -21552,7 +21508,7 @@
             4,
             6
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 134,
@@ -21582,7 +21538,7 @@
             4,
             5
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 48,
@@ -21616,7 +21572,7 @@
             4,
             5
           ],
-          "rank15": 44
+          "rank15": 43
         },
         {
           "playerId": 4,
@@ -21643,7 +21599,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 85,
@@ -21673,7 +21629,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 75,
@@ -21701,7 +21657,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 86,
@@ -21730,7 +21686,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 23,
@@ -21758,7 +21714,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 109,
@@ -21785,7 +21741,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 91,
@@ -21812,7 +21768,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 84,
@@ -21840,7 +21796,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 88,
@@ -21869,7 +21825,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 26,
@@ -21896,7 +21852,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 38,
@@ -21924,7 +21880,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 14,
@@ -21955,7 +21911,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 54,
@@ -21982,7 +21938,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 28,
@@ -22009,7 +21965,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 16,
@@ -22038,7 +21994,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 7,
@@ -22068,7 +22024,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 49,
@@ -22095,7 +22051,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 12,
@@ -22125,7 +22081,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 60,
@@ -22154,7 +22110,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         },
         {
           "playerId": 90,
@@ -22181,7 +22137,7 @@
             5,
             6
           ],
-          "rank15": 65
+          "rank15": 64
         }
       ],
       "bestPartners": {
@@ -24018,7 +23974,6 @@
             43,
             99,
             11,
-            131,
             6,
             130,
             5,
@@ -24050,7 +24005,6 @@
             120,
             11,
             24,
-            131,
             6,
             130,
             5,
@@ -24095,7 +24049,6 @@
             99,
             11,
             24,
-            131,
             6,
             97,
             130,
@@ -24163,7 +24116,6 @@
             99,
             11,
             24,
-            131,
             6,
             97,
             130,
@@ -24216,7 +24168,6 @@
             99,
             11,
             24,
-            131,
             6,
             130,
             5,
@@ -24248,7 +24199,6 @@
             43,
             99,
             11,
-            131,
             6,
             97,
             130,
@@ -24273,7 +24223,6 @@
             41,
             43,
             99,
-            131,
             6,
             130,
             5,

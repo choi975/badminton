@@ -4238,6 +4238,13 @@
       .payment-settings-group:first-child { border-top: 0; }
     }
 
+    .member-statistics-section { position: relative; }
+    .member-statistics-section > details > summary { padding-right: 48px; }
+    .member-statistics-refresh { position: absolute; top: 4px; right: 6px; z-index: 1; width: 28px; min-width: 28px; height: 28px; min-height: 28px; padding: 0; }
+    .member-statistics-refresh[aria-busy="true"] svg { animation: member-refresh-spin 1s linear infinite; }
+    .member-statistics-refresh-status { margin: 10px 14px 0; font-size: 12px; color: var(--muted); }
+    @keyframes member-refresh-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .member-statistics-refresh[aria-busy="true"] svg { animation: none; } }
     .member-statistics-note { margin: 0 0 12px; font-size: 12px; line-height: 1.7; color: var(--muted); }
     .member-statistics-list { margin: 0; font-size: 13px; line-height: 1.7; }
     .member-statistics-list dt { margin-top: 16px; font-weight: 600; }
@@ -4965,10 +4972,14 @@
         <p id="shakeProbabilityNote" class="shake-probability-note">仅推荐近30天已完成订场中有本人接龙记录的成员。到场概率根据此人和已接龙人员亲密度、近期出勤率、喜欢周几打、喜欢多少人打、体力是否支持连打（昨天前天是否有打）计算得出，仅供参考。</p>
         <div id="shakePeopleList" class="shake-people-list" data-show-impact="true" aria-describedby="shakeProbabilityNote"></div>
         <div class="shake-rule-accordions">
+          <div class="member-statistics-section">
+            <button id="refreshMemberStatisticsBtn" class="chain-icon-btn member-statistics-refresh" type="button" aria-label="重新训练并刷新成员统计" title="重新训练并刷新成员统计"><i data-lucide="refresh-cw"></i></button>
           <details id="shakeMemberStatisticsBlock" class="shake-rule-accordion" open>
             <summary>成员统计</summary>
+            <p id="memberStatisticsRefreshStatus" class="member-statistics-refresh-status" role="status" hidden></p>
             <div id="shakeMemberStatisticsList" class="shake-rules-list"></div>
           </details>
+          </div>
         </div>
       </div>
     </div>
@@ -5164,6 +5175,7 @@
       currentPaymentRecord: null,
       shortTermRules: [],
       memberStatistics: null,
+      memberStatisticsRefreshing: false,
       groupAttemptOutcomes: [],
       groupLearningSignals: null,
       groupForecast: null,
@@ -5296,6 +5308,8 @@
       shakeFilterReset: document.getElementById("shakeFilterReset"),
       shortTermRulesList: document.getElementById("shortTermRulesList"),
       shakeMemberStatisticsBlock: document.getElementById("shakeMemberStatisticsBlock"),
+      refreshMemberStatisticsBtn: document.getElementById("refreshMemberStatisticsBtn"),
+      memberStatisticsRefreshStatus: document.getElementById("memberStatisticsRefreshStatus"),
       shakeMemberStatisticsList: document.getElementById("shakeMemberStatisticsList"),
       shakeFiltersToggle: document.getElementById("shakeFiltersToggle"),
       shakePeopleFilters: document.getElementById("shakePeopleFilters"),
@@ -5491,7 +5505,7 @@
     }
 
     async function fetchCloudBootstrap() {
-      return api("/api/bootstrap", { method: "GET", timeout: 8000 });
+      return api("/api/bootstrap", { method: "GET", timeout: 15000, cache: "no-store" });
     }
 
     async function loadFallbackBootstrap() {
@@ -5545,6 +5559,7 @@
       renderTable();
       if (els.calendarModal.classList.contains("open")) renderCalendar();
       if (els.chainModal.classList.contains("open")) processChain();
+      if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
     }
 
     function cacheBootstrap(data) {
@@ -5744,6 +5759,7 @@
       });
       els.pasteInputBtn.addEventListener("click", pasteChainInput);
       els.shakePeopleBtn.addEventListener("click", openShakePeopleModal);
+      els.refreshMemberStatisticsBtn.addEventListener("click", refreshShakeMemberStatistics);
       els.shakeSortBtn.addEventListener("click", toggleShakePeopleSort);
       els.shakeImpactToggle.addEventListener("click", toggleShakeImpactVisibility);
       els.shakeGenderFilter.addEventListener("change", () => {
@@ -9980,14 +9996,14 @@
         rule.expiresOn,
         rule.rule,
       ]);
-      const lastSession = state.sessions.at(-1);
+      const sessionEvidence = state.sessions.map((session) => [session.id, session.date, session.updatedAt, session.players]);
       return JSON.stringify([
         targetDate,
         includeCandidates,
         Math.floor(Date.now() / 60000),
         state.players.length,
         state.sessions.length,
-        lastSession?.updatedAt || lastSession?.date || "",
+        sessionEvidence,
         state.groupAttemptOutcomes,
         state.groupLearningSignals?.generatedAt || "",
         state.groupLearningSignals?.version || "",
@@ -13315,6 +13331,71 @@
       groupForecastCacheKey = "";
     }
 
+
+    function syncMemberStatisticsRefreshButton() {
+      const button = els.refreshMemberStatisticsBtn;
+      const busy = state.memberStatisticsRefreshing;
+      button.disabled = busy;
+      button.setAttribute("aria-busy", String(busy));
+      const label = busy ? "正在刷新成员统计" : state.readOnly
+        ? "拉取最新云端模型并重算统计（只读，不重新训练）" : "重新训练并刷新成员统计";
+      button.setAttribute("aria-label", label);
+      button.title = label;
+    }
+
+    async function refreshShakeMemberStatistics() {
+      if (state.memberStatisticsRefreshing) return;
+      const readOnly = state.readOnly;
+      state.memberStatisticsRefreshing = true;
+      syncMemberStatisticsRefreshButton();
+      const status = els.memberStatisticsRefreshStatus;
+      status.hidden = false;
+      status.textContent = readOnly ? "正在拉取最新云端模型并重算统计…" : "正在重新训练模型并重算统计…";
+      // Let the loading state paint before local inference or network work starts.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      try {
+        if (!readOnly) {
+          const rebuilt = await api("/api/member-statistics/refresh", { method: "POST", timeout: 120000 });
+          if (!rebuilt.ok || !rebuilt.groupLearningSignals || !rebuilt.memberStatistics) throw new Error("模型或统计重建结果不完整");
+        }
+        const latest = await fetchCloudBootstrap();
+        if (!Array.isArray(latest.players) || !Array.isArray(latest.sessions) || !latest.memberStatistics || !latest.groupLearningSignals) {
+          throw new Error("返回的数据不完整");
+        }
+        cacheBootstrap(latest);
+        applyBootstrapData(latest, "cloud", new Date().toISOString());
+        groupForecastCacheKey = "";
+        renderShakePeopleModal();
+        const at = new Date().toLocaleTimeString("zh-CN", { timeZone: "Asia/Shanghai", hour12: false });
+        status.textContent = readOnly ? `${at} 已拉取最新云端模型并重算统计；只读版未重新训练。`
+          : `${at} 已重新训练并刷新，统计和推荐标签已同步。`;
+        toast(readOnly ? "统计已刷新（只读同步）" : "模型训练完成，统计和标签已刷新");
+      } catch (error) {
+        status.textContent = `刷新未完成：${error.message}。保留当前页面数据，可点击重试。`;
+        toast(`刷新未完成：${error.message}`);
+      } finally {
+        state.memberStatisticsRefreshing = false;
+        syncMemberStatisticsRefreshButton();
+      }
+    }
+
+    function getShakeRecommendationBadges(item, statistics, targetDate, currentCount) {
+      const current = globalThis.BadmintonMemberStatistics.recommendationTags({
+        statistics, playerId: item.player?.id ?? item.playerId, targetDate, currentCount,
+      });
+      // Rebuild statistics-dependent labels even when an old forecast is cached.
+      const managed = (text) => /^(近期更常来|近期常打|历史参与较多|(?:近期)?常带随行人员|近30天参与\d+天|10人及以下时可能退出|可能不喜欢人少的局|已达到近30天观察到的每周局数上限|每周可能最多打[12]局|近30天未在普通同星期接龙|周[日一二三四五六]可能无法打球)$/.test(text);
+      const badges = [
+        ...current.reasons.map((text) => ({ text, risk: false })),
+        ...current.risks.map((text) => ({ text, risk: true })),
+        ...(item.reasons || []).filter((text) => !managed(text)).map((text) => ({ text, risk: false })),
+        ...(item.risks || []).filter((text) => !managed(text) && !(text === "近期较少参与" && current.reasons.length)).map((text) => ({ text, risk: true })),
+      ];
+      if (item.isBestPartner && !badges.length) badges.push({ text: "同场最多", risk: false });
+      if (item.isLowLevelMatch) badges.push({ text: "水平相近", risk: false });
+      return badges.filter((badge, index) => badges.findIndex((other) => other.text === badge.text) === index);
+    }
+
     function shakeProbabilityValue(value) {
       return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1 ? value : null;
     }
@@ -13363,6 +13444,9 @@
     }
 
     function renderShakePeopleList(recommendations) {
+      const statistics = getMemberStatistics();
+      const targetDate = getBeijingDateString();
+      const currentCount = state.chainEntries.length;
       els.shakePeopleList.replaceChildren();
       if (!recommendations.length) {
         const empty = document.createElement("div");
@@ -13422,12 +13506,7 @@
         heading.append(actions, name);
         const meta = document.createElement("div");
         meta.className = "shake-person-meta";
-        const badges = [
-          ...(Array.isArray(item.reasons) ? item.reasons.slice(0, 2).map((text) => ({ text, risk: false })) : []),
-          ...(Array.isArray(item.risks) ? item.risks.slice(0, 2).map((text) => ({ text, risk: true })) : []),
-        ].slice(0, 2);
-        if (!badges.length && item.isBestPartner) badges.push({ text: "同场最多", risk: false });
-        if (badges.length < 2 && item.isLowLevelMatch) badges.push({ text: "水平相近", risk: false });
+        const badges = getShakeRecommendationBadges(item, statistics, targetDate, currentCount);
         badges.forEach((itemBadge) => {
           const badgeElement = document.createElement("span");
           badgeElement.className = `shake-reason${itemBadge.risk ? " risk" : ""}`;
@@ -13760,6 +13839,7 @@
     }
 
     function renderShakePeopleModal() {
+      syncMemberStatisticsRefreshButton();
       const today = getBeijingDateString();
       renderGroupForecast({ includeCandidates: true });
       const allRecommendations = buildShakePeopleRecommendations(today);

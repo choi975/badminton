@@ -1,7 +1,7 @@
 (function attachMemberStatistics(root) {
   "use strict";
   const DAY_MS = 86400000;
-  const VERSION = "member-statistics-v3";
+  const VERSION = "member-statistics-v4";
   const DEFINITIONS = [
     { key: "attendance15", label: "近半个月出勤率排名" },
     { key: "threeDayStreak", label: "能够连打三天的成员" },
@@ -279,5 +279,26 @@
       lists: DEFINITIONS.map((definition) => ({ ...definition, memberIds: members.filter((member) => matching(definition.key, member)).map((member) => member.playerId) })),
     };
   }
-  root.BadmintonMemberStatistics = Object.freeze({ VERSION, DEFINITIONS, PARTNER_POLICY, build, buildBestPartners, validDate, beijingDate, addDays, weekStart, normalizeCalendar, isOrdinaryDate });
+
+  function recommendationTags({ statistics, playerId, targetDate, currentCount = 0 } = {}) {
+    const member = statistics?.members?.find((row) => row.playerId === Number(playerId));
+    const reasons = [], risks = [];
+    if (!member || !validDate(targetDate)) return { reasons, risks };
+    const inList = (key) => statistics.lists?.find((list) => list.key === key)?.memberIds.includes(member.playerId);
+    // A single day cannot establish a frequent-playing habit, even if it has multiple bookings.
+    const recentDays = member.dates60.filter((date) => date >= statistics.windows.start15);
+    if (inList("attendance15") && recentDays.length >= 2) reasons.push("近期常打");
+    const day = weekday(targetDate);
+    if (isOrdinaryDate(targetDate, statistics.calendar) && inList(`noWeekday${day}`)) {
+      risks.push(`周${"日一二三四五六"[day]}可能无法打球`);
+    }
+    const limit = inList("weeklyMax1") ? 1 : inList("weeklyMax2") ? 2 : null;
+    if (limit !== null && (member.weeklyCounts30[weekStart(targetDate)] || 0) >= limit) {
+      risks.push(`每周可能最多打${limit}局`);
+    }
+    if (inList("onlyLargeSessions") && Number(currentCount) <= 10) risks.push("可能不喜欢人少的局");
+    return { reasons, risks };
+  }
+
+  root.BadmintonMemberStatistics = Object.freeze({ VERSION, DEFINITIONS, PARTNER_POLICY, build, buildBestPartners, recommendationTags, validDate, beijingDate, addDays, weekStart, normalizeCalendar, isOrdinaryDate });
 })(globalThis);

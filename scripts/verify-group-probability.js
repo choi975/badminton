@@ -303,7 +303,7 @@ assert.ok(fivePlusGuest.candidates.some((candidate) => candidate.playerId === 10
 const guestHistory = buildHistory(players, { guestOwnerId: 12 });
 const guestInfluencer = estimate({ sessions: guestHistory, entries: players.slice(0, 2).map(regularEntry) });
 const guestCandidate = guestInfluencer.candidates.find((candidate) => candidate.playerId === 12);
-assert.ok(guestCandidate.reasons.includes("常带随行人员"));
+assert.ok(!guestCandidate.reasons.includes("常带随行人员"), "companion labels are no longer shown");
 assert.ok(guestCandidate.uplift > 0);
 
 const thresholdPlayers = makePlayers(6);
@@ -627,7 +627,7 @@ assert.ok(
   learnedNewCandidate.attendanceProbability > coldNewCandidate.attendanceProbability * 1.5,
   "a reliable participation signal must replace cold-start behavior as new-member observations arrive",
 );
-assert.ok(learnedNewCandidate.reasons.includes("近期更常来"));
+assert.ok(!learnedNewCandidate.reasons.includes("近期常打"), "learning priors alone cannot override attendance-statistic labels");
 assert.equal(newMemberLearnedHigh.adaptation.memberSignalsApplied, 1);
 const mediumReliabilityPosterior = estimate({
   ...learningBase,
@@ -1081,18 +1081,18 @@ function newcomerBadge(overrides = {}) {
   return badgeForecast(overrides).candidates.find((row) => row.playerId === 14);
 }
 const freshBadge = newcomerBadge();
-assert.ok(freshBadge.reasons.includes("近期更常来"), "new members must not be penalized for games before they joined");
+assert.ok(freshBadge.reasons.includes("近期常打"), "new members must not be penalized for games before they joined");
 assert.ok(freshBadge.reasons.includes("常与已接龙成员同场"), "two recent shared days support a same-court tag without a learned model");
-assert.ok(!freshBadge.risks.includes("10人及以下时可能退出"));
+assert.ok(!freshBadge.risks.includes("可能不喜欢人少的局"));
 const oneDayHistory = badgeHistory.slice(0, -1);
 const sparseBadge = newcomerBadge({ sessions: oneDayHistory, entries: [] });
-assert.ok(sparseBadge.reasons.includes("近30天参与1天"), "sparse newcomers should get factual feedback rather than no label");
-assert.ok(!sparseBadge.reasons.includes("近期更常来"));
+assert.ok(!sparseBadge.reasons.some((text) => /^近30天参与/.test(text)), "raw participation-day labels were removed");
+assert.ok(!sparseBadge.reasons.includes("近期常打"));
 const duplicateDay = newcomerBadge({ sessions: [...oneDayHistory, oneDayHistory.at(-1)], entries: [] });
-assert.ok(!duplicateDay.reasons.includes("近期更常来"), "two courts on one day are not two attendance days");
-assert.ok(duplicateDay.reasons.includes("近30天参与1天"));
+assert.ok(!duplicateDay.reasons.includes("近期常打"), "two courts on one day are not two attendance days");
+assert.ok(!duplicateDay.reasons.some((text) => /^近30天参与/.test(text)));
 const noCurrentLeak = newcomerBadge({ sessions: [...oneDayHistory, session("2026-10-14", [1, 2, 3, 4, 5, 14]), session("2026-10-15", [1, 2, 3, 4, 5, 14])], entries: [] });
-assert.ok(!noCurrentLeak.reasons.includes("近期更常来"), "today and future bookings must not train historical tags");
+assert.ok(!noCurrentLeak.reasons.includes("近期常打"), "today and future bookings must not train historical tags");
 const guestOnlyHistory = badgeHistory.slice(0, -2).concat([
   session("2026-10-11", [1, 2, 3, 4, 5, 6], { 14: 2 }),
   session("2026-10-12", [1, 2, 3, 4, 5, 6], { 14: 1 }),
@@ -1101,7 +1101,7 @@ assert.equal(newcomerBadge({ sessions: guestOnlyHistory }), undefined, "an absen
 const noJoinedPartner = newcomerBadge({ entries: [] });
 assert.ok(!noJoinedPartner.reasons.includes("常与已接龙成员同场"));
 const afterWindow = newcomerBadge({ targetDate: "2026-11-14", now: "2026-11-14T09:00:00+08:00", entries: [] });
-assert.ok(!afterWindow.reasons.includes("近期更常来"), "booking-based recent badges age out automatically");
+assert.ok(!afterWindow.reasons.includes("近期常打"), "booking-based recent badges age out automatically");
 assert.ok(!afterWindow.reasons.some((text) => text.startsWith("近30天参与")));
 const misleadingOldModel = newcomerBadge({
   groupLearningSignals: {
@@ -1110,17 +1110,17 @@ const misleadingOldModel = newcomerBadge({
     members: { 14: { participationRate: 0.05, participationReliability: 0.5 } },
   },
 });
-assert.ok(misleadingOldModel.reasons.includes("近期更常来"));
+assert.ok(misleadingOldModel.reasons.includes("近期常打"));
 assert.ok(!misleadingOldModel.risks.includes("近期较少参与"), "current attendance must not conflict with stale negative labels");
 const largeSingle = [...badgeHistory.slice(0, -2), session("2026-10-12", [1, 2, 3, 4, 5, 6, 7, 8, 9, 14])];
-assert.ok(!newcomerBadge({ sessions: largeSingle, longTermLists: {} }).risks.includes("10人及以下时可能退出"), "one large game does not prove a withdrawal habit");
-assert.ok(!newcomerBadge({ sessions: largeSingle, longTermLists: { onlyLargeSessions: { members: [14] } } }).risks.includes("10人及以下时可能退出"), "retired manual lists cannot override real <=10-person attendance");
+assert.ok(!newcomerBadge({ sessions: largeSingle, longTermLists: {} }).risks.includes("可能不喜欢人少的局"), "one large game does not prove a withdrawal habit");
+assert.ok(!newcomerBadge({ sessions: largeSingle, longTermLists: { onlyLargeSessions: { members: [14] } } }).risks.includes("可能不喜欢人少的局"), "retired manual lists cannot override real <=10-person attendance");
 const learnedWithdrawal = newcomerBadge({ groupLearningSignals: {
   generatedAt: "2026-10-13T04:05:00.000Z",
   priors: { largePreferenceRate: 0.08, largePreferenceEvidence: 20 },
   members: { 14: { largePreferenceConfidence: 0.9, largePreferenceEvidence: 3 } },
 } });
-assert.ok(!learnedWithdrawal.risks.includes("10人及以下时可能退出"), "old learning cannot override contradictory recent records");
+assert.ok(!learnedWithdrawal.risks.includes("可能不喜欢人少的局"), "old learning cannot override contradictory recent records");
 
 
 // Personal attendance is P(attends | an organized session), not the Monte Carlo

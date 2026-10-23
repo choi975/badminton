@@ -662,6 +662,18 @@ async function handleApi(request, env, url) {
     return json({ memberStatistics: globalThis.BadmintonMemberStatistics.build({ players, sessions, calendar }) });
   }
 
+
+  if (pathname === "/api/member-statistics/refresh" && method === "POST") {
+    if (!isAdminRequest(request)) return json({ error: "只有管理版可以重新训练并刷新统计" }, 403);
+    if (!await consumeGroupAttemptRateLimit(request, env)) return json({ error: "刷新过于频繁，请稍后重试" }, 429);
+    const now = new Date();
+    await settleDueGroupAttempts(env.DB, now);
+    // Use the throwing rebuild: a training failure must not be reported as success.
+    const groupLearningSignals = await rebuildGroupLearningSignals(env.DB, now);
+    const memberStatistics = await rebuildMemberStatistics(env.DB, now, true);
+    return json({ ok: true, groupLearningSignals, memberStatistics });
+  }
+
   if (pathname === "/api/member-statistics/rebuild" && method === "POST") {
     if (!isAdminRequest(request)) return json({ error: "只有管理版可以刷新成员统计" }, 403);
     if (!await consumeGroupAttemptRateLimit(request, env)) return json({ error: "刷新过于频繁，请稍后重试" }, 429);
