@@ -111,18 +111,15 @@ const rankItems = [
 ];
 const order = orderRecommendationsContext.orderShakePeopleRecommendations;
 const ids = (items) => items.map((item) => item.player.id).join(",");
-assert.equal(ids(order(rankItems, [], "attendanceProbability")), "3,2,1,4,5");
-assert.equal(ids(order(rankItems, [], "uplift")), "4,3,1,2,5");
-assert.equal(ids(order(rankItems, [3, 4], "attendanceProbability")), "2,1,5,3,4");
-assert.equal(ids(order(rankItems, [3, 4], "uplift")), "1,2,5,4,3");
+assert.equal(ids(order(rankItems, [])), "3,2,1,4,5", "recommendations always rank by attendance, then uplift");
+assert.equal(ids(order(rankItems, [3, 4])), "2,1,5,3,4", "manual bottoming takes precedence over attendance ranking");
 assert.equal(ids(rankItems), "1,2,3,4,5", "sorting must not mutate model recommendations");
 const ties = [6, 7, 8].map((id) => ({ player: { id }, attendanceProbability: 0.01, uplift: 0.02 }));
 assert.equal(ids(order(ties, [])), "6,7,8", "equal probabilities preserve stable order");
 assert.equal(order([], []).length, 0);
 assert.doesNotMatch(html, /相对较高|相对中等|到场倾向|shakeAttendanceRange/);
 assert.match(html, /attendanceValue.textContent = formatShakeAttendanceProbability\(item.attendanceProbability\)/);
-assert.match(html, /id="shakeSortBtn"[^>]*aria-controls="shakePeopleList"/);
-assert.match(html, /els\.shakeSortBtn\.addEventListener\("click", toggleShakePeopleSort\)/);
+assert.doesNotMatch(html, /shakeSortBtn|shakeSortLabel|shakeSortMode|shake-sort-btn|syncShakePeopleSort|toggleShakePeopleSort/);
 // Attendance is informational text, not an expandable action.
 assert.ok(html.includes("到场概率根据此人和已接龙人员亲密度、近期出勤率、喜欢周几打、喜欢多少人打、体力是否支持连打（昨天前天是否有打）计算得出，仅供参考。"));
 assert.match(html, /const attendance = document\.createElement\("span"\);/);
@@ -135,43 +132,20 @@ assert.doesNotMatch(html, /\.shake-person-attendance:(?:hover|focus-visible)/);
 assert.match(html, /event\.target\.closest\("button, \.shake-person-attendance"\)/);
 assert.doesNotMatch(html, /probabilityPercent\(item\.attendanceProbability\)/);
 
-const toggleStart = html.indexOf("function syncShakePeopleSort(");
-const toggleEnd = html.indexOf("\n    function renderShakePeopleModal(", toggleStart);
-const button = { setAttribute(key, value) { this[key] = value; } };
-const sortState = { shakeSortMode: "attendanceProbability", shakeRecommendations: rankItems };
-let rendered = null;
-const toggleContext = vm.createContext({
-  state: sortState,
-  els: { shakeSortLabel: {}, shakeSortBtn: button },
-  filterShakePeopleRecommendations: (items) => items,
-  buildShakePeopleRecommendations: () => { throw new Error("sort must not recompute the forecast"); },
-  getBeijingDateString: () => "2026-10-19",
-  renderShakePeopleList: (items) => { rendered = items; },
-});
-vm.runInContext(html.slice(toggleStart, toggleEnd), toggleContext);
-toggleContext.toggleShakePeopleSort();
-assert.equal(sortState.shakeSortMode, "uplift");
-assert.equal(toggleContext.els.shakeSortLabel.textContent, "成局概率");
-assert.match(button["aria-label"], /成局概率提升从高到低/);
-assert.equal(rendered, rankItems);
-toggleContext.toggleShakePeopleSort();
-assert.equal(sortState.shakeSortMode, "attendanceProbability");
-assert.equal(toggleContext.els.shakeSortLabel.textContent, "到场概率");
-
 // Member rows permanently show attendance only; no dormant impact control or state remains.
 assert.doesNotMatch(html, /shakeImpactToggle|shakeImpactVisible|syncShakeImpactVisibility|toggleShakeImpactVisibility|shake-person-impact|shake-impact-visible-icon|shake-impact-hidden-icon|data-show-impact|formatProbabilityPointLift/);
 assert.doesNotMatch(html, /显示成局概率|隐藏成局概率/);
 const summaryActions = html.match(/<div class="shake-summary-actions">([\s\S]*?)<\/div>/)?.[1];
 assert.ok(summaryActions, "shake toolbar remains available");
 assert.deepEqual([...summaryActions.matchAll(/<button id="([^"]+)"/g)].map((match) => match[1]), [
-  "shakeSortBtn", "shakeFiltersToggle",
-], "only the existing sort and filter controls remain in the toolbar");
+  "shakeFiltersToggle",
+], "only the existing filter control remains in the toolbar");
 for (const target of ["../public/index.html", "../src/index.html"]) {
   assert.equal(readFileSync(new URL(target, import.meta.url), "utf8").replaceAll("\r\n", "\n"),
     html.replaceAll("\r\n", "\n"), target + " must ship the same attendance-only UI");
 }
 
-assert.match(html, /state\.shakeRecommendations = allRecommendations;\s*syncShakePeopleSort\(\);\s*const recommendations = filterShakePeopleRecommendations/);
+assert.match(html, /state\.shakeRecommendations = allRecommendations;\s*const recommendations = filterShakePeopleRecommendations/);
 assert.match(html, /id="shakePeopleList"[^>]*aria-describedby="shakeProbabilityNote"/);
 
 // Execute the real renderer so recommendations with valid, zero and missing uplift
@@ -196,7 +170,7 @@ class RenderNode {
 }
 const memberList = new RenderNode("div");
 const rowActions = [];
-const renderState = { chainEntries: [], shakeBottomedPlayerIds: new Set([2]), shakeSortMode: "attendanceProbability" };
+const renderState = { chainEntries: [], shakeBottomedPlayerIds: new Set([2]) };
 const rendererContext = vm.createContext({
   state: renderState,
   els: { shakePeopleList: memberList },
@@ -226,18 +200,16 @@ const rowItems = [
   { player: { id: 3, name: "丙" }, attendanceProbability: null, uplift: null },
 ];
 const originalRowItems = JSON.stringify(rowItems);
-for (const mode of ["attendanceProbability", "uplift"]) {
-  renderState.shakeSortMode = mode;
-  rendererContext.renderShakePeopleList(rowItems);
-  assert.equal(memberList.children.length, rowItems.length);
-  assert.doesNotMatch(memberList.textContent, /成局概率|\+33%/);
-  for (const row of memberList.children) {
-    const score = row.children.find((node) => node.className === "shake-person-score");
-    assert.equal(score.childElementCount, 1, "each row has only the attendance metric");
-    assert.equal(score.children[0].className, "shake-person-attendance");
-    assert.match(score.textContent, /^到场概率 (67%|62\.4%|暂无估算)$/);
-    assert.equal(row.children.at(-1).className, "shake-person-skip");
-  }
+rendererContext.renderShakePeopleList(rowItems);
+assert.equal(memberList.children.length, rowItems.length);
+assert.equal(memberList.children.map((row) => row.children[0].children[0].children[1].textContent).join(","), "甲,丙,乙", "rendering keeps the fixed order and manual bottoming");
+assert.doesNotMatch(memberList.textContent, /成局概率|\+33%/);
+for (const row of memberList.children) {
+  const score = row.children.find((node) => node.className === "shake-person-score");
+  assert.equal(score.childElementCount, 1, "each row has only the attendance metric");
+  assert.equal(score.children[0].className, "shake-person-attendance");
+  assert.match(score.textContent, /^到场概率 (67%|62\.4%|暂无估算)$/);
+  assert.equal(row.children.at(-1).className, "shake-person-skip");
 }
 assert.equal(JSON.stringify(rowItems), originalRowItems, "rendering preserves forecast recommendations");
 rendererContext.renderShakePeopleList([rowItems[0]]);

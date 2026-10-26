@@ -79,7 +79,7 @@ class Button {
 let posts = 0, fetches = 0, renders = 0, cached = 0, toasts = [];
 let mode = "success", release;
 const latest = { players, sessions: history, memberStatistics: initial, groupLearningSignals: { version: "group-learning-v2", generatedAt: now } };
-const state = { memberStatisticsRefreshing: false, readOnly: false, players: [], sessions: [], chainEntries: [{ clean: "正在编辑" }], shakeFilters: { gender: "女" }, shakeSortMode: "uplift", shakeBottomedPlayerIds: new Set([1]) };
+const state = { memberStatisticsRefreshing: false, readOnly: false, players: [], sessions: [], chainEntries: [{ clean: "正在编辑" }], shakeFilters: { gender: "女" }, shakeBottomedPlayerIds: new Set([1]) };
 const originalDraft = state.chainEntries;
 const button = new Button(), status = { hidden: true, textContent: "" };
 const context = vm.createContext({ state, els: { refreshMemberStatisticsBtn: button, memberStatisticsRefreshStatus: status }, Date, setTimeout,
@@ -106,7 +106,7 @@ release(); await firstRefresh;
 assert.equal(fetches, 1); assert.equal(renders, 1); assert.equal(cached, 1);
 assert.equal(button.disabled, false); assert.equal(button["aria-busy"], "false");
 assert.ok(status.textContent.includes("已重新训练并刷新"));
-assert.equal(state.chainEntries, originalDraft); assert.equal(state.shakeFilters.gender, "女"); assert.equal(state.shakeSortMode, "uplift"); assert.ok(state.shakeBottomedPlayerIds.has(1));
+assert.equal(state.chainEntries, originalDraft); assert.equal(state.shakeFilters.gender, "女"); assert.ok(state.shakeBottomedPlayerIds.has(1));
 state.readOnly = true; mode = "success"; await context.refreshShakeMemberStatistics();
 assert.equal(posts, 1, "GitHub/read-only refresh never writes or retrains on the server");
 assert.equal(fetches, 2); assert.ok(status.textContent.includes("只读版未重新训练"));

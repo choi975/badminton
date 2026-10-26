@@ -1002,26 +1002,6 @@
       gap: 6px;
     }
 
-    .shake-sort-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      min-height: 34px;
-      padding: 0 8px;
-      border-color: var(--line-strong);
-      background: #fff;
-      color: var(--accent-dark);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    .shake-sort-btn svg { width: 15px; height: 15px; }
-    .shake-sort-btn:hover { background: #e8f2ef; }
-    .shake-sort-btn:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
-    }
-
     .shake-probability-note {
       margin: -2px 0 12px;
       color: var(--muted);
@@ -4933,7 +4913,6 @@
         <div class="shake-people-summary-row">
           <p id="shakePeopleSummary" class="shake-people-summary"></p>
           <div class="shake-summary-actions">
-            <button id="shakeSortBtn" class="shake-sort-btn" type="button" aria-label="当前按到场概率从高到低排序，点击切换为成局概率" title="切换为按成局概率提升排序" aria-controls="shakePeopleList"><i data-lucide="arrow-down-wide-narrow"></i><span id="shakeSortLabel">到场概率</span></button>
             <button id="shakeFiltersToggle" class="chain-icon-btn" type="button" aria-label="展开筛选" title="展开筛选" aria-expanded="false" aria-controls="shakePeopleFilters"><i data-lucide="chevron-down"></i></button>
           </div>
         </div>
@@ -5172,7 +5151,6 @@
       attemptTrialRequested: false,
       shakeBottomedPlayerIds: new Set(),
       shakeFilters: { gender: "", levelGroup: "" },
-      shakeSortMode: "attendanceProbability",
       shakeRecommendations: [],
       chainInputUserOwned: false,
       trainingAnomaly: null,
@@ -5288,8 +5266,6 @@
       shakePeopleModal: document.getElementById("shakePeopleModal"),
       shakePeopleSummary: document.getElementById("shakePeopleSummary"),
       shakePeopleList: document.getElementById("shakePeopleList"),
-      shakeSortBtn: document.getElementById("shakeSortBtn"),
-      shakeSortLabel: document.getElementById("shakeSortLabel"),
       shakeGenderFilter: document.getElementById("shakeGenderFilter"),
       shakeLevelFilter: document.getElementById("shakeLevelFilter"),
       shakeFilterReset: document.getElementById("shakeFilterReset"),
@@ -5747,7 +5723,6 @@
       els.pasteInputBtn.addEventListener("click", pasteChainInput);
       els.shakePeopleBtn.addEventListener("click", openShakePeopleModal);
       els.refreshMemberStatisticsBtn.addEventListener("click", refreshShakeMemberStatistics);
-      els.shakeSortBtn.addEventListener("click", toggleShakePeopleSort);
       els.shakeGenderFilter.addEventListener("change", () => {
         state.shakeFilters.gender = els.shakeGenderFilter.value;
         renderShakePeopleModal();
@@ -13390,7 +13365,7 @@
       return `${Number(percent.toFixed(1))}%`;
     }
 
-    function orderShakePeopleRecommendations(recommendations, bottomedPlayerIds, sortMode = "attendanceProbability") {
+    function orderShakePeopleRecommendations(recommendations, bottomedPlayerIds) {
       const bottomedIds = bottomedPlayerIds instanceof Set
         ? bottomedPlayerIds
         : new Set(bottomedPlayerIds || []);
@@ -13400,13 +13375,11 @@
         const playerId = Number(item.player?.id ?? item.playerId);
         (bottomedIds.has(playerId) ? bottomed : regular).push(item);
       });
-      const primaryKey = sortMode === "uplift" ? "uplift" : "attendanceProbability";
-      const secondaryKey = primaryKey === "uplift" ? "attendanceProbability" : "uplift";
       const compare = (left, right) => (
-        (shakeProbabilityValue(right[primaryKey]) ?? -1) - (shakeProbabilityValue(left[primaryKey]) ?? -1)
-        || (shakeProbabilityValue(right[secondaryKey]) ?? -1) - (shakeProbabilityValue(left[secondaryKey]) ?? -1)
+        (shakeProbabilityValue(right.attendanceProbability) ?? -1) - (shakeProbabilityValue(left.attendanceProbability) ?? -1)
+        || (shakeProbabilityValue(right.uplift) ?? -1) - (shakeProbabilityValue(left.uplift) ?? -1)
       );
-      // Stable ties preserve model ordering; manual bottoming wins over either sort.
+      // Sort by attendance probability; stable ties preserve model order and manual bottoming wins.
       return [...regular.sort(compare), ...bottomed.sort(compare)];
     }
 
@@ -13434,7 +13407,7 @@
         els.shakePeopleList.append(empty);
         return;
       }
-      orderShakePeopleRecommendations(recommendations, state.shakeBottomedPlayerIds, state.shakeSortMode).forEach((item) => {
+      orderShakePeopleRecommendations(recommendations, state.shakeBottomedPlayerIds).forEach((item) => {
         const displayName = firstName(item.player.name);
         const playerId = normalizePlayerId(item.player.id);
         const isBottomed = state.shakeBottomedPlayerIds.has(playerId);
@@ -13775,31 +13748,12 @@
       els.shakeFilterReset.hidden = !state.shakeFilters.gender && !state.shakeFilters.levelGroup;
     }
 
-    function syncShakePeopleSort() {
-      const byAttendance = state.shakeSortMode === "attendanceProbability";
-      const current = byAttendance ? "到场概率" : "成局概率";
-      const next = byAttendance ? "成局概率" : "到场概率";
-      els.shakeSortLabel.textContent = current;
-      els.shakeSortBtn.setAttribute("aria-label", `当前按${current}${byAttendance ? "" : "提升"}从高到低排序，点击切换为${next}`);
-      els.shakeSortBtn.title = byAttendance
-        ? "当前按到场概率从高到低；点击改为按成局概率提升排序"
-        : "当前按成局概率提升从高到低；点击改为按到场概率排序";
-    }
-
-    function toggleShakePeopleSort() {
-      state.shakeSortMode = state.shakeSortMode === "attendanceProbability" ? "uplift" : "attendanceProbability";
-      syncShakePeopleSort();
-      const recommendations = filterShakePeopleRecommendations(state.shakeRecommendations);
-      renderShakePeopleList(recommendations);
-    }
-
     function renderShakePeopleModal() {
       syncMemberStatisticsRefreshButton();
       const today = getBeijingDateString();
       renderGroupForecast({ includeCandidates: true });
       const allRecommendations = buildShakePeopleRecommendations(today);
       state.shakeRecommendations = allRecommendations;
-      syncShakePeopleSort();
       const recommendations = filterShakePeopleRecommendations(allRecommendations);
       renderShakePeopleSummary(recommendations, allRecommendations.length);
       syncAttemptTrialToggle();
