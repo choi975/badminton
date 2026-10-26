@@ -5,11 +5,9 @@ import vm from "node:vm";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
 assert.ok(html.includes('document.createTextNode("到场概率 ")'));
-assert.ok(html.includes('document.createTextNode("成局概率 ")'));
-assert.ok(html.includes('value.textContent = \x60+\x24{formatProbabilityPointLift(item.uplift)}%\x60;'));
-assert.ok(html.includes('\x60\x24{today}\x24{formatRuleWeekdaySuffix(today)}   当前成局概率 \x24{todayPercent}%'));
+assert.doesNotMatch(html, /document\.createTextNode\("成局概率 "\)/);
+assert.ok(html.includes('`${today}${formatRuleWeekdaySuffix(today)}   当前成局概率 ${todayPercent}%'));
 assert.match(html, /\.shake-people-summary \{[^}]*white-space: pre-wrap/);
-assert.ok(html.includes("不是到场后的最终成局概率，也不能直接加到当前概率上"));
 assert.ok(html.includes("模型每天北京时间12:05自动训练"));
 assert.doesNotMatch(html, /document\.createTextNode\("预计到场 "\)/);
 
@@ -160,48 +158,107 @@ toggleContext.toggleShakePeopleSort();
 assert.equal(sortState.shakeSortMode, "attendanceProbability");
 assert.equal(toggleContext.els.shakeSortLabel.textContent, "到场概率");
 
-// Showing/hiding the uplift is presentation-only: no sort, forecast, or list rebuild.
-assert.match(html, /shakeImpactVisible: true/);
-assert.match(html, /id="shakeImpactToggle"[^>]*aria-label="隐藏成局概率"[^>]*aria-pressed="true"[^>]*aria-controls="shakePeopleList"/);
-assert.match(html, /data-lucide="eye" class="shake-impact-visible-icon" aria-hidden="true"/);
-assert.match(html, /data-lucide="eye-off" class="shake-impact-hidden-icon" aria-hidden="true"/);
-assert.match(html, /\.shake-people-list\[data-show-impact="false"\] \.shake-person-impact \{ display: none; \}/);
-assert.match(html, /els\.shakeImpactToggle\.addEventListener\("click", toggleShakeImpactVisibility\)/);
-assert.match(html, /state\.shakeRecommendations = allRecommendations;\s*syncShakePeopleSort\(\);\s*syncShakeImpactVisibility\(\)/);
-assert.doesNotMatch(html, /成局提升|\}个百分点/);
-const visibilityStart = html.indexOf("function syncShakeImpactVisibility(");
-const visibilityEnd = html.indexOf("\n    function renderShakePeopleModal(", visibilityStart);
-assert.ok(visibilityStart >= 0 && visibilityEnd > visibilityStart);
-const visibilityButton = { setAttribute(key, value) { this[key] = value; } };
-const visibilityList = { dataset: {} };
-const visibilityState = { shakeImpactVisible: true, shakeSortMode: "attendanceProbability", shakeRecommendations: rankItems };
-const visibilityContext = vm.createContext({
-  state: visibilityState,
-  els: { shakeImpactToggle: visibilityButton, shakePeopleList: visibilityList },
-  renderShakePeopleList: () => { throw new Error("visibility must not rebuild rows or reset focus/scroll"); },
-  renderGroupForecast: () => { throw new Error("visibility must not recompute probabilities"); },
+// Member rows permanently show attendance only; no dormant impact control or state remains.
+assert.doesNotMatch(html, /shakeImpactToggle|shakeImpactVisible|syncShakeImpactVisibility|toggleShakeImpactVisibility|shake-person-impact|shake-impact-visible-icon|shake-impact-hidden-icon|data-show-impact|formatProbabilityPointLift/);
+assert.doesNotMatch(html, /显示成局概率|隐藏成局概率/);
+const summaryActions = html.match(/<div class="shake-summary-actions">([\s\S]*?)<\/div>/)?.[1];
+assert.ok(summaryActions, "shake toolbar remains available");
+assert.deepEqual([...summaryActions.matchAll(/<button id="([^"]+)"/g)].map((match) => match[1]), [
+  "shakeSortBtn", "shakeFiltersToggle",
+], "only the existing sort and filter controls remain in the toolbar");
+for (const target of ["../public/index.html", "../src/index.html"]) {
+  assert.equal(readFileSync(new URL(target, import.meta.url), "utf8").replaceAll("\r\n", "\n"),
+    html.replaceAll("\r\n", "\n"), target + " must ship the same attendance-only UI");
+}
+
+assert.match(html, /state\.shakeRecommendations = allRecommendations;\s*syncShakePeopleSort\(\);\s*const recommendations = filterShakePeopleRecommendations/);
+assert.match(html, /id="shakePeopleList"[^>]*aria-describedby="shakeProbabilityNote"/);
+
+// Execute the real renderer so recommendations with valid, zero and missing uplift
+// cannot accidentally bring back a second metric after sorting, filtering or reopening.
+class RenderNode {
+  constructor(tagName = null) {
+    this.tagName = tagName;
+    this.children = [];
+    this.attributes = {};
+    this.dataset = {};
+    this.listeners = {};
+    this.className = "";
+    this.ownText = "";
+  }
+  append(...nodes) { this.children.push(...nodes); }
+  replaceChildren(...nodes) { this.children = nodes; }
+  setAttribute(key, value) { this.attributes[key] = value; }
+  addEventListener(name, listener) { this.listeners[name] = listener; }
+  set textContent(value) { this.ownText = value; this.children = []; }
+  get textContent() { return this.ownText + this.children.map((node) => node.textContent).join(""); }
+  get childElementCount() { return this.children.filter((node) => node.tagName).length; }
+}
+const memberList = new RenderNode("div");
+const rowActions = [];
+const renderState = { chainEntries: [], shakeBottomedPlayerIds: new Set([2]), shakeSortMode: "attendanceProbability" };
+const rendererContext = vm.createContext({
+  state: renderState,
+  els: { shakePeopleList: memberList },
+  document: {
+    createElement: (tagName) => new RenderNode(tagName),
+    createTextNode: (text) => Object.assign(new RenderNode(), { textContent: text }),
+  },
+  window: {},
+  firstName: (name) => name,
+  normalizePlayerId: Number,
+  getMemberStatistics: () => ({}),
+  getBeijingDateString: () => "2026-10-26",
+  getShakeRecommendationBadges: () => [{ text: "近期常打", risk: false }],
+  orderShakePeopleRecommendations: order,
+  formatShakeAttendanceProbability: display,
+  addShakePersonToChain: (player, options) => rowActions.push({ action: "add", id: player.id, options }),
+  toggleShakePersonBottom: (player, recommendations, options) => rowActions.push({ action: "bottom", id: player.id, options }),
+  createQuickTodayRule: (player) => rowActions.push({ action: "skip", id: player.id }),
 });
-vm.runInContext(html.slice(visibilityStart, visibilityEnd), visibilityContext);
-visibilityContext.syncShakeImpactVisibility();
-assert.equal(visibilityList.dataset.showImpact, "true");
-assert.equal(visibilityButton["aria-pressed"], "true");
-assert.equal(visibilityButton["aria-label"], "隐藏成局概率");
-visibilityContext.toggleShakeImpactVisibility();
-assert.equal(visibilityState.shakeImpactVisible, false);
-assert.equal(visibilityList.dataset.showImpact, "false");
-assert.equal(visibilityButton["aria-pressed"], "false");
-assert.equal(visibilityButton["aria-label"], "显示成局概率");
-assert.equal(visibilityButton.title, "显示成局概率");
-visibilityContext.syncShakeImpactVisibility();
-assert.equal(visibilityList.dataset.showImpact, "false", "reopening or filtering must preserve hidden state");
-visibilityState.shakeSortMode = "uplift";
-visibilityContext.toggleShakeImpactVisibility();
-assert.equal(visibilityState.shakeImpactVisible, true);
-assert.equal(visibilityList.dataset.showImpact, "true");
-assert.equal(visibilityButton["aria-label"], "隐藏成局概率");
-assert.equal(visibilityButton.title, "隐藏成局概率");
-assert.equal(visibilityState.shakeSortMode, "uplift", "visibility must not change sorting");
-assert.equal(visibilityState.shakeRecommendations, rankItems, "visibility must not change recommendations");
+const renderListStart = html.indexOf("function renderShakePeopleList(");
+const renderListEnd = html.indexOf("\n    function toggleShakePersonBottom(", renderListStart);
+assert.ok(renderListStart >= 0 && renderListEnd > renderListStart);
+vm.runInContext(html.slice(renderListStart, renderListEnd), rendererContext);
+const rowItems = [
+  { player: { id: 1, name: "甲" }, attendanceProbability: 0.67, uplift: 0.33 },
+  { player: { id: 2, name: "乙" }, attendanceProbability: 0.624, uplift: 0 },
+  { player: { id: 3, name: "丙" }, attendanceProbability: null, uplift: null },
+];
+const originalRowItems = JSON.stringify(rowItems);
+for (const mode of ["attendanceProbability", "uplift"]) {
+  renderState.shakeSortMode = mode;
+  rendererContext.renderShakePeopleList(rowItems);
+  assert.equal(memberList.children.length, rowItems.length);
+  assert.doesNotMatch(memberList.textContent, /成局概率|\+33%/);
+  for (const row of memberList.children) {
+    const score = row.children.find((node) => node.className === "shake-person-score");
+    assert.equal(score.childElementCount, 1, "each row has only the attendance metric");
+    assert.equal(score.children[0].className, "shake-person-attendance");
+    assert.match(score.textContent, /^到场概率 (67%|62\.4%|暂无估算)$/);
+    assert.equal(row.children.at(-1).className, "shake-person-skip");
+  }
+}
+assert.equal(JSON.stringify(rowItems), originalRowItems, "rendering preserves forecast recommendations");
+rendererContext.renderShakePeopleList([rowItems[0]]);
+const singleRow = memberList.children[0];
+const memberActions = singleRow.children[0].children[0].children[0].children;
+assert.equal(memberActions[0].attributes["aria-label"], "将甲加入接龙名单");
+assert.equal(memberActions[1].attributes["aria-label"], "置底甲");
+const clickEvent = { detail: 0, stopPropagation() {} };
+memberActions[0].listeners.click(clickEvent);
+memberActions[1].listeners.click(clickEvent);
+singleRow.children.at(-1).listeners.click(clickEvent);
+assert.equal(rowActions.map(({ action }) => action).join(","), "add,bottom,skip");
+assert.ok(rowActions.every(({ id }) => id === 1));
+assert.equal(rowActions[0].options.focusNext, true);
+assert.equal(rowActions[1].options.focusButton, true);
+rendererContext.renderShakePeopleList([]);
+assert.equal(memberList.children.length, 1);
+assert.equal(memberList.textContent, "暂时没有合适的人可摇");
+rendererContext.renderShakePeopleList(rowItems);
+assert.equal(memberList.children.length, 3, "reopening restores rows without a visibility setting");
+assert.doesNotMatch(memberList.textContent, /成局概率/);
 
 const filterRecommendationsStart = html.indexOf("function filterShakePeopleRecommendations(");
 const filterRecommendationsEnd = html.indexOf("\n    function renderShakePeopleList(", filterRecommendationsStart);

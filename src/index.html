@@ -1017,8 +1017,7 @@
 
     .shake-sort-btn svg { width: 15px; height: 15px; }
     .shake-sort-btn:hover { background: #e8f2ef; }
-    .shake-sort-btn:focus-visible,
-    #shakeImpactToggle:focus-visible {
+    .shake-sort-btn:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
     }
@@ -1212,15 +1211,6 @@
       color: var(--text);
       font-size: 13px;
     }
-
-    .shake-person-impact strong { color: var(--accent-dark); }
-    .shake-people-list[data-show-impact="false"] .shake-person-impact { display: none; }
-    #shakeImpactToggle[aria-pressed="true"] {
-      border-color: var(--accent);
-      background: #e8f2ef;
-    }
-    #shakeImpactToggle[aria-pressed="true"] .shake-impact-hidden-icon,
-    #shakeImpactToggle[aria-pressed="false"] .shake-impact-visible-icon { display: none; }
 
     .shake-person-attendance {
       color: var(--muted);
@@ -4944,7 +4934,6 @@
           <p id="shakePeopleSummary" class="shake-people-summary"></p>
           <div class="shake-summary-actions">
             <button id="shakeSortBtn" class="shake-sort-btn" type="button" aria-label="当前按到场概率从高到低排序，点击切换为成局概率" title="切换为按成局概率提升排序" aria-controls="shakePeopleList"><i data-lucide="arrow-down-wide-narrow"></i><span id="shakeSortLabel">到场概率</span></button>
-            <button id="shakeImpactToggle" class="chain-icon-btn" type="button" aria-label="隐藏成局概率" title="隐藏成局概率" aria-pressed="true" aria-controls="shakePeopleList"><i data-lucide="eye" class="shake-impact-visible-icon" aria-hidden="true"></i><i data-lucide="eye-off" class="shake-impact-hidden-icon" aria-hidden="true"></i></button>
             <button id="shakeFiltersToggle" class="chain-icon-btn" type="button" aria-label="展开筛选" title="展开筛选" aria-expanded="false" aria-controls="shakePeopleFilters"><i data-lucide="chevron-down"></i></button>
           </div>
         </div>
@@ -4970,7 +4959,7 @@
           <button id="shakeFilterReset" class="shake-filter-reset" type="button" hidden>清除筛选</button>
         </div>
         <p id="shakeProbabilityNote" class="shake-probability-note">仅推荐近30天已完成订场中有本人接龙记录的成员。到场概率根据此人和已接龙人员亲密度、近期出勤率、喜欢周几打、喜欢多少人打、体力是否支持连打（昨天前天是否有打）计算得出，仅供参考。</p>
-        <div id="shakePeopleList" class="shake-people-list" data-show-impact="true" aria-describedby="shakeProbabilityNote"></div>
+        <div id="shakePeopleList" class="shake-people-list" aria-describedby="shakeProbabilityNote"></div>
         <div class="shake-rule-accordions">
           <div class="member-statistics-section">
             <button id="refreshMemberStatisticsBtn" class="chain-icon-btn member-statistics-refresh" type="button" aria-label="重新训练并刷新成员统计" title="重新训练并刷新成员统计"><i data-lucide="refresh-cw"></i></button>
@@ -5184,7 +5173,6 @@
       shakeBottomedPlayerIds: new Set(),
       shakeFilters: { gender: "", levelGroup: "" },
       shakeSortMode: "attendanceProbability",
-      shakeImpactVisible: true,
       shakeRecommendations: [],
       chainInputUserOwned: false,
       trainingAnomaly: null,
@@ -5302,7 +5290,6 @@
       shakePeopleList: document.getElementById("shakePeopleList"),
       shakeSortBtn: document.getElementById("shakeSortBtn"),
       shakeSortLabel: document.getElementById("shakeSortLabel"),
-      shakeImpactToggle: document.getElementById("shakeImpactToggle"),
       shakeGenderFilter: document.getElementById("shakeGenderFilter"),
       shakeLevelFilter: document.getElementById("shakeLevelFilter"),
       shakeFilterReset: document.getElementById("shakeFilterReset"),
@@ -5761,7 +5748,6 @@
       els.shakePeopleBtn.addEventListener("click", openShakePeopleModal);
       els.refreshMemberStatisticsBtn.addEventListener("click", refreshShakeMemberStatistics);
       els.shakeSortBtn.addEventListener("click", toggleShakePeopleSort);
-      els.shakeImpactToggle.addEventListener("click", toggleShakeImpactVisibility);
       els.shakeGenderFilter.addEventListener("change", () => {
         state.shakeFilters.gender = els.shakeGenderFilter.value;
         renderShakePeopleModal();
@@ -9950,13 +9936,6 @@
       return settled ? percent : Math.max(1, Math.min(99, percent));
     }
 
-    function formatProbabilityPointLift(value) {
-      const points = Math.max(0, Math.min(100, (Number(value) || 0) * 100));
-      if (points === 0) return "0";
-      if (points < 10) return points.toFixed(1).replace(/\.0$/, "");
-      return String(Math.round(points));
-    }
-
     function setProbabilityDisplay(todayPercent, tomorrowPercent) {
       const ready = Number.isFinite(todayPercent) && Number.isFinite(tomorrowPercent);
       const todayText = ready ? `${todayPercent}%` : "--%";
@@ -13525,16 +13504,6 @@
         attendanceValue.textContent = formatShakeAttendanceProbability(item.attendanceProbability);
         attendance.append(attendanceValue);
         score.append(attendance);
-        if (shakeProbabilityValue(item.uplift) !== null) {
-          const impact = document.createElement("span");
-          impact.className = "shake-person-impact";
-          impact.append(document.createTextNode("成局概率 "));
-          const value = document.createElement("strong");
-          value.textContent = `+${formatProbabilityPointLift(item.uplift)}%`;
-          impact.title = "该成员确定到场与不到场两种情形的成局概率差；此处+28%表示两种情形相差28个百分点，不是到场后的最终成局概率，也不能直接加到当前概率上。";
-          impact.append(value);
-          score.append(impact);
-        }
 
         const skipButton = document.createElement("button");
         skipButton.type = "button";
@@ -13824,20 +13793,6 @@
       renderShakePeopleList(recommendations);
     }
 
-    function syncShakeImpactVisibility() {
-      const visible = state.shakeImpactVisible;
-      const label = visible ? "隐藏成局概率" : "显示成局概率";
-      els.shakePeopleList.dataset.showImpact = String(visible);
-      els.shakeImpactToggle.setAttribute("aria-pressed", String(visible));
-      els.shakeImpactToggle.setAttribute("aria-label", label);
-      els.shakeImpactToggle.title = label;
-    }
-
-    function toggleShakeImpactVisibility() {
-      state.shakeImpactVisible = !state.shakeImpactVisible;
-      syncShakeImpactVisibility();
-    }
-
     function renderShakePeopleModal() {
       syncMemberStatisticsRefreshButton();
       const today = getBeijingDateString();
@@ -13845,7 +13800,6 @@
       const allRecommendations = buildShakePeopleRecommendations(today);
       state.shakeRecommendations = allRecommendations;
       syncShakePeopleSort();
-      syncShakeImpactVisibility();
       const recommendations = filterShakePeopleRecommendations(allRecommendations);
       renderShakePeopleSummary(recommendations, allRecommendations.length);
       syncAttemptTrialToggle();
