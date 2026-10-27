@@ -8,6 +8,8 @@
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js" crossorigin="anonymous"></script>
   <script src="./member-statistics.js"></script>
   <script src="./group-probability.js"></script>
+  <script src="./forecast-client.js"></script>
+  <script src="./optimistic-sync.js"></script>
   <script src="./court-pricing.js"></script>
   <script src="./level-groups.js"></script>
   <style>
@@ -4221,6 +4223,10 @@
     .member-statistics-list dd { margin: 4px 0 0; overflow-wrap: anywhere; }
     .member-statistics-ranking { margin: 0; padding: 0; list-style: none; columns: 2 220px; column-gap: 24px; }
     .member-statistics-ranking li { break-inside: avoid; font-variant-numeric: tabular-nums; }
+    .shake-sync-status { margin: 0 0 8px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .shake-sync-status[hidden] { display: none; }
+    .shake-sync-status[data-error="true"] { color: var(--danger); }
+    .group-probability[aria-busy="true"]::after { content: " · 更新中"; font-size: 11px; font-weight: 400; }
     .member-partner-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .member-partner-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; border-top: 1px solid var(--line); }
     .member-partner-pair { min-width: 0; }
@@ -4963,7 +4969,8 @@
           </label>
           <button id="shakeFilterReset" class="shake-filter-reset" type="button" hidden>清除筛选</button>
         </div>
-        <p id="shakeProbabilityNote" class="shake-probability-note">仅推荐近30天已完成订场中有本人记录的成员。到场概率指当天能组起球局时，此人实际出勤的估计，不是邀约答应率。综合近期出勤、星期与每周局数、最佳拍档、人数偏好和连打体力；历史习惯不是硬性禁打，仅供参考。</p>
+        <p id="shakeProbabilityNote" class="shake-probability-note">到场概率根据其与已接龙人员亲密度、近期出勤、人数偏好、星期、体力等综合推算，仅供参考。</p>
+        <p id="shakeSyncStatus" class="shake-sync-status" role="status" aria-live="polite" hidden></p>
         <div id="shakePeopleList" class="shake-people-list" aria-describedby="shakeProbabilityNote"></div>
         <div class="shake-rule-accordions">
           <div class="member-statistics-section">
@@ -5178,6 +5185,9 @@
       groupAttemptOutcomes: [],
       groupLearningSignals: null,
       groupForecast: null,
+      forecastPending: false,
+      forecastError: "",
+      forecastDurationMs: 0,
       groupAttempt: null,
       attemptTrialRequested: false,
       shakeBottomedPlayerIds: new Set(),
@@ -5214,8 +5224,23 @@
     };
 
     let groupForecastCacheKey = "";
+    let forecastClient = null;
+    let forecastRequestedKey = "";
+    let forecastFailureKey = "";
+    let shakeOutbox = null;
+    let confirmedShake = { revision: -1, rules: [], bestPartnerOverrides: globalThis.BadmintonMemberStatistics.normalizePartnerOverrides(null) };
+    let shakeStatisticsView = null;
+    let shakeViewSignature = "";
+    let shakeViewSource = null;
+    let shakeStateLoadPromise = null;
+    let shakeSyncError = "";
+    const playerSaveQueues = new Map();
+    const playerPendingEdits = new Map();
+    const playerConfirmedEdits = new Map();
+    let forecastNotifyTimer = null;
     let groupForecastRenderTimer = null;
     let attemptTrackingTimer = null;
+    let attemptSnapshotWaiting = null;
     let attemptTrackingTrigger = "input";
     let attemptTrackingObservation = null;
     let attemptTrackingQueue = Promise.resolve();
@@ -5425,6 +5450,7 @@
       renderHeader();
       renderColumnVisibilityMenu();
       wireEvents();
+      initShakeOutbox();
       void loadBootstrap();
       setInterval(() => {
         if (document.visibilityState === "visible") refreshTimeSensitiveGroupForecast();
@@ -5470,8 +5496,7 @@
         cacheBootstrap(data);
         applyBootstrapData(data, "cloud", new Date().toISOString());
         try {
-          await loadShortTermRules();
-          await loadMemberStatistics();
+          if (!data.shakeState) await loadShakeState();
         } catch (error) {
           // 摇人规则加载失败不阻断其他数据加载
         }
@@ -5519,6 +5544,10 @@
     function applyBootstrapData(data, source, generatedAt) {
       const cleanGroupDraft = !state.levelGroupDraft || JSON.stringify(state.levelGroupDraft) === JSON.stringify(state.levelGroups);
       state.players = Array.isArray(data.players) ? data.players : [];
+      state.players.forEach((player) => {
+        const pending = playerPendingEdits.get(player.id);
+        if (pending?.length) pending.forEach((edit) => { player[edit.key] = edit.value; });
+      });
       state.sessions = normalizeSessions(data.sessions);
       state.levelDescriptions = data.levelDescriptions || {};
       state.levelGuideRaw = data.levelGuideRaw || "";
@@ -5546,6 +5575,9 @@
       state.dataSource = source;
       state.dataTimestamp = generatedAt || null;
       state.readOnly = IS_GITHUB_PAGES || source !== "cloud";
+      acceptConfirmedShake(data.shakeState || { revision: data.shakeRevision || 0, rules: data.shortTermRules || state.shortTermRules, bestPartnerOverrides: state.bestPartnerOverrides }, { persist: source === "cloud" && !IS_GITHUB_PAGES });
+      applyPendingShake({ render: false });
+      if (source === "cloud") shakeOutbox?.kick();
       refreshLevelGroupEditor();
       refreshLevelGroupEditor();
       groupForecastCacheKey = "";
@@ -5832,7 +5864,7 @@
         signal: options.signal || controller.signal,
       }).finally(() => clearTimeout(timeoutId));
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw Object.assign(new Error(data.error || `HTTP ${response.status}`), { status: response.status });
+      if (!response.ok) throw Object.assign(new Error(data.error || `HTTP ${response.status}`), { status: response.status, data });
       return data;
     }
 
@@ -6878,37 +6910,32 @@
     }
 
     async function saveCell(rowKey, key, value) {
-      if (state.readOnly) {
-        toast("当前为只读模式，不能修改数据库");
-        return;
-      }
+      if (state.readOnly) { toast("当前为只读模式，不能修改数据库"); return; }
       const player = getPlayerByKey(rowKey);
-      if (!player) return;
-
-
-      if (player[key] === value) {
-        renderTable();
-        return;
-      }
-
-      const previous = { ...player };
+      if (!player || player[key] === value) return;
+      const id = player.id, edit = { key, value };
+      if (!playerPendingEdits.has(id)) { playerPendingEdits.set(id, []); playerConfirmedEdits.set(id, { ...player }); }
+      playerPendingEdits.get(id).push(edit);
       Object.assign(player, { [key]: value });
-      renderTable();
-      setSync("正在保存");
-      try {
-        const data = await api(`/api/players/${player.id}`, {
-          method: "PATCH",
-          body: JSON.stringify({ [key]: value }),
-        });
-        applyPaymentOrderState(data);
-        replacePlayer(data.player);
-        setSync("已保存");
-      } catch (error) {
-        replacePlayer(previous);
-        setSync("保存失败");
-        toast(`保存失败：${error.message}`);
-      }
-      renderTable();
+      renderTable(); setSync("后台保存中");
+      const save = async () => {
+        try {
+          const data = await api("/api/players/" + id, { method: "PATCH", body: JSON.stringify({ [key]: value }) });
+          playerConfirmedEdits.set(id, data.player); applyPaymentOrderState(data);
+        } catch (error) { toast("此项修改未保存：" + error.message); setSync("保存失败"); }
+        finally {
+          const pending = (playerPendingEdits.get(id) || []).filter((item) => item !== edit);
+          const current = { ...playerConfirmedEdits.get(id) };
+          pending.forEach((item) => { current[item.key] = item.value; });
+          if (getPlayerById(id)) replacePlayer(current);
+          if (pending.length) playerPendingEdits.set(id, pending);
+          else { playerPendingEdits.delete(id); playerConfirmedEdits.delete(id); playerSaveQueues.delete(id); setSync("云端数据"); }
+          renderTable(); scheduleGroupForecastRender();
+        }
+      };
+      const queued = (playerSaveQueues.get(id) || Promise.resolve()).catch(() => {}).then(save);
+      playerSaveQueues.set(id, queued);
+      return queued;
     }
 
     async function saveJoinNumberCell(rowKey, affiliation, rawValue) {
@@ -9992,22 +10019,20 @@
         entry.levelText,
       ]);
       const rules = state.shortTermRules.map((rule) => [
-        rule.id,
         rule.playerId,
         rule.type,
         rule.startsOn,
         rule.expiresOn,
         rule.rule,
-      ]);
+      ]).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
       const sessionEvidence = state.sessions.map((session) => [session.id, session.date, session.updatedAt, session.players]);
       return JSON.stringify([
         targetDate,
-        includeCandidates,
         Math.floor(Date.now() / 60000),
-        state.players.length,
+        state.players.map((player) => [player.id, player.name, player.level, player.gender, player.createdAt]),
         state.sessions.length,
         sessionEvidence,
-        state.groupAttemptOutcomes,
+        state.groupAttemptOutcomes.filter((row) => row.activityDate < targetDate),
         state.groupLearningSignals?.generatedAt || "",
         state.groupLearningSignals?.version || "",
         entries,
@@ -10018,51 +10043,71 @@
       ]);
     }
 
+    function forecastInput(targetDate) {
+      return { players: state.players, sessions: state.sessions, groupAttempts: state.groupAttemptOutcomes,
+        groupLearningSignals: state.groupLearningSignals, entries: state.chainEntries.map((entry) => ({
+          playerId: entry.player?.id ?? entry.playerId, ownerPlayerId: entry.ownerPlayerId ?? entry.ownerPlayer?.id,
+          isCompanion: Boolean(entry.isCompanion || entry.plusEntry), slots: entry.slots || 1,
+          levelText: entry.levelText ?? entry.player?.level, clean: entry.clean,
+        })), shortTermRules: state.shortTermRules, memberStatistics: { calendar: state.memberStatistics?.calendar },
+        bestPartnerOverrides: state.bestPartnerOverrides, targetDate, now: new Date().toISOString(),
+        includeCandidates: true, includeCounterfactuals: false };
+    }
+
+    function updateForecastPendingUi() {
+      els.groupProbability.setAttribute("aria-busy", String(state.forecastPending));
+      els.groupProbability.title = state.forecastError || (state.forecastPending ? "后台更新中，暂显示上一次估计" : "");
+    }
+
+    function ensureForecastClient() {
+      if (forecastClient) return forecastClient;
+      forecastClient = new globalThis.BadmintonForecastClient.LatestForecast({
+        createWorker: () => new Worker(new URL("./forecast-worker.js", location.href)),
+        onResult: (forecast, key, durationMs) => {
+          if (key !== groupForecastKey(getProbabilityTargetDate())) return;
+          state.groupForecast = forecast; groupForecastCacheKey = key;
+          forecastRequestedKey = ""; forecastFailureKey = "";
+          state.forecastPending = false; state.forecastError = ""; state.forecastDurationMs = durationMs;
+          if (forecast.memberStatistics) { state.memberStatistics = forecast.memberStatistics; shakeViewSource = null; }
+          setProbabilityDisplay(forecastDisplayPercent(forecast.todayProbability, forecast.today?.settled), forecastDisplayPercent(forecast.tomorrowProbability));
+          updateForecastPendingUi();
+          // Yield a frame before updating the non-critical probability labels and ranking.
+          clearTimeout(forecastNotifyTimer);
+          forecastNotifyTimer = setTimeout(() => {
+            if (key !== groupForecastCacheKey) return;
+            if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal({ calculate: false });
+            refreshCalendarPartnerColumns();
+            if (attemptSnapshotWaiting && !pendingShakeOperations().length) {
+              const observation = attemptSnapshotWaiting; attemptSnapshotWaiting = null;
+              void saveGroupAttemptSnapshot(observation);
+            }
+          }, 0);
+        },
+        onError: (message, key) => {
+          if (key && key !== forecastRequestedKey) return;
+          state.forecastPending = false; state.forecastError = "概率更新失败：" + message;
+          forecastFailureKey = key || forecastRequestedKey; forecastRequestedKey = "";
+          updateForecastPendingUi();
+          if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleSummary(state.shakeRecommendations);
+          // No main-thread fallback: failed estimates must not freeze ordinary operations.
+        },
+      });
+      return forecastClient;
+    }
+
     function renderGroupForecast({ force = false, includeCandidates = false } = {}) {
-      const engine = globalThis.BadmintonGroupProbability;
-      if (!engine?.estimate || !state.players.length) {
-        state.groupForecast = null;
-        setProbabilityDisplay(null, null);
-        return null;
+      if (!state.players.length || state.pendingSessionEdit) {
+        state.groupForecast = null; state.forecastPending = false;
+        forecastClient?.cancel(); forecastRequestedKey = ""; groupForecastCacheKey = "";
+        setProbabilityDisplay(null, null); updateForecastPendingUi(); return null;
       }
-      if (state.pendingSessionEdit) {
-        state.groupForecast = null;
-        setProbabilityDisplay(null, null);
-        return null;
-      }
-
-      const targetDate = getProbabilityTargetDate();
-      const cacheKey = groupForecastKey(targetDate, includeCandidates);
-      if (!force && cacheKey === groupForecastCacheKey && state.groupForecast) return state.groupForecast;
-
-      try {
-        const forecast = engine.estimate({
-          players: state.players,
-          sessions: state.sessions,
-          groupAttempts: state.groupAttemptOutcomes,
-          groupLearningSignals: state.groupLearningSignals,
-          entries: state.chainEntries,
-          shortTermRules: state.shortTermRules,
-          memberStatistics: getMemberStatistics(),
-          bestPartnerOverrides: state.bestPartnerOverrides,
-          targetDate,
-          now: new Date(),
-          includeCandidates,
-          includeCounterfactuals: false,
-        });
-        state.groupForecast = forecast;
-        groupForecastCacheKey = cacheKey;
-        setProbabilityDisplay(
-          forecastDisplayPercent(forecast.todayProbability, forecast.today?.settled),
-          forecastDisplayPercent(forecast.tomorrowProbability),
-        );
-        return forecast;
-      } catch (error) {
-        console.error("Group probability calculation failed", error);
-        state.groupForecast = null;
-        setProbabilityDisplay(null, null);
-        return null;
-      }
+      const targetDate = getProbabilityTargetDate(), key = groupForecastKey(targetDate);
+      if (!force && key === groupForecastCacheKey && state.groupForecast) return state.groupForecast;
+      if (key === forecastRequestedKey || (!force && key === forecastFailureKey)) return state.groupForecast;
+      forecastRequestedKey = key; state.forecastPending = true; state.forecastError = "";
+      updateForecastPendingUi();
+      ensureForecastClient().request(key, forecastInput(targetDate), { force: true });
+      return state.groupForecast;
     }
 
     function scheduleGroupForecastRender(delay = 90) {
@@ -10104,8 +10149,8 @@
     }
 
     function buildAttemptSnapshotPayload(observation) {
-      const forecast = state.groupForecast || renderGroupForecast({ force: true });
-      if (!forecast) return null;
+      const forecast = state.groupForecast || renderGroupForecast();
+      if (!forecast || state.forecastPending || pendingShakeOperations().length || groupForecastCacheKey !== groupForecastKey(getProbabilityTargetDate())) return null;
       const knownPlayerIds = new Set();
       const companionsByOwner = new Map();
       let unresolvedCount = 0;
@@ -10244,7 +10289,6 @@
         ...state.groupAttemptOutcomes.filter((item) => item.activityDate !== attempt.activityDate),
         nextOutcome,
       ].sort((left, right) => left.activityDate.localeCompare(right.activityDate));
-      groupForecastCacheKey = "";
       scheduleGroupForecastRender();
       if (attempt.activityDate !== getBeijingDateString()) return;
       state.groupAttempt = attempt;
@@ -10255,7 +10299,8 @@
     async function saveGroupAttemptSnapshot(observation) {
       if (state.readOnly || state.pendingSessionEdit || !state.chainInputUserOwned) return;
       const payload = buildAttemptSnapshotPayload(observation);
-      if (!payload || (!payload.participantCount && !state.groupAttempt)) return;
+      if (!payload) { attemptSnapshotWaiting = observation; scheduleGroupForecastRender(); return; }
+      if (!payload.participantCount && !state.groupAttempt) return;
       const snapshotKey = attemptSnapshotKey(payload);
       const now = Date.now();
       if (snapshotKey === lastAttemptSnapshotKey && now - lastAttemptSnapshotAt < 30 * 60 * 1000) return;
@@ -10282,6 +10327,7 @@
 
     function scheduleGroupAttemptSnapshot(trigger = "input") {
       if (state.readOnly || state.pendingSessionEdit || !state.chainInputUserOwned) return;
+      attemptSnapshotWaiting = null;
       attemptTrackingTrigger = trigger;
       attemptTrackingObservation = {
         trigger,
@@ -13252,12 +13298,7 @@
       return false;
     }
 
-    async function loadShortTermRules() {
-      const today = getBeijingDateString();
-      const data = await api(`/api/short-term-rules?today=${encodeURIComponent(today)}`);
-      state.shortTermRules = Array.isArray(data.rules) ? data.rules : [];
-      groupForecastCacheKey = "";
-    }
+    async function loadShortTermRules() { await loadShakeState(); }
 
     function getJoinedSelfPlayerIds() {
       return new Set(state.chainEntries.filter((entry) => !entry.isCompanion && !entry.plusEntry)
@@ -13274,7 +13315,7 @@
       const recentMemberIds = new Set(getMemberStatistics().members
         .filter((member) => member.attendance30 > 0).map((member) => member.playerId));
       const joinedIds = getJoinedSelfPlayerIds();
-      const forecast = renderGroupForecast({ includeCandidates: true });
+      const forecast = state.groupForecast;
       if (Array.isArray(forecast?.candidates)) {
         const joinedSelfIds = new Set(state.chainEntries
           .filter((entry) => !entry.isCompanion)
@@ -13283,11 +13324,13 @@
         return forecast.candidates
           .map((candidate) => ({
             ...candidate,
+            attendanceProbability: state.forecastPending && candidate.eligible === false ? null : candidate.attendanceProbability,
             player: getPlayerById(candidate.playerId),
           }))
           .filter((candidate) => (
             candidate.player
-            && candidate.eligible !== false
+            && (state.forecastPending || candidate.eligible !== false)
+            && !state.shortTermRules.some((rule) => ruleBlocksPlayerToday(rule, Number(candidate.player.id), today))
             && recentMemberIds.has(Number(candidate.player.id))
             && !joinedSelfIds.has(Number(candidate.player.id))
           ));
@@ -13330,21 +13373,117 @@
         ));
     }
 
+    function acceptConfirmedShake(data, { persist = true } = {}) {
+      if (!data || !Array.isArray(data.rules) || Number(data.revision) < confirmedShake.revision) return false;
+      confirmedShake = { revision: Number(data.revision) || 0, rules: data.rules,
+        bestPartnerOverrides: globalThis.BadmintonMemberStatistics.normalizePartnerOverrides(data.bestPartnerOverrides) };
+      if (persist && !IS_GITHUB_PAGES) {
+        localStorage.setItem("badminton-confirmed-shake-v1", JSON.stringify(confirmedShake));
+      }
+      return true;
+    }
+
+    function pendingShakeOperations() { return shakeOutbox?.list() || []; }
+
+    function updateShakeSyncStatus() {
+      const status = document.getElementById("shakeSyncStatus");
+      if (!status) return;
+      const rows = pendingShakeOperations(), retrying = rows.some((row) => row.attempts > 0);
+      status.dataset.error = String(Boolean(shakeSyncError));
+      status.hidden = !rows.length && !shakeSyncError;
+      status.textContent = shakeSyncError || (rows.length ? (retrying ? "暂未同步，网络恢复后会自动重试" : "后台同步中") + "（" + rows.length + "项）；修改已保存在本机，刷新不会丢失。" : "");
+    }
+
+    function applyPendingShake({ render = true } = {}) {
+      const pending = pendingShakeOperations();
+      state.shortTermRules = globalThis.BadmintonOptimisticSync.projectRules(confirmedShake.rules, pending);
+      const projected = globalThis.BadmintonOptimisticSync.projectPartners(state.memberStatistics, confirmedShake.bestPartnerOverrides, pending, state.players);
+      state.bestPartnerOverrides = projected.overrides;
+      shakeViewSource = null;
+      updateShakeSyncStatus();
+      if (render && state.players.length) {
+        if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
+        if (els.shortRuleModal.classList.contains("open")) renderShortTermRulesList();
+        refreshCalendarPartnerColumns();
+        scheduleGroupForecastRender();
+        if (!pending.length && attemptSnapshotWaiting && !state.forecastPending) {
+          const observation = attemptSnapshotWaiting; attemptSnapshotWaiting = null;
+          setTimeout(() => void saveGroupAttemptSnapshot(observation), 0);
+        }
+      }
+    }
+
+    function initShakeOutbox() {
+      if (IS_GITHUB_PAGES || shakeOutbox) return;
+      try {
+        const saved = JSON.parse(localStorage.getItem("badminton-confirmed-shake-v1") || "null");
+        if (saved) acceptConfirmedShake(saved, { persist: false });
+        shakeOutbox = new globalThis.BadmintonOptimisticSync.Outbox({
+          storage: localStorage, locks: navigator.locks,
+          canSend: () => !state.readOnly && state.dataSource === "cloud" && navigator.onLine !== false,
+          prepare: (row) => ({ id: row.id, kind: row.kind, payload: row.kind === "partner"
+            ? { ...row.payload, revision: confirmedShake.bestPartnerOverrides.revision } : row.payload }),
+          send: (body) => api("/api/shake-mutations", { method: "POST", body: JSON.stringify(body) }),
+          onChange: () => applyPendingShake(),
+          onCommit: (data) => {
+            if (!data.ok || !data.confirmed) throw new Error("保存结果不完整，稍后核对");
+            acceptConfirmedShake(data.confirmed);
+          },
+          onReject: (error, row) => {
+            if (error.data?.confirmed) acceptConfirmedShake(error.data.confirmed);
+            shakeSyncError = row.label + "未保存，已撤回本项修改：" + error.message;
+            toast(shakeSyncError);
+          },
+        });
+        window.addEventListener("online", () => { shakeOutbox.resume(); if (state.readOnly) void loadBootstrap({ retry: true }); });
+        window.addEventListener("storage", (event) => {
+          if (event.key?.startsWith(globalThis.BadmintonOptimisticSync.PREFIX) || event.key === "badminton-confirmed-shake-v1") {
+            try { const saved = JSON.parse(localStorage.getItem("badminton-confirmed-shake-v1") || "null"); if (saved) acceptConfirmedShake(saved, { persist: false }); } catch { /* Keep last confirmed state. */ }
+            applyPendingShake(); shakeOutbox.kick();
+          }
+        });
+      } catch (error) { shakeSyncError = "本机存储不可用，无法可靠保存待同步操作：" + error.message; }
+    }
+
+    function queueShakeEdit(kind, payload, label) {
+      if (state.readOnly) { toast("当前为只读模式，不能修改数据库"); return false; }
+      initShakeOutbox();
+      if (!shakeOutbox) { toast(shakeSyncError || "无法保存操作，请检查浏览器存储设置"); return false; }
+      try { shakeSyncError = ""; shakeOutbox.enqueue(kind, payload, label); return true; }
+      catch (error) { toast("未应用修改：本机存储失败，" + error.message); return false; }
+    }
+
+    async function loadShakeState() {
+      if (shakeStateLoadPromise) return shakeStateLoadPromise;
+      shakeStateLoadPromise = (async () => {
+        const data = await api("/api/shake-state");
+        acceptConfirmedShake(data.confirmed, { persist: !IS_GITHUB_PAGES });
+        applyPendingShake();
+      })().finally(() => { shakeStateLoadPromise = null; });
+      return shakeStateLoadPromise;
+    }
+
     function getMemberStatistics() {
-      return globalThis.BadmintonMemberStatistics.build({
-        players: state.players, sessions: state.sessions, now: new Date(),
-        calendar: state.memberStatistics?.calendar,
-        bestPartnerOverrides: state.bestPartnerOverrides,
-      });
+      const base = state.memberStatistics || { version: globalThis.BadmintonMemberStatistics.VERSION, asOf: getBeijingDateString(),
+        members: [], lists: globalThis.BadmintonMemberStatistics.DEFINITIONS.map((row) => ({ ...row, memberIds: [] })),
+        missingCalendarYears: [], activeMemberCount: 0, windows: {}, bestPartners: { pairs: [] }, calendar: {} };
+      const signature = JSON.stringify(state.bestPartnerOverrides);
+      if (shakeStatisticsView && shakeViewSource === base && shakeViewSignature === signature) return shakeStatisticsView;
+      const projected = globalThis.BadmintonOptimisticSync.projectPartners(base, state.bestPartnerOverrides, [], state.players);
+      shakeStatisticsView = { ...base, bestPartners: projected.bestPartners, bestPartnerOverrides: state.bestPartnerOverrides };
+      shakeViewSource = base; shakeViewSignature = signature;
+      return shakeStatisticsView;
     }
 
     async function loadMemberStatistics() {
       const data = await api("/api/member-statistics");
       state.memberStatistics = data.memberStatistics;
-      state.bestPartnerOverrides = globalThis.BadmintonMemberStatistics.normalizePartnerOverrides(data.bestPartnerOverrides ?? data.memberStatistics?.bestPartnerOverrides);
+      shakeViewSource = null;
+      // Fetch the cheap, revisioned rule/partner state; never replace pending local edits with an older response.
+      await loadShakeState();
       groupForecastCacheKey = "";
+      scheduleGroupForecastRender();
     }
-
 
     function syncMemberStatisticsRefreshButton() {
       const button = els.refreshMemberStatisticsBtn;
@@ -13462,6 +13601,14 @@
       const statistics = getMemberStatistics();
       const targetDate = getBeijingDateString();
       const currentCount = state.chainEntries.length;
+      const existingRows = new Map([...els.shakePeopleList.querySelectorAll(".shake-person-row")].map((row) => [row.dataset.playerId, row]));
+      const focusedButton = document.activeElement?.closest?.("#shakePeopleList .shake-person-row button");
+      const focusedRow = focusedButton?.closest(".shake-person-row");
+      const focusedId = focusedRow?.dataset.playerId;
+      const focusedIndex = [...existingRows.keys()].indexOf(focusedId);
+      const focusClass = focusedButton?.className?.split(" ").find((name) => ["shake-person-add", "shake-person-bottom", "shake-person-skip"].includes(name));
+      const fragment = document.createDocumentFragment();
+      els.shakePeopleList.setAttribute("aria-busy", String(state.forecastPending));
       els.shakePeopleList.replaceChildren();
       if (!recommendations.length) {
         const empty = document.createElement("div");
@@ -13476,6 +13623,7 @@
         const isBottomed = state.shakeBottomedPlayerIds.has(playerId);
         const row = document.createElement("div");
         row.className = "shake-person-row";
+        row.dataset.playerId = String(playerId);
         row.title = "双击快速创建该成员的规则";
         row.addEventListener("dblclick", (event) => {
           if (event.target.closest("button, .shake-person-attendance")) return;
@@ -13515,7 +13663,7 @@
         bottomButton.append(bottomIcon);
         bottomButton.addEventListener("click", (event) => {
           event.stopPropagation();
-          toggleShakePersonBottom(item.player, recommendations, { focusButton: event.detail === 0 });
+          toggleShakePersonBottom(item.player, state.shakeRecommendations?.length ? state.shakeRecommendations : recommendations, { focusButton: event.detail === 0 });
         });
         actions.append(addButton, bottomButton);
         heading.append(actions, name);
@@ -13555,8 +13703,17 @@
         row.append(primary);
         if (score.childElementCount) row.append(score);
         row.append(skipButton);
-        els.shakePeopleList.append(row);
+        const previous = existingRows.get(String(playerId));
+        const signature = JSON.stringify([item.player, item.attendanceProbability, isBottomed, badges, state.forecastPending]);
+        row.dataset.renderSignature = signature;
+        fragment.append(previous?.dataset.renderSignature === signature ? previous : row);
       });
+      els.shakePeopleList.append(fragment);
+      if (focusClass) {
+        const rows = [...els.shakePeopleList.querySelectorAll(".shake-person-row")];
+        const target = rows.find((row) => row.dataset.playerId === focusedId) || rows[Math.min(Math.max(0, focusedIndex), rows.length - 1)];
+        target?.querySelector("." + focusClass)?.focus({ preventScroll: true });
+      }
       window.lucide?.createIcons({ attrs: { "aria-hidden": "true" } });
     }
 
@@ -13627,7 +13784,7 @@
         ? forecastDisplayPercent(state.groupForecast.todayProbability, state.groupForecast.today?.settled)
         : 0;
       const listKind = state.attemptTrialRequested ? "试算名单" : "接龙名单";
-      toast(`${displayName}已加入${listKind}，当前成局 ${todayPercent}%`);
+      toast(`${displayName}已加入${listKind}`);
       if (focusNext) els.shakePeopleList.querySelector(".shake-person-add")?.focus();
     }
 
@@ -13733,45 +13890,22 @@
       container.append(form);
     }
 
-    async function savePartnerEdit(operation) {
-      if (state.readOnly || state.partnerSaving) return;
-      if (!globalThis.BadmintonMemberStatistics.partnerKey(operation.playerIds)) {
-        state.partnerStatus = "请选择两位不同的已有成员"; state.partnerError = true;
-        renderShakeMemberStatistics(); return;
-      }
-      const focusKey = globalThis.BadmintonMemberStatistics.partnerKey(operation.playerIds);
-      state.partnerSaving = true; state.partnerError = false; state.partnerStatus = "正在保存拍档名单…";
-      renderShakeMemberStatistics();
+    function savePartnerEdit(operation) {
+      if (state.readOnly) return;
       try {
-        const data = await api("/api/best-partners", { method: "POST", body: JSON.stringify({
-          ...operation, revision: state.bestPartnerOverrides.revision,
-        }) });
-        if (!data.ok || !data.memberStatistics || !data.bestPartnerOverrides) throw new Error("保存结果不完整，请刷新后确认");
-        state.bestPartnerOverrides = globalThis.BadmintonMemberStatistics.normalizePartnerOverrides(data.bestPartnerOverrides);
-        state.memberStatistics = data.memberStatistics;
-        if (operation.action === "create") state.partnerDraft = null;
-        state.partnerStatus = operation.action === "delete" ? "已删除；此组合不会自动恢复，可手工重新添加。"
-          : operation.action === "move" ? "排名已保存；仅调整展示顺序，不改变概率。" : "最佳拍档已创建，并同步到日历与概率计算。";
-        const cached = readCachedBootstrap();
-        if (cached?.data) cacheBootstrap({ ...cached.data, bestPartnerOverrides: state.bestPartnerOverrides, memberStatistics: state.memberStatistics });
-        if (operation.action !== "move") groupForecastCacheKey = "";
-        refreshCalendarPartnerColumns();
-      } catch (error) {
-        state.partnerError = true;
-        state.partnerStatus = "保存未完成：" + error.message;
-        // A concurrent edit or lost response may have changed the server. Read, never retry a write blindly.
-        try { await loadMemberStatistics(); } catch { /* Keep the previous confirmed state while offline. */ }
-      } finally {
-        state.partnerSaving = false;
-        refreshCalendarPartnerColumns();
-        renderShakePeopleModal();
-        const row = [...els.shakeMemberStatisticsList.querySelectorAll(".member-partner-row")]
-          .find((element) => element.dataset.partnerKey === focusKey);
-        const button = row?.querySelector('[data-partner-action="' + operation.direction + '"]');
-        if (button && !button.disabled) button.focus({ preventScroll: true });
-        else if (row) row.querySelector("summary")?.focus({ preventScroll: true });
-        else document.querySelector(state.partnerDraft ? "#partnerCreateForm select" : '[data-partner-action="create"]')?.focus({ preventScroll: true });
-      }
+        globalThis.BadmintonMemberStatistics.editPartnerOverrides({ overrides: state.bestPartnerOverrides,
+          pairs: getMemberStatistics().bestPartners.pairs, players: state.players, ...operation, now: new Date() });
+      } catch (error) { state.partnerStatus = error.message; state.partnerError = true; renderShakeMemberStatistics(); return; }
+      const draft = state.partnerDraft;
+      if (operation.action === "create") state.partnerDraft = null;
+      state.partnerStatus = ""; state.partnerError = false;
+      const label = operation.action === "create" ? "创建拍档" : operation.action === "delete" ? "删除拍档" : "调整拍档排名";
+      if (!queueShakeEdit("partner", operation, label)) { state.partnerDraft = draft; renderShakeMemberStatistics(); return; }
+      const key = globalThis.BadmintonMemberStatistics.partnerKey(operation.playerIds);
+      const row = [...els.shakeMemberStatisticsList.querySelectorAll(".member-partner-row")].find((element) => element.dataset.partnerKey === key);
+      const button = row?.querySelector('[data-partner-action="' + operation.direction + '"]');
+      if (button && !button.disabled) button.focus({ preventScroll: true });
+      else row?.querySelector("summary")?.focus({ preventScroll: true });
     }
 
     function renderBestPartnerPair(pair, expandedPairs = new Set(), index = 0, total = 1) {
@@ -13785,7 +13919,7 @@
       names.textContent = pair.names.join(" ↔ ");
       const count = document.createElement("span");
       count.className = "member-partner-count";
-      count.textContent = `共同出勤 ${pair.togetherDays} 天${pair.source === "manual" ? " · 手工添加" : ""}`;
+      count.textContent = pair.pendingEvidence ? "手工添加 · 历史统计更新中" : `共同出勤 ${pair.togetherDays} 天${pair.source === "manual" ? " · 手工添加" : ""}`;
       summary.append(names, count);
       const evidence = document.createElement("div");
       evidence.className = "member-partner-evidence";
@@ -13822,10 +13956,6 @@
     }
 
     function renderBestPartnerStatistics(container, statistics, expandedPairs = new Set()) {
-      const note = document.createElement("p");
-      note.className = "member-statistics-note";
-      note.textContent = "自动识别看近90天，双方近30天均有本人记录，按校正后的双向关联排序；手工添加不受样本门槛限制。人工排序只影响展示，删除的组合不会自动恢复。拍档关系双向、不传递。";
-      container.append(note);
       renderPartnerCreateForm(container);
       const status = document.createElement("p");
       status.className = "member-partner-status";
@@ -13946,16 +14076,20 @@
       const filteredSummary = totalRecommendations !== recommendations.length
         ? `（筛选后 ${recommendations.length}/${totalRecommendations} 人）`
         : ` · 推荐 ${recommendations.length} 人`;
-      els.shakePeopleSummary.textContent = `${today}${formatRuleWeekdaySuffix(today)}   当前成局概率 ${todayPercent}%${filteredSummary}${bottomedSummary}`;
+      const probabilityText = state.groupForecast ? todayPercent + "%" : "暂无估算";
+      const updateText = state.forecastPending ? " · 更新中" : state.forecastError ? " · 更新失败" : "";
+      els.shakePeopleSummary.textContent = `${today}${formatRuleWeekdaySuffix(today)}   当前成局概率 ${probabilityText}${filteredSummary}${bottomedSummary}${updateText}`;
       els.shakeGenderFilter.value = state.shakeFilters.gender;
       renderShakeLevelOptions();
       els.shakeFilterReset.hidden = !state.shakeFilters.gender && !state.shakeFilters.levelGroup;
     }
 
-    function renderShakePeopleModal() {
+    function renderShakePeopleModal({ calculate = true } = {}) {
+      const scrollContainer = els.shakePeopleModal.querySelector(".modal-body");
+      const scrollTop = scrollContainer?.scrollTop || 0;
       syncMemberStatisticsRefreshButton();
       const today = getBeijingDateString();
-      renderGroupForecast({ includeCandidates: true });
+      if (calculate) renderGroupForecast({ includeCandidates: true });
       const allRecommendations = buildShakePeopleRecommendations(today);
       state.shakeRecommendations = allRecommendations;
       const recommendations = filterShakePeopleRecommendations(allRecommendations);
@@ -13963,6 +14097,8 @@
       syncAttemptTrialToggle();
       renderShakePeopleList(recommendations);
       renderShakeMemberStatistics();
+      updateShakeSyncStatus();
+      if (scrollContainer) scrollContainer.scrollTop = scrollTop;
     }
 
     function setShakeFiltersExpanded(expanded) {
@@ -13975,14 +14111,13 @@
     async function openShakePeopleModal() {
       if (state.readOnly) return;
       processChain();
-      try {
-        await Promise.all([loadShortTermRules(), loadMemberStatistics()]);
-      } catch (error) {
-        toast(`摇人规则加载失败：${error.message}`);
-      }
       els.shakeMemberStatisticsBlock.open = true;
       renderShakePeopleModal();
       openModal("shakePeopleModal");
+      // Open from cached data now; reconcile in the background without taking over focus.
+      void loadShakeState().catch((error) => {
+        shakeSyncError = "暂时无法同步最新规则，保留本机数据：" + error.message; updateShakeSyncStatus();
+      });
     }
 
     function openShortRuleModal(prefill = "") {
@@ -13995,75 +14130,44 @@
       }, 0);
     }
 
-    async function submitRuleText(rawText) {
-      if (!String(rawText || "").trim()) {
-        toast("请填写规则");
-        return false;
-      }
+    function submitRuleText(rawText) {
+      if (!String(rawText || "").trim()) { toast("请填写规则"); return false; }
       const parsed = parseShortRuleTextMultiple(String(rawText).trim(), getBeijingDateString());
-      if (parsed.error) {
-        toast(parsed.error);
-        return false;
-      }
-      for (const rule of parsed.rules) {
-        const data = await api("/api/short-term-rules", {
-          method: "POST",
-          body: JSON.stringify(rule),
-        });
-        state.shortTermRules = Array.isArray(data.rules)
-          ? data.rules
-          : upsertShortRule(state.shortTermRules, data.rule);
-      }
-      groupForecastCacheKey = "";
-      renderGroupForecast({ force: true });
-      if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
-      if (els.shortRuleModal.classList.contains("open")) renderShortTermRulesList();
-      scheduleGroupAttemptSnapshot("rule_change");
-      return true;
+      if (parsed.error) { toast(parsed.error); return false; }
+      if (state.readOnly || !shakeOutbox) { toast("只读或本机存储不可用，无法保存规则"); return false; }
+      const rules = parsed.rules.filter((rule) => !state.shortTermRules.some((row) => Number(row.playerId) === Number(rule.playerId)
+        && row.type === rule.type && row.startsOn === rule.startsOn && row.expiresOn === rule.expiresOn && JSON.stringify(row.rule) === JSON.stringify(rule.rule)));
+      if (!rules.length) { toast("相同的规则已存在"); return true; }
+      try {
+        shakeSyncError = "";
+        shakeOutbox.enqueueMany(rules.map((payload) => ({ kind: "rule-create", payload, label: firstName(getPlayerById(payload.playerId)?.name || "成员") + "的规则" })));
+        scheduleGroupAttemptSnapshot("rule_change");
+        return true;
+      } catch (error) { toast("未应用规则：" + error.message); return false; }
     }
 
     function upsertShortRule(rules, rule) {
       if (!rule?.id) return rules;
-      return [...rules.filter((item) => Number(item.id) !== Number(rule.id)), rule];
+      return [...rules.filter((item) => String(item.id) !== String(rule.id)), rule];
     }
 
-    async function saveShortRule() {
-      const rawText = els.shortRuleInput.value.trim();
-      const saved = await submitRuleText(rawText);
-      if (!saved) return;
-      closeModal("shortRuleModal");
-      toast("规则已保存");
+    function saveShortRule() {
+      if (submitRuleText(els.shortRuleInput.value.trim())) closeModal("shortRuleModal");
     }
 
-    async function createQuickTodayRule(player) {
-      const today = getBeijingDateString();
-      const playerId = Number(player.id);
-      const alreadyBlocked = state.shortTermRules.some((rule) => (
-        Number(rule.playerId) === playerId
-        && !isLongTermRuleType(rule)
-        && rule.expiresOn === today
-      ));
-      if (alreadyBlocked) {
-        toast(`${firstName(player.name)}今天已有不打的规则`);
-        return;
-      }
-      const saved = await submitRuleText(`${firstName(player.name)} 1天后 再打`);
-      if (saved) toast(`已为${firstName(player.name)}创建“今天不打球”`);
+    function createQuickTodayRule(player) {
+      const today = getBeijingDateString(), playerId = Number(player.id);
+      if (state.shortTermRules.some((rule) => Number(rule.playerId) === playerId && !isLongTermRuleType(rule) && rule.expiresOn === today)) return;
+      const payload = { playerId, type: "not_before_days", rawText: firstName(player.name) + " 今天不打球", startsOn: today, expiresOn: today,
+        rule: { days: 1, resumeOn: addDaysToIsoDate(today, 1), note: "" } };
+      if (queueShakeEdit("rule-create", payload, firstName(player.name) + "今天不打球")) scheduleGroupAttemptSnapshot("rule_change");
     }
 
-    async function deleteShortRule(ruleId) {
-      try {
-        await api(`/api/short-term-rules/${ruleId}`, { method: "DELETE" });
-        state.shortTermRules = state.shortTermRules.filter((rule) => rule.id !== ruleId);
-        groupForecastCacheKey = "";
-        renderGroupForecast({ force: true });
-        scheduleGroupAttemptSnapshot("rule_change");
-        if (els.shakePeopleModal.classList.contains("open")) renderShakePeopleModal();
-        if (els.shortRuleModal.classList.contains("open")) renderShortTermRulesList();
-        toast("规则已删除");
-      } catch (error) {
-        toast(`删除失败：${error.message}`);
-      }
+    function deleteShortRule(ruleId) {
+      const rule = state.shortTermRules.find((row) => String(row.id) === String(ruleId));
+      if (!rule) return;
+      const payload = rule.pendingOperationId ? { createOperationId: rule.pendingOperationId } : { ruleId: Number(rule.id) };
+      if (queueShakeEdit("rule-delete", payload, "删除" + firstName(getPlayerById(rule.playerId)?.name || "成员") + "的规则")) scheduleGroupAttemptSnapshot("rule_change");
     }
 
     function openModal(id) {

@@ -61,6 +61,7 @@ const context = vm.createContext({
   collator: new Intl.Collator("zh-CN"), firstName: (s) => s,
   getLevelGroupLabel: () => "中级",
 });
+Object.defineProperty(state, "groupForecast", { get: () => forecast });
 vm.runInContext(recommendationSource, context);
 const recommend = () => Array.from(context.buildShakePeopleRecommendations(clock.slice(0, 10)));
 let recommendations = recommend();
@@ -106,7 +107,7 @@ let rendered = 0, opened = 0;
 const block = { open: false };
 const modalContext = vm.createContext({
   state: { readOnly: false }, els: { shakeMemberStatisticsBlock: block },
-  processChain() {}, loadShortTermRules: async () => {}, loadMemberStatistics: async () => {},
+  processChain() {}, loadShortTermRules: async () => {}, loadMemberStatistics: async () => {}, loadShakeState: async () => {}, updateShakeSyncStatus() {},
   renderShakePeopleModal() { rendered++; assert.ok(block.open); }, openModal() { opened++; }, toast() {},
 });
 vm.runInContext(html.slice(html.indexOf("    async function openShakePeopleModal("), html.indexOf("    function openShortRuleModal(")), modalContext);

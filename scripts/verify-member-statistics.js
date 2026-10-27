@@ -176,7 +176,8 @@ assert.doesNotMatch(html, /长期规则|短期规则|成员统计名单|每周�
 assert.match(html, /<summary>成员统计<\/summary>/);
 assert.match(html, /id="shortRuleTitle"[^>]*>新建规则</);
 assert.ok(html.indexOf('src="./member-statistics.js"') < html.indexOf('src="./group-probability.js"'));
-assert.match(html, /memberStatistics: getMemberStatistics\(\)/);
+assert.ok(html.includes("memberStatistics: { calendar: state.memberStatistics?.calendar }"));
+assert.ok(!html.includes("engine.estimate("), "forecast must never execute on the UI thread");
 assert.doesNotMatch(html, /saveShakeLongTermList|getVisibleLongTermListValue/);
 assert.match(worker, /pathname === "\/api\/member-statistics"/);
 assert.match(worker, /memberStatistics: globalThis.BadmintonMemberStatistics.build/);

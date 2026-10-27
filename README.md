@@ -166,3 +166,7 @@ npm run deploy
 - `scripts/verify-group-probability.js`: 验证星期基线、截止时间、体力、大局门槛、随行人员、明日预测和反事实排序。
 - `scripts/verify-group-learning.js`: 验证新成员冷启动、频率变化、留存、体力、大局偏好、带人和方向性关系学习。
 - `scripts/verify-group-attempts.js`: 验证追踪校验、去重、试算隔离、自动结算和订场对账。
+
+## 即时交互与后台同步（2026-10-27）
+
+摇人规则和拍档操作先保存在本机并即时更新界面，后台幂等同步，断网/丢响应可安全重试，刷新不丢待同步操作；明确拒绝只撤回对应修改。概率模型在浏览器Worker计算，不再占用界面主线程。原算法、只读权限和账务确认边界不变。首次部署需执行迁移0025，详见 `docs/instant-interactions.md`。

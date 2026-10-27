@@ -8,7 +8,7 @@
     "estimator": "node scripts/train-estimator.js",
     "snapshot": "node scripts/generate-snapshot.js",
     "build:fresh": "npm run estimator && npm run snapshot && npm run build",
-    "test": "npm run test:level-groups && npm run test:chain && npm run test:special-roster && npm run test:payment && npm run test:calendar-multiple && npm run test:calendar-summary && npm run test:calendar-ledger && npm run test:participant-ownership && npm run test:member-exit-analysis && npm run test:best-partners && npm run test:partner-management && npm run test:court-pricing && npm run test:short-term-rules && npm run test:group-learning && npm run test:member-statistics && npm run test:group-probability && npm run test:group-attempts && npm run test:group-ui && npm run test:shake-activity && npm run test:shake-refresh && npm run test:database-ui && npm run test:todo-sync && npm run test:estimator",
+    "test": "npm run test:level-groups && npm run test:chain && npm run test:special-roster && npm run test:payment && npm run test:calendar-multiple && npm run test:calendar-summary && npm run test:calendar-ledger && npm run test:participant-ownership && npm run test:member-exit-analysis && npm run test:best-partners && npm run test:partner-management && npm run test:instant && npm run test:court-pricing && npm run test:short-term-rules && npm run test:group-learning && npm run test:member-statistics && npm run test:group-probability && npm run test:group-attempts && npm run test:group-ui && npm run test:shake-activity && npm run test:shake-refresh && npm run test:database-ui && npm run test:todo-sync && npm run test:estimator",
     "test:chain": "node scripts/verify-chain.js && node scripts/verify-payment-group-toggle.js",
     "test:participant-ownership": "node scripts/verify-participant-ownership.js",
     "test:member-exit-analysis": "node scripts/verify-member-exit-analysis.js",
@@ -37,7 +37,8 @@
     "test:member-statistics": "node scripts/verify-member-statistics.js",
     "test:shake-activity": "node scripts/verify-shake-activity.js",
     "test:shake-refresh": "node scripts/verify-shake-refresh.js",
-    "test:partner-management": "node scripts/verify-partner-management.js"
+    "test:partner-management": "node scripts/verify-partner-management.js",
+    "test:instant": "node scripts/verify-instant-interactions.js"
   },
   "devDependencies": {
     "wrangler": "latest"

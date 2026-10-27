@@ -6,7 +6,7 @@ const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
 assert.ok(html.includes('document.createTextNode("到场概率 ")'));
 assert.doesNotMatch(html, /document\.createTextNode\("成局概率 "\)/);
-assert.ok(html.includes('`${today}${formatRuleWeekdaySuffix(today)}   当前成局概率 ${todayPercent}%'));
+assert.ok(html.includes('`${today}${formatRuleWeekdaySuffix(today)}   当前成局概率 ${probabilityText}'));
 assert.match(html, /\.shake-people-summary \{[^}]*white-space: pre-wrap/);
 assert.ok(html.includes("模型每天北京时间12:05自动训练"));
 assert.doesNotMatch(html, /document\.createTextNode\("预计到场 "\)/);
@@ -43,7 +43,7 @@ assert.match(html, /activeGroupDate !== date[\s\S]*els\.chainInput\.value = ""[\
 assert.match(html, /\.nav-preview \.modal-backdrop\.nav-page \.chain-dialog[\s\S]*grid-template-rows: minmax\(0, 1fr\)/);
 assert.match(html, /function hasUnparenthesizedLockMarker\(value\)[\s\S]*outsideParentheses[\s\S]*includes\("锁车"\)/);
 
-assert.match(html, /BadmintonGroupProbability/);
+assert.match(html, /BadmintonForecastClient/);
 assert.match(html, /groupLearningSignals: state\.groupLearningSignals/);
 assert.match(html, /scheduleGroupForecastRender\(\)/);
 assert.match(html, /scheduleGroupAttemptSnapshot\("input"\)/);
@@ -121,7 +121,7 @@ assert.doesNotMatch(html, /相对较高|相对中等|到场倾向|shakeAttendanc
 assert.match(html, /attendanceValue.textContent = formatShakeAttendanceProbability\(item.attendanceProbability\)/);
 assert.doesNotMatch(html, /shakeSortBtn|shakeSortLabel|shakeSortMode|shake-sort-btn|syncShakePeopleSort|toggleShakePeopleSort/);
 // Attendance is informational text, not an expandable action.
-assert.ok(html.includes("到场概率指当天能组起球局时，此人实际出勤的估计，不是邀约答应率。"));
+assert.ok(html.includes("到场概率根据其与已接龙人员亲密度、近期出勤、人数偏好、星期、体力等综合推算，仅供参考。"));
 assert.match(html, /const attendance = document\.createElement\("span"\);/);
 assert.doesNotMatch(html, /attendance\.(?:addEventListener|setAttribute)|attendance\.(?:type|title)\s*=/);
 assert.doesNotMatch(html, /attendanceDetail|shake-attendance-detail|点击百分比|点击查看到场概率/);
@@ -160,7 +160,8 @@ class RenderNode {
     this.className = "";
     this.ownText = "";
   }
-  append(...nodes) { this.children.push(...nodes); }
+  append(...nodes) { for (const node of nodes) this.children.push(...(node.fragment ? node.children : [node])); }
+  querySelectorAll(selector) { return this.children.filter((node) => node.className === selector.slice(1)); }
   replaceChildren(...nodes) { this.children = nodes; }
   setAttribute(key, value) { this.attributes[key] = value; }
   addEventListener(name, listener) { this.listeners[name] = listener; }
@@ -176,6 +177,7 @@ const rendererContext = vm.createContext({
   els: { shakePeopleList: memberList },
   document: {
     createElement: (tagName) => new RenderNode(tagName),
+    createDocumentFragment: () => Object.assign(new RenderNode(), { fragment: true }),
     createTextNode: (text) => Object.assign(new RenderNode(), { textContent: text }),
   },
   window: {},

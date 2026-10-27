@@ -52,3 +52,13 @@ const cutoff = Math.max(1, statistics.members[9]?.attendance15 || 0);
 assert.deepEqual(ranking.memberIds, statistics.members.filter((m) => m.attendance15 >= cutoff).map((m) => m.playerId));
 console.log(JSON.stringify({ result: "Cloudflare live verification passed", asOf: statistics.asOf,
   categories: statistics.lists.length, partnerPairs: statistics.bestPartners.pairs.length, rankingWithTies: ranking.memberIds.length, activeMembers: statistics.activeMemberCount, learningVersion: bootstrap.groupLearningSignals.version }));
+
+const backgroundFiles = ["forecast-client.js", "forecast-worker.js", "optimistic-sync.js"];
+for (const file of backgroundFiles) {
+  assert.equal(digest(await get("/" + file)), digest(readFileSync(new URL("../" + file, import.meta.url), "utf8")), "Cloudflare must serve " + file);
+}
+const shakeState = JSON.parse(await get("/api/shake-state")).confirmed;
+assert.ok(Number.isInteger(shakeState.revision) && Array.isArray(shakeState.rules));
+assert.match(html, /forecast-client\.js/);
+assert.ok(!html.includes("engine.estimate("));
+console.log("Background forecast assets and durable shake state verified live.");

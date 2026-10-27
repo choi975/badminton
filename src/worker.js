@@ -9,6 +9,10 @@ import HTML2CANVAS_JS from "./html2canvas.txt";
 import BOOTSTRAP_SNAPSHOT from "./bootstrap-snapshot.txt";
 import BOOKING_ESTIMATOR from "./booking-estimator.txt";
 import GROUP_PROBABILITY_JS from "./group-probability.txt";
+import FORECAST_WORKER_JS from "./forecast-worker.txt";
+import FORECAST_CLIENT_JS from "./forecast-client.txt";
+import OPTIMISTIC_SYNC_JS from "./optimistic-sync.txt";
+import { handleShakeMutation, readShakeState } from "./shake-mutations.js";
 import {
   expandEstimatorParticipants,
   trainEstimatorModel,
@@ -207,6 +211,9 @@ export default {
           },
         });
       }
+
+      const backgroundAssets = { "/forecast-worker.js": FORECAST_WORKER_JS, "/forecast-client.js": FORECAST_CLIENT_JS, "/optimistic-sync.js": OPTIMISTIC_SYNC_JS };
+      if (backgroundAssets[url.pathname]) return new Response(backgroundAssets[url.pathname], { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache" } });
 
       if (url.pathname === "/member-statistics.js") {
         return new Response(MEMBER_STATISTICS_JS, { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache" } });
@@ -628,9 +635,16 @@ async function handleApi(request, env, url) {
     }
   }
 
+  if (pathname === "/api/shake-state" && method === "GET") return json({ confirmed: await readShakeState(env.DB) });
+  if (pathname === "/api/shake-mutations" && method === "POST") {
+    if (!isAdminRequest(request)) return json({ error: "只有管理版可以修改摇人设置" }, 403);
+    if (!await consumeGroupAttemptRateLimit(request, env)) return json({ error: "操作频繁，将稍后重试" }, 429);
+    return handleShakeMutation(request, env, { json, normalizeShortTermRuleInput, findEarlyReturnSession, listPlayers, listSessions, readMemberStatisticsCalendar, readBestPartnerSettings });
+  }
+
   if (pathname === "/api/bootstrap" && method === "GET") {
     const learningNow = new Date();
-    const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes, cachedGroupLearningSignals, edcBalance, levelGroups, statisticsCalendar, partnerSettings] = await Promise.all([
+    const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes, cachedGroupLearningSignals, edcBalance, levelGroups, statisticsCalendar, shakeState] = await Promise.all([
       listPlayers(env.DB),
       getLevelGuide(env.DB),
       getPaymentOrderState(env.DB),
@@ -641,7 +655,7 @@ async function handleApi(request, env, url) {
       getEdcBalance(env.DB),
       getLevelGroups(env.DB),
       readMemberStatisticsCalendar(env.DB),
-      readBestPartnerSettings(env.DB),
+      readShakeState(env.DB),
     ]);
     const groupLearningSignals = cachedGroupLearningSignals || buildGroupLearningColdStart(players, sessions, learningNow);
     return json({
@@ -654,8 +668,10 @@ async function handleApi(request, env, url) {
       groupLearningSignals,
       edcBalance,
       levelGroups,
-      bestPartnerOverrides: partnerSettings.overrides,
-      memberStatistics: globalThis.BadmintonMemberStatistics.build({ players, sessions, now: learningNow, calendar: statisticsCalendar, bestPartnerOverrides: partnerSettings.overrides }),
+      shortTermRules: shakeState.rules,
+      shakeState,
+      bestPartnerOverrides: shakeState.bestPartnerOverrides,
+      memberStatistics: globalThis.BadmintonMemberStatistics.build({ players, sessions, now: learningNow, calendar: statisticsCalendar, bestPartnerOverrides: shakeState.bestPartnerOverrides }),
     });
   }
 

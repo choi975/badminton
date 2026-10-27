@@ -302,6 +302,7 @@ const snapshot = {
     groupAttemptOutcomes,
     groupLearningSignals,
     bestPartnerOverrides,
+    shakeRevision: Number(settingRows.find((row) => row.key === "shake_revision")?.value) || 0,
     memberStatistics: globalThis.BadmintonMemberStatistics.build({ players, sessions, now: snapshotNow, bestPartnerOverrides }),
   },
 };

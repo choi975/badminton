@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T03:06:31.912Z",
+  "generatedAt": "2026-10-27T11:31:58.529Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -1538,6 +1538,18 @@
         "participatesPayment": true,
         "createdAt": "2026-10-25 14:22:39",
         "updatedAt": "2026-10-25 14:22:39"
+      },
+      {
+        "id": 145,
+        "name": "阳光",
+        "gender": "男",
+        "level": "2.5级",
+        "affiliation": "特殊",
+        "notes": "自己报名的",
+        "photoKey": "",
+        "participatesPayment": true,
+        "createdAt": "2026-10-27 04:05:19",
+        "updatedAt": "2026-10-27 04:05:19"
       }
     ],
     "levelDescriptions": {
@@ -15395,16 +15407,171 @@
         ],
         "createdAt": "2026-10-25 14:20:18",
         "updatedAt": "2026-10-25 14:20:18"
+      },
+      {
+        "id": 68,
+        "date": "2026-10-26",
+        "venue": "广羽",
+        "courtCount": 1.666,
+        "courtFee": 117,
+        "shuttlePrice": 11.3,
+        "shuttleCount": 8,
+        "courtPriceRows": [
+          {
+            "price": 70,
+            "count": 1.666
+          }
+        ],
+        "shuttlePriceRows": [
+          {
+            "price": 11.3,
+            "count": 8,
+            "type": "rsl3"
+          }
+        ],
+        "trainCourt": true,
+        "trainShuttle": true,
+        "actualShuttleConfirmed": true,
+        "players": [
+          {
+            "playerId": 74,
+            "playerName": "稻草人",
+            "ownerPlayerId": 74,
+            "ownerName": "稻草人",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.83,
+            "isFemale": false,
+            "gender": "男",
+            "level": "2.5级",
+            "profileSnapshotReliable": true
+          },
+          {
+            "playerId": 36,
+            "playerName": "小精灵",
+            "ownerPlayerId": 36,
+            "ownerName": "小精灵",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 20.33,
+            "isFemale": true,
+            "gender": "女",
+            "level": "1.5级",
+            "profileSnapshotReliable": true
+          },
+          {
+            "playerId": 73,
+            "playerName": "果花",
+            "ownerPlayerId": 73,
+            "ownerName": "果花",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 20.33,
+            "isFemale": true,
+            "gender": "女",
+            "level": "2.5级",
+            "profileSnapshotReliable": true
+          },
+          {
+            "playerId": 99,
+            "playerName": "BLAGE",
+            "ownerPlayerId": 99,
+            "ownerName": "BLAGE",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.83,
+            "isFemale": false,
+            "gender": "男",
+            "level": "2级",
+            "profileSnapshotReliable": true
+          },
+          {
+            "playerId": 135,
+            "playerName": "FENG",
+            "ownerPlayerId": 135,
+            "ownerName": "FENG",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.83,
+            "isFemale": false,
+            "gender": "男",
+            "level": "2.5级",
+            "profileSnapshotReliable": true
+          },
+          {
+            "playerId": 53,
+            "playerName": "oi",
+            "ownerPlayerId": 53,
+            "ownerName": "oi",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.83,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3.5级",
+            "profileSnapshotReliable": true
+          },
+          {
+            "playerId": 94,
+            "playerName": "Lee",
+            "ownerPlayerId": 94,
+            "ownerName": "Lee",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.83,
+            "isFemale": false,
+            "gender": "男",
+            "level": "2.5级",
+            "profileSnapshotReliable": true
+          },
+          {
+            "playerId": 24,
+            "playerName": "Hx7",
+            "ownerPlayerId": 24,
+            "ownerName": "Hx7",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.83,
+            "isFemale": false,
+            "gender": "男",
+            "level": "3级",
+            "profileSnapshotReliable": true
+          },
+          {
+            "playerId": 145,
+            "playerName": "阳光",
+            "ownerPlayerId": 145,
+            "ownerName": "阳光",
+            "isCompanion": false,
+            "slots": 1,
+            "plusCount": 0,
+            "amount": 23.83,
+            "isFemale": false,
+            "gender": "男",
+            "level": "2.5级",
+            "profileSnapshotReliable": true
+          }
+        ],
+        "createdAt": "2026-10-27 04:05:38",
+        "updatedAt": "2026-10-27 04:05:38"
       }
     ],
     "estimator": {
       "version": 5,
-      "generatedAt": "2026-10-27T03:06:31.426Z",
-      "trainingRevision": 1063,
+      "generatedAt": "2026-10-27T11:31:58.123Z",
+      "trainingRevision": 1073,
       "training": {
         "dateRange": {
           "from": "2026-07-01",
-          "to": "2026-10-25"
+          "to": "2026-10-26"
         },
         "court": {
           "sampleCount": 48,
@@ -15414,18 +15581,18 @@
           }
         },
         "shuttle": {
-          "sampleCount": 45,
-          "eligibleSessionCount": 50,
+          "sampleCount": 46,
+          "eligibleSessionCount": 51,
           "unconfirmedExcludedCount": 0,
           "mixedExcludedCount": 4,
           "unknownTypeExcludedCount": 0,
           "byType": {
             "rsl3": {
-              "sampleCount": 44,
+              "sampleCount": 45,
               "mixedExcludedCount": 4,
               "dateRange": {
                 "from": "2026-07-13",
-                "to": "2026-10-25"
+                "to": "2026-10-26"
               }
             },
             "as05": {
@@ -15449,7 +15616,7 @@
             11.3,
             11.5
           ],
-          "sampleCount": 44,
+          "sampleCount": 45,
           "trainingMode": "global-only"
         },
         {
@@ -15506,22 +15673,22 @@
             "typeId": "rsl3",
             "trainingMode": "global-only",
             "formula": "ceil(rawExpected + riskScale * sqrt(max(rawExpected, 1)))",
-            "baseRate": 0.811485,
+            "baseRate": 0.811983,
             "riskQuantile": 0.7,
-            "riskScale": 0.182155,
+            "riskScale": 0.129614,
             "effects": {
               "gender": {},
               "genderLevel": {},
               "member": {}
             },
             "training": {
-              "sampleCount": 44,
-              "availableSampleCount": 44,
+              "sampleCount": 45,
+              "availableSampleCount": 45,
               "olderExcludedCount": 0,
               "mixedExcludedCount": 4,
               "dateRange": {
                 "from": "2026-07-13",
-                "to": "2026-10-25"
+                "to": "2026-10-26"
               }
             },
             "regularization": {
@@ -15538,16 +15705,16 @@
                 0.1
               ],
               "source": "time-holdout-conservative-grid-search",
-              "baselineMae": 1.666,
+              "baselineMae": 0.733,
               "requiredImprovement": 0.25
             },
             "validation": {
               "method": "time-holdout",
               "folds": 5,
-              "mae": 1.666,
-              "rmse": 2.508,
+              "mae": 0.733,
+              "rmse": 0.785,
               "exactRate": 0,
-              "bias": -1.38,
+              "bias": -0.387,
               "underPredictionRate": 0.6,
               "overPredictionRate": 0.4
             },
@@ -15557,22 +15724,22 @@
               "priorStrength": 5,
               "maximumScale": 2,
               "folds": 5,
-              "mae": 1.4,
-              "rmse": 2.049,
-              "exactRate": 0.4,
-              "bias": -0.2,
-              "underPredictionRate": 0.2,
+              "mae": 0.4,
+              "rmse": 0.632,
+              "exactRate": 0.6,
+              "bias": 0.4,
+              "underPredictionRate": 0,
               "overPredictionRate": 0.4
             },
             "fit": {
               "method": "global-rate",
-              "folds": 44,
-              "mae": 2.295,
-              "rmse": 2.824,
-              "exactRate": 0.136,
-              "bias": 1.386,
-              "underPredictionRate": 0.205,
-              "overPredictionRate": 0.659
+              "folds": 45,
+              "mae": 2.156,
+              "rmse": 2.662,
+              "exactRate": 0.156,
+              "bias": 1.089,
+              "underPredictionRate": 0.244,
+              "overPredictionRate": 0.6
             }
           },
           "as05": {
@@ -16222,21 +16389,6 @@
         "updatedAt": "2026-10-08 07:15:49"
       },
       {
-        "id": 219,
-        "playerId": 85,
-        "type": "not_before_days",
-        "rule": {
-          "days": 1,
-          "resumeOn": "2026-10-09",
-          "note": ""
-        },
-        "startsOn": "2026-10-08",
-        "expiresOn": "2026-10-08",
-        "rawText": "北新 1天后 再打",
-        "createdAt": "2026-10-08 09:32:44",
-        "updatedAt": "2026-10-08 09:32:44"
-      },
-      {
         "id": 225,
         "playerId": 4,
         "type": "not_before_days",
@@ -16327,21 +16479,6 @@
         "updatedAt": "2026-10-14 09:42:13"
       },
       {
-        "id": 252,
-        "playerId": 82,
-        "type": "not_before_days",
-        "rule": {
-          "days": 1,
-          "resumeOn": "2026-10-16",
-          "note": ""
-        },
-        "startsOn": "2026-10-15",
-        "expiresOn": "2026-10-15",
-        "rawText": "翠萍 1天后 再打",
-        "createdAt": "2026-10-15 06:57:48",
-        "updatedAt": "2026-10-15 06:57:48"
-      },
-      {
         "id": 255,
         "playerId": 1,
         "type": "not_before_days",
@@ -16385,21 +16522,6 @@
         "rawText": "游 1天后 再打",
         "createdAt": "2026-10-15 07:02:58",
         "updatedAt": "2026-10-15 07:02:58"
-      },
-      {
-        "id": 261,
-        "playerId": 59,
-        "type": "not_before_days",
-        "rule": {
-          "days": 2,
-          "resumeOn": "2026-10-17",
-          "note": "约会"
-        },
-        "startsOn": "2026-10-15",
-        "expiresOn": "2026-10-16",
-        "rawText": "俊 2天后 再打 约会",
-        "createdAt": "2026-10-15 08:52:40",
-        "updatedAt": "2026-10-15 08:52:40"
       },
       {
         "id": 266,
@@ -16477,36 +16599,6 @@
         "updatedAt": "2026-10-19 06:27:55"
       },
       {
-        "id": 274,
-        "playerId": 13,
-        "type": "not_before_days",
-        "rule": {
-          "days": 1,
-          "resumeOn": "2026-10-20",
-          "note": ""
-        },
-        "startsOn": "2026-10-19",
-        "expiresOn": "2026-10-19",
-        "rawText": "甲乙丙 1天后 再打",
-        "createdAt": "2026-10-19 06:39:00",
-        "updatedAt": "2026-10-19 06:39:00"
-      },
-      {
-        "id": 275,
-        "playerId": 29,
-        "type": "not_before_days",
-        "rule": {
-          "days": 1,
-          "resumeOn": "2026-10-20",
-          "note": ""
-        },
-        "startsOn": "2026-10-19",
-        "expiresOn": "2026-10-19",
-        "rawText": "listen 1天后 再打",
-        "createdAt": "2026-10-19 06:39:09",
-        "updatedAt": "2026-10-19 06:39:09"
-      },
-      {
         "id": 276,
         "playerId": 132,
         "type": "not_before_days",
@@ -16567,21 +16659,6 @@
         "updatedAt": "2026-10-22 07:18:22"
       },
       {
-        "id": 282,
-        "playerId": 10,
-        "type": "not_before_days",
-        "rule": {
-          "days": 1,
-          "resumeOn": "2026-10-23",
-          "note": ""
-        },
-        "startsOn": "2026-10-22",
-        "expiresOn": "2026-10-22",
-        "rawText": "🌹 1天后 再打",
-        "createdAt": "2026-10-22 07:18:26",
-        "updatedAt": "2026-10-22 07:18:26"
-      },
-      {
         "id": 283,
         "playerId": 108,
         "type": "not_before_days",
@@ -16595,21 +16672,6 @@
         "rawText": "Evan-叶文敏 1天后 再打",
         "createdAt": "2026-10-22 07:18:36",
         "updatedAt": "2026-10-22 07:18:36"
-      },
-      {
-        "id": 284,
-        "playerId": 9,
-        "type": "not_before_days",
-        "rule": {
-          "days": 1,
-          "resumeOn": "2026-10-27",
-          "note": ""
-        },
-        "startsOn": "2026-10-26",
-        "expiresOn": "2026-10-26",
-        "rawText": "柚子🍀 1天后 再打",
-        "createdAt": "2026-10-26 06:28:50",
-        "updatedAt": "2026-10-26 06:28:50"
       },
       {
         "id": 285,
@@ -16642,21 +16704,6 @@
         "updatedAt": "2026-10-26 06:29:28"
       },
       {
-        "id": 287,
-        "playerId": 35,
-        "type": "not_before_days",
-        "rule": {
-          "days": 1,
-          "resumeOn": "2026-10-27",
-          "note": ""
-        },
-        "startsOn": "2026-10-26",
-        "expiresOn": "2026-10-26",
-        "rawText": "Ni 姐姐 1天后 再打",
-        "createdAt": "2026-10-26 06:30:08",
-        "updatedAt": "2026-10-26 06:30:08"
-      },
-      {
         "id": 239,
         "playerId": 15,
         "type": "not_before_days",
@@ -16685,6 +16732,141 @@
         "rawText": "廖敏波 2天后 再打",
         "createdAt": "2026-10-26 07:19:45",
         "updatedAt": "2026-10-26 07:19:45"
+      },
+      {
+        "id": 293,
+        "playerId": 59,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-10-28",
+          "note": ""
+        },
+        "startsOn": "2026-10-27",
+        "expiresOn": "2026-10-27",
+        "rawText": "俊 1天后 再打",
+        "createdAt": "2026-10-27 08:13:58",
+        "updatedAt": "2026-10-27 08:13:58"
+      },
+      {
+        "id": 294,
+        "playerId": 82,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-10-28",
+          "note": ""
+        },
+        "startsOn": "2026-10-27",
+        "expiresOn": "2026-10-27",
+        "rawText": "翠萍 1天后 再打",
+        "createdAt": "2026-10-27 08:16:01",
+        "updatedAt": "2026-10-27 08:16:01"
+      },
+      {
+        "id": 295,
+        "playerId": 10,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-10-28",
+          "note": ""
+        },
+        "startsOn": "2026-10-27",
+        "expiresOn": "2026-10-27",
+        "rawText": "🌹 1天后 再打",
+        "createdAt": "2026-10-27 08:19:37",
+        "updatedAt": "2026-10-27 08:19:37"
+      },
+      {
+        "id": 296,
+        "playerId": 9,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-10-28",
+          "note": ""
+        },
+        "startsOn": "2026-10-27",
+        "expiresOn": "2026-10-27",
+        "rawText": "柚子🍀 1天后 再打",
+        "createdAt": "2026-10-27 08:19:43",
+        "updatedAt": "2026-10-27 08:19:43"
+      },
+      {
+        "id": 297,
+        "playerId": 45,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-10-28",
+          "note": ""
+        },
+        "startsOn": "2026-10-27",
+        "expiresOn": "2026-10-27",
+        "rawText": "吕教 1天后 再打",
+        "createdAt": "2026-10-27 08:22:58",
+        "updatedAt": "2026-10-27 08:22:58"
+      },
+      {
+        "id": 298,
+        "playerId": 35,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-10-28",
+          "note": ""
+        },
+        "startsOn": "2026-10-27",
+        "expiresOn": "2026-10-27",
+        "rawText": "Ni 姐姐 1天后 再打",
+        "createdAt": "2026-10-27 08:23:09",
+        "updatedAt": "2026-10-27 08:23:09"
+      },
+      {
+        "id": 301,
+        "playerId": 29,
+        "type": "not_before_days",
+        "rule": {
+          "days": 1,
+          "resumeOn": "2026-10-28",
+          "note": ""
+        },
+        "startsOn": "2026-10-27",
+        "expiresOn": "2026-10-27",
+        "rawText": "listen 1天后 再打",
+        "createdAt": "2026-10-27 09:26:17",
+        "updatedAt": "2026-10-27 09:26:17"
+      },
+      {
+        "id": 300,
+        "playerId": 95,
+        "type": "not_before_days",
+        "rule": {
+          "days": 2,
+          "resumeOn": "2026-10-29",
+          "note": ""
+        },
+        "startsOn": "2026-10-27",
+        "expiresOn": "2026-10-28",
+        "rawText": "何11 2天后 再打",
+        "createdAt": "2026-10-27 09:25:06",
+        "updatedAt": "2026-10-27 09:25:06"
+      },
+      {
+        "id": 292,
+        "playerId": 85,
+        "type": "not_before_days",
+        "rule": {
+          "days": 6,
+          "resumeOn": "2026-11-02",
+          "note": ""
+        },
+        "startsOn": "2026-10-27",
+        "expiresOn": "2026-11-01",
+        "rawText": "北新 6天后 再打",
+        "createdAt": "2026-10-27 07:30:12",
+        "updatedAt": "2026-10-27 07:30:12"
       },
       {
         "id": 265,
@@ -17232,7 +17414,7 @@
       },
       {
         "activityDate": "2026-10-26",
-        "outcome": "pending",
+        "outcome": "success",
         "trainingState": "excluded",
         "source": "tracked",
         "hasEligibleSnapshots": false
@@ -17247,12 +17429,12 @@
     ],
     "groupLearningSignals": {
       "version": "group-learning-v2",
-      "generatedAt": "2026-10-27T03:06:31.912Z",
+      "generatedAt": "2026-10-27T11:31:58.529Z",
       "generatedDate": "2026-10-27",
       "halfLifeDays": 30,
       "training": {
-        "playerCount": 132,
-        "sessionCount": 55,
+        "playerCount": 133,
+        "sessionCount": 56,
         "attemptCount": 31,
         "eligibleAttemptCount": 30,
         "eligibleSnapshotCount": 336,
@@ -17690,7 +17872,7 @@
           "companionRate": 0.135896,
           "companionMean": 0.138316,
           "companionReliability": 0.553525,
-          "lastObservedDate": "2026-10-25"
+          "lastObservedDate": "2026-10-26"
         },
         "25": {
           "attemptWeight": 15.156899,
@@ -17888,7 +18070,7 @@
           "companionRate": 0.078127,
           "companionMean": 0.080563,
           "companionReliability": 0.550638,
-          "lastObservedDate": "2026-10-25"
+          "lastObservedDate": "2026-10-26"
         },
         "37": {
           "attemptWeight": 15.156899,
@@ -18194,7 +18376,7 @@
           "companionRate": 0.394645,
           "companionMean": 0.396883,
           "companionReliability": 0.587109,
-          "lastObservedDate": "2026-10-25"
+          "lastObservedDate": "2026-10-26"
         },
         "54": {
           "attemptWeight": 15.156899,
@@ -18482,7 +18664,7 @@
           "companionRate": 0.121227,
           "companionMean": 0.123949,
           "companionReliability": 0.497777,
-          "lastObservedDate": "2026-10-25"
+          "lastObservedDate": "2026-10-26"
         },
         "74": {
           "attemptWeight": 15.156899,
@@ -18500,7 +18682,7 @@
           "companionRate": 0.087719,
           "companionMean": 0.090454,
           "companionReliability": 0.495468,
-          "lastObservedDate": "2026-10-25"
+          "lastObservedDate": "2026-10-26"
         },
         "75": {
           "attemptWeight": 15.156899,
@@ -18842,7 +19024,7 @@
           "companionRate": 0.097522,
           "companionMean": 0.100562,
           "companionReliability": 0.43909,
-          "lastObservedDate": "2026-10-25"
+          "lastObservedDate": "2026-10-26"
         },
         "95": {
           "attemptWeight": 12.250651,
@@ -18932,7 +19114,7 @@
           "companionRate": 0.264062,
           "companionMean": 0.266487,
           "companionReliability": 0.552586,
-          "lastObservedDate": "2026-10-25"
+          "lastObservedDate": "2026-10-26"
         },
         "101": {
           "attemptWeight": 10.354993,
@@ -19490,7 +19672,7 @@
           "companionRate": 0.129714,
           "companionMean": 0.133758,
           "companionReliability": 0.25393,
-          "lastObservedDate": "2026-10-25"
+          "lastObservedDate": "2026-10-26"
         },
         "136": {
           "attemptWeight": 3.547529,
@@ -19653,6 +19835,24 @@
           "companionMean": 0.179283,
           "companionReliability": 0,
           "lastObservedDate": "2026-10-25"
+        },
+        "145": {
+          "attemptWeight": 0,
+          "joinedWeight": 0,
+          "participationRate": 0.139613,
+          "participationReliability": 0,
+          "retentionRate": 0.838016,
+          "retentionReliability": 0,
+          "largePreferenceConfidence": 0.112554,
+          "largePreferenceEvidence": 0,
+          "secondDayRate": 0.031433,
+          "secondDayEvidence": 0,
+          "thirdDayRate": 0.031433,
+          "thirdDayEvidence": 0,
+          "companionRate": 0.173863,
+          "companionMean": 0.179283,
+          "companionReliability": 0,
+          "lastObservedDate": "2026-10-26"
         }
       },
       "influence": {
@@ -19780,23 +19980,94 @@
     },
     "bestPartnerOverrides": {
       "version": "best-partner-overrides-v1",
-      "revision": 0,
+      "revision": 6,
       "manualPairs": [],
-      "excludedPairs": [],
-      "order": [],
-      "updatedAt": ""
+      "excludedPairs": [
+        {
+          "playerIds": [
+            24,
+            113
+          ],
+          "deletedAt": "2026-10-27T09:35:17.038Z"
+        },
+        {
+          "playerIds": [
+            20,
+            95
+          ],
+          "deletedAt": "2026-10-27T09:36:30.358Z"
+        },
+        {
+          "playerIds": [
+            39,
+            95
+          ],
+          "deletedAt": "2026-10-27T09:36:36.266Z"
+        },
+        {
+          "playerIds": [
+            20,
+            40
+          ],
+          "deletedAt": "2026-10-27T09:36:42.605Z"
+        },
+        {
+          "playerIds": [
+            24,
+            94
+          ],
+          "deletedAt": "2026-10-27T09:36:50.250Z"
+        },
+        {
+          "playerIds": [
+            8,
+            41
+          ],
+          "deletedAt": "2026-10-27T09:36:55.821Z"
+        }
+      ],
+      "order": [
+        "37:39",
+        "8:9",
+        "10:45",
+        "5:17",
+        "45:95",
+        "9:10",
+        "5:11",
+        "10:13",
+        "8:10",
+        "35:39",
+        "11:17",
+        "53:99",
+        "37:83",
+        "39:83",
+        "13:45",
+        "5:6",
+        "6:17",
+        "10:51",
+        "6:29",
+        "9:122",
+        "35:37",
+        "1:24",
+        "40:113",
+        "51:59",
+        "33:35",
+        "1:53"
+      ],
+      "updatedAt": "2026-10-27T09:36:55.821Z"
     },
+    "shakeRevision": 0,
     "memberStatistics": {
       "version": "member-statistics-v5",
       "asOf": "2026-10-26",
-      "generatedAt": "2026-10-27T03:06:31.912Z",
+      "generatedAt": "2026-10-27T11:31:58.529Z",
       "windows": {
         "start15": "2026-10-12",
         "start30": "2026-09-27",
         "start60": "2026-08-28",
         "end": "2026-10-26"
       },
-      "activeMemberCount": 84,
+      "activeMemberCount": 85,
       "calendar": {
         "knownYears": [
           2025,
@@ -20073,6 +20344,54 @@
           "rank15": 2
         },
         {
+          "playerId": 53,
+          "name": "oi",
+          "attendance15": 5,
+          "attendance30": 7,
+          "attendance60": 16,
+          "dates60": [
+            "2026-08-28",
+            "2026-09-02",
+            "2026-09-04",
+            "2026-09-07",
+            "2026-09-11",
+            "2026-09-12",
+            "2026-09-18",
+            "2026-09-20",
+            "2026-09-21",
+            "2026-10-09",
+            "2026-10-10",
+            "2026-10-12",
+            "2026-10-18",
+            "2026-10-21",
+            "2026-10-25",
+            "2026-10-26"
+          ],
+          "weekdays30": [
+            0,
+            1,
+            3,
+            5
+          ],
+          "weeklyCounts30": {
+            "2026-10-05": 2,
+            "2026-10-12": 2,
+            "2026-10-19": 2,
+            "2026-10-26": 1
+          },
+          "allLarge": false,
+          "streak60": 2,
+          "maxWeekly30": 2,
+          "weeklyLimit": 2,
+          "onlyLargeSessions": false,
+          "noPlayWeekdays": [
+            2,
+            4,
+            6
+          ],
+          "rank15": 2
+        },
+        {
           "playerId": 37,
           "name": "🎀 ～TomCat",
           "attendance15": 4,
@@ -20120,7 +20439,7 @@
             3,
             4
           ],
-          "rank15": 5
+          "rank15": 6
         },
         {
           "playerId": 39,
@@ -20173,7 +20492,7 @@
             3,
             4
           ],
-          "rank15": 5
+          "rank15": 6
         },
         {
           "playerId": 8,
@@ -20212,7 +20531,51 @@
             4,
             5
           ],
-          "rank15": 5
+          "rank15": 6
+        },
+        {
+          "playerId": 73,
+          "name": "果花",
+          "attendance15": 4,
+          "attendance30": 6,
+          "attendance60": 12,
+          "dates60": [
+            "2026-09-08",
+            "2026-09-10",
+            "2026-09-13",
+            "2026-09-18",
+            "2026-09-19",
+            "2026-09-21",
+            "2026-10-09",
+            "2026-10-11",
+            "2026-10-17",
+            "2026-10-18",
+            "2026-10-24",
+            "2026-10-26"
+          ],
+          "weekdays30": [
+            0,
+            1,
+            5,
+            6
+          ],
+          "weeklyCounts30": {
+            "2026-10-05": 2,
+            "2026-10-12": 2,
+            "2026-10-19": 1,
+            "2026-10-26": 1
+          },
+          "allLarge": false,
+          "streak60": 2,
+          "maxWeekly30": 2,
+          "weeklyLimit": 2,
+          "onlyLargeSessions": false,
+          "noPlayWeekdays": [
+            2,
+            3,
+            4
+          ],
+          "rank15": 6
         },
         {
           "playerId": 122,
@@ -20248,7 +20611,7 @@
             4,
             5
           ],
-          "rank15": 5
+          "rank15": 6
         },
         {
           "playerId": 104,
@@ -20284,30 +20647,30 @@
             2,
             4
           ],
-          "rank15": 5
+          "rank15": 6
         },
         {
-          "playerId": 53,
-          "name": "oi",
+          "playerId": 36,
+          "name": "小精灵",
           "attendance15": 4,
-          "attendance30": 6,
+          "attendance30": 5,
           "attendance60": 15,
           "dates60": [
             "2026-08-28",
+            "2026-09-01",
             "2026-09-02",
-            "2026-09-04",
             "2026-09-07",
-            "2026-09-11",
+            "2026-09-10",
             "2026-09-12",
-            "2026-09-18",
+            "2026-09-13",
+            "2026-09-17",
+            "2026-09-19",
             "2026-09-20",
-            "2026-09-21",
-            "2026-10-09",
-            "2026-10-10",
+            "2026-10-11",
             "2026-10-12",
-            "2026-10-18",
+            "2026-10-16",
             "2026-10-21",
-            "2026-10-25"
+            "2026-10-26"
           ],
           "weekdays30": [
             0,
@@ -20316,9 +20679,10 @@
             5
           ],
           "weeklyCounts30": {
-            "2026-10-05": 2,
+            "2026-10-05": 1,
             "2026-10-12": 2,
-            "2026-10-19": 2
+            "2026-10-19": 1,
+            "2026-10-26": 1
           },
           "allLarge": false,
           "streak60": 2,
@@ -20330,7 +20694,7 @@
             4,
             6
           ],
-          "rank15": 5
+          "rank15": 6
         },
         {
           "playerId": 83,
@@ -20372,7 +20736,7 @@
             4,
             5
           ],
-          "rank15": 11
+          "rank15": 13
         },
         {
           "playerId": 20,
@@ -20413,7 +20777,7 @@
             2,
             6
           ],
-          "rank15": 11
+          "rank15": 13
         },
         {
           "playerId": 82,
@@ -20458,36 +20822,36 @@
             3,
             4
           ],
-          "rank15": 11
+          "rank15": 13
         },
         {
-          "playerId": 73,
-          "name": "果花",
+          "playerId": 74,
+          "name": "稻草人",
           "attendance15": 3,
           "attendance30": 5,
           "attendance60": 11,
           "dates60": [
+            "2026-09-07",
             "2026-09-08",
             "2026-09-10",
-            "2026-09-13",
-            "2026-09-18",
-            "2026-09-19",
-            "2026-09-21",
-            "2026-10-09",
+            "2026-09-11",
+            "2026-09-15",
+            "2026-09-16",
+            "2026-10-10",
             "2026-10-11",
-            "2026-10-17",
-            "2026-10-18",
-            "2026-10-24"
+            "2026-10-19",
+            "2026-10-24",
+            "2026-10-26"
           ],
           "weekdays30": [
             0,
-            5,
+            1,
             6
           ],
           "weeklyCounts30": {
             "2026-10-05": 2,
-            "2026-10-12": 2,
-            "2026-10-19": 1
+            "2026-10-19": 2,
+            "2026-10-26": 1
           },
           "allLarge": false,
           "streak60": 2,
@@ -20495,12 +20859,12 @@
           "weeklyLimit": 2,
           "onlyLargeSessions": false,
           "noPlayWeekdays": [
-            1,
             2,
             3,
-            4
+            4,
+            5
           ],
-          "rank15": 11
+          "rank15": 13
         },
         {
           "playerId": 95,
@@ -20539,7 +20903,7 @@
             4,
             6
           ],
-          "rank15": 11
+          "rank15": 13
         },
         {
           "playerId": 13,
@@ -20580,7 +20944,7 @@
             2,
             4
           ],
-          "rank15": 11
+          "rank15": 13
         },
         {
           "playerId": 97,
@@ -20615,7 +20979,7 @@
             4,
             5
           ],
-          "rank15": 11
+          "rank15": 13
         },
         {
           "playerId": 113,
@@ -20651,52 +21015,7 @@
             4,
             6
           ],
-          "rank15": 11
-        },
-        {
-          "playerId": 36,
-          "name": "小精灵",
-          "attendance15": 3,
-          "attendance30": 4,
-          "attendance60": 14,
-          "dates60": [
-            "2026-08-28",
-            "2026-09-01",
-            "2026-09-02",
-            "2026-09-07",
-            "2026-09-10",
-            "2026-09-12",
-            "2026-09-13",
-            "2026-09-17",
-            "2026-09-19",
-            "2026-09-20",
-            "2026-10-11",
-            "2026-10-12",
-            "2026-10-16",
-            "2026-10-21"
-          ],
-          "weekdays30": [
-            0,
-            1,
-            3,
-            5
-          ],
-          "weeklyCounts30": {
-            "2026-10-05": 1,
-            "2026-10-12": 2,
-            "2026-10-19": 1
-          },
-          "allLarge": false,
-          "streak60": 2,
-          "maxWeekly30": 2,
-          "weeklyLimit": 2,
-          "onlyLargeSessions": false,
-          "noPlayWeekdays": [
-            2,
-            4,
-            6
-          ],
-          "rank15": 11
+          "rank15": 13
         },
         {
           "playerId": 112,
@@ -20730,34 +21049,113 @@
             2,
             4
           ],
-          "rank15": 11
+          "rank15": 13
         },
         {
-          "playerId": 74,
-          "name": "稻草人",
-          "attendance15": 2,
+          "playerId": 99,
+          "name": "BLAGE",
+          "attendance15": 3,
           "attendance30": 4,
           "attendance60": 10,
           "dates60": [
+            "2026-09-16",
+            "2026-09-17",
+            "2026-09-18",
+            "2026-09-20",
+            "2026-09-21",
+            "2026-09-22",
+            "2026-10-09",
+            "2026-10-12",
+            "2026-10-21",
+            "2026-10-26"
+          ],
+          "weekdays30": [
+            1,
+            3,
+            5
+          ],
+          "weeklyCounts30": {
+            "2026-10-05": 1,
+            "2026-10-12": 1,
+            "2026-10-19": 1,
+            "2026-10-26": 1
+          },
+          "allLarge": false,
+          "streak60": 3,
+          "maxWeekly30": 1,
+          "weeklyLimit": 1,
+          "onlyLargeSessions": false,
+          "noPlayWeekdays": [
+            0,
+            2,
+            4,
+            6
+          ],
+          "rank15": 13
+        },
+        {
+          "playerId": 135,
+          "name": "FENG",
+          "attendance15": 3,
+          "attendance30": 3,
+          "attendance60": 3,
+          "dates60": [
+            "2026-10-19",
+            "2026-10-21",
+            "2026-10-26"
+          ],
+          "weekdays30": [
+            1,
+            3
+          ],
+          "weeklyCounts30": {
+            "2026-10-19": 2,
+            "2026-10-26": 1
+          },
+          "allLarge": false,
+          "streak60": 1,
+          "maxWeekly30": 2,
+          "weeklyLimit": 2,
+          "onlyLargeSessions": false,
+          "noPlayWeekdays": [
+            0,
+            2,
+            4,
+            5,
+            6
+          ],
+          "rank15": 13
+        },
+        {
+          "playerId": 24,
+          "name": "Hx7",
+          "attendance15": 3,
+          "attendance30": 4,
+          "attendance60": 13,
+          "dates60": [
+            "2026-08-28",
+            "2026-09-01",
             "2026-09-07",
             "2026-09-08",
-            "2026-09-10",
-            "2026-09-11",
-            "2026-09-15",
-            "2026-09-16",
-            "2026-10-10",
-            "2026-10-11",
-            "2026-10-19",
-            "2026-10-24"
+            "2026-09-12",
+            "2026-09-14",
+            "2026-09-18",
+            "2026-09-21",
+            "2026-09-22",
+            "2026-10-09",
+            "2026-10-16",
+            "2026-10-18",
+            "2026-10-26"
           ],
           "weekdays30": [
             0,
             1,
-            6
+            5
           ],
           "weeklyCounts30": {
-            "2026-10-05": 2,
-            "2026-10-19": 2
+            "2026-10-05": 1,
+            "2026-10-12": 2,
+            "2026-10-26": 1
           },
           "allLarge": false,
           "streak60": 2,
@@ -20768,9 +21166,9 @@
             2,
             3,
             4,
-            5
+            6
           ],
-          "rank15": 21
+          "rank15": 13
         },
         {
           "playerId": 139,
@@ -20802,7 +21200,7 @@
             4,
             5
           ],
-          "rank15": 21
+          "rank15": 25
         },
         {
           "playerId": 59,
@@ -20842,7 +21240,7 @@
             2,
             6
           ],
-          "rank15": 21
+          "rank15": 25
         },
         {
           "playerId": 41,
@@ -20880,7 +21278,7 @@
             4,
             6
           ],
-          "rank15": 21
+          "rank15": 25
         },
         {
           "playerId": 130,
@@ -20912,7 +21310,7 @@
             5,
             6
           ],
-          "rank15": 21
+          "rank15": 25
         },
         {
           "playerId": 40,
@@ -20950,7 +21348,7 @@
             2,
             6
           ],
-          "rank15": 21
+          "rank15": 25
         },
         {
           "playerId": 42,
@@ -20982,7 +21380,7 @@
             5,
             6
           ],
-          "rank15": 21
+          "rank15": 25
         },
         {
           "playerId": 43,
@@ -21017,47 +21415,7 @@
             5,
             6
           ],
-          "rank15": 21
-        },
-        {
-          "playerId": 99,
-          "name": "BLAGE",
-          "attendance15": 2,
-          "attendance30": 3,
-          "attendance60": 9,
-          "dates60": [
-            "2026-09-16",
-            "2026-09-17",
-            "2026-09-18",
-            "2026-09-20",
-            "2026-09-21",
-            "2026-09-22",
-            "2026-10-09",
-            "2026-10-12",
-            "2026-10-21"
-          ],
-          "weekdays30": [
-            1,
-            3,
-            5
-          ],
-          "weeklyCounts30": {
-            "2026-10-05": 1,
-            "2026-10-12": 1,
-            "2026-10-19": 1
-          },
-          "allLarge": true,
-          "streak60": 3,
-          "maxWeekly30": 1,
-          "weeklyLimit": 1,
-          "onlyLargeSessions": true,
-          "noPlayWeekdays": [
-            0,
-            2,
-            4,
-            6
-          ],
-          "rank15": 21
+          "rank15": 25
         },
         {
           "playerId": 57,
@@ -21091,38 +21449,7 @@
             5,
             6
           ],
-          "rank15": 21
-        },
-        {
-          "playerId": 135,
-          "name": "FENG",
-          "attendance15": 2,
-          "attendance30": 2,
-          "attendance60": 2,
-          "dates60": [
-            "2026-10-19",
-            "2026-10-21"
-          ],
-          "weekdays30": [
-            1,
-            3
-          ],
-          "weeklyCounts30": {
-            "2026-10-19": 2
-          },
-          "allLarge": true,
-          "streak60": 1,
-          "maxWeekly30": 2,
-          "weeklyLimit": 2,
-          "onlyLargeSessions": true,
-          "noPlayWeekdays": [
-            0,
-            2,
-            4,
-            5,
-            6
-          ],
-          "rank15": 21
+          "rank15": 25
         },
         {
           "playerId": 11,
@@ -21161,49 +21488,7 @@
             4,
             6
           ],
-          "rank15": 21
-        },
-        {
-          "playerId": 24,
-          "name": "Hx7",
-          "attendance15": 2,
-          "attendance30": 3,
-          "attendance60": 12,
-          "dates60": [
-            "2026-08-28",
-            "2026-09-01",
-            "2026-09-07",
-            "2026-09-08",
-            "2026-09-12",
-            "2026-09-14",
-            "2026-09-18",
-            "2026-09-21",
-            "2026-09-22",
-            "2026-10-09",
-            "2026-10-16",
-            "2026-10-18"
-          ],
-          "weekdays30": [
-            0,
-            5
-          ],
-          "weeklyCounts30": {
-            "2026-10-05": 1,
-            "2026-10-12": 2
-          },
-          "allLarge": false,
-          "streak60": 2,
-          "maxWeekly30": 2,
-          "weeklyLimit": 2,
-          "onlyLargeSessions": false,
-          "noPlayWeekdays": [
-            1,
-            2,
-            3,
-            4,
-            6
-          ],
-          "rank15": 21
+          "rank15": 25
         },
         {
           "playerId": 126,
@@ -21235,7 +21520,45 @@
             5,
             6
           ],
-          "rank15": 21
+          "rank15": 25
+        },
+        {
+          "playerId": 94,
+          "name": "Lee",
+          "attendance15": 2,
+          "attendance30": 3,
+          "attendance60": 7,
+          "dates60": [
+            "2026-09-15",
+            "2026-09-17",
+            "2026-09-20",
+            "2026-09-22",
+            "2026-10-09",
+            "2026-10-16",
+            "2026-10-26"
+          ],
+          "weekdays30": [
+            1,
+            5
+          ],
+          "weeklyCounts30": {
+            "2026-10-05": 1,
+            "2026-10-12": 1,
+            "2026-10-26": 1
+          },
+          "allLarge": false,
+          "streak60": 1,
+          "maxWeekly30": 1,
+          "weeklyLimit": 1,
+          "onlyLargeSessions": false,
+          "noPlayWeekdays": [
+            0,
+            2,
+            3,
+            4,
+            6
+          ],
+          "rank15": 25
         },
         {
           "playerId": 129,
@@ -21266,7 +21589,7 @@
             4,
             5
           ],
-          "rank15": 21
+          "rank15": 25
         },
         {
           "playerId": 67,
@@ -21298,7 +21621,7 @@
             5,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 137,
@@ -21328,7 +21651,7 @@
             5,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 136,
@@ -21358,7 +21681,7 @@
             5,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 6,
@@ -21394,7 +21717,7 @@
             4,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 50,
@@ -21424,7 +21747,7 @@
             5,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 132,
@@ -21454,7 +21777,7 @@
             4,
             5
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 138,
@@ -21484,7 +21807,7 @@
             4,
             5
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 69,
@@ -21517,7 +21840,7 @@
             5,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 140,
@@ -21547,7 +21870,7 @@
             4,
             5
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 5,
@@ -21583,7 +21906,7 @@
             4,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 38,
@@ -21615,7 +21938,7 @@
             5,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 18,
@@ -21647,7 +21970,7 @@
             5,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 124,
@@ -21677,7 +22000,37 @@
             5,
             6
           ],
-          "rank15": 36
+          "rank15": 37
+        },
+        {
+          "playerId": 145,
+          "name": "阳光",
+          "attendance15": 1,
+          "attendance30": 1,
+          "attendance60": 1,
+          "dates60": [
+            "2026-10-26"
+          ],
+          "weekdays30": [
+            1
+          ],
+          "weeklyCounts30": {
+            "2026-10-26": 1
+          },
+          "allLarge": false,
+          "streak60": 1,
+          "maxWeekly30": 1,
+          "weeklyLimit": 1,
+          "onlyLargeSessions": false,
+          "noPlayWeekdays": [
+            0,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "rank15": 37
         },
         {
           "playerId": 120,
@@ -21710,7 +22063,7 @@
             4,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 89,
@@ -21743,7 +22096,7 @@
             5,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 92,
@@ -21774,7 +22127,7 @@
             5,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 17,
@@ -21810,7 +22163,7 @@
             4,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 134,
@@ -21840,43 +22193,7 @@
             4,
             5
           ],
-          "rank15": 36
-        },
-        {
-          "playerId": 94,
-          "name": "Lee",
-          "attendance15": 1,
-          "attendance30": 2,
-          "attendance60": 6,
-          "dates60": [
-            "2026-09-15",
-            "2026-09-17",
-            "2026-09-20",
-            "2026-09-22",
-            "2026-10-09",
-            "2026-10-16"
-          ],
-          "weekdays30": [
-            5
-          ],
-          "weeklyCounts30": {
-            "2026-10-05": 1,
-            "2026-10-12": 1
-          },
-          "allLarge": true,
-          "streak60": 1,
-          "maxWeekly30": 1,
-          "weeklyLimit": 1,
-          "onlyLargeSessions": true,
-          "noPlayWeekdays": [
-            0,
-            1,
-            2,
-            3,
-            4,
-            6
-          ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 29,
@@ -21910,7 +22227,7 @@
             4,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 35,
@@ -21954,7 +22271,7 @@
             4,
             6
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 48,
@@ -21988,7 +22305,7 @@
             4,
             5
           ],
-          "rank15": 36
+          "rank15": 37
         },
         {
           "playerId": 4,
@@ -22015,7 +22332,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 1,
@@ -22051,7 +22368,7 @@
             4,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 85,
@@ -22081,7 +22398,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 75,
@@ -22109,7 +22426,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 86,
@@ -22138,7 +22455,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 44,
@@ -22169,7 +22486,7 @@
             4,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 118,
@@ -22199,7 +22516,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 23,
@@ -22227,7 +22544,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 121,
@@ -22257,7 +22574,7 @@
             4,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 109,
@@ -22284,7 +22601,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 91,
@@ -22311,7 +22628,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 84,
@@ -22339,7 +22656,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 88,
@@ -22368,7 +22685,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 26,
@@ -22395,7 +22712,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 14,
@@ -22426,7 +22743,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 76,
@@ -22456,7 +22773,7 @@
             4,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 54,
@@ -22483,7 +22800,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 28,
@@ -22510,7 +22827,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 33,
@@ -22552,7 +22869,7 @@
             3,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 16,
@@ -22581,7 +22898,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 108,
@@ -22614,7 +22931,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 7,
@@ -22644,7 +22961,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 78,
@@ -22677,7 +22994,7 @@
             4,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 49,
@@ -22704,7 +23021,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 12,
@@ -22733,7 +23050,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 60,
@@ -22762,7 +23079,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         },
         {
           "playerId": 90,
@@ -22789,7 +23106,7 @@
             5,
             6
           ],
-          "rank15": 58
+          "rank15": 59
         }
       ],
       "bestPartners": {
@@ -22825,13 +23142,13 @@
               21,
               24
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 21,
               "onlyA": 0,
               "onlyB": 3,
-              "neither": 25,
-              "total": 49,
+              "neither": 26,
+              "total": 50,
               "attendanceA": 21,
               "attendanceB": 24
             },
@@ -22845,9 +23162,9 @@
                 },
                 "withoutPartner": {
                   "attended": 0,
-                  "opportunities": 25
+                  "opportunities": 26
                 },
-                "adjustedLift": 0.643823
+                "adjustedLift": 0.651261
               },
               {
                 "playerId": 39,
@@ -22858,12 +23175,12 @@
                 },
                 "withoutPartner": {
                   "attended": 3,
-                  "opportunities": 28
+                  "opportunities": 29
                 },
-                "adjustedLift": 0.648508
+                "adjustedLift": 0.658872
               }
             ],
-            "score": 0.520011,
+            "score": 0.526018,
             "reliability": 0.807692,
             "source": "automatic"
           },
@@ -22884,13 +23201,13 @@
               13,
               15
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 11,
               "onlyA": 2,
               "onlyB": 4,
-              "neither": 32,
-              "total": 49,
+              "neither": 33,
+              "total": 50,
               "attendanceA": 13,
               "attendanceB": 15
             },
@@ -22904,9 +23221,9 @@
                 },
                 "withoutPartner": {
                   "attended": 2,
-                  "opportunities": 34
+                  "opportunities": 35
                 },
-                "adjustedLift": 0.485757
+                "adjustedLift": 0.488306
               },
               {
                 "playerId": 9,
@@ -22917,12 +23234,12 @@
                 },
                 "withoutPartner": {
                   "attended": 4,
-                  "opportunities": 36
+                  "opportunities": 37
                 },
-                "adjustedLift": 0.501244
+                "adjustedLift": 0.504767
               }
             ],
-            "score": 0.333958,
+            "score": 0.33571,
             "reliability": 0.6875,
             "source": "automatic"
           },
@@ -22943,13 +23260,13 @@
               23,
               22
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 18,
               "onlyA": 5,
               "onlyB": 5,
-              "neither": 21,
-              "total": 49,
+              "neither": 22,
+              "total": 50,
               "attendanceA": 23,
               "attendanceB": 23
             },
@@ -22963,9 +23280,9 @@
                 },
                 "withoutPartner": {
                   "attended": 5,
-                  "opportunities": 26
+                  "opportunities": 27
                 },
-                "adjustedLift": 0.353215
+                "adjustedLift": 0.367251
               },
               {
                 "playerId": 45,
@@ -22976,12 +23293,12 @@
                 },
                 "withoutPartner": {
                   "attended": 5,
-                  "opportunities": 26
+                  "opportunities": 27
                 },
-                "adjustedLift": 0.355033
+                "adjustedLift": 0.369596
               }
             ],
-            "score": 0.276429,
+            "score": 0.287414,
             "reliability": 0.782609,
             "source": "automatic"
           },
@@ -23002,13 +23319,13 @@
               11,
               11
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 8,
               "onlyA": 3,
               "onlyB": 3,
-              "neither": 35,
-              "total": 49,
+              "neither": 36,
+              "total": 50,
               "attendanceA": 11,
               "attendanceB": 11
             },
@@ -23022,9 +23339,9 @@
                 },
                 "withoutPartner": {
                   "attended": 3,
-                  "opportunities": 38
+                  "opportunities": 39
                 },
-                "adjustedLift": 0.38468
+                "adjustedLift": 0.385497
               },
               {
                 "playerId": 17,
@@ -23035,12 +23352,12 @@
                 },
                 "withoutPartner": {
                   "attended": 3,
-                  "opportunities": 38
+                  "opportunities": 39
                 },
-                "adjustedLift": 0.385703
+                "adjustedLift": 0.38655
               }
             ],
-            "score": 0.236726,
+            "score": 0.237229,
             "reliability": 0.615385,
             "source": "automatic"
           },
@@ -23061,13 +23378,13 @@
               9,
               8
             ],
-            "opportunityDays": 23,
+            "opportunityDays": 24,
             "raw": {
               "both": 7,
               "onlyA": 3,
               "onlyB": 1,
-              "neither": 13,
-              "total": 24,
+              "neither": 14,
+              "total": 25,
               "attendanceA": 10,
               "attendanceB": 8
             },
@@ -23081,9 +23398,9 @@
                 },
                 "withoutPartner": {
                   "attended": 3,
-                  "opportunities": 16
+                  "opportunities": 17
                 },
-                "adjustedLift": 0.402902
+                "adjustedLift": 0.415141
               },
               {
                 "playerId": 95,
@@ -23094,12 +23411,12 @@
                 },
                 "withoutPartner": {
                   "attended": 1,
-                  "opportunities": 14
+                  "opportunities": 15
                 },
-                "adjustedLift": 0.393728
+                "adjustedLift": 0.403974
               }
             ],
-            "score": 0.229674,
+            "score": 0.235652,
             "reliability": 0.583333,
             "source": "automatic"
           },
@@ -23120,13 +23437,13 @@
               15,
               23
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 12,
               "onlyA": 3,
               "onlyB": 11,
-              "neither": 23,
-              "total": 49,
+              "neither": 24,
+              "total": 50,
               "attendanceA": 15,
               "attendanceB": 23
             },
@@ -23140,9 +23457,9 @@
                 },
                 "withoutPartner": {
                   "attended": 3,
-                  "opportunities": 26
+                  "opportunities": 27
                 },
-                "adjustedLift": 0.315711
+                "adjustedLift": 0.324018
               },
               {
                 "playerId": 10,
@@ -23153,72 +23470,13 @@
                 },
                 "withoutPartner": {
                   "attended": 11,
-                  "opportunities": 34
+                  "opportunities": 35
                 },
-                "adjustedLift": 0.339234
+                "adjustedLift": 0.350841
               }
             ],
-            "score": 0.222855,
+            "score": 0.228719,
             "reliability": 0.705882,
-            "source": "automatic"
-          },
-          {
-            "playerIds": [
-              24,
-              113
-            ],
-            "names": [
-              "Hx7",
-              "沈松远"
-            ],
-            "start": "2026-09-21",
-            "end": "2026-10-26",
-            "togetherSessions": 5,
-            "togetherDays": 5,
-            "attendanceDays": [
-              5,
-              6
-            ],
-            "opportunityDays": 15,
-            "raw": {
-              "both": 5,
-              "onlyA": 0,
-              "onlyB": 1,
-              "neither": 10,
-              "total": 16,
-              "attendanceA": 5,
-              "attendanceB": 6
-            },
-            "directions": [
-              {
-                "playerId": 24,
-                "partnerId": 113,
-                "withPartner": {
-                  "attended": 5,
-                  "opportunities": 6
-                },
-                "withoutPartner": {
-                  "attended": 0,
-                  "opportunities": 10
-                },
-                "adjustedLift": 0.444301
-              },
-              {
-                "playerId": 113,
-                "partnerId": 24,
-                "withPartner": {
-                  "attended": 5,
-                  "opportunities": 5
-                },
-                "withoutPartner": {
-                  "attended": 1,
-                  "opportunities": 11
-                },
-                "adjustedLift": 0.46011
-              }
-            ],
-            "score": 0.22215,
-            "reliability": 0.5,
             "source": "automatic"
           },
           {
@@ -23238,13 +23496,13 @@
               11,
               16
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 9,
               "onlyA": 2,
               "onlyB": 7,
-              "neither": 31,
-              "total": 49,
+              "neither": 32,
+              "total": 50,
               "attendanceA": 11,
               "attendanceB": 16
             },
@@ -23258,9 +23516,9 @@
                 },
                 "withoutPartner": {
                   "attended": 2,
-                  "opportunities": 33
+                  "opportunities": 34
                 },
-                "adjustedLift": 0.345472
+                "adjustedLift": 0.347033
               },
               {
                 "playerId": 11,
@@ -23271,12 +23529,12 @@
                 },
                 "withoutPartner": {
                   "attended": 7,
-                  "opportunities": 38
+                  "opportunities": 39
                 },
-                "adjustedLift": 0.389018
+                "adjustedLift": 0.392533
               }
             ],
-            "score": 0.222089,
+            "score": 0.223093,
             "reliability": 0.642857,
             "source": "automatic"
           },
@@ -23297,13 +23555,13 @@
               23,
               16
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 13,
               "onlyA": 10,
               "onlyB": 3,
-              "neither": 23,
-              "total": 49,
+              "neither": 24,
+              "total": 50,
               "attendanceA": 23,
               "attendanceB": 16
             },
@@ -23317,9 +23575,9 @@
                 },
                 "withoutPartner": {
                   "attended": 10,
-                  "opportunities": 33
+                  "opportunities": 34
                 },
-                "adjustedLift": 0.321254
+                "adjustedLift": 0.332755
               },
               {
                 "playerId": 13,
@@ -23330,12 +23588,12 @@
                 },
                 "withoutPartner": {
                   "attended": 3,
-                  "opportunities": 26
+                  "opportunities": 27
                 },
-                "adjustedLift": 0.293981
+                "adjustedLift": 0.301875
               }
             ],
-            "score": 0.212319,
+            "score": 0.218021,
             "reliability": 0.722222,
             "source": "automatic"
           },
@@ -23356,13 +23614,13 @@
               13,
               23
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 11,
               "onlyA": 2,
               "onlyB": 12,
-              "neither": 24,
-              "total": 49,
+              "neither": 25,
+              "total": 50,
               "attendanceA": 13,
               "attendanceB": 23
             },
@@ -23376,9 +23634,9 @@
                 },
                 "withoutPartner": {
                   "attended": 2,
-                  "opportunities": 26
+                  "opportunities": 27
                 },
-                "adjustedLift": 0.294276
+                "adjustedLift": 0.301392
               },
               {
                 "playerId": 10,
@@ -23389,72 +23647,13 @@
                 },
                 "withoutPartner": {
                   "attended": 12,
-                  "opportunities": 36
+                  "opportunities": 37
                 },
-                "adjustedLift": 0.326284
+                "adjustedLift": 0.337343
               }
             ],
-            "score": 0.202315,
+            "score": 0.207207,
             "reliability": 0.6875,
-            "source": "automatic"
-          },
-          {
-            "playerIds": [
-              11,
-              17
-            ],
-            "names": [
-              "Henry",
-              "Baymax"
-            ],
-            "start": "2026-07-29",
-            "end": "2026-10-26",
-            "togetherSessions": 9,
-            "togetherDays": 9,
-            "attendanceDays": [
-              16,
-              11
-            ],
-            "opportunityDays": 48,
-            "raw": {
-              "both": 9,
-              "onlyA": 7,
-              "onlyB": 2,
-              "neither": 31,
-              "total": 49,
-              "attendanceA": 16,
-              "attendanceB": 11
-            },
-            "directions": [
-              {
-                "playerId": 11,
-                "partnerId": 17,
-                "withPartner": {
-                  "attended": 9,
-                  "opportunities": 11
-                },
-                "withoutPartner": {
-                  "attended": 7,
-                  "opportunities": 38
-                },
-                "adjustedLift": 0.358733
-              },
-              {
-                "playerId": 17,
-                "partnerId": 11,
-                "withPartner": {
-                  "attended": 9,
-                  "opportunities": 16
-                },
-                "withoutPartner": {
-                  "attended": 2,
-                  "opportunities": 33
-                },
-                "adjustedLift": 0.305466
-              }
-            ],
-            "score": 0.196371,
-            "reliability": 0.642857,
             "source": "automatic"
           },
           {
@@ -23474,13 +23673,13 @@
               14,
               24
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 12,
               "onlyA": 2,
               "onlyB": 12,
-              "neither": 23,
-              "total": 49,
+              "neither": 24,
+              "total": 50,
               "attendanceA": 14,
               "attendanceB": 24
             },
@@ -23494,9 +23693,9 @@
                 },
                 "withoutPartner": {
                   "attended": 2,
-                  "opportunities": 25
+                  "opportunities": 26
                 },
-                "adjustedLift": 0.276689
+                "adjustedLift": 0.280565
               },
               {
                 "playerId": 39,
@@ -23507,72 +23706,131 @@
                 },
                 "withoutPartner": {
                   "attended": 12,
-                  "opportunities": 35
+                  "opportunities": 36
                 },
-                "adjustedLift": 0.335227
+                "adjustedLift": 0.349698
               }
             ],
-            "score": 0.19531,
+            "score": 0.198046,
             "reliability": 0.705882,
             "source": "automatic"
           },
           {
             "playerIds": [
-              39,
-              83
+              11,
+              17
             ],
             "names": [
-              "1fan",
-              "！"
+              "Henry",
+              "Baymax"
             ],
-            "start": "2026-08-27",
+            "start": "2026-07-29",
             "end": "2026-10-26",
-            "togetherSessions": 10,
-            "togetherDays": 10,
+            "togetherSessions": 9,
+            "togetherDays": 9,
             "attendanceDays": [
-              22,
+              16,
               11
             ],
-            "opportunityDays": 34,
+            "opportunityDays": 49,
             "raw": {
-              "both": 10,
-              "onlyA": 12,
-              "onlyB": 1,
-              "neither": 12,
-              "total": 35,
-              "attendanceA": 22,
+              "both": 9,
+              "onlyA": 7,
+              "onlyB": 2,
+              "neither": 32,
+              "total": 50,
+              "attendanceA": 16,
               "attendanceB": 11
             },
             "directions": [
               {
-                "playerId": 39,
-                "partnerId": 83,
+                "playerId": 11,
+                "partnerId": 17,
                 "withPartner": {
-                  "attended": 10,
+                  "attended": 9,
                   "opportunities": 11
                 },
                 "withoutPartner": {
-                  "attended": 12,
-                  "opportunities": 24
+                  "attended": 7,
+                  "opportunities": 39
                 },
-                "adjustedLift": 0.289347
+                "adjustedLift": 0.362656
               },
               {
-                "playerId": 83,
-                "partnerId": 39,
+                "playerId": 17,
+                "partnerId": 11,
                 "withPartner": {
-                  "attended": 10,
-                  "opportunities": 22
+                  "attended": 9,
+                  "opportunities": 16
                 },
                 "withoutPartner": {
-                  "attended": 1,
-                  "opportunities": 13
+                  "attended": 2,
+                  "opportunities": 34
                 },
-                "adjustedLift": 0.267263
+                "adjustedLift": 0.303685
               }
             ],
-            "score": 0.178176,
-            "reliability": 0.666667,
+            "score": 0.195226,
+            "reliability": 0.642857,
+            "source": "automatic"
+          },
+          {
+            "playerIds": [
+              53,
+              99
+            ],
+            "names": [
+              "oi",
+              "BLAGE"
+            ],
+            "start": "2026-09-15",
+            "end": "2026-10-26",
+            "togetherSessions": 7,
+            "togetherDays": 7,
+            "attendanceDays": [
+              10,
+              10
+            ],
+            "opportunityDays": 22,
+            "raw": {
+              "both": 7,
+              "onlyA": 3,
+              "onlyB": 3,
+              "neither": 10,
+              "total": 23,
+              "attendanceA": 10,
+              "attendanceB": 10
+            },
+            "directions": [
+              {
+                "playerId": 53,
+                "partnerId": 99,
+                "withPartner": {
+                  "attended": 7,
+                  "opportunities": 10
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 13
+                },
+                "adjustedLift": 0.317111
+              },
+              {
+                "playerId": 99,
+                "partnerId": 53,
+                "withPartner": {
+                  "attended": 7,
+                  "opportunities": 10
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 13
+                },
+                "adjustedLift": 0.311721
+              }
+            ],
+            "score": 0.181837,
+            "reliability": 0.583333,
             "source": "automatic"
           },
           {
@@ -23592,13 +23850,13 @@
               19,
               11
             ],
-            "opportunityDays": 34,
+            "opportunityDays": 35,
             "raw": {
               "both": 9,
               "onlyA": 10,
               "onlyB": 2,
-              "neither": 14,
-              "total": 35,
+              "neither": 15,
+              "total": 36,
               "attendanceA": 19,
               "attendanceB": 11
             },
@@ -23612,9 +23870,9 @@
                 },
                 "withoutPartner": {
                   "attended": 10,
-                  "opportunities": 24
+                  "opportunities": 25
                 },
-                "adjustedLift": 0.287823
+                "adjustedLift": 0.304246
               },
               {
                 "playerId": 83,
@@ -23625,131 +23883,72 @@
                 },
                 "withoutPartner": {
                   "attended": 2,
-                  "opportunities": 16
+                  "opportunities": 17
                 },
-                "adjustedLift": 0.26512
+                "adjustedLift": 0.27627
               }
             ],
-            "score": 0.170434,
+            "score": 0.177602,
             "reliability": 0.642857,
             "source": "automatic"
           },
           {
             "playerIds": [
-              36,
-              51
+              39,
+              83
             ],
             "names": [
-              "小精灵",
-              "choi"
+              "1fan",
+              "！"
             ],
-            "start": "2026-07-29",
+            "start": "2026-08-27",
             "end": "2026-10-26",
-            "togetherSessions": 13,
-            "togetherDays": 13,
+            "togetherSessions": 10,
+            "togetherDays": 10,
             "attendanceDays": [
-              14,
-              37
+              22,
+              11
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 35,
             "raw": {
-              "both": 13,
-              "onlyA": 1,
-              "onlyB": 25,
-              "neither": 10,
-              "total": 49,
-              "attendanceA": 14,
-              "attendanceB": 38
+              "both": 10,
+              "onlyA": 12,
+              "onlyB": 1,
+              "neither": 13,
+              "total": 36,
+              "attendanceA": 22,
+              "attendanceB": 11
             },
             "directions": [
               {
-                "playerId": 36,
-                "partnerId": 51,
+                "playerId": 39,
+                "partnerId": 83,
                 "withPartner": {
-                  "attended": 13,
-                  "opportunities": 38
+                  "attended": 10,
+                  "opportunities": 11
+                },
+                "withoutPartner": {
+                  "attended": 12,
+                  "opportunities": 25
+                },
+                "adjustedLift": 0.308398
+              },
+              {
+                "playerId": 83,
+                "partnerId": 39,
+                "withPartner": {
+                  "attended": 10,
+                  "opportunities": 22
                 },
                 "withoutPartner": {
                   "attended": 1,
-                  "opportunities": 11
-                },
-                "adjustedLift": 0.245585
-              },
-              {
-                "playerId": 51,
-                "partnerId": 36,
-                "withPartner": {
-                  "attended": 13,
                   "opportunities": 14
                 },
-                "withoutPartner": {
-                  "attended": 25,
-                  "opportunities": 35
-                },
-                "adjustedLift": 0.234901
+                "adjustedLift": 0.265654
               }
             ],
-            "score": 0.169651,
-            "reliability": 0.722222,
-            "source": "automatic"
-          },
-          {
-            "playerIds": [
-              1,
-              24
-            ],
-            "names": [
-              "阿达",
-              "Hx7"
-            ],
-            "start": "2026-07-29",
-            "end": "2026-10-26",
-            "togetherSessions": 11,
-            "togetherDays": 11,
-            "attendanceDays": [
-              16,
-              21
-            ],
-            "opportunityDays": 48,
-            "raw": {
-              "both": 11,
-              "onlyA": 5,
-              "onlyB": 10,
-              "neither": 23,
-              "total": 49,
-              "attendanceA": 16,
-              "attendanceB": 21
-            },
-            "directions": [
-              {
-                "playerId": 1,
-                "partnerId": 24,
-                "withPartner": {
-                  "attended": 11,
-                  "opportunities": 21
-                },
-                "withoutPartner": {
-                  "attended": 5,
-                  "opportunities": 28
-                },
-                "adjustedLift": 0.241227
-              },
-              {
-                "playerId": 24,
-                "partnerId": 1,
-                "withPartner": {
-                  "attended": 11,
-                  "opportunities": 16
-                },
-                "withoutPartner": {
-                  "attended": 10,
-                  "opportunities": 33
-                },
-                "adjustedLift": 0.277323
-              }
-            ],
-            "score": 0.165843,
-            "reliability": 0.6875,
+            "score": 0.177103,
+            "reliability": 0.666667,
             "source": "automatic"
           },
           {
@@ -23769,13 +23968,13 @@
               16,
               22
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 12,
               "onlyA": 4,
               "onlyB": 11,
-              "neither": 22,
-              "total": 49,
+              "neither": 23,
+              "total": 50,
               "attendanceA": 16,
               "attendanceB": 23
             },
@@ -23789,9 +23988,9 @@
                 },
                 "withoutPartner": {
                   "attended": 4,
-                  "opportunities": 26
+                  "opportunities": 27
                 },
-                "adjustedLift": 0.23438
+                "adjustedLift": 0.244036
               },
               {
                 "playerId": 45,
@@ -23802,12 +24001,12 @@
                 },
                 "withoutPartner": {
                   "attended": 11,
-                  "opportunities": 33
+                  "opportunities": 34
                 },
-                "adjustedLift": 0.257442
+                "adjustedLift": 0.270717
               }
             ],
-            "score": 0.165445,
+            "score": 0.172261,
             "reliability": 0.705882,
             "source": "automatic"
           },
@@ -23828,13 +24027,13 @@
               11,
               7
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 5,
               "onlyA": 6,
               "onlyB": 2,
-              "neither": 36,
-              "total": 49,
+              "neither": 37,
+              "total": 50,
               "attendanceA": 11,
               "attendanceB": 7
             },
@@ -23848,9 +24047,9 @@
                 },
                 "withoutPartner": {
                   "attended": 6,
-                  "opportunities": 42
+                  "opportunities": 43
                 },
-                "adjustedLift": 0.336422
+                "adjustedLift": 0.337526
               },
               {
                 "playerId": 6,
@@ -23861,12 +24060,12 @@
                 },
                 "withoutPartner": {
                   "attended": 2,
-                  "opportunities": 38
+                  "opportunities": 39
                 },
-                "adjustedLift": 0.312151
+                "adjustedLift": 0.312607
               }
             ],
-            "score": 0.156075,
+            "score": 0.156303,
             "reliability": 0.5,
             "source": "automatic"
           },
@@ -23887,13 +24086,13 @@
               7,
               11
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 5,
               "onlyA": 2,
               "onlyB": 6,
-              "neither": 36,
-              "total": 49,
+              "neither": 37,
+              "total": 50,
               "attendanceA": 7,
               "attendanceB": 11
             },
@@ -23907,9 +24106,9 @@
                 },
                 "withoutPartner": {
                   "attended": 2,
-                  "opportunities": 38
+                  "opportunities": 39
                 },
-                "adjustedLift": 0.310485
+                "adjustedLift": 0.310966
               },
               {
                 "playerId": 17,
@@ -23920,13 +24119,72 @@
                 },
                 "withoutPartner": {
                   "attended": 6,
-                  "opportunities": 42
+                  "opportunities": 43
                 },
-                "adjustedLift": 0.335516
+                "adjustedLift": 0.336672
               }
             ],
-            "score": 0.155242,
+            "score": 0.155483,
             "reliability": 0.5,
+            "source": "automatic"
+          },
+          {
+            "playerIds": [
+              10,
+              51
+            ],
+            "names": [
+              "🌹",
+              "choi"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 18,
+            "togetherDays": 18,
+            "attendanceDays": [
+              23,
+              37
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 18,
+              "onlyA": 5,
+              "onlyB": 20,
+              "neither": 7,
+              "total": 50,
+              "attendanceA": 23,
+              "attendanceB": 38
+            },
+            "directions": [
+              {
+                "playerId": 10,
+                "partnerId": 51,
+                "withPartner": {
+                  "attended": 18,
+                  "opportunities": 38
+                },
+                "withoutPartner": {
+                  "attended": 5,
+                  "opportunities": 12
+                },
+                "adjustedLift": 0.209433
+              },
+              {
+                "playerId": 51,
+                "partnerId": 10,
+                "withPartner": {
+                  "attended": 18,
+                  "opportunities": 23
+                },
+                "withoutPartner": {
+                  "attended": 20,
+                  "opportunities": 27
+                },
+                "adjustedLift": 0.197778
+              }
+            ],
+            "score": 0.154783,
+            "reliability": 0.782609,
             "source": "automatic"
           },
           {
@@ -23946,13 +24204,13 @@
               7,
               5
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 4,
               "onlyA": 3,
               "onlyB": 1,
-              "neither": 41,
-              "total": 49,
+              "neither": 42,
+              "total": 50,
               "attendanceA": 7,
               "attendanceB": 5
             },
@@ -23966,9 +24224,9 @@
                 },
                 "withoutPartner": {
                   "attended": 3,
-                  "opportunities": 44
+                  "opportunities": 45
                 },
-                "adjustedLift": 0.372101
+                "adjustedLift": 0.371627
               },
               {
                 "playerId": 29,
@@ -23979,12 +24237,71 @@
                 },
                 "withoutPartner": {
                   "attended": 1,
-                  "opportunities": 42
+                  "opportunities": 43
                 },
-                "adjustedLift": 0.348132
+                "adjustedLift": 0.347247
               }
             ],
-            "score": 0.154725,
+            "score": 0.154332,
+            "reliability": 0.444444,
+            "source": "automatic"
+          },
+          {
+            "playerIds": [
+              9,
+              122
+            ],
+            "names": [
+              "柚子🍀",
+              "罗"
+            ],
+            "start": "2026-10-11",
+            "end": "2026-10-26",
+            "togetherSessions": 4,
+            "togetherDays": 4,
+            "attendanceDays": [
+              5,
+              5
+            ],
+            "opportunityDays": 11,
+            "raw": {
+              "both": 4,
+              "onlyA": 1,
+              "onlyB": 1,
+              "neither": 6,
+              "total": 12,
+              "attendanceA": 5,
+              "attendanceB": 5
+            },
+            "directions": [
+              {
+                "playerId": 9,
+                "partnerId": 122,
+                "withPartner": {
+                  "attended": 4,
+                  "opportunities": 5
+                },
+                "withoutPartner": {
+                  "attended": 1,
+                  "opportunities": 7
+                },
+                "adjustedLift": 0.346319
+              },
+              {
+                "playerId": 122,
+                "partnerId": 9,
+                "withPartner": {
+                  "attended": 4,
+                  "opportunities": 5
+                },
+                "withoutPartner": {
+                  "attended": 1,
+                  "opportunities": 7
+                },
+                "adjustedLift": 0.345821
+              }
+            ],
+            "score": 0.153698,
             "reliability": 0.444444,
             "source": "automatic"
           },
@@ -24005,13 +24322,13 @@
               14,
               21
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 10,
               "onlyA": 4,
               "onlyB": 11,
-              "neither": 24,
-              "total": 49,
+              "neither": 25,
+              "total": 50,
               "attendanceA": 14,
               "attendanceB": 21
             },
@@ -24025,9 +24342,9 @@
                 },
                 "withoutPartner": {
                   "attended": 4,
-                  "opportunities": 28
+                  "opportunities": 29
                 },
-                "adjustedLift": 0.220767
+                "adjustedLift": 0.225743
               },
               {
                 "playerId": 37,
@@ -24038,249 +24355,72 @@
                 },
                 "withoutPartner": {
                   "attended": 11,
-                  "opportunities": 35
+                  "opportunities": 36
                 },
-                "adjustedLift": 0.271462
+                "adjustedLift": 0.284952
               }
             ],
-            "score": 0.147178,
+            "score": 0.150495,
             "reliability": 0.666667,
             "source": "automatic"
           },
           {
             "playerIds": [
-              37,
-              53
+              1,
+              24
             ],
             "names": [
-              "🎀 ～TomCat",
-              "oi"
+              "阿达",
+              "Hx7"
             ],
             "start": "2026-07-29",
             "end": "2026-10-26",
             "togetherSessions": 11,
             "togetherDays": 11,
             "attendanceDays": [
-              21,
-              18
+              16,
+              22
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 11,
-              "onlyA": 10,
-              "onlyB": 7,
-              "neither": 21,
-              "total": 49,
-              "attendanceA": 21,
-              "attendanceB": 18
-            },
-            "directions": [
-              {
-                "playerId": 37,
-                "partnerId": 53,
-                "withPartner": {
-                  "attended": 11,
-                  "opportunities": 18
-                },
-                "withoutPartner": {
-                  "attended": 10,
-                  "opportunities": 31
-                },
-                "adjustedLift": 0.214729
-              },
-              {
-                "playerId": 53,
-                "partnerId": 37,
-                "withPartner": {
-                  "attended": 11,
-                  "opportunities": 21
-                },
-                "withoutPartner": {
-                  "attended": 7,
-                  "opportunities": 28
-                },
-                "adjustedLift": 0.213055
-              }
-            ],
-            "score": 0.146476,
-            "reliability": 0.6875,
-            "source": "automatic"
-          },
-          {
-            "playerIds": [
-              53,
-              99
-            ],
-            "names": [
-              "oi",
-              "BLAGE"
-            ],
-            "start": "2026-09-15",
-            "end": "2026-10-26",
-            "togetherSessions": 6,
-            "togetherDays": 6,
-            "attendanceDays": [
-              9,
-              9
-            ],
-            "opportunityDays": 21,
-            "raw": {
-              "both": 6,
-              "onlyA": 3,
-              "onlyB": 3,
-              "neither": 10,
-              "total": 22,
-              "attendanceA": 9,
-              "attendanceB": 9
-            },
-            "directions": [
-              {
-                "playerId": 53,
-                "partnerId": 99,
-                "withPartner": {
-                  "attended": 6,
-                  "opportunities": 9
-                },
-                "withoutPartner": {
-                  "attended": 3,
-                  "opportunities": 13
-                },
-                "adjustedLift": 0.273541
-              },
-              {
-                "playerId": 99,
-                "partnerId": 53,
-                "withPartner": {
-                  "attended": 6,
-                  "opportunities": 9
-                },
-                "withoutPartner": {
-                  "attended": 3,
-                  "opportunities": 13
-                },
-                "adjustedLift": 0.265532
-              }
-            ],
-            "score": 0.144835,
-            "reliability": 0.545455,
-            "source": "automatic"
-          },
-          {
-            "playerIds": [
-              20,
-              95
-            ],
-            "names": [
-              "0.o",
-              "何11"
-            ],
-            "start": "2026-09-13",
-            "end": "2026-10-26",
-            "togetherSessions": 5,
-            "togetherDays": 5,
-            "attendanceDays": [
-              8,
-              8
-            ],
-            "opportunityDays": 23,
-            "raw": {
-              "both": 5,
-              "onlyA": 3,
-              "onlyB": 3,
-              "neither": 13,
-              "total": 24,
-              "attendanceA": 8,
-              "attendanceB": 8
-            },
-            "directions": [
-              {
-                "playerId": 20,
-                "partnerId": 95,
-                "withPartner": {
-                  "attended": 5,
-                  "opportunities": 8
-                },
-                "withoutPartner": {
-                  "attended": 3,
-                  "opportunities": 16
-                },
-                "adjustedLift": 0.289293
-              },
-              {
-                "playerId": 95,
-                "partnerId": 20,
-                "withPartner": {
-                  "attended": 5,
-                  "opportunities": 8
-                },
-                "withoutPartner": {
-                  "attended": 3,
-                  "opportunities": 16
-                },
-                "adjustedLift": 0.287441
-              }
-            ],
-            "score": 0.143721,
-            "reliability": 0.5,
-            "source": "automatic"
-          },
-          {
-            "playerIds": [
-              1,
-              53
-            ],
-            "names": [
-              "阿达",
-              "oi"
-            ],
-            "start": "2026-07-29",
-            "end": "2026-10-26",
-            "togetherSessions": 10,
-            "togetherDays": 10,
-            "attendanceDays": [
-              16,
-              18
-            ],
-            "opportunityDays": 48,
-            "raw": {
-              "both": 10,
-              "onlyA": 6,
-              "onlyB": 8,
-              "neither": 25,
-              "total": 49,
+              "onlyA": 5,
+              "onlyB": 11,
+              "neither": 23,
+              "total": 50,
               "attendanceA": 16,
-              "attendanceB": 18
+              "attendanceB": 22
             },
             "directions": [
               {
                 "playerId": 1,
-                "partnerId": 53,
+                "partnerId": 24,
                 "withPartner": {
-                  "attended": 10,
-                  "opportunities": 18
+                  "attended": 11,
+                  "opportunities": 22
                 },
                 "withoutPartner": {
-                  "attended": 6,
-                  "opportunities": 31
+                  "attended": 5,
+                  "opportunities": 28
                 },
-                "adjustedLift": 0.214911
+                "adjustedLift": 0.20593
               },
               {
-                "playerId": 53,
+                "playerId": 24,
                 "partnerId": 1,
                 "withPartner": {
-                  "attended": 10,
+                  "attended": 11,
                   "opportunities": 16
                 },
                 "withoutPartner": {
-                  "attended": 8,
-                  "opportunities": 33
+                  "attended": 11,
+                  "opportunities": 34
                 },
-                "adjustedLift": 0.255661
+                "adjustedLift": 0.251411
               }
             ],
-            "score": 0.143274,
-            "reliability": 0.666667,
+            "score": 0.141577,
+            "reliability": 0.6875,
             "source": "automatic"
           },
           {
@@ -24300,13 +24440,13 @@
               5,
               6
             ],
-            "opportunityDays": 15,
+            "opportunityDays": 16,
             "raw": {
               "both": 4,
               "onlyA": 1,
               "onlyB": 2,
-              "neither": 9,
-              "total": 16,
+              "neither": 10,
+              "total": 17,
               "attendanceA": 5,
               "attendanceB": 6
             },
@@ -24320,9 +24460,9 @@
                 },
                 "withoutPartner": {
                   "attended": 1,
-                  "opportunities": 10
+                  "opportunities": 11
                 },
-                "adjustedLift": 0.311821
+                "adjustedLift": 0.304283
               },
               {
                 "playerId": 113,
@@ -24333,308 +24473,13 @@
                 },
                 "withoutPartner": {
                   "attended": 2,
-                  "opportunities": 11
-                },
-                "adjustedLift": 0.331359
-              }
-            ],
-            "score": 0.138587,
-            "reliability": 0.444444,
-            "source": "automatic"
-          },
-          {
-            "playerIds": [
-              74,
-              82
-            ],
-            "names": [
-              "稻草人",
-              "翠萍"
-            ],
-            "start": "2026-08-23",
-            "end": "2026-10-26",
-            "togetherSessions": 7,
-            "togetherDays": 7,
-            "attendanceDays": [
-              11,
-              15
-            ],
-            "opportunityDays": 36,
-            "raw": {
-              "both": 7,
-              "onlyA": 4,
-              "onlyB": 8,
-              "neither": 18,
-              "total": 37,
-              "attendanceA": 11,
-              "attendanceB": 15
-            },
-            "directions": [
-              {
-                "playerId": 74,
-                "partnerId": 82,
-                "withPartner": {
-                  "attended": 7,
-                  "opportunities": 15
-                },
-                "withoutPartner": {
-                  "attended": 4,
-                  "opportunities": 22
-                },
-                "adjustedLift": 0.236446
-              },
-              {
-                "playerId": 82,
-                "partnerId": 74,
-                "withPartner": {
-                  "attended": 7,
-                  "opportunities": 11
-                },
-                "withoutPartner": {
-                  "attended": 8,
-                  "opportunities": 26
-                },
-                "adjustedLift": 0.249715
-              }
-            ],
-            "score": 0.137927,
-            "reliability": 0.583333,
-            "source": "automatic"
-          },
-          {
-            "playerIds": [
-              13,
-              99
-            ],
-            "names": [
-              "甲乙丙",
-              "BLAGE"
-            ],
-            "start": "2026-09-15",
-            "end": "2026-10-26",
-            "togetherSessions": 4,
-            "togetherDays": 4,
-            "attendanceDays": [
-              5,
-              9
-            ],
-            "opportunityDays": 21,
-            "raw": {
-              "both": 4,
-              "onlyA": 1,
-              "onlyB": 5,
-              "neither": 12,
-              "total": 22,
-              "attendanceA": 5,
-              "attendanceB": 9
-            },
-            "directions": [
-              {
-                "playerId": 13,
-                "partnerId": 99,
-                "withPartner": {
-                  "attended": 4,
-                  "opportunities": 9
-                },
-                "withoutPartner": {
-                  "attended": 1,
-                  "opportunities": 13
-                },
-                "adjustedLift": 0.30396
-              },
-              {
-                "playerId": 99,
-                "partnerId": 13,
-                "withPartner": {
-                  "attended": 4,
-                  "opportunities": 5
-                },
-                "withoutPartner": {
-                  "attended": 5,
-                  "opportunities": 17
-                },
-                "adjustedLift": 0.333563
-              }
-            ],
-            "score": 0.135093,
-            "reliability": 0.444444,
-            "source": "automatic"
-          },
-          {
-            "playerIds": [
-              39,
-              95
-            ],
-            "names": [
-              "1fan",
-              "何11"
-            ],
-            "start": "2026-09-13",
-            "end": "2026-10-26",
-            "togetherSessions": 6,
-            "togetherDays": 6,
-            "attendanceDays": [
-              12,
-              8
-            ],
-            "opportunityDays": 23,
-            "raw": {
-              "both": 6,
-              "onlyA": 6,
-              "onlyB": 2,
-              "neither": 10,
-              "total": 24,
-              "attendanceA": 12,
-              "attendanceB": 8
-            },
-            "directions": [
-              {
-                "playerId": 39,
-                "partnerId": 95,
-                "withPartner": {
-                  "attended": 6,
-                  "opportunities": 8
-                },
-                "withoutPartner": {
-                  "attended": 6,
-                  "opportunities": 16
-                },
-                "adjustedLift": 0.256525
-              },
-              {
-                "playerId": 95,
-                "partnerId": 39,
-                "withPartner": {
-                  "attended": 6,
                   "opportunities": 12
                 },
-                "withoutPartner": {
-                  "attended": 2,
-                  "opportunities": 12
-                },
-                "adjustedLift": 0.247411
+                "adjustedLift": 0.342151
               }
             ],
-            "score": 0.134951,
-            "reliability": 0.545455,
-            "source": "automatic"
-          },
-          {
-            "playerIds": [
-              20,
-              40
-            ],
-            "names": [
-              "0.o",
-              "小孩哥"
-            ],
-            "start": "2026-07-29",
-            "end": "2026-10-26",
-            "togetherSessions": 6,
-            "togetherDays": 6,
-            "attendanceDays": [
-              15,
-              9
-            ],
-            "opportunityDays": 48,
-            "raw": {
-              "both": 6,
-              "onlyA": 9,
-              "onlyB": 3,
-              "neither": 31,
-              "total": 49,
-              "attendanceA": 15,
-              "attendanceB": 9
-            },
-            "directions": [
-              {
-                "playerId": 20,
-                "partnerId": 40,
-                "withPartner": {
-                  "attended": 6,
-                  "opportunities": 9
-                },
-                "withoutPartner": {
-                  "attended": 9,
-                  "opportunities": 40
-                },
-                "adjustedLift": 0.268668
-              },
-              {
-                "playerId": 40,
-                "partnerId": 20,
-                "withPartner": {
-                  "attended": 6,
-                  "opportunities": 15
-                },
-                "withoutPartner": {
-                  "attended": 3,
-                  "opportunities": 34
-                },
-                "adjustedLift": 0.241884
-              }
-            ],
-            "score": 0.131937,
-            "reliability": 0.545455,
-            "source": "automatic"
-          },
-          {
-            "playerIds": [
-              33,
-              35
-            ],
-            "names": [
-              "猪猪🐷朱圆玉润",
-              "Ni 姐姐"
-            ],
-            "start": "2026-07-29",
-            "end": "2026-10-26",
-            "togetherSessions": 8,
-            "togetherDays": 8,
-            "attendanceDays": [
-              16,
-              14
-            ],
-            "opportunityDays": 48,
-            "raw": {
-              "both": 8,
-              "onlyA": 8,
-              "onlyB": 6,
-              "neither": 27,
-              "total": 49,
-              "attendanceA": 16,
-              "attendanceB": 14
-            },
-            "directions": [
-              {
-                "playerId": 33,
-                "partnerId": 35,
-                "withPartner": {
-                  "attended": 8,
-                  "opportunities": 14
-                },
-                "withoutPartner": {
-                  "attended": 8,
-                  "opportunities": 35
-                },
-                "adjustedLift": 0.223037
-              },
-              {
-                "playerId": 35,
-                "partnerId": 33,
-                "withPartner": {
-                  "attended": 8,
-                  "opportunities": 16
-                },
-                "withoutPartner": {
-                  "attended": 6,
-                  "opportunities": 33
-                },
-                "adjustedLift": 0.21131
-              }
-            ],
-            "score": 0.130037,
-            "reliability": 0.615385,
+            "score": 0.135237,
+            "reliability": 0.444444,
             "source": "automatic"
           },
           {
@@ -24654,13 +24499,13 @@
               37,
               11
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 10,
               "onlyA": 28,
               "onlyB": 1,
-              "neither": 10,
-              "total": 49,
+              "neither": 11,
+              "total": 50,
               "attendanceA": 38,
               "attendanceB": 11
             },
@@ -24674,9 +24519,9 @@
                 },
                 "withoutPartner": {
                   "attended": 28,
-                  "opportunities": 38
+                  "opportunities": 39
                 },
-                "adjustedLift": 0.215191
+                "adjustedLift": 0.241026
               },
               {
                 "playerId": 59,
@@ -24687,14 +24532,1195 @@
                 },
                 "withoutPartner": {
                   "attended": 1,
-                  "opportunities": 11
+                  "opportunities": 12
                 },
-                "adjustedLift": 0.194386
+                "adjustedLift": 0.199241
               }
             ],
-            "score": 0.129591,
+            "score": 0.132828,
             "reliability": 0.666667,
             "source": "automatic"
+          },
+          {
+            "playerIds": [
+              33,
+              35
+            ],
+            "names": [
+              "猪猪🐷朱圆玉润",
+              "Ni 姐姐"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 8,
+            "togetherDays": 8,
+            "attendanceDays": [
+              16,
+              14
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 8,
+              "onlyA": 8,
+              "onlyB": 6,
+              "neither": 28,
+              "total": 50,
+              "attendanceA": 16,
+              "attendanceB": 14
+            },
+            "directions": [
+              {
+                "playerId": 33,
+                "partnerId": 35,
+                "withPartner": {
+                  "attended": 8,
+                  "opportunities": 14
+                },
+                "withoutPartner": {
+                  "attended": 8,
+                  "opportunities": 36
+                },
+                "adjustedLift": 0.23042
+              },
+              {
+                "playerId": 35,
+                "partnerId": 33,
+                "withPartner": {
+                  "attended": 8,
+                  "opportunities": 16
+                },
+                "withoutPartner": {
+                  "attended": 6,
+                  "opportunities": 34
+                },
+                "adjustedLift": 0.215384
+              }
+            ],
+            "score": 0.132544,
+            "reliability": 0.615385,
+            "source": "automatic"
+          },
+          {
+            "playerIds": [
+              1,
+              53
+            ],
+            "names": [
+              "阿达",
+              "oi"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 10,
+            "togetherDays": 10,
+            "attendanceDays": [
+              16,
+              19
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 10,
+              "onlyA": 6,
+              "onlyB": 9,
+              "neither": 25,
+              "total": 50,
+              "attendanceA": 16,
+              "attendanceB": 19
+            },
+            "directions": [
+              {
+                "playerId": 1,
+                "partnerId": 53,
+                "withPartner": {
+                  "attended": 10,
+                  "opportunities": 19
+                },
+                "withoutPartner": {
+                  "attended": 6,
+                  "opportunities": 31
+                },
+                "adjustedLift": 0.189769
+              },
+              {
+                "playerId": 53,
+                "partnerId": 1,
+                "withPartner": {
+                  "attended": 10,
+                  "opportunities": 16
+                },
+                "withoutPartner": {
+                  "attended": 9,
+                  "opportunities": 34
+                },
+                "adjustedLift": 0.232321
+              }
+            ],
+            "score": 0.126513,
+            "reliability": 0.666667,
+            "source": "automatic"
+          }
+        ],
+        "revision": 6
+      },
+      "automaticBestPartners": {
+        "version": "best-partners-v1",
+        "start": "2026-07-29",
+        "end": "2026-10-26",
+        "policy": {
+          "windowDays": 90,
+          "halfLifeDays": 30,
+          "priorStrength": 4,
+          "minAttendanceDays": 5,
+          "minTogetherDays": 3,
+          "minAbsentDays": 3,
+          "minTogetherSpanDays": 7,
+          "minAdjustedLift": 0.15,
+          "minScore": 0.12
+        },
+        "pairs": [
+          {
+            "playerIds": [
+              37,
+              39
+            ],
+            "names": [
+              "🎀 ～TomCat",
+              "1fan"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 21,
+            "togetherDays": 21,
+            "attendanceDays": [
+              21,
+              24
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 21,
+              "onlyA": 0,
+              "onlyB": 3,
+              "neither": 26,
+              "total": 50,
+              "attendanceA": 21,
+              "attendanceB": 24
+            },
+            "directions": [
+              {
+                "playerId": 37,
+                "partnerId": 39,
+                "withPartner": {
+                  "attended": 21,
+                  "opportunities": 24
+                },
+                "withoutPartner": {
+                  "attended": 0,
+                  "opportunities": 26
+                },
+                "adjustedLift": 0.651261
+              },
+              {
+                "playerId": 39,
+                "partnerId": 37,
+                "withPartner": {
+                  "attended": 21,
+                  "opportunities": 21
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 29
+                },
+                "adjustedLift": 0.658872
+              }
+            ],
+            "score": 0.526018,
+            "reliability": 0.807692
+          },
+          {
+            "playerIds": [
+              8,
+              9
+            ],
+            "names": [
+              "阿恒",
+              "柚子🍀"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 11,
+            "togetherDays": 11,
+            "attendanceDays": [
+              13,
+              15
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 11,
+              "onlyA": 2,
+              "onlyB": 4,
+              "neither": 33,
+              "total": 50,
+              "attendanceA": 13,
+              "attendanceB": 15
+            },
+            "directions": [
+              {
+                "playerId": 8,
+                "partnerId": 9,
+                "withPartner": {
+                  "attended": 11,
+                  "opportunities": 15
+                },
+                "withoutPartner": {
+                  "attended": 2,
+                  "opportunities": 35
+                },
+                "adjustedLift": 0.488306
+              },
+              {
+                "playerId": 9,
+                "partnerId": 8,
+                "withPartner": {
+                  "attended": 11,
+                  "opportunities": 13
+                },
+                "withoutPartner": {
+                  "attended": 4,
+                  "opportunities": 37
+                },
+                "adjustedLift": 0.504767
+              }
+            ],
+            "score": 0.33571,
+            "reliability": 0.6875
+          },
+          {
+            "playerIds": [
+              10,
+              45
+            ],
+            "names": [
+              "🌹",
+              "吕教"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 18,
+            "togetherDays": 18,
+            "attendanceDays": [
+              23,
+              22
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 18,
+              "onlyA": 5,
+              "onlyB": 5,
+              "neither": 22,
+              "total": 50,
+              "attendanceA": 23,
+              "attendanceB": 23
+            },
+            "directions": [
+              {
+                "playerId": 10,
+                "partnerId": 45,
+                "withPartner": {
+                  "attended": 18,
+                  "opportunities": 23
+                },
+                "withoutPartner": {
+                  "attended": 5,
+                  "opportunities": 27
+                },
+                "adjustedLift": 0.367251
+              },
+              {
+                "playerId": 45,
+                "partnerId": 10,
+                "withPartner": {
+                  "attended": 18,
+                  "opportunities": 23
+                },
+                "withoutPartner": {
+                  "attended": 5,
+                  "opportunities": 27
+                },
+                "adjustedLift": 0.369596
+              }
+            ],
+            "score": 0.287414,
+            "reliability": 0.782609
+          },
+          {
+            "playerIds": [
+              5,
+              17
+            ],
+            "names": [
+              "无",
+              "Baymax"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 8,
+            "togetherDays": 8,
+            "attendanceDays": [
+              11,
+              11
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 8,
+              "onlyA": 3,
+              "onlyB": 3,
+              "neither": 36,
+              "total": 50,
+              "attendanceA": 11,
+              "attendanceB": 11
+            },
+            "directions": [
+              {
+                "playerId": 5,
+                "partnerId": 17,
+                "withPartner": {
+                  "attended": 8,
+                  "opportunities": 11
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 39
+                },
+                "adjustedLift": 0.385497
+              },
+              {
+                "playerId": 17,
+                "partnerId": 5,
+                "withPartner": {
+                  "attended": 8,
+                  "opportunities": 11
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 39
+                },
+                "adjustedLift": 0.38655
+              }
+            ],
+            "score": 0.237229,
+            "reliability": 0.615385
+          },
+          {
+            "playerIds": [
+              45,
+              95
+            ],
+            "names": [
+              "吕教",
+              "何11"
+            ],
+            "start": "2026-09-13",
+            "end": "2026-10-26",
+            "togetherSessions": 7,
+            "togetherDays": 7,
+            "attendanceDays": [
+              9,
+              8
+            ],
+            "opportunityDays": 24,
+            "raw": {
+              "both": 7,
+              "onlyA": 3,
+              "onlyB": 1,
+              "neither": 14,
+              "total": 25,
+              "attendanceA": 10,
+              "attendanceB": 8
+            },
+            "directions": [
+              {
+                "playerId": 45,
+                "partnerId": 95,
+                "withPartner": {
+                  "attended": 7,
+                  "opportunities": 8
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 17
+                },
+                "adjustedLift": 0.415141
+              },
+              {
+                "playerId": 95,
+                "partnerId": 45,
+                "withPartner": {
+                  "attended": 7,
+                  "opportunities": 10
+                },
+                "withoutPartner": {
+                  "attended": 1,
+                  "opportunities": 15
+                },
+                "adjustedLift": 0.403974
+              }
+            ],
+            "score": 0.235652,
+            "reliability": 0.583333
+          },
+          {
+            "playerIds": [
+              9,
+              10
+            ],
+            "names": [
+              "柚子🍀",
+              "🌹"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 12,
+            "togetherDays": 12,
+            "attendanceDays": [
+              15,
+              23
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 12,
+              "onlyA": 3,
+              "onlyB": 11,
+              "neither": 24,
+              "total": 50,
+              "attendanceA": 15,
+              "attendanceB": 23
+            },
+            "directions": [
+              {
+                "playerId": 9,
+                "partnerId": 10,
+                "withPartner": {
+                  "attended": 12,
+                  "opportunities": 23
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 27
+                },
+                "adjustedLift": 0.324018
+              },
+              {
+                "playerId": 10,
+                "partnerId": 9,
+                "withPartner": {
+                  "attended": 12,
+                  "opportunities": 15
+                },
+                "withoutPartner": {
+                  "attended": 11,
+                  "opportunities": 35
+                },
+                "adjustedLift": 0.350841
+              }
+            ],
+            "score": 0.228719,
+            "reliability": 0.705882
+          },
+          {
+            "playerIds": [
+              5,
+              11
+            ],
+            "names": [
+              "无",
+              "Henry"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 9,
+            "togetherDays": 9,
+            "attendanceDays": [
+              11,
+              16
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 9,
+              "onlyA": 2,
+              "onlyB": 7,
+              "neither": 32,
+              "total": 50,
+              "attendanceA": 11,
+              "attendanceB": 16
+            },
+            "directions": [
+              {
+                "playerId": 5,
+                "partnerId": 11,
+                "withPartner": {
+                  "attended": 9,
+                  "opportunities": 16
+                },
+                "withoutPartner": {
+                  "attended": 2,
+                  "opportunities": 34
+                },
+                "adjustedLift": 0.347033
+              },
+              {
+                "playerId": 11,
+                "partnerId": 5,
+                "withPartner": {
+                  "attended": 9,
+                  "opportunities": 11
+                },
+                "withoutPartner": {
+                  "attended": 7,
+                  "opportunities": 39
+                },
+                "adjustedLift": 0.392533
+              }
+            ],
+            "score": 0.223093,
+            "reliability": 0.642857
+          },
+          {
+            "playerIds": [
+              10,
+              13
+            ],
+            "names": [
+              "🌹",
+              "甲乙丙"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 13,
+            "togetherDays": 13,
+            "attendanceDays": [
+              23,
+              16
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 13,
+              "onlyA": 10,
+              "onlyB": 3,
+              "neither": 24,
+              "total": 50,
+              "attendanceA": 23,
+              "attendanceB": 16
+            },
+            "directions": [
+              {
+                "playerId": 10,
+                "partnerId": 13,
+                "withPartner": {
+                  "attended": 13,
+                  "opportunities": 16
+                },
+                "withoutPartner": {
+                  "attended": 10,
+                  "opportunities": 34
+                },
+                "adjustedLift": 0.332755
+              },
+              {
+                "playerId": 13,
+                "partnerId": 10,
+                "withPartner": {
+                  "attended": 13,
+                  "opportunities": 23
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 27
+                },
+                "adjustedLift": 0.301875
+              }
+            ],
+            "score": 0.218021,
+            "reliability": 0.722222
+          },
+          {
+            "playerIds": [
+              8,
+              10
+            ],
+            "names": [
+              "阿恒",
+              "🌹"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 11,
+            "togetherDays": 11,
+            "attendanceDays": [
+              13,
+              23
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 11,
+              "onlyA": 2,
+              "onlyB": 12,
+              "neither": 25,
+              "total": 50,
+              "attendanceA": 13,
+              "attendanceB": 23
+            },
+            "directions": [
+              {
+                "playerId": 8,
+                "partnerId": 10,
+                "withPartner": {
+                  "attended": 11,
+                  "opportunities": 23
+                },
+                "withoutPartner": {
+                  "attended": 2,
+                  "opportunities": 27
+                },
+                "adjustedLift": 0.301392
+              },
+              {
+                "playerId": 10,
+                "partnerId": 8,
+                "withPartner": {
+                  "attended": 11,
+                  "opportunities": 13
+                },
+                "withoutPartner": {
+                  "attended": 12,
+                  "opportunities": 37
+                },
+                "adjustedLift": 0.337343
+              }
+            ],
+            "score": 0.207207,
+            "reliability": 0.6875
+          },
+          {
+            "playerIds": [
+              35,
+              39
+            ],
+            "names": [
+              "Ni 姐姐",
+              "1fan"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 12,
+            "togetherDays": 12,
+            "attendanceDays": [
+              14,
+              24
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 12,
+              "onlyA": 2,
+              "onlyB": 12,
+              "neither": 24,
+              "total": 50,
+              "attendanceA": 14,
+              "attendanceB": 24
+            },
+            "directions": [
+              {
+                "playerId": 35,
+                "partnerId": 39,
+                "withPartner": {
+                  "attended": 12,
+                  "opportunities": 24
+                },
+                "withoutPartner": {
+                  "attended": 2,
+                  "opportunities": 26
+                },
+                "adjustedLift": 0.280565
+              },
+              {
+                "playerId": 39,
+                "partnerId": 35,
+                "withPartner": {
+                  "attended": 12,
+                  "opportunities": 14
+                },
+                "withoutPartner": {
+                  "attended": 12,
+                  "opportunities": 36
+                },
+                "adjustedLift": 0.349698
+              }
+            ],
+            "score": 0.198046,
+            "reliability": 0.705882
+          },
+          {
+            "playerIds": [
+              11,
+              17
+            ],
+            "names": [
+              "Henry",
+              "Baymax"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 9,
+            "togetherDays": 9,
+            "attendanceDays": [
+              16,
+              11
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 9,
+              "onlyA": 7,
+              "onlyB": 2,
+              "neither": 32,
+              "total": 50,
+              "attendanceA": 16,
+              "attendanceB": 11
+            },
+            "directions": [
+              {
+                "playerId": 11,
+                "partnerId": 17,
+                "withPartner": {
+                  "attended": 9,
+                  "opportunities": 11
+                },
+                "withoutPartner": {
+                  "attended": 7,
+                  "opportunities": 39
+                },
+                "adjustedLift": 0.362656
+              },
+              {
+                "playerId": 17,
+                "partnerId": 11,
+                "withPartner": {
+                  "attended": 9,
+                  "opportunities": 16
+                },
+                "withoutPartner": {
+                  "attended": 2,
+                  "opportunities": 34
+                },
+                "adjustedLift": 0.303685
+              }
+            ],
+            "score": 0.195226,
+            "reliability": 0.642857
+          },
+          {
+            "playerIds": [
+              24,
+              113
+            ],
+            "names": [
+              "Hx7",
+              "沈松远"
+            ],
+            "start": "2026-09-21",
+            "end": "2026-10-26",
+            "togetherSessions": 5,
+            "togetherDays": 5,
+            "attendanceDays": [
+              6,
+              6
+            ],
+            "opportunityDays": 16,
+            "raw": {
+              "both": 5,
+              "onlyA": 1,
+              "onlyB": 1,
+              "neither": 10,
+              "total": 17,
+              "attendanceA": 6,
+              "attendanceB": 6
+            },
+            "directions": [
+              {
+                "playerId": 24,
+                "partnerId": 113,
+                "withPartner": {
+                  "attended": 5,
+                  "opportunities": 6
+                },
+                "withoutPartner": {
+                  "attended": 1,
+                  "opportunities": 11
+                },
+                "adjustedLift": 0.381354
+              },
+              {
+                "playerId": 113,
+                "partnerId": 24,
+                "withPartner": {
+                  "attended": 5,
+                  "opportunities": 6
+                },
+                "withoutPartner": {
+                  "attended": 1,
+                  "opportunities": 11
+                },
+                "adjustedLift": 0.377547
+              }
+            ],
+            "score": 0.188774,
+            "reliability": 0.5
+          },
+          {
+            "playerIds": [
+              53,
+              99
+            ],
+            "names": [
+              "oi",
+              "BLAGE"
+            ],
+            "start": "2026-09-15",
+            "end": "2026-10-26",
+            "togetherSessions": 7,
+            "togetherDays": 7,
+            "attendanceDays": [
+              10,
+              10
+            ],
+            "opportunityDays": 22,
+            "raw": {
+              "both": 7,
+              "onlyA": 3,
+              "onlyB": 3,
+              "neither": 10,
+              "total": 23,
+              "attendanceA": 10,
+              "attendanceB": 10
+            },
+            "directions": [
+              {
+                "playerId": 53,
+                "partnerId": 99,
+                "withPartner": {
+                  "attended": 7,
+                  "opportunities": 10
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 13
+                },
+                "adjustedLift": 0.317111
+              },
+              {
+                "playerId": 99,
+                "partnerId": 53,
+                "withPartner": {
+                  "attended": 7,
+                  "opportunities": 10
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 13
+                },
+                "adjustedLift": 0.311721
+              }
+            ],
+            "score": 0.181837,
+            "reliability": 0.583333
+          },
+          {
+            "playerIds": [
+              37,
+              83
+            ],
+            "names": [
+              "🎀 ～TomCat",
+              "！"
+            ],
+            "start": "2026-08-27",
+            "end": "2026-10-26",
+            "togetherSessions": 9,
+            "togetherDays": 9,
+            "attendanceDays": [
+              19,
+              11
+            ],
+            "opportunityDays": 35,
+            "raw": {
+              "both": 9,
+              "onlyA": 10,
+              "onlyB": 2,
+              "neither": 15,
+              "total": 36,
+              "attendanceA": 19,
+              "attendanceB": 11
+            },
+            "directions": [
+              {
+                "playerId": 37,
+                "partnerId": 83,
+                "withPartner": {
+                  "attended": 9,
+                  "opportunities": 11
+                },
+                "withoutPartner": {
+                  "attended": 10,
+                  "opportunities": 25
+                },
+                "adjustedLift": 0.304246
+              },
+              {
+                "playerId": 83,
+                "partnerId": 37,
+                "withPartner": {
+                  "attended": 9,
+                  "opportunities": 19
+                },
+                "withoutPartner": {
+                  "attended": 2,
+                  "opportunities": 17
+                },
+                "adjustedLift": 0.27627
+              }
+            ],
+            "score": 0.177602,
+            "reliability": 0.642857
+          },
+          {
+            "playerIds": [
+              39,
+              83
+            ],
+            "names": [
+              "1fan",
+              "！"
+            ],
+            "start": "2026-08-27",
+            "end": "2026-10-26",
+            "togetherSessions": 10,
+            "togetherDays": 10,
+            "attendanceDays": [
+              22,
+              11
+            ],
+            "opportunityDays": 35,
+            "raw": {
+              "both": 10,
+              "onlyA": 12,
+              "onlyB": 1,
+              "neither": 13,
+              "total": 36,
+              "attendanceA": 22,
+              "attendanceB": 11
+            },
+            "directions": [
+              {
+                "playerId": 39,
+                "partnerId": 83,
+                "withPartner": {
+                  "attended": 10,
+                  "opportunities": 11
+                },
+                "withoutPartner": {
+                  "attended": 12,
+                  "opportunities": 25
+                },
+                "adjustedLift": 0.308398
+              },
+              {
+                "playerId": 83,
+                "partnerId": 39,
+                "withPartner": {
+                  "attended": 10,
+                  "opportunities": 22
+                },
+                "withoutPartner": {
+                  "attended": 1,
+                  "opportunities": 14
+                },
+                "adjustedLift": 0.265654
+              }
+            ],
+            "score": 0.177103,
+            "reliability": 0.666667
+          },
+          {
+            "playerIds": [
+              13,
+              45
+            ],
+            "names": [
+              "甲乙丙",
+              "吕教"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 12,
+            "togetherDays": 12,
+            "attendanceDays": [
+              16,
+              22
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 12,
+              "onlyA": 4,
+              "onlyB": 11,
+              "neither": 23,
+              "total": 50,
+              "attendanceA": 16,
+              "attendanceB": 23
+            },
+            "directions": [
+              {
+                "playerId": 13,
+                "partnerId": 45,
+                "withPartner": {
+                  "attended": 12,
+                  "opportunities": 23
+                },
+                "withoutPartner": {
+                  "attended": 4,
+                  "opportunities": 27
+                },
+                "adjustedLift": 0.244036
+              },
+              {
+                "playerId": 45,
+                "partnerId": 13,
+                "withPartner": {
+                  "attended": 12,
+                  "opportunities": 16
+                },
+                "withoutPartner": {
+                  "attended": 11,
+                  "opportunities": 34
+                },
+                "adjustedLift": 0.270717
+              }
+            ],
+            "score": 0.172261,
+            "reliability": 0.705882
+          },
+          {
+            "playerIds": [
+              5,
+              6
+            ],
+            "names": [
+              "无",
+              "冯丽美"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 5,
+            "togetherDays": 5,
+            "attendanceDays": [
+              11,
+              7
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 5,
+              "onlyA": 6,
+              "onlyB": 2,
+              "neither": 37,
+              "total": 50,
+              "attendanceA": 11,
+              "attendanceB": 7
+            },
+            "directions": [
+              {
+                "playerId": 5,
+                "partnerId": 6,
+                "withPartner": {
+                  "attended": 5,
+                  "opportunities": 7
+                },
+                "withoutPartner": {
+                  "attended": 6,
+                  "opportunities": 43
+                },
+                "adjustedLift": 0.337526
+              },
+              {
+                "playerId": 6,
+                "partnerId": 5,
+                "withPartner": {
+                  "attended": 5,
+                  "opportunities": 11
+                },
+                "withoutPartner": {
+                  "attended": 2,
+                  "opportunities": 39
+                },
+                "adjustedLift": 0.312607
+              }
+            ],
+            "score": 0.156303,
+            "reliability": 0.5
+          },
+          {
+            "playerIds": [
+              6,
+              17
+            ],
+            "names": [
+              "冯丽美",
+              "Baymax"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 5,
+            "togetherDays": 5,
+            "attendanceDays": [
+              7,
+              11
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 5,
+              "onlyA": 2,
+              "onlyB": 6,
+              "neither": 37,
+              "total": 50,
+              "attendanceA": 7,
+              "attendanceB": 11
+            },
+            "directions": [
+              {
+                "playerId": 6,
+                "partnerId": 17,
+                "withPartner": {
+                  "attended": 5,
+                  "opportunities": 11
+                },
+                "withoutPartner": {
+                  "attended": 2,
+                  "opportunities": 39
+                },
+                "adjustedLift": 0.310966
+              },
+              {
+                "playerId": 17,
+                "partnerId": 6,
+                "withPartner": {
+                  "attended": 5,
+                  "opportunities": 7
+                },
+                "withoutPartner": {
+                  "attended": 6,
+                  "opportunities": 43
+                },
+                "adjustedLift": 0.336672
+              }
+            ],
+            "score": 0.155483,
+            "reliability": 0.5
           },
           {
             "playerIds": [
@@ -24713,13 +25739,13 @@
               23,
               37
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 18,
               "onlyA": 5,
               "onlyB": 20,
-              "neither": 6,
-              "total": 49,
+              "neither": 7,
+              "total": 50,
               "attendanceA": 23,
               "attendanceB": 38
             },
@@ -24733,9 +25759,9 @@
                 },
                 "withoutPartner": {
                   "attended": 5,
-                  "opportunities": 11
+                  "opportunities": 12
                 },
-                "adjustedLift": 0.178207
+                "adjustedLift": 0.209433
               },
               {
                 "playerId": 51,
@@ -24746,14 +25772,651 @@
                 },
                 "withoutPartner": {
                   "attended": 20,
-                  "opportunities": 26
+                  "opportunities": 27
                 },
-                "adjustedLift": 0.161992
+                "adjustedLift": 0.197778
               }
             ],
-            "score": 0.126776,
-            "reliability": 0.782609,
-            "source": "automatic"
+            "score": 0.154783,
+            "reliability": 0.782609
+          },
+          {
+            "playerIds": [
+              6,
+              29
+            ],
+            "names": [
+              "冯丽美",
+              "listen"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 4,
+            "togetherDays": 4,
+            "attendanceDays": [
+              7,
+              5
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 4,
+              "onlyA": 3,
+              "onlyB": 1,
+              "neither": 42,
+              "total": 50,
+              "attendanceA": 7,
+              "attendanceB": 5
+            },
+            "directions": [
+              {
+                "playerId": 6,
+                "partnerId": 29,
+                "withPartner": {
+                  "attended": 4,
+                  "opportunities": 5
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 45
+                },
+                "adjustedLift": 0.371627
+              },
+              {
+                "playerId": 29,
+                "partnerId": 6,
+                "withPartner": {
+                  "attended": 4,
+                  "opportunities": 7
+                },
+                "withoutPartner": {
+                  "attended": 1,
+                  "opportunities": 43
+                },
+                "adjustedLift": 0.347247
+              }
+            ],
+            "score": 0.154332,
+            "reliability": 0.444444
+          },
+          {
+            "playerIds": [
+              9,
+              122
+            ],
+            "names": [
+              "柚子🍀",
+              "罗"
+            ],
+            "start": "2026-10-11",
+            "end": "2026-10-26",
+            "togetherSessions": 4,
+            "togetherDays": 4,
+            "attendanceDays": [
+              5,
+              5
+            ],
+            "opportunityDays": 11,
+            "raw": {
+              "both": 4,
+              "onlyA": 1,
+              "onlyB": 1,
+              "neither": 6,
+              "total": 12,
+              "attendanceA": 5,
+              "attendanceB": 5
+            },
+            "directions": [
+              {
+                "playerId": 9,
+                "partnerId": 122,
+                "withPartner": {
+                  "attended": 4,
+                  "opportunities": 5
+                },
+                "withoutPartner": {
+                  "attended": 1,
+                  "opportunities": 7
+                },
+                "adjustedLift": 0.346319
+              },
+              {
+                "playerId": 122,
+                "partnerId": 9,
+                "withPartner": {
+                  "attended": 4,
+                  "opportunities": 5
+                },
+                "withoutPartner": {
+                  "attended": 1,
+                  "opportunities": 7
+                },
+                "adjustedLift": 0.345821
+              }
+            ],
+            "score": 0.153698,
+            "reliability": 0.444444
+          },
+          {
+            "playerIds": [
+              35,
+              37
+            ],
+            "names": [
+              "Ni 姐姐",
+              "🎀 ～TomCat"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 10,
+            "togetherDays": 10,
+            "attendanceDays": [
+              14,
+              21
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 10,
+              "onlyA": 4,
+              "onlyB": 11,
+              "neither": 25,
+              "total": 50,
+              "attendanceA": 14,
+              "attendanceB": 21
+            },
+            "directions": [
+              {
+                "playerId": 35,
+                "partnerId": 37,
+                "withPartner": {
+                  "attended": 10,
+                  "opportunities": 21
+                },
+                "withoutPartner": {
+                  "attended": 4,
+                  "opportunities": 29
+                },
+                "adjustedLift": 0.225743
+              },
+              {
+                "playerId": 37,
+                "partnerId": 35,
+                "withPartner": {
+                  "attended": 10,
+                  "opportunities": 14
+                },
+                "withoutPartner": {
+                  "attended": 11,
+                  "opportunities": 36
+                },
+                "adjustedLift": 0.284952
+              }
+            ],
+            "score": 0.150495,
+            "reliability": 0.666667
+          },
+          {
+            "playerIds": [
+              20,
+              95
+            ],
+            "names": [
+              "0.o",
+              "何11"
+            ],
+            "start": "2026-09-13",
+            "end": "2026-10-26",
+            "togetherSessions": 5,
+            "togetherDays": 5,
+            "attendanceDays": [
+              8,
+              8
+            ],
+            "opportunityDays": 24,
+            "raw": {
+              "both": 5,
+              "onlyA": 3,
+              "onlyB": 3,
+              "neither": 14,
+              "total": 25,
+              "attendanceA": 8,
+              "attendanceB": 8
+            },
+            "directions": [
+              {
+                "playerId": 20,
+                "partnerId": 95,
+                "withPartner": {
+                  "attended": 5,
+                  "opportunities": 8
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 17
+                },
+                "adjustedLift": 0.302302
+              },
+              {
+                "playerId": 95,
+                "partnerId": 20,
+                "withPartner": {
+                  "attended": 5,
+                  "opportunities": 8
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 17
+                },
+                "adjustedLift": 0.300078
+              }
+            ],
+            "score": 0.150039,
+            "reliability": 0.5
+          },
+          {
+            "playerIds": [
+              39,
+              95
+            ],
+            "names": [
+              "1fan",
+              "何11"
+            ],
+            "start": "2026-09-13",
+            "end": "2026-10-26",
+            "togetherSessions": 6,
+            "togetherDays": 6,
+            "attendanceDays": [
+              12,
+              8
+            ],
+            "opportunityDays": 24,
+            "raw": {
+              "both": 6,
+              "onlyA": 6,
+              "onlyB": 2,
+              "neither": 11,
+              "total": 25,
+              "attendanceA": 12,
+              "attendanceB": 8
+            },
+            "directions": [
+              {
+                "playerId": 39,
+                "partnerId": 95,
+                "withPartner": {
+                  "attended": 6,
+                  "opportunities": 8
+                },
+                "withoutPartner": {
+                  "attended": 6,
+                  "opportunities": 17
+                },
+                "adjustedLift": 0.276036
+              },
+              {
+                "playerId": 95,
+                "partnerId": 39,
+                "withPartner": {
+                  "attended": 6,
+                  "opportunities": 12
+                },
+                "withoutPartner": {
+                  "attended": 2,
+                  "opportunities": 13
+                },
+                "adjustedLift": 0.263819
+              }
+            ],
+            "score": 0.143901,
+            "reliability": 0.545455
+          },
+          {
+            "playerIds": [
+              1,
+              24
+            ],
+            "names": [
+              "阿达",
+              "Hx7"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 11,
+            "togetherDays": 11,
+            "attendanceDays": [
+              16,
+              22
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 11,
+              "onlyA": 5,
+              "onlyB": 11,
+              "neither": 23,
+              "total": 50,
+              "attendanceA": 16,
+              "attendanceB": 22
+            },
+            "directions": [
+              {
+                "playerId": 1,
+                "partnerId": 24,
+                "withPartner": {
+                  "attended": 11,
+                  "opportunities": 22
+                },
+                "withoutPartner": {
+                  "attended": 5,
+                  "opportunities": 28
+                },
+                "adjustedLift": 0.20593
+              },
+              {
+                "playerId": 24,
+                "partnerId": 1,
+                "withPartner": {
+                  "attended": 11,
+                  "opportunities": 16
+                },
+                "withoutPartner": {
+                  "attended": 11,
+                  "opportunities": 34
+                },
+                "adjustedLift": 0.251411
+              }
+            ],
+            "score": 0.141577,
+            "reliability": 0.6875
+          },
+          {
+            "playerIds": [
+              40,
+              113
+            ],
+            "names": [
+              "小孩哥",
+              "沈松远"
+            ],
+            "start": "2026-09-21",
+            "end": "2026-10-26",
+            "togetherSessions": 4,
+            "togetherDays": 4,
+            "attendanceDays": [
+              5,
+              6
+            ],
+            "opportunityDays": 16,
+            "raw": {
+              "both": 4,
+              "onlyA": 1,
+              "onlyB": 2,
+              "neither": 10,
+              "total": 17,
+              "attendanceA": 5,
+              "attendanceB": 6
+            },
+            "directions": [
+              {
+                "playerId": 40,
+                "partnerId": 113,
+                "withPartner": {
+                  "attended": 4,
+                  "opportunities": 6
+                },
+                "withoutPartner": {
+                  "attended": 1,
+                  "opportunities": 11
+                },
+                "adjustedLift": 0.304283
+              },
+              {
+                "playerId": 113,
+                "partnerId": 40,
+                "withPartner": {
+                  "attended": 4,
+                  "opportunities": 5
+                },
+                "withoutPartner": {
+                  "attended": 2,
+                  "opportunities": 12
+                },
+                "adjustedLift": 0.342151
+              }
+            ],
+            "score": 0.135237,
+            "reliability": 0.444444
+          },
+          {
+            "playerIds": [
+              20,
+              40
+            ],
+            "names": [
+              "0.o",
+              "小孩哥"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 6,
+            "togetherDays": 6,
+            "attendanceDays": [
+              15,
+              9
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 6,
+              "onlyA": 9,
+              "onlyB": 3,
+              "neither": 32,
+              "total": 50,
+              "attendanceA": 15,
+              "attendanceB": 9
+            },
+            "directions": [
+              {
+                "playerId": 20,
+                "partnerId": 40,
+                "withPartner": {
+                  "attended": 6,
+                  "opportunities": 9
+                },
+                "withoutPartner": {
+                  "attended": 9,
+                  "opportunities": 41
+                },
+                "adjustedLift": 0.276387
+              },
+              {
+                "playerId": 40,
+                "partnerId": 20,
+                "withPartner": {
+                  "attended": 6,
+                  "opportunities": 15
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 35
+                },
+                "adjustedLift": 0.247432
+              }
+            ],
+            "score": 0.134963,
+            "reliability": 0.545455
+          },
+          {
+            "playerIds": [
+              51,
+              59
+            ],
+            "names": [
+              "choi",
+              "俊"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 10,
+            "togetherDays": 10,
+            "attendanceDays": [
+              37,
+              11
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 10,
+              "onlyA": 28,
+              "onlyB": 1,
+              "neither": 11,
+              "total": 50,
+              "attendanceA": 38,
+              "attendanceB": 11
+            },
+            "directions": [
+              {
+                "playerId": 51,
+                "partnerId": 59,
+                "withPartner": {
+                  "attended": 10,
+                  "opportunities": 11
+                },
+                "withoutPartner": {
+                  "attended": 28,
+                  "opportunities": 39
+                },
+                "adjustedLift": 0.241026
+              },
+              {
+                "playerId": 59,
+                "partnerId": 51,
+                "withPartner": {
+                  "attended": 10,
+                  "opportunities": 38
+                },
+                "withoutPartner": {
+                  "attended": 1,
+                  "opportunities": 12
+                },
+                "adjustedLift": 0.199241
+              }
+            ],
+            "score": 0.132828,
+            "reliability": 0.666667
+          },
+          {
+            "playerIds": [
+              33,
+              35
+            ],
+            "names": [
+              "猪猪🐷朱圆玉润",
+              "Ni 姐姐"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 8,
+            "togetherDays": 8,
+            "attendanceDays": [
+              16,
+              14
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 8,
+              "onlyA": 8,
+              "onlyB": 6,
+              "neither": 28,
+              "total": 50,
+              "attendanceA": 16,
+              "attendanceB": 14
+            },
+            "directions": [
+              {
+                "playerId": 33,
+                "partnerId": 35,
+                "withPartner": {
+                  "attended": 8,
+                  "opportunities": 14
+                },
+                "withoutPartner": {
+                  "attended": 8,
+                  "opportunities": 36
+                },
+                "adjustedLift": 0.23042
+              },
+              {
+                "playerId": 35,
+                "partnerId": 33,
+                "withPartner": {
+                  "attended": 8,
+                  "opportunities": 16
+                },
+                "withoutPartner": {
+                  "attended": 6,
+                  "opportunities": 34
+                },
+                "adjustedLift": 0.215384
+              }
+            ],
+            "score": 0.132544,
+            "reliability": 0.615385
+          },
+          {
+            "playerIds": [
+              1,
+              53
+            ],
+            "names": [
+              "阿达",
+              "oi"
+            ],
+            "start": "2026-07-29",
+            "end": "2026-10-26",
+            "togetherSessions": 10,
+            "togetherDays": 10,
+            "attendanceDays": [
+              16,
+              19
+            ],
+            "opportunityDays": 49,
+            "raw": {
+              "both": 10,
+              "onlyA": 6,
+              "onlyB": 9,
+              "neither": 25,
+              "total": 50,
+              "attendanceA": 16,
+              "attendanceB": 19
+            },
+            "directions": [
+              {
+                "playerId": 1,
+                "partnerId": 53,
+                "withPartner": {
+                  "attended": 10,
+                  "opportunities": 19
+                },
+                "withoutPartner": {
+                  "attended": 6,
+                  "opportunities": 31
+                },
+                "adjustedLift": 0.189769
+              },
+              {
+                "playerId": 53,
+                "partnerId": 1,
+                "withPartner": {
+                  "attended": 10,
+                  "opportunities": 16
+                },
+                "withoutPartner": {
+                  "attended": 9,
+                  "opportunities": 34
+                },
+                "adjustedLift": 0.232321
+              }
+            ],
+            "score": 0.126513,
+            "reliability": 0.666667
           },
           {
             "playerIds": [
@@ -24772,13 +26435,13 @@
               13,
               10
             ],
-            "opportunityDays": 48,
+            "opportunityDays": 49,
             "raw": {
               "both": 6,
               "onlyA": 7,
               "onlyB": 4,
-              "neither": 32,
-              "total": 49,
+              "neither": 33,
+              "total": 50,
               "attendanceA": 13,
               "attendanceB": 10
             },
@@ -24792,9 +26455,9 @@
                 },
                 "withoutPartner": {
                   "attended": 7,
-                  "opportunities": 39
+                  "opportunities": 40
                 },
-                "adjustedLift": 0.301762
+                "adjustedLift": 0.306606
               },
               {
                 "playerId": 41,
@@ -24805,25 +26468,151 @@
                 },
                 "withoutPartner": {
                   "attended": 4,
-                  "opportunities": 36
+                  "opportunities": 37
                 },
-                "adjustedLift": 0.221892
+                "adjustedLift": 0.230231
               }
             ],
-            "score": 0.121032,
-            "reliability": 0.545455,
-            "source": "automatic"
+            "score": 0.125581,
+            "reliability": 0.545455
+          },
+          {
+            "playerIds": [
+              24,
+              94
+            ],
+            "names": [
+              "Hx7",
+              "Lee"
+            ],
+            "start": "2026-09-13",
+            "end": "2026-10-26",
+            "togetherSessions": 4,
+            "togetherDays": 4,
+            "attendanceDays": [
+              8,
+              7
+            ],
+            "opportunityDays": 24,
+            "raw": {
+              "both": 4,
+              "onlyA": 4,
+              "onlyB": 3,
+              "neither": 14,
+              "total": 25,
+              "attendanceA": 8,
+              "attendanceB": 7
+            },
+            "directions": [
+              {
+                "playerId": 24,
+                "partnerId": 94,
+                "withPartner": {
+                  "attended": 4,
+                  "opportunities": 7
+                },
+                "withoutPartner": {
+                  "attended": 4,
+                  "opportunities": 18
+                },
+                "adjustedLift": 0.29728
+              },
+              {
+                "playerId": 94,
+                "partnerId": 24,
+                "withPartner": {
+                  "attended": 4,
+                  "opportunities": 8
+                },
+                "withoutPartner": {
+                  "attended": 3,
+                  "opportunities": 17
+                },
+                "adjustedLift": 0.281345
+              }
+            ],
+            "score": 0.125042,
+            "reliability": 0.444444
           }
-        ],
-        "revision": 0
+        ]
       },
       "bestPartnerOverrides": {
         "version": "best-partner-overrides-v1",
-        "revision": 0,
+        "revision": 6,
         "manualPairs": [],
-        "excludedPairs": [],
-        "order": [],
-        "updatedAt": ""
+        "excludedPairs": [
+          {
+            "playerIds": [
+              24,
+              113
+            ],
+            "deletedAt": "2026-10-27T09:35:17.038Z"
+          },
+          {
+            "playerIds": [
+              20,
+              95
+            ],
+            "deletedAt": "2026-10-27T09:36:30.358Z"
+          },
+          {
+            "playerIds": [
+              39,
+              95
+            ],
+            "deletedAt": "2026-10-27T09:36:36.266Z"
+          },
+          {
+            "playerIds": [
+              20,
+              40
+            ],
+            "deletedAt": "2026-10-27T09:36:42.605Z"
+          },
+          {
+            "playerIds": [
+              24,
+              94
+            ],
+            "deletedAt": "2026-10-27T09:36:50.250Z"
+          },
+          {
+            "playerIds": [
+              8,
+              41
+            ],
+            "deletedAt": "2026-10-27T09:36:55.821Z"
+          }
+        ],
+        "order": [
+          "37:39",
+          "8:9",
+          "10:45",
+          "5:17",
+          "45:95",
+          "9:10",
+          "5:11",
+          "10:13",
+          "8:10",
+          "35:39",
+          "11:17",
+          "53:99",
+          "37:83",
+          "39:83",
+          "13:45",
+          "5:6",
+          "6:17",
+          "10:51",
+          "6:29",
+          "9:122",
+          "35:37",
+          "1:24",
+          "40:113",
+          "51:59",
+          "33:35",
+          "1:53"
+        ],
+        "updatedAt": "2026-10-27T09:36:55.821Z"
       },
       "lists": [
         {
@@ -24834,12 +26623,14 @@
             10,
             45,
             9,
+            53,
             37,
             39,
             8,
+            73,
             122,
             104,
-            53
+            36
           ]
         },
         {
@@ -24850,8 +26641,8 @@
             37,
             39,
             82,
-            59,
             99,
+            59,
             35,
             108
           ]
@@ -24862,18 +26653,18 @@
           "memberIds": [
             10,
             45,
+            53,
+            73,
             122,
             104,
-            53,
+            36,
             83,
             20,
-            73,
-            113,
-            36,
-            112,
             74,
-            40,
+            113,
+            112,
             24,
+            40,
             6,
             48,
             1,
@@ -24893,15 +26684,12 @@
             130,
             42,
             43,
-            99,
             57,
-            135,
             11,
             126,
             129,
             6,
             5,
-            94,
             29
           ]
         },
@@ -24914,7 +26702,6 @@
             83,
             20,
             82,
-            73,
             95,
             113,
             112,
@@ -24925,7 +26712,6 @@
             40,
             57,
             11,
-            24,
             126,
             129,
             6,
@@ -24933,7 +26719,6 @@
             5,
             120,
             17,
-            94,
             29,
             33
           ]
@@ -24946,23 +26731,26 @@
             10,
             45,
             9,
+            53,
             37,
             39,
             8,
+            73,
             122,
             104,
-            53,
+            36,
             83,
             20,
             82,
-            73,
+            74,
             95,
             13,
             97,
             113,
-            36,
             112,
-            74,
+            99,
+            135,
+            24,
             139,
             59,
             41,
@@ -24970,19 +26758,16 @@
             40,
             42,
             43,
-            99,
             57,
-            135,
             11,
-            24,
             126,
+            94,
             129,
             6,
             69,
             5,
             120,
             17,
-            94,
             29,
             35,
             33
@@ -24994,20 +26779,20 @@
           "memberIds": [
             37,
             39,
+            73,
             83,
             82,
-            73,
-            97,
             74,
+            97,
+            24,
             139,
             42,
-            24,
+            94,
             6,
             69,
             5,
             120,
             17,
-            94,
             29,
             35,
             33
@@ -25020,39 +26805,39 @@
             10,
             45,
             9,
+            53,
             37,
             39,
             8,
+            73,
             122,
             104,
-            53,
+            36,
             83,
             82,
-            73,
+            74,
             95,
             13,
             97,
             113,
-            36,
             112,
-            74,
+            99,
+            135,
+            24,
             139,
             41,
             130,
             42,
             43,
-            99,
             57,
-            135,
             11,
-            24,
             126,
+            94,
             129,
             6,
             5,
             120,
             17,
-            94,
             29,
             35
           ]
@@ -25065,14 +26850,14 @@
             8,
             122,
             83,
-            97,
             74,
+            97,
+            135,
             139,
             130,
             42,
             43,
             57,
-            135,
             126,
             129,
             69
@@ -25083,28 +26868,28 @@
           "label": "不打周六的成员",
           "memberIds": [
             53,
+            36,
             20,
             95,
             113,
-            36,
+            99,
+            135,
+            24,
             59,
             41,
             130,
             40,
             42,
             43,
-            99,
             57,
-            135,
             11,
-            24,
             126,
+            94,
             6,
             69,
             5,
             120,
             17,
-            94,
             29,
             35,
             33
@@ -25121,6 +26906,8 @@
             13,
             97,
             112,
+            99,
+            135,
             139,
             59,
             41,
@@ -25128,16 +26915,14 @@
             40,
             42,
             43,
-            99,
             57,
-            135,
             11,
             126,
+            94,
             129,
             6,
             5,
             17,
-            94,
             29,
             35,
             33
@@ -25147,19 +26932,19 @@
           "key": "weeklyMax1",
           "label": "每周最多打一局的成员",
           "memberIds": [
+            99,
             139,
             41,
             130,
             42,
             43,
-            99,
             57,
             126,
+            94,
             6,
             69,
             5,
             17,
-            94,
             29,
             35
           ]
@@ -25168,23 +26953,23 @@
           "key": "weeklyMax2",
           "label": "每周最多打两局的成员",
           "memberIds": [
+            53,
             37,
             39,
             8,
+            73,
             122,
-            53,
+            36,
             83,
             20,
-            73,
+            74,
             95,
             13,
             97,
-            36,
-            74,
-            40,
             135,
-            11,
             24,
+            40,
+            11,
             129,
             120,
             33
@@ -25203,26 +26988,22 @@
             5,
             17,
             95,
-            24,
-            113,
             11,
             13,
             35,
-            83,
-            36,
-            51,
-            1,
-            6,
-            29,
             53,
             99,
-            20,
+            83,
+            6,
+            51,
+            29,
+            122,
+            1,
+            24,
             40,
-            74,
-            82,
-            33,
+            113,
             59,
-            41
+            33
           ]
         }
       ]

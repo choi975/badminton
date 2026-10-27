@@ -382,7 +382,7 @@
     return {
       version: VERSION, asOf: date, generatedAt: new Date(now).toISOString(),
       windows: { start15, start30, start60, end: date }, activeMemberCount: members.length,
-      calendar: holidayCalendar, missingCalendarYears: [...missingYears], members, bestPartners, bestPartnerOverrides: normalizePartnerOverrides(bestPartnerOverrides),
+      calendar: holidayCalendar, missingCalendarYears: [...missingYears], members, bestPartners, automaticBestPartners: { ...automatic, requestedEvidence: undefined }, bestPartnerOverrides: normalizePartnerOverrides(bestPartnerOverrides),
       lists: DEFINITIONS.map((definition) => ({ ...definition, memberIds: definition.key === "bestPartners" ? [...partnerIds] : members.filter((member) => matching(definition.key, member)).map((member) => member.playerId) })),
     };
   }
