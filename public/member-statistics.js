@@ -1,7 +1,7 @@
 (function attachMemberStatistics(root) {
   "use strict";
   const DAY_MS = 86400000;
-  const VERSION = "member-statistics-v4";
+  const VERSION = "member-statistics-v5";
   const DEFINITIONS = [
     { key: "attendance15", label: "近半个月出勤率排名" },
     { key: "threeDayStreak", label: "能够连打三天的成员" },
@@ -82,7 +82,7 @@
   }
   function conditionalLift(table) {
     const t = tableRates(table), prior = PARTNER_POLICY.priorStrength;
-    const baseA = t.attendanceA / t.total, baseB = t.attendanceB / t.total;
+    const baseA = t.total ? t.attendanceA / t.total : 0, baseB = t.total ? t.attendanceB / t.total : 0;
     const aWithB = (t.both + prior * baseA) / (t.attendanceB + prior);
     const aWithoutB = (t.onlyA + prior * baseA) / (t.total - t.attendanceB + prior);
     const bWithA = (t.both + prior * baseB) / (t.attendanceA + prior);
@@ -102,9 +102,109 @@
     return { aLift: varianceB > 1e-9 ? covariance / varianceB : 0,
       bLift: varianceA > 1e-9 ? covariance / varianceA : 0 };
   }
-  function buildBestPartners({ players = [], sessions = [], asOf, calendar, includeDiagnostics = false } = {}) {
+
+  function partnerKey(playerIds) {
+    if (!Array.isArray(playerIds) || playerIds.length !== 2) return "";
+    const ids = playerIds.map(Number).sort((a, b) => a - b);
+    return ids.every((id) => Number.isSafeInteger(id) && id > 0) && ids[0] !== ids[1] ? ids.join(":") : "";
+  }
+
+  function normalizePartnerOverrides(value) {
+    if (typeof value === "string") { try { value = JSON.parse(value); } catch { value = null; } }
+    const normalizePairs = (rows, timeKey) => {
+      const unique = new Map();
+      for (const row of Array.isArray(rows) ? rows.slice(0, 5000) : []) {
+        const key = partnerKey(row?.playerIds);
+        if (!key) continue;
+        unique.set(key, { playerIds: key.split(":").map(Number),
+          [timeKey]: Number.isFinite(Date.parse(row[timeKey])) ? new Date(row[timeKey]).toISOString() : "" });
+      }
+      return [...unique.values()];
+    };
+    return {
+      version: "best-partner-overrides-v1",
+      revision: Number.isSafeInteger(value?.revision) && value.revision >= 0 ? value.revision : 0,
+      manualPairs: normalizePairs(value?.manualPairs, "createdAt"),
+      excludedPairs: normalizePairs(value?.excludedPairs, "deletedAt"),
+      order: [...new Set((Array.isArray(value?.order) ? value.order.slice(0, 5000) : [])
+        .map((key) => partnerKey(String(key).split(":"))).filter(Boolean))],
+      updatedAt: Number.isFinite(Date.parse(value?.updatedAt)) ? new Date(value.updatedAt).toISOString() : "",
+    };
+  }
+
+  function effectivePartnerOverrides(value, now) {
+    const data = normalizePartnerOverrides(value), at = new Date(now).getTime();
+    const visible = (row, field) => !row[field] || Date.parse(row[field]) <= at;
+    return { ...data, manualPairs: data.manualPairs.filter((row) => visible(row, "createdAt")),
+      excludedPairs: data.excludedPairs.filter((row) => visible(row, "deletedAt")) };
+  }
+
+  function resolveBestPartners(automatic, overrides, players) {
+    const known = new Set(players.map((player) => Number(player.id)));
+    const excluded = new Set(overrides.excludedPairs.map((pair) => partnerKey(pair.playerIds)));
+    const pairs = new Map(automatic.pairs.map((pair) => [partnerKey(pair.playerIds), { ...pair, source: "automatic" }]));
+    const evidence = new Map((automatic.requestedEvidence || []).map((pair) => [partnerKey(pair.playerIds), pair]));
+    for (const manual of overrides.manualPairs) {
+      const key = partnerKey(manual.playerIds);
+      if (!manual.playerIds.every((id) => known.has(id))) continue;
+      const pair = evidence.get(key) || pairs.get(key);
+      if (pair) pairs.set(key, { ...pair, source: "manual", createdAt: manual.createdAt });
+    }
+    for (const key of excluded) pairs.delete(key);
+    const order = new Map(overrides.order.map((key, index) => [key, index]));
+    const sorted = [...pairs.entries()].sort(([a, left], [b, right]) =>
+      (order.get(a) ?? Infinity) - (order.get(b) ?? Infinity)
+      || right.score - left.score || right.togetherDays - left.togetherDays
+      || left.playerIds[0] - right.playerIds[0] || left.playerIds[1] - right.playerIds[1]);
+    const { requestedEvidence, ...result } = automatic;
+    return { ...result, version: "best-partners-v2", revision: overrides.revision, pairs: sorted.map(([, pair]) => pair) };
+  }
+
+  function editPartnerOverrides({ overrides, pairs, players, action, playerIds, direction, now = new Date() }) {
+    const value = normalizePartnerOverrides(overrides), key = partnerKey(playerIds);
+    const known = new Set(players.map((player) => Number(player.id)));
+    if (!key || !key.split(":").map(Number).every((id) => known.has(id))) throw new Error("请选择两位不同的已有成员");
+    const keys = pairs.map((pair) => partnerKey(pair.playerIds)), index = keys.indexOf(key);
+    const ids = key.split(":").map(Number), timestamp = new Date(now).toISOString();
+    if (action === "create") {
+      if (index >= 0) throw new Error("这组最佳拍档已在名单中");
+      value.manualPairs = [...value.manualPairs.filter((pair) => partnerKey(pair.playerIds) !== key), { playerIds: ids, createdAt: timestamp }];
+      value.excludedPairs = value.excludedPairs.filter((pair) => partnerKey(pair.playerIds) !== key);
+      value.order = [key, ...keys];
+    } else if (action === "delete") {
+      if (index < 0) throw new Error("这组最佳拍档已不在名单中，请刷新后重试");
+      value.manualPairs = value.manualPairs.filter((pair) => partnerKey(pair.playerIds) !== key);
+      value.excludedPairs = [...value.excludedPairs.filter((pair) => partnerKey(pair.playerIds) !== key), { playerIds: ids, deletedAt: timestamp }];
+      value.order = keys.filter((item) => item !== key);
+    } else if (action === "move") {
+      if (index < 0 || !["up", "down"].includes(direction)) throw new Error("排名调整无效，请刷新后重试");
+      const next = index + (direction === "up" ? -1 : 1);
+      if (next < 0 || next >= keys.length) throw new Error("已经到达名单边界");
+      [keys[index], keys[next]] = [keys[next], keys[index]];
+      value.order = keys;
+    } else throw new Error("不支持的拍档操作");
+    if (value.manualPairs.length > 5000 || value.excludedPairs.length > 5000 || value.order.length > 5000) throw new Error("拍档配置数量超过上限");
+    return { ...value, revision: value.revision + 1, updatedAt: timestamp };
+  }
+
+  function partnerIdsMap(statistics) {
+    const map = new Map();
+    for (const pair of statistics?.bestPartners?.pairs || statistics?.pairs || []) {
+      if (!partnerKey(pair.playerIds)) continue;
+      const [a, b] = pair.playerIds.map(Number);
+      if (!map.has(a)) map.set(a, []);
+      if (!map.has(b)) map.set(b, []);
+      if (!map.get(a).includes(b)) map.get(a).push(b);
+      if (!map.get(b).includes(a)) map.get(b).push(a);
+    }
+    return map;
+  }
+
+  function buildBestPartners({ players = [], sessions = [], asOf, calendar, includeDiagnostics = false, includePairs = [] } = {}) {
     const date = validDate(asOf) ? asOf : addDays(beijingDate(), -1);
     const start90 = addDays(date, -(PARTNER_POLICY.windowDays - 1)), start30 = addDays(date, -29);
+    const requested = new Set(includePairs.map((pair) => partnerKey(pair.playerIds)).filter(Boolean));
+    const requestedIds = new Set([...requested].flatMap((key) => key.split(":").map(Number)));
     const knownIds = new Set(players.map((p) => Number(p.id)));
     const normalizedCalendar = normalizeCalendar(calendar), excluded = new Set(normalizedCalendar.excludedDates);
     const seenSessions = new Set(), firstAttendance = new Map(), dayCounts = new Map();
@@ -133,13 +233,17 @@
     const members = players.map((player) => {
       const id = Number(player.id), attendance = records.filter((r) => r.ids.has(id));
       return { id, name: String(player.name || "").split(/[,，]/)[0].trim(),
-        start: memberStartDate(player, firstAttendance.get(id)),
+        start: memberStartDate(player, firstAttendance.get(id)) || date,
         days: new Set(attendance.map((r) => r.date)), active: attendance.some((r) => r.date >= start30) };
-    }).filter((p) => p.start && p.active && p.days.size >= PARTNER_POLICY.minAttendanceDays)
+    }).map((p) => ({ ...p, autoEligible: p.active && p.days.size >= PARTNER_POLICY.minAttendanceDays }))
+      .filter((p) => p.autoEligible || requestedIds.has(p.id))
       .sort((a, b) => a.id - b.id);
-    const pairs = [], diagnostics = [];
+    const pairs = [], diagnostics = [], requestedEvidence = [];
     for (let i = 0; i < members.length; i++) for (let j = i + 1; j < members.length; j++) {
-      const a = members[i], b = members[j], pairStart = [start90, a.start, b.start].sort().at(-1);
+      const a = members[i], b = members[j];
+      const requestedPair = requested.has(partnerKey([a.id, b.id]));
+      if (!(a.autoEligible && b.autoEligible) && !requestedPair) continue;
+      const pairStart = [start90, a.start, b.start].sort().at(-1);
       const raw = [0, 0, 0, 0], weighted = [0, 0, 0, 0];
       const weekdays = new Map(), periods = new Map();
       const aDays = new Set(), bDays = new Set(), togetherDays = new Set(), opportunityDays = new Set();
@@ -157,7 +261,7 @@
           strata.get(key)[cell] += row.weight;
         }
       }
-      if (!raw.some(Boolean)) continue;
+      if (!raw.some(Boolean) && !requestedPair) continue;
       const rawRates = tableRates(raw), conditional = conditionalLift(weighted);
       const weekdayAdjusted = adjustedLift(weekdays), periodAdjusted = adjustedLift(periods);
       const aLift = Math.min(conditional.aLift, weekdayAdjusted.aLift, periodAdjusted.aLift);
@@ -187,16 +291,17 @@
             withoutPartner: { attended: rawRates.onlyB, opportunities: rawRates.total - rawRates.attendanceA }, adjustedLift: round(bLift) },
         ], score: round(score), reliability: round(reliability),
       };
-      if (!reasons.length) pairs.push(pair);
+      if (!reasons.length && a.autoEligible && b.autoEligible) pairs.push(pair);
+      if (requestedPair) requestedEvidence.push(pair);
       if (includeDiagnostics) diagnostics.push({ ...pair, qualified: !reasons.length, reasons,
         conditional, weekdayAdjusted, periodAdjusted });
     }
     pairs.sort((a, b) => b.score - a.score || b.togetherDays - a.togetherDays || a.playerIds[0] - b.playerIds[0] || a.playerIds[1] - b.playerIds[1]);
     return { version: "best-partners-v1", start: start90, end: date, policy: PARTNER_POLICY, pairs,
-      ...(includeDiagnostics ? { diagnostics } : {}) };
+      ...(includeDiagnostics ? { diagnostics } : {}), ...(requested.size ? { requestedEvidence } : {}) };
   }
 
-  function build({ players = [], sessions = [], now = new Date(), asOf, calendar } = {}) {
+  function build({ players = [], sessions = [], now = new Date(), asOf, calendar, bestPartnerOverrides } = {}) {
     const date = validDate(asOf) ? asOf : addDays(beijingDate(now), -1);
     const start60 = addDays(date, -59), start30 = addDays(date, -29), start15 = addDays(date, -14);
     const holidayCalendar = normalizeCalendar(calendar);
@@ -260,7 +365,9 @@
       member.rank15 = rank;
     });
     const attendanceCutoff = Math.max(1, members[9]?.attendance15 || 0);
-    const bestPartners = buildBestPartners({ players, sessions, asOf: date, calendar: holidayCalendar });
+    const overrides = effectivePartnerOverrides(bestPartnerOverrides, now);
+    const automatic = buildBestPartners({ players, sessions, asOf: date, calendar: holidayCalendar, includePairs: overrides.manualPairs });
+    const bestPartners = resolveBestPartners(automatic, overrides, players);
     const partnerIds = new Set(bestPartners.pairs.flatMap((pair) => pair.playerIds));
     const matching = (key, member) => {
       if (key === "attendance15") return member.attendance15 >= attendanceCutoff;
@@ -275,30 +382,45 @@
     return {
       version: VERSION, asOf: date, generatedAt: new Date(now).toISOString(),
       windows: { start15, start30, start60, end: date }, activeMemberCount: members.length,
-      calendar: holidayCalendar, missingCalendarYears: [...missingYears], members, bestPartners,
-      lists: DEFINITIONS.map((definition) => ({ ...definition, memberIds: members.filter((member) => matching(definition.key, member)).map((member) => member.playerId) })),
+      calendar: holidayCalendar, missingCalendarYears: [...missingYears], members, bestPartners, bestPartnerOverrides: normalizePartnerOverrides(bestPartnerOverrides),
+      lists: DEFINITIONS.map((definition) => ({ ...definition, memberIds: definition.key === "bestPartners" ? [...partnerIds] : members.filter((member) => matching(definition.key, member)).map((member) => member.playerId) })),
     };
   }
 
-  function recommendationTags({ statistics, playerId, targetDate, currentCount = 0 } = {}) {
-    const member = statistics?.members?.find((row) => row.playerId === Number(playerId));
+  // Tags and model constraints share membership gates. Historical habits are not bans.
+  function predictionFeatures({ statistics, playerId, targetDate, currentCount = 0, joinedPlayerIds = [] } = {}) {
+    const id = Number(playerId), member = statistics?.members?.find((row) => row.playerId === id);
+    const inList = (key) => Boolean(statistics?.lists?.find((list) => list.key === key)?.memberIds.includes(id));
+    const joined = new Set([...joinedPlayerIds].map(Number));
+    const friendIds = (partnerIdsMap(statistics).get(id) || []).filter((other) => joined.has(other));
+    const valid = validDate(targetDate);
+    const recentDays = member?.dates60?.filter((date) => date >= statistics.windows.start15) || [];
+    const weeklyLimit = inList("weeklyMax1") ? 1 : inList("weeklyMax2") ? 2 : null;
+    const weeklyCount = valid ? (member?.weeklyCounts30?.[weekStart(targetDate)] || 0) : 0;
+    return {
+      member, friendIds,
+      recentFrequent: inList("attendance15") && recentDays.length >= 2,
+      weekdayAvoided: valid && isOrdinaryDate(targetDate, statistics?.calendar) && inList("noWeekday" + weekday(targetDate)),
+      weeklyLimit, weeklyCount, weeklyRemaining: weeklyLimit === null ? null : weeklyLimit - weeklyCount,
+      weeklyLimitReached: weeklyLimit !== null && weeklyCount >= weeklyLimit,
+      onlyLargeSessions: inList("onlyLargeSessions"),
+      largeRisk: inList("onlyLargeSessions") && Number(currentCount) < 11,
+      habitConfidence: (member?.attendance30 || 0) >= 2 ? member.attendance30 / (member.attendance30 + 6) : 0,
+      capacity: inList("threeDayStreak") ? 3 : inList("twoDayStreak") ? 2 : 1,
+    };
+  }
+
+  function recommendationTags(options = {}) {
+    const { targetDate } = options, features = predictionFeatures(options);
     const reasons = [], risks = [];
-    if (!member || !validDate(targetDate)) return { reasons, risks };
-    const inList = (key) => statistics.lists?.find((list) => list.key === key)?.memberIds.includes(member.playerId);
-    // A single day cannot establish a frequent-playing habit, even if it has multiple bookings.
-    const recentDays = member.dates60.filter((date) => date >= statistics.windows.start15);
-    if (inList("attendance15") && recentDays.length >= 2) reasons.push("近期常打");
-    const day = weekday(targetDate);
-    if (isOrdinaryDate(targetDate, statistics.calendar) && inList(`noWeekday${day}`)) {
-      risks.push(`周${"日一二三四五六"[day]}可能无法打球`);
-    }
-    const limit = inList("weeklyMax1") ? 1 : inList("weeklyMax2") ? 2 : null;
-    if (limit !== null && (member.weeklyCounts30[weekStart(targetDate)] || 0) >= limit) {
-      risks.push(`每周可能最多打${limit}局`);
-    }
-    if (inList("onlyLargeSessions") && Number(currentCount) <= 10) risks.push("可能不喜欢人少的局");
+    if (!validDate(targetDate)) return { reasons, risks };
+    if (features.recentFrequent) reasons.push("近期常打");
+    if (features.weekdayAvoided) risks.push("周" + "日一二三四五六"[weekday(targetDate)] + "可能无法打球");
+    if (features.weeklyLimitReached) risks.push("每周可能最多打" + features.weeklyLimit + "局");
+    if (features.largeRisk) risks.push("可能不喜欢人少的局");
+    if (features.friendIds.length) reasons.push("与已接龙成员是朋友");
     return { reasons, risks };
   }
 
-  root.BadmintonMemberStatistics = Object.freeze({ VERSION, DEFINITIONS, PARTNER_POLICY, build, buildBestPartners, recommendationTags, validDate, beijingDate, addDays, weekStart, normalizeCalendar, isOrdinaryDate });
+  root.BadmintonMemberStatistics = Object.freeze({ VERSION, DEFINITIONS, PARTNER_POLICY, build, buildBestPartners, recommendationTags, predictionFeatures, partnerKey, normalizePartnerOverrides, effectivePartnerOverrides, editPartnerOverrides, partnerIdsMap, validDate, beijingDate, addDays, weekStart, normalizeCalendar, isOrdinaryDate });
 })(globalThis);

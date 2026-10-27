@@ -47,7 +47,7 @@ assert.ok(!tags(build([...history, small])).risks.includes("可能不喜欢人�
 assert.deepEqual(core.recommendationTags({ statistics: initial, playerId: 999, targetDate }), { reasons: [], risks: [] });
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-const helperContext = vm.createContext({ BadmintonMemberStatistics: core });
+const helperContext = vm.createContext({ BadmintonMemberStatistics: core, getJoinedSelfPlayerIds: () => new Set(), getPlayerById: () => null, firstName: (name) => name });
 vm.runInContext(html.slice(html.indexOf("    function getShakeRecommendationBadges("), html.indexOf("    function shakeProbabilityValue(")), helperContext);
 const obsolete = ["近期更常来", "历史参与较多", "常带随行人员", "近期常带随行人员", "近30天参与3天", "10人及以下时可能退出", "近30天未在普通同星期接龙", "已达到近30天观察到的每周局数上限"];
 const item = { player: players[0], reasons: [...obsolete, "水平相近"], risks: ["每周可能最多打1局", "周一可能无法打球", "可能不喜欢人少的局"] };
@@ -60,6 +60,10 @@ assert.ok(!badges(initial, 11).includes("可能不喜欢人少的局"));
 assert.ok(badges(initial).includes("水平相近"));
 assert.ok(!badges(initial).includes("周一可能无法打球"));
 assert.deepEqual(Array.from(helperContext.getShakeRecommendationBadges({ player: players[0] }, initial, targetDate, 11), b => b.text), ["近期常打", "周五可能无法打球", "每周可能最多打1局"], "fallback uses the same statistics labels");
+helperContext.getJoinedSelfPlayerIds = () => new Set([2]);
+const sparseFriend = { ...one, bestPartners: { pairs: [{ playerIds: [1, 2] }] } };
+assert.ok(Array.from(helperContext.getShakeRecommendationBadges({ player: players[0], risks: ["近期较少参与"] }, sparseFriend, targetDate, 5), b => b.text).includes("近期较少参与"), "having a friend is not evidence of frequent attendance and must not hide low-participation risk");
+helperContext.getJoinedSelfPlayerIds = () => new Set();
 const listSource = html.slice(html.indexOf("    function renderShakePeopleList("), html.indexOf("    function toggleShakePersonBottom("));
 assert.match(listSource, /currentCount = state.chainEntries.length/, "all actual roster entries, including companions, count");
 assert.match(listSource, /getShakeRecommendationBadges/);

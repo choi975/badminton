@@ -257,8 +257,8 @@ const staminaProtected = estimate({
 });
 const tiredProbability = fatigued.candidates.find((candidate) => candidate.playerId === 10).attendanceProbability;
 const restedProbability = staminaProtected.candidates.find((candidate) => candidate.playerId === 10).attendanceProbability;
-assert.ok(restedProbability > tiredProbability * 2, "a recent two-day streak should avoid the 20% fatigue multiplier after one prior day");
-assert.ok(fatigued.candidates.find((candidate) => candidate.playerId === 10).risks.some((risk) => risk.includes("体力")));
+assert.ok(restedProbability > 0 && tiredProbability > 0, "stamina is a soft estimate, not a manual ban");
+assert.ok(fatigued.candidates.find((candidate) => candidate.playerId === 10).factors.fatigueOddsMultiplier >= 0.8, "absence of comparable consecutive-day opportunities must not imply a 20% fatigue multiplier");
 
 const largePlayers = makePlayers(16);
 const largeHistory = [...buildHistory(largePlayers, { days: 70, largePlayerId: 10 }), session("2026-08-03", [1, 2, 3, 4, 5, 6])];
@@ -367,11 +367,9 @@ const lowSocial = estimate({
   },
   counterfactualSimulations: 500,
 });
-assert.ok(
-  highSocial.candidates.find((candidate) => candidate.playerId === 3).uplift
-    > lowSocial.candidates.find((candidate) => candidate.playerId === 3).uplift,
-  "candidate counterfactual must include the extra arrivals caused by their social links",
-);
+assert.equal(highSocial.candidates.find((candidate) => candidate.playerId === 3).factors.friendOddsMultiplier, 1);
+assert.equal(lowSocial.candidates.find((candidate) => candidate.playerId === 3).factors.friendOddsMultiplier, 1,
+  "coattendance alone must not create a friend bonus; only the effective partner list does");
 
 const noTodayEntries = estimate({ sessions: fatigueSessions, entries: [] });
 const strongTodayAttendance = estimate({
@@ -446,13 +444,18 @@ const atTen = estimate({ entries: [], now: "2026-09-04T10:00:00+08:00", seed: un
 const atTenOhOne = estimate({ entries: [], now: "2026-09-04T10:01:00+08:00", seed: undefined });
 assert.ok(Math.abs(atTen.todayProbability - atTenOhOne.todayProbability) <= 0.03, "one minute should only move probability through the continuous time formula, not a new random seed");
 
+const documentedFatigueSignals = { members: Object.fromEntries(players.map((player) => [player.id, {
+  secondDayRate: 0.02, secondDayEvidence: 60, thirdDayRate: 0.01, thirdDayEvidence: 60, participationRate: 0.6, participationReliability: 1,
+}])) };
 const failedTodayNoFatigue = estimate({
+  groupLearningSignals: documentedFatigueSignals,
   sessions: fatigueSessions,
   entries: players.slice(0, 5).map(regularEntry),
   now: "2026-09-04T20:00:00+08:00",
   seed: 404,
 });
 const emptyFailedToday = estimate({
+  groupLearningSignals: documentedFatigueSignals,
   sessions: fatigueSessions,
   entries: [],
   now: "2026-09-04T20:00:00+08:00",
@@ -460,6 +463,7 @@ const emptyFailedToday = estimate({
 });
 assert.equal(failedTodayNoFatigue.tomorrowProbability, emptyFailedToday.tomorrowProbability, "a settled failed group must not create tomorrow fatigue");
 const successfulTodayCreatesFatigue = estimate({
+  groupLearningSignals: documentedFatigueSignals,
   sessions: fatigueSessions,
   entries: players.slice(0, 6).map(regularEntry),
   now: "2026-09-04T20:00:00+08:00",
@@ -486,7 +490,8 @@ const joinedFatigue = estimate({
   },
   simulations: 5000,
 });
-assert.ok(joinedFatigue.todayProbability > 0.4 && joinedFatigue.todayProbability < 0.7, "an over-capacity current signup should use the single weaker 55% retention penalty");
+assert.ok(joinedFatigue.todayProbability > 0.6 && joinedFatigue.todayProbability < 1, "one missed consecutive-day opportunity must not force the old 55% signup retention");
+assert.equal(joinedFatigue.assumptions.joinedFatigueRetention, "square-root-of-evidence-based-fatigue");
 
 const shiftingPlayers = makePlayers(14);
 const shiftingStart = Date.parse("2026-06-30T00:00:00Z");
@@ -727,6 +732,7 @@ assert.ok(newMemberLearnedLow.candidates.find((candidate) => candidate.playerId 
 
 const directionalForward = estimate({
   ...learningBase,
+  bestPartnerOverrides: { manualPairs: [{ playerIds: [1, 12], createdAt: "2026-08-01T00:00:00Z" }] },
   entries: [regularEntry(learningPlayers[0])],
   groupLearningSignals: {
     influence: { 1: { 12: { lift: 0.15, evidence: 60, reliability: 0.95 } } },
@@ -734,6 +740,7 @@ const directionalForward = estimate({
 });
 const directionalReverse = estimate({
   ...learningBase,
+  bestPartnerOverrides: { manualPairs: [{ playerIds: [1, 12], createdAt: "2026-08-01T00:00:00Z" }] },
   entries: [regularEntry(learningPlayers[0])],
   groupLearningSignals: {
     influence: { 12: { 1: { lift: 0.15, evidence: 60, reliability: 0.95 } } },
@@ -741,12 +748,13 @@ const directionalReverse = estimate({
 });
 assert.ok(
   directionalForward.candidates.find((candidate) => candidate.playerId === 12).attendanceProbability
-    > directionalReverse.candidates.find((candidate) => candidate.playerId === 12).attendanceProbability * 1.2,
+    > directionalReverse.candidates.find((candidate) => candidate.playerId === 12).attendanceProbability,
   "learned social influence must be directional from the joined source to the candidate target",
 );
 assert.equal(directionalForward.adaptation.influenceEdgesApplied, 1);
 const directionalMediumReliability = estimate({
   ...learningBase,
+  bestPartnerOverrides: { manualPairs: [{ playerIds: [1, 12], createdAt: "2026-08-01T00:00:00Z" }] },
   entries: [regularEntry(learningPlayers[0])],
   groupLearningSignals: {
     influence: { 1: { 12: { lift: 0.15, evidence: 60, reliability: 0.2 } } },
@@ -1082,7 +1090,8 @@ function newcomerBadge(overrides = {}) {
 }
 const freshBadge = newcomerBadge();
 assert.ok(freshBadge.reasons.includes("近期常打"), "new members must not be penalized for games before they joined");
-assert.ok(freshBadge.reasons.includes("常与已接龙成员同场"), "two recent shared days support a same-court tag without a learned model");
+assert.ok(!freshBadge.reasons.includes("常与已接龙成员同场"), "the retired same-court tag never returns");
+assert.ok(!freshBadge.reasons.includes("与已接龙成员是朋友"), "two shared dates alone do not pass the best-partner evidence gates");
 assert.ok(!freshBadge.risks.includes("可能不喜欢人少的局"));
 const oneDayHistory = badgeHistory.slice(0, -1);
 const sparseBadge = newcomerBadge({ sessions: oneDayHistory, entries: [] });

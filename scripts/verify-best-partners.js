@@ -80,13 +80,15 @@ const counts = calendarContext.getBestPartnerIdsMap([
 ]);
 assert.deepEqual(Array.from(counts.get(1)), [2, 3]);
 assert.deepEqual(Array.from(counts.get(4)), []);
-assert.match(html, /key: "bestPartners", label: "同场最多"/);
+assert.match(html, /key: "bestPartners", label: "最佳拍档"/);
 
 // Render real UI functions with a minimal DOM; all member names must remain plain text.
 class Element {
   constructor(tag) { this.tagName = tag.toUpperCase(); this.children = []; this._text = ""; this.dataset = {}; this.open = false; }
   set textContent(value) { this._text = String(value); this.children = []; }
   get textContent() { return this._text + this.children.map((c) => c.textContent).join(""); }
+  setAttribute(key, value) { this[key] = value; }
+  addEventListener() {}
   append(...nodes) { this.children.push(...nodes); }
   replaceChildren(...nodes) { this.children = nodes; this._text = ""; }
   querySelectorAll(selector) { const name = selector.slice(1).replace("[open]", ""); return this.children.flatMap((c) => [c, ...c.querySelectorAll("*")]).filter((c) => selector === "*" || ((c.className || "").split(" ").includes(name) && (!selector.includes("[open]") || c.open))); }
@@ -94,8 +96,8 @@ class Element {
 }
 const rendered = new Element("div");
 const statistics = core.build({ ...fixture, now: "2026-10-23T00:00:00+08:00", asOf: fixture.asOf });
-const context = vm.createContext({ document: { createElement: (tag) => new Element(tag) }, els: { shakeMemberStatisticsList: rendered }, getMemberStatistics: () => statistics });
-vm.runInContext(html.slice(html.indexOf("    function renderBestPartnerPair("), html.indexOf("    function shortRuleSchedule(")), context);
+const context = vm.createContext({ state: { readOnly: true, partnerSaving: false, partnerDraft: null, partnerStatus: "" }, window: {}, document: { createElement: (tag) => new Element(tag) }, els: { shakeMemberStatisticsList: rendered }, getMemberStatistics: () => statistics });
+vm.runInContext(html.slice(html.indexOf("    function makePartnerAction("), html.indexOf("    function shortRuleSchedule(")), context);
 context.renderShakeMemberStatistics();
 const elements = (root) => [root, ...root.children.flatMap(elements)];
 const nodes = elements(rendered);
@@ -111,14 +113,14 @@ context.renderShakeMemberStatistics();
 assert.ok(elements(rendered).includes(firstDetails), "unchanged refreshes preserve DOM, focus and expansion");
 statistics.bestPartners.pairs[0].score += 0.000001;
 context.renderShakeMemberStatistics();
-assert.ok(elements(rendered).find((n) => n.dataset?.partnerKey === firstDetails.dataset.partnerKey).open, "data refreshes retain expanded pair evidence by member ID");
+assert.ok(elements(rendered).find((n) => n.className === "member-partner-pair" && n.dataset?.partnerKey === firstDetails.dataset.partnerKey).open, "data refreshes retain expanded pair evidence by member ID");
 const malicious = { ...real.pairs[0], names: ["<img src=x onerror=alert(1)>", "B"] };
 assert.ok(context.renderBestPartnerPair(malicious).textContent.includes(malicious.names[0]));
 const more = new Element("div");
 context.renderBestPartnerStatistics(more, { pairs: Array.from({ length: 12 }, () => real.pairs[0]) });
-assert.equal(more.children.filter((n) => n.className === "member-partner-pair").length, 10);
-assert.ok(more.textContent.includes("查看其余 2 组"));
+assert.equal(more.children.filter((n) => n.className === "member-partner-row").length, 12);
+assert.ok(!more.textContent.includes("查看其余"));
 assert.equal(elements(more).filter((n) => n.className === "member-partner-pair").length, 12);
 const empty = new Element("div"); context.renderBestPartnerStatistics(empty, { pairs: [] });
-assert.ok(empty.textContent.includes("暂无证据充分的拍档组合"));
+assert.ok(empty.textContent.includes("暂无最佳拍档"));
 console.log("Best-partner verification passed: four labeled regressions, popularity, weekday/period confounding, sample gates, membership, activity, ownership, daily weighting, boundaries, deterministic output, real calendar helper, UI evidence and safe text rendering.");

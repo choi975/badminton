@@ -107,8 +107,8 @@ const manualBlock = estimate({ shortTermRules: [{ playerId: 18, type: "not_days"
 assert.equal(manualBlock.candidates.find((row) => row.playerId === 18).attendanceProbability, 0);
 const ordinary = forecast.candidates.find((row) => row.playerId === 18);
 const holidayForecast = estimate({ memberStatistics: { calendar: { ...result.calendar, excludedDates: [...result.calendar.excludedDates, "2026-10-22"] } } });
-assert.ok(holidayForecast.candidates.find((row) => row.playerId === 18).attendanceProbability > ordinary.attendanceProbability, "weekday avoidance does not penalize a holiday target");
-assert.notEqual(holidayForecast.todayProbability, forecast.todayProbability, "member statistics must also feed formation simulation");
+assert.equal(holidayForecast.candidates.find((row) => row.playerId === 18).factors.weeklyOddsMultiplier, ordinary.factors.weeklyOddsMultiplier, "holiday changes weekday evidence, not the independent weekly habit penalty");
+assert.ok(!holidayForecast.candidates.find((row) => row.playerId === 18).risks.some((text) => /^周.*无法/.test(text)), "holiday semantics are shared by tags and the model");
 assert.ok(forecast.candidates.every((row) => Number.isFinite(row.attendanceProbability) && row.attendanceProbability >= 0 && row.attendanceProbability <= 1));
 
 
@@ -129,6 +129,7 @@ assert.ok(ids("attendance15", result).every((id) => member(id).attendance15 > 0)
 // Execute real cache and refresh helpers against SQLite instead of a string-only contract.
 const worker = readFileSync(new URL("../src/worker.js", import.meta.url), "utf8");
 const sql = new DatabaseSync(":memory:");
+sql.exec("CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)");
 sql.exec(readFileSync(new URL("../migrations/0024_member_statistics_cache.sql", import.meta.url), "utf8"));
 const db = { prepare(text) {
   let values = [];

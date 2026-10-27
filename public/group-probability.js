@@ -428,9 +428,7 @@
   function buildStatisticsProfile(players, statistics) {
     const byId = new Map(statistics.members.map((member) => [member.playerId, member]));
     const ids = (key) => new Set(statistics.lists.find((list) => list.key === key)?.memberIds || []);
-    const threeIds = ids("threeDayStreak"), twoIds = ids("twoDayStreak");
-    // Display lists have minimum-activity filters; preserve the model's original 60-day evidence.
-    const largeIds = new Set(statistics.members.filter((member) => member.onlyLargeSessions).map((member) => member.playerId));
+    const threeIds = ids("threeDayStreak"), twoIds = ids("twoDayStreak"), largeIds = ids("onlyLargeSessions");
     const capacityById = new Map(players.map((player) => [player.id, threeIds.has(player.id) ? 3 : twoIds.has(player.id) ? 2 : 1]));
     const largeConfidenceById = new Map(players.map((player) => {
       const count = byId.get(player.id)?.attendance60 || 0;
@@ -440,17 +438,13 @@
   }
 
   function memberStatisticsEffect(model, playerId, targetDate) {
-    const member = model.longTerm.byId.get(playerId);
-    if (!member) return { effect: 0, weekdayAvoided: false, weeklyLimitReached: false, weeklyRemaining: null };
-    // Recency is a soft, smoothed signal. Observed habits never act as manual bans.
-    const recentEffect = clamp(Math.log((member.attendance15 + 1) / (member.attendance60 / 4 + 1)), -0.7, 0.7);
-    const weekdayAvoided = root.BadmintonMemberStatistics.isOrdinaryDate(targetDate, model.memberStatistics.calendar)
-      && member.noPlayWeekdays.includes(weekdayOf(targetDate));
-    const week = root.BadmintonMemberStatistics.weekStart(targetDate);
-    const weeklyCount = member.weeklyCounts30[week] || 0;
-    const weeklyRemaining = member.weeklyLimit === null ? null : member.weeklyLimit - weeklyCount;
-    const weeklyLimitReached = weeklyRemaining !== null && weeklyRemaining <= 0;
-    return { effect: recentEffect + (weekdayAvoided ? Math.log(0.25) : 0) + (weeklyLimitReached ? Math.log(0.2) : 0), weekdayAvoided, weeklyLimitReached, weeklyRemaining };
+    const feature = root.BadmintonMemberStatistics.predictionFeatures({ statistics: model.memberStatistics, playerId, targetDate });
+    // Frequency and ordinary-weekday evidence enter the attendance baseline once.
+    // Weekly ceilings are observed habits with a sample-weighted, bounded odds penalty.
+    const weeklyPenalty = -1.2 * feature.habitConfidence;
+    return { effect: feature.weeklyLimitReached ? weeklyPenalty : 0,
+      weekdayAvoided: feature.weekdayAvoided, weeklyLimitReached: feature.weeklyLimitReached,
+      weeklyRemaining: feature.weeklyRemaining, weeklyPenalty };
   }
 
   function firstFinite(source, keys) {
@@ -661,8 +655,8 @@
     const rateOdds = rate / Math.max(0.001, 1 - rate);
     const participationOdds = participationReference / Math.max(0.001, 1 - participationReference);
     const learnedFactor = clamp(rateOdds / Math.max(0.001, participationOdds), 0.05, 1.25);
-    const relativeFactor = learnedFactor / Math.max(0.05, groupFatigueFactor);
-    return clamp(defaultFactor * (relativeFactor ** freshness), 0.05, 1.25);
+    const blend = 0.75 * freshness;
+    return clamp(Math.exp((1 - blend) * Math.log(Math.max(0.1, defaultFactor)) + blend * Math.log(learnedFactor)), 0.1, 1.25);
   }
 
   function learnedGuestDistribution(baseDistribution, signal, freshness) {
@@ -807,50 +801,76 @@
     return streak;
   }
 
-  function memberEffect(history, playerId, weekday, playerCount) {
-    const stats = history.statsById.get(playerId);
-    if (!stats || stats.playCount < 2 || history.successfulSessions < 2) return 0;
-    const groupOverall = history.groupConditionalRate;
-    const overall = (stats.playCount + MEMBER_PRIOR_STRENGTH * groupOverall)
-      / (history.successfulSessions + MEMBER_PRIOR_STRENGTH);
-    const weekdaySessions = history.successSessionsByWeekday[weekday];
-    const groupWeekday = weekdaySessions
-      ? clamp(history.selfAppearancesByWeekday[weekday] / (weekdaySessions * Math.max(1, playerCount)), 0.01, 0.95)
-      : groupOverall;
-    const weekdayRate = (stats.weekdayCounts[weekday] + 4 * overall) / (weekdaySessions + 4);
-    return clamp(0.5 * (logit(weekdayRate) - logit(groupWeekday)), -0.7, 0.7);
+  function buildFriendNetwork(players, statistics, history, learning, targetDate) {
+    const indexById = new Map(players.map((player, index) => [player.id, index]));
+    const byId = new Map(players.map((player) => [player.id, []]));
+    const pairs = [...(statistics.bestPartners?.pairs || [])]
+      .filter((pair) => pair.playerIds.every((id) => indexById.has(id)))
+      .sort((a, b) => a.playerIds[0] - b.playerIds[0] || a.playerIds[1] - b.playerIds[1]);
+    const freshness = learningFreshness(learning, targetDate), degree = new Map();
+    for (const pair of pairs) for (const id of pair.playerIds) degree.set(id, (degree.get(id) || 0) + 1);
+    const edges = [], variance = new Float64Array(players.length);
+    let learnedEdges = 0;
+    for (const pair of pairs) {
+      for (const [targetId, sourceId] of [pair.playerIds, [...pair.playerIds].reverse()]) {
+        const stats = history.statsById.get(targetId);
+        const base = clamp(((stats?.playCount || 0) + 6 * history.groupConditionalRate)
+          / (history.successfulSessions + 6), 0.02, 0.95);
+        const direction = pair.directions?.find((row) => row.playerId === targetId);
+        const lift = Math.max(0, direction?.adjustedLift || 0);
+        const historical = clamp((logit(clamp(base + lift, 0.01, 0.99)) - logit(base)) * (pair.reliability || 0), 0, Math.log(1.6));
+        const prior = pair.source === "manual" ? Math.max(Math.log(1.25), historical) : historical;
+        const learned = (learning.influenceByTarget.get(targetId) || []).find((edge) => edge.sourcePlayerId === sourceId);
+        let effect = prior;
+        if (learned) {
+          // Both sources describe the same relation. Blend, never add two bonuses.
+          const learnedEffect = clamp(logit(clamp(base + learned.lift, 0.01, 0.99)) - logit(base), 0, Math.log(1.8));
+          effect += 0.5 * freshness * (learnedEffect - prior);
+          learnedEdges++;
+        }
+        byId.get(targetId).push({ playerId: sourceId, effect: clamp(effect, 0, Math.log(1.8)) });
+      }
+      const [a, b] = pair.playerIds.map((id) => indexById.get(id));
+      // A direct-edge Gaussian copula preserves marginal probabilities. No ABC
+      // clique expansion: A-B and B-C share different shocks, never an A-C shock.
+      const confidence = pair.source === "manual" ? Math.max(0.4, pair.reliability || 0) : pair.reliability || 0;
+      const sharedVariance = Math.min(0.2 * confidence, 0.35 / degree.get(pair.playerIds[0]), 0.35 / degree.get(pair.playerIds[1]));
+      variance[a] += sharedVariance; variance[b] += sharedVariance;
+      edges.push({ a, b, loading: Math.sqrt(sharedVariance) });
+    }
+    return { byId, edges, variance, learnedEdges };
   }
 
-  function socialEffect(history, learning, candidateId, joinedIds, freshness) {
-    const candidateStats = history.statsById.get(candidateId);
-    if (!candidateStats || !joinedIds.size) return 0;
-    const base = (candidateStats.playCount + 2) / Math.max(4, history.successfulSessions + 4);
-    const historicalLifts = [];
-    for (const joinedId of joinedIds) {
-      const joinedPlays = history.statsById.get(joinedId)?.playCount || 0;
-      if (!joinedPlays) continue;
-      const coattendance = history.pairCounts.get(`${joinedId}:${candidateId}`) || 0;
-      if (!coattendance) continue;
-      const conditional = (coattendance + 2 * base) / (joinedPlays + 2);
-      const reliability = coattendance / (coattendance + 5);
-      historicalLifts.push(clamp(Math.log(Math.max(0.001, conditional) / Math.max(0.001, base)) * reliability, 0, Math.log(1.35)));
+  function socialEffect(friendNetwork, candidateId, joinedIds) {
+    const effects = (friendNetwork.byId.get(candidateId) || []).filter((edge) => joinedIds.has(edge.playerId))
+      .map((edge) => edge.effect).sort((a, b) => b - a);
+    return Math.min(Math.log(2), (effects[0] || 0) + 0.35 * effects.slice(1).reduce((sum, value) => sum + value, 0));
+  }
+
+  function normalSample(random) {
+    return Math.sqrt(-2 * Math.log(Math.max(1e-12, random()))) * Math.cos(2 * Math.PI * random());
+  }
+
+  function normalCdf(value) {
+    const x = Math.abs(value), t = 1 / (1 + 0.2316419 * x);
+    const tail = Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI)
+      * t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+    return value >= 0 ? 1 - tail : tail;
+  }
+
+  function friendUniforms(context, random) {
+    const network = context.friendNetwork;
+    if (!network.edges.length) return null;
+    const values = new Float64Array(context.players.length);
+    network.variance.forEach((variance, index) => {
+      if (variance > 0) values[index] = Math.sqrt(1 - variance) * normalSample(random);
+    });
+    for (const edge of network.edges) {
+      const shock = edge.loading * normalSample(random);
+      values[edge.a] += shock; values[edge.b] += shock;
     }
-    const historical = clamp(
-      historicalLifts.sort((left, right) => right - left).slice(0, 2).reduce((sum, value) => sum + value, 0),
-      0,
-      Math.log(1.6),
-    );
-    const learnedLifts = [];
-    for (const edge of learning.influenceByTarget.get(candidateId) || []) {
-      if (!joinedIds.has(edge.sourcePlayerId)) continue;
-      const targetRate = clamp(base + freshness * edge.lift, 0.01, 0.99);
-      learnedLifts.push(clamp(logit(targetRate) - logit(base), -Math.log(2), Math.log(2)));
-    }
-    const learned = learnedLifts
-      .sort((left, right) => Math.abs(right) - Math.abs(left))
-      .slice(0, 2)
-      .reduce((sum, value) => sum + value, 0);
-    return clamp(historical + learned, -Math.log(1.8), Math.log(2));
+    network.variance.forEach((variance, index) => { if (variance > 0) values[index] = normalCdf(values[index]); });
+    return values;
   }
 
   function levelRank(level) {
@@ -918,7 +938,7 @@
     const fatigue = ignoreRulesAndFatigue ? 1 : fatigueFactorFor(member, priorStreak);
     // Tomorrow's simulated attendance can consume the last weekly slot.
     const simulatedWeeklyLimit = !ignoreRulesAndFatigue && previousStreaks && priorStreak > 0
-      && member.weeklyRemaining === 1 && weekdayOf(context.targetDate) !== 1 ? Math.log(0.2) : 0;
+      && member.weeklyRemaining === 1 && weekdayOf(context.targetDate) !== 1 ? member.weeklyPenalty : 0;
     const dayProbability = sigmoid(
       context.intercept
       + member.baseEffect
@@ -929,19 +949,29 @@
   }
 
   function simulateDay(context, random, previousStreaks = null, options = {}) {
+    // One outer draw per simulation; member/owner substreams keep counterfactuals
+    // paired even when one more person is already signed up.
+    const sampleSeed = Math.floor(random() * 4294967296) >>> 0;
+    const stream = (id, salt) => mulberry32((sampleSeed ^ Math.imul(id, 2654435761) ^ salt) >>> 0);
     let ordinaryCount = 0;
     const attended = new Uint8Array(context.players.length);
     const largeCandidates = [];
     const bundles = new Map();
     const ownerIntents = new Set();
+    const joinUniforms = friendUniforms(context, stream(0, 0x11448822)), stayUniforms = friendUniforms(context, stream(0, 0x22559933));
+    context.players.forEach((player, index) => bundles.set(`owner:${player.id}`, {
+      sharedUniform: stayUniforms && context.friendNetwork.variance[index] > 0 ? stayUniforms[index] : stream(player.id, 0x31415926)(),
+    }));
 
     for (let index = 0; index < context.players.length; index += 1) {
       const player = context.players[index];
+      const random = stream(player.id, 0x27182818);
       const member = context.memberData[index];
       if (player.id === options.forcedAbsentId) continue;
       const forcedPresent = player.id === options.forcedPresentId;
       const isCurrent = member.current;
-      const joinIntent = forcedPresent || isCurrent || random() < joinProbability(context, index, previousStreaks, Boolean(options.neutral));
+      const joinUniform = joinUniforms && context.friendNetwork.variance[index] > 0 ? joinUniforms[index] : random();
+      const joinIntent = forcedPresent || isCurrent || joinUniform < joinProbability(context, index, previousStreaks, Boolean(options.neutral));
       if (!joinIntent) continue;
       ownerIntents.add(index);
       if (forcedPresent) {
@@ -950,20 +980,18 @@
         continue;
       }
       const priorStreak = priorStreakAt(context, index, previousStreaks);
-       const staticFatigue = fatigueFactorFor({
-         secondDayFatigueFactor: member.staticSecondDayFatigueFactor,
-         thirdDayFatigueFactor: member.staticThirdDayFatigueFactor,
-       }, priorStreak);
        const adaptiveFatigue = fatigueFactorFor(member, priorStreak);
        const joinedFatigueRetention = options.neutral || !isCurrent || priorStreak <= 0 || adaptiveFatigue >= 0.999
          ? 1
-         : clamp(JOINED_FATIGUE_RETENTION * adaptiveFatigue / Math.max(0.05, staticFatigue), 0.2, 1);
+         : Math.sqrt(clamp(adaptiveFatigue, 0.1, 1));
        const blocked = !options.neutral && member.blocked;
        const conflictMultiplier = isCurrent && blocked ? 0.6 : 1;
        const regularStay = member.retention;
        const largeConfidence = member.largeConfidence;
        const followsLargeRule = random() < largeConfidence;
-       const decisionUniform = makeBundleUniform(`owner:${player.id}`, bundles, random);
+       const correlatedStay = stayUniforms && context.friendNetwork.variance[index] > 0;
+       const decisionUniform = correlatedStay ? stayUniforms[index] : makeBundleUniform(`owner:${player.id}`, bundles, random);
+       if (correlatedStay) bundles.set(`owner:${player.id}`, { sharedUniform: decisionUniform });
        const retentionAdjustment = clamp(member.retention / Math.max(0.05, context.regularRetention), 0.1, 1.5);
        if (followsLargeRule) {
          largeCandidates.push({
@@ -979,10 +1007,11 @@
     }
 
     for (let index = 0; index < context.current.unknownSelfCount; index += 1) {
-      if (random() < 0.88) ordinaryCount += 1;
+      if (stream(index + 1, 0x44337711)() < 0.88) ordinaryCount += 1;
     }
     for (const entry of context.current.companionRows) {
       const ownerKey = entry.ownerId ? `owner:${entry.ownerId}` : `guest:${entry.index}`;
+      const random = stream(entry.index + 1, 0x66339922);
       for (let count = 0; count < entry.count; count += 1) {
         if (makeBundleUniform(ownerKey, bundles, random) < context.guestRetention) ordinaryCount += 1;
       }
@@ -990,6 +1019,7 @@
 
     for (const ownerIndex of ownerIntents) {
       const ownerId = context.players[ownerIndex].id;
+      const random = stream(ownerId, 0x55771133);
       if (context.current.observedGuestOwners.has(ownerId)) continue;
       const guestCount = sampleDistribution(context.memberData[ownerIndex].guestDistribution, random);
       for (let count = 0; count < guestCount; count += 1) {
@@ -1055,10 +1085,11 @@
       effectiveCurrentCount: current.selfIds.size + current.unknownSelfCount + current.companionRows.reduce((sum, row) => sum + row.count, 0),
       lowLevelJoined: hasLowLevelJoined(normalizedEntries, model.playerById),
     };
+    context.attendanceEvidence = candidateAttendanceEvidence(model, targetDate);
     context.guestRetention = Math.max(0.5, context.regularRetention - 0.03);
     const weekday = weekdayOf(targetDate);
     const countMomentum = options.neutral ? 0 : 0.1 * Math.min(context.effectiveCurrentCount, SUCCESS_THRESHOLD);
-    context.memberData = context.players.map((player) => {
+    context.memberData = context.players.map((player, index) => {
       const rank = levelRank(player.level);
       const signal = context.learning.membersById.get(player.id);
       const stats = context.history.statsById.get(player.id);
@@ -1068,15 +1099,10 @@
       const capacity = context.longTerm.capacityById.get(player.id) || 1;
       const statisticsEffect = memberStatisticsEffect(model, player.id, targetDate);
       const fatigueMultiplier = context.resolvedPriors.fatigueMultiplier;
-      const staticSecondDayFatigueFactor = capacity >= 2 ? 1 : fatigueMultiplier;
-      const staticThirdDayFatigueFactor = capacity >= 3 ? 1 : fatigueMultiplier;
-      const social = options.neutral ? 0 : socialEffect(
-        context.history,
-        context.learning,
-        player.id,
-        current.selfIds,
-        context.resolvedPriors.freshness,
-      );
+      const baseline = attendanceBaseline(context, index, context.attendanceEvidence);
+      const staticSecondDayFatigueFactor = historicalFatigueFactor(context.attendanceEvidence, player.id, baseline, capacity, 2);
+      const staticThirdDayFatigueFactor = historicalFatigueFactor(context.attendanceEvidence, player.id, baseline, capacity, 3);
+      const social = options.neutral ? 0 : socialEffect(context.friendNetwork, player.id, current.selfIds);
       const levelMatch = !options.neutral && context.lowLevelJoined && rank >= 0 && rank < 3 ? Math.log(1.1) : 0;
       return {
         current: current.selfIds.has(player.id),
@@ -1089,8 +1115,8 @@
           context.resolvedPriors.freshness,
         ),
         baseStreak: historicalStreakBefore(context.history, player.id, targetDate),
-        baseEffect: memberEffect(context.history, player.id, weekday, context.players.length)
-          + learnedParticipationEffect(context.resolvedPriors.participationRate, signal, context.resolvedPriors.freshness),
+        attendanceBaseline: baseline,
+        baseEffect: clamp(logit(baseline) - logit(context.attendanceEvidence.prior), -2.5, 2.5),
         ...statisticsEffect,
         stateEffect: social + levelMatch + countMomentum + (options.neutral ? 0 : statisticsEffect.effect),
         social,
@@ -1172,48 +1198,13 @@
     return (presentSuccesses - absentSuccesses) / simulations;
   }
 
-  // Live booking evidence complements the daily attempt-trained model for new
-  // members. Count distinct completed days, never guests or today's trial roster.
-  function recentAttendanceEvidence(model, targetDate) {
-    const windowStart = addDays(targetDate, -30);
-    const days = new Map();
-    for (const session of model.sessions) {
-      if (session.participantCount < SUCCESS_THRESHOLD || session.date < windowStart || session.date >= targetDate) continue;
-      const ids = days.get(session.date) || new Set();
-      for (const id of session.selfIds) ids.add(id);
-      days.set(session.date, ids);
-    }
-    const result = new Map();
-    for (const player of model.players) {
-      const firstAttendance = [...(model.history.statsById.get(player.id)?.dates || [])].sort(compareDates)[0];
-      const rawCreated = String(player.createdAt ?? player.created_at ?? player.joinedAt ?? player.joined_at ?? "").trim();
-      // D1 timestamps are UTC, including rows entered after the first booking.
-      const timestamp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(rawCreated)
-        ? rawCreated.replace(" ", "T") + "Z" : rawCreated;
-      const created = parseIsoDate(rawCreated) ? rawCreated
-        : timestamp && Number.isFinite(Date.parse(timestamp)) ? beijingNowParts(timestamp).date : "";
-      const membershipStart = [created, firstAttendance].filter(Boolean).sort(compareDates)[0] || targetDate;
-      let opportunities = 0;
-      let attendedDays = 0;
-      const pairedDays = new Map();
-      for (const [date, ids] of days) {
-        if (date < membershipStart) continue;
-        opportunities += 1;
-        if (!ids.has(player.id)) continue;
-        attendedDays += 1;
-        for (const id of ids) {
-          if (id !== player.id) pairedDays.set(id, (pairedDays.get(id) || 0) + 1);
-        }
-      }
-      result.set(player.id, { opportunities, attendedDays, pairedDays });
-    }
-    return result;
-  }
-
   // Personal attendance is conditional on a session being organized, not a
   // share of the group-wide spontaneous-arrival forecast. Empty calendar days
   // and members who never signed up are not failed attendance opportunities.
   function candidateAttendanceEvidence(model, targetDate) {
+    if (model.attendanceEvidenceByDate.has(targetDate)) return model.attendanceEvidenceByDate.get(targetDate);
+    const ordinary = (date) => root.BadmintonMemberStatistics.isOrdinaryDate(date, model.memberStatistics.calendar);
+    const sameWeekday = (date) => ordinary(targetDate) && ordinary(date) && weekdayOf(date) === weekdayOf(targetDate);
     const days = new Map();
     for (const session of model.sessions) {
       if (session.participantCount < SUCCESS_THRESHOLD || session.date >= targetDate) continue;
@@ -1230,7 +1221,7 @@
       const weight = historyWeight(date, targetDate);
       dayWeight += weight;
       largeDayWeight += day.large ? weight : 0;
-      if (weekdayOf(date) === weekdayOf(targetDate)) {
+      if (sameWeekday(date)) {
         weekdayWeight += weight;
         weekdayLargeWeight += day.large ? weight : 0;
       }
@@ -1253,7 +1244,7 @@
       const created = parseIsoDate(rawCreated) ? rawCreated
         : timestamp && Number.isFinite(Date.parse(timestamp)) ? beijingNowParts(timestamp).date : "";
       const start = [created, firstAttendance].filter(Boolean).sort(compareDates)[0] || targetDate;
-      const row = { start, attended: 0, opportunities: 0, weekdayAttended: 0, weekdayOpportunities: 0, days: 0, attendedDays: 0 };
+      const row = { start, attended: 0, opportunities: 0, weekdayAttended: 0, weekdayOpportunities: 0, days: 0, attendedDays: 0, secondOpportunities: 0, secondAttended: 0, thirdOpportunities: 0, thirdAttended: 0 };
       for (const [date, { ids }] of days) {
         if (date < start) continue;
         const weight = historyWeight(date, targetDate);
@@ -1262,7 +1253,13 @@
         row.attended += attended;
         row.days += 1;
         row.attendedDays += ids.has(player.id) ? 1 : 0;
-        if (weekdayOf(date) === weekdayOf(targetDate)) {
+        if (date >= addDays(targetDate, -60) && days.get(addDays(date, -1))?.ids.has(player.id)) {
+          row.secondOpportunities += weight; row.secondAttended += attended;
+          if (days.get(addDays(date, -2))?.ids.has(player.id)) {
+            row.thirdOpportunities += weight; row.thirdAttended += attended;
+          }
+        }
+        if (sameWeekday(date)) {
           row.weekdayOpportunities += weight;
           row.weekdayAttended += attended;
         }
@@ -1273,13 +1270,13 @@
     }
     // A prior only smooths sparse history; it is not a minimum probability.
     const prior = totalOpportunities > 0 ? totalAttended / totalOpportunities : DEFAULT_PARTICIPATION_RATE;
-    return { members: result, prior, largeSessionRate };
+    const evidence = { members: result, prior, largeSessionRate };
+    model.attendanceEvidenceByDate.set(targetDate, evidence);
+    return evidence;
   }
 
-  function candidateAttendanceProbability(context, index, evidence) {
+  function attendanceBaseline(context, index, evidence) {
     const player = context.players[index];
-    const member = context.memberData[index];
-    if (member.blocked) return 0;
     const row = evidence.members.get(player.id);
     const overall = ((row?.attended || 0) + MEMBER_PRIOR_STRENGTH * evidence.prior)
       / ((row?.opportunities || 0) + MEMBER_PRIOR_STRENGTH);
@@ -1296,9 +1293,24 @@
         + learnedParticipationEffect(context.resolvedPriors.participationRate, signal, 1));
       participationRate += 0.5 * context.resolvedPriors.freshness * (learnedRate - overall);
     }
-    const intent = sigmoid(logit(participationRate) + logit(weekdayRate) - logit(overall)
-      + member.stateEffect
-      + Math.log(fatigueFactorFor(member, member.baseStreak)));
+    return sigmoid(logit(participationRate) + logit(weekdayRate) - logit(overall));
+  }
+
+  function historicalFatigueFactor(evidence, playerId, baseRate, capacity, length) {
+    if (capacity >= length) return 1;
+    const row = evidence.members.get(playerId), prefix = length === 2 ? "second" : "third";
+    const opportunities = row?.[prefix + "Opportunities"] || 0;
+    if (!opportunities) return 1; // Never infer incapacity just from absent evidence.
+    const rate = ((row?.[prefix + "Attended"] || 0) + 6 * baseRate) / (opportunities + 6);
+    return clamp(Math.exp(logit(rate) - logit(baseRate)), 0.2, 1);
+  }
+
+  function candidateAttendanceProbability(context, index, evidence) {
+    const player = context.players[index], member = context.memberData[index];
+    if (member.blocked) return 0;
+    const signal = context.learning.membersById.get(player.id);
+    const intent = sigmoid(logit(member.attendanceBaseline)
+      + member.stateEffect + Math.log(fatigueFactorFor(member, member.baseStreak)));
     // Bookings already record final attendance: do not multiply ordinary
     // retention a second time. Only apply relative learned withdrawal risk.
     const retentionAdjustment = learnedRetention(0.95, context.resolvedPriors.regularRetention,
@@ -1313,8 +1325,7 @@
 
   function candidateRows(model, todayContext, attendanceCounts, simulationCount, seed, counterfactualSimulations) {
     const currentIds = todayContext.current.selfIds;
-    const recentEvidence = recentAttendanceEvidence(model, todayContext.targetDate);
-    const attendanceEvidence = candidateAttendanceEvidence(model, todayContext.targetDate);
+    const attendanceEvidence = todayContext.attendanceEvidence;
     const rows = [];
     for (let index = 0; index < model.players.length; index += 1) {
       const player = model.players[index];
@@ -1331,7 +1342,7 @@
       const social = member.social;
       const naturalAttendanceProbability = blocked ? 0 : attendanceCounts[index] / Math.max(1, simulationCount);
       const attendanceProbability = candidateAttendanceProbability(todayContext, index, attendanceEvidence);
-      const rawUplift = blocked ? 0 : counterfactualUplift(
+      const rawUplift = !counterfactualSimulations ? null : blocked ? 0 : counterfactualUplift(
         model,
         todayContext,
         player,
@@ -1341,19 +1352,13 @@
       const uplift = Math.max(0, rawUplift);
       const { reasons, risks } = root.BadmintonMemberStatistics.recommendationTags({
         statistics: model.memberStatistics, playerId: player.id,
-        targetDate: todayContext.targetDate, currentCount: todayContext.effectiveCurrentCount,
+        targetDate: todayContext.targetDate, currentCount: todayContext.effectiveCurrentCount, joinedPlayerIds: currentIds,
       });
-      const recent = recentEvidence.get(player.id);
       const recentFrequent = reasons.includes("近期常打");
-      const recentPartner = [...currentIds].some((id) => (
-        (recent.pairedDays.get(id) || 0) >= 2
-        && recent.pairedDays.get(id) / Math.max(1, recent.attendedDays) >= 0.5
-      ));
-      if (social > 0.02 || recentPartner) reasons.push("常与已接龙成员同场");
       const rank = levelRank(player.level);
       if (todayContext.lowLevelJoined && rank >= 0 && rank < 3) reasons.push("水平相近");
       if (blocked) risks.push("规则显示当天不打");
-      if (fatigued) risks.push("超过连续打球体力上限");
+      if (fatigued) risks.push("连打体力可能不足");
       if (!recentFrequent && learningSignal?.participationRate !== null && learningSignal?.participationReliability > 0
         && learningSignal.participationRate < todayContext.resolvedPriors.participationRate - 0.08) risks.push("近期较少参与");
       if ((stats?.rawPlayCount || 0) < 2) risks.push((stats?.rawPlayCount || 0) === 0 ? "新成员样本少" : "历史样本较少");
@@ -1366,8 +1371,11 @@
         attendanceSampleDays: attendanceEvidence.members.get(player.id)?.days || 0,
         attendanceAttendedDays: attendanceEvidence.members.get(player.id)?.attendedDays || 0,
         attendanceHistoryStart: attendanceEvidence.members.get(player.id)?.start || "",
-        uplift: round(uplift),
-        score: round(attendanceProbability * Math.max(uplift, 0)),
+        friendPlayerIds: (model.friendNetwork.byId.get(player.id) || []).filter((edge) => currentIds.has(edge.playerId)).map((edge) => edge.playerId),
+        factors: { baseline: round(member.attendanceBaseline), friendOddsMultiplier: round(Math.exp(social)),
+          weeklyOddsMultiplier: round(Math.exp(member.effect)), fatigueOddsMultiplier: round(fatigueFactorFor(member, priorStreak)) },
+        uplift: counterfactualSimulations ? round(uplift) : null,
+        score: round(counterfactualSimulations ? attendanceProbability * Math.max(uplift, 0) : attendanceProbability),
         eligible: !blocked,
         reasons,
         risks,
@@ -1378,7 +1386,7 @@
         || right.attendanceProbability - left.attendanceProbability
         || left.name.localeCompare(right.name, "zh-Hans-CN");
     });
-    return { rows, rankingMode: "attendanceProbabilityTimesUplift" };
+    return { rows, rankingMode: counterfactualSimulations ? "attendanceProbabilityTimesUplift" : "attendanceProbability" };
   }
 
   function buildModel(input, targetDate, nowParts) {
@@ -1402,7 +1410,9 @@
     ].filter(parseIsoDate).sort(compareDates);
     const historyStart = rawHistoryDates.find((date) => compareDates(date, historyEnd) <= 0) || addDays(historyEnd, -52);
     const sessions = normalizeSessions(input.sessions, historyEnd);
-    const learning = normalizeLearningSignals(input.groupLearningSignals, players);
+    const predictionTime = Math.min(new Date(input.now || Date.now()).getTime(), Date.parse(targetDate + "T23:59:59.999+08:00"));
+    const generatedTime = Date.parse(input.groupLearningSignals?.generatedAt || "");
+    const learning = normalizeLearningSignals(generatedTime > predictionTime ? null : input.groupLearningSignals, players);
     const history = buildHistoryStats(players, sessions, targetDate);
     learning.resolvedPriors = resolveLearningPriors(learning, history, targetDate);
     const baselines = computeWeekdayBaselines(
@@ -1415,9 +1425,10 @@
       targetDate,
     );
     const memberStatistics = root.BadmintonMemberStatistics.build({
-      players, sessions: input.sessions, now: input.now || new Date(),
+      players, sessions: input.sessions, now: new Date(predictionTime),
       asOf: addDays(targetDate < nowParts.date ? targetDate : nowParts.date, -1),
       calendar: input.memberStatistics?.calendar,
+      bestPartnerOverrides: input.bestPartnerOverrides ?? input.memberStatistics?.bestPartnerOverrides,
     });
     const guestDistributionById = new Map(players.map((player) => [player.id, guestDistribution(history, player.id)]));
     return {
@@ -1432,6 +1443,8 @@
       historyEnd,
       memberStatistics,
       longTerm: buildStatisticsProfile(players, memberStatistics),
+      friendNetwork: buildFriendNetwork(players, memberStatistics, history, learning, targetDate),
+      attendanceEvidenceByDate: new Map(),
       shortTermRules: Array.isArray(input.shortTermRules) ? input.shortTermRules : [],
       nowParts,
     };
@@ -1503,9 +1516,10 @@
     const todayProbability = todaySuccesses / simulations;
     const tomorrowProbability = tomorrowSuccesses / simulations;
     const includeCandidates = input.includeCandidates !== false;
+    const includeCounterfactuals = input.includeCounterfactuals !== false;
     const candidates = hardSettled || !includeCandidates
-      ? { rows: [], rankingMode: "attendanceProbabilityTimesUplift" }
-      : candidateRows(model, todayContext, attendanceCounts, simulations, seed, counterfactualSimulations);
+      ? { rows: [], rankingMode: includeCounterfactuals ? "attendanceProbabilityTimesUplift" : "attendanceProbability" }
+      : candidateRows(model, todayContext, attendanceCounts, simulations, seed, includeCounterfactuals ? counterfactualSimulations : 0);
     const baselineRows = model.baselines.rows.map((row) => ({
       weekday: row.weekday,
       name: row.name,
@@ -1532,7 +1546,7 @@
       expectedFinalCount: round(tomorrowCountTotal / simulations, 3),
     };
     return {
-      modelVersion: "group-probability-v3",
+      modelVersion: "group-probability-v4",
       memberStatistics: model.memberStatistics,
       today,
       tomorrow,
@@ -1550,7 +1564,7 @@
       candidatesIncluded: includeCandidates && !hardSettled,
       rankingMode: candidates.rankingMode,
       simulationCount: simulations,
-      counterfactualSimulationCount: hardSettled || !includeCandidates ? 0 : counterfactualSimulations,
+      counterfactualSimulationCount: hardSettled || !includeCandidates || !includeCounterfactuals ? 0 : counterfactualSimulations,
       assumptions: {
         candidateAttendanceBasis: "organized-session",
         candidateAttendancePriorStrength: MEMBER_PRIOR_STRENGTH,
@@ -1561,7 +1575,11 @@
         missingBookingSoftSuccess: Number.isFinite(Number(input.missingBookingSoftSuccess))
           ? clamp(Number(input.missingBookingSoftSuccess), 0, 0.5)
           : MISSING_BOOKING_SOFT_SUCCESS,
-        joinedFatigueRetention: JOINED_FATIGUE_RETENTION,
+        joinedFatigueRetention: "square-root-of-evidence-based-fatigue",
+        friendshipSource: "effective-best-partner-list-only",
+        friendshipOddsCap: 2,
+        friendshipDependence: "direct-edge-gaussian-copula; no transitive edges",
+        weeklyHabitOddsPenalty: "-1.2 * attendance30 / (attendance30 + 6), only eligible list members",
         historyHalfLifeDays: HISTORY_HALF_LIFE_DAYS,
         learningEvidencePrior: LEARNING_EVIDENCE_PRIOR,
         adaptiveSignalSemantics: {
@@ -1581,7 +1599,8 @@
         weightedSuccessfulSessions: round(model.history.successfulSessions),
         memberSignalsReceived: model.learning.membersById.size,
         memberSignalsApplied: model.learning.memberSignalCount,
-        influenceEdgesApplied: model.learning.influenceCount,
+        influenceEdgesApplied: model.friendNetwork.learnedEdges,
+        bestPartnerEdges: model.friendNetwork.edges.length,
         learnedPriorsApplied: ["participationRate", "regularRetention", "fatigueMultiplier", "largePreferenceRate", "largeLowRetention"]
           .filter((key) => {
             const evidenceKey = key === "regularRetention"

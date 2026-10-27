@@ -1,32 +1,32 @@
 {
   "version": 5,
-  "generatedAt": "2026-10-22T10:12:37.595Z",
-  "trainingRevision": 1012,
+  "generatedAt": "2026-10-27T03:06:31.426Z",
+  "trainingRevision": 1063,
   "training": {
     "dateRange": {
       "from": "2026-07-01",
-      "to": "2026-10-21"
+      "to": "2026-10-25"
     },
     "court": {
-      "sampleCount": 47,
+      "sampleCount": 48,
       "dateRange": {
         "from": "2026-07-01",
-        "to": "2026-10-21"
+        "to": "2026-10-25"
       }
     },
     "shuttle": {
-      "sampleCount": 43,
-      "eligibleSessionCount": 48,
+      "sampleCount": 45,
+      "eligibleSessionCount": 50,
       "unconfirmedExcludedCount": 0,
       "mixedExcludedCount": 4,
       "unknownTypeExcludedCount": 0,
       "byType": {
         "rsl3": {
-          "sampleCount": 42,
+          "sampleCount": 44,
           "mixedExcludedCount": 4,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-10-21"
+            "to": "2026-10-25"
           }
         },
         "as05": {
@@ -50,7 +50,7 @@
         11.3,
         11.5
       ],
-      "sampleCount": 42,
+      "sampleCount": 44,
       "trainingMode": "global-only"
     },
     {
@@ -80,13 +80,13 @@
     "validation": {
       "method": "in-sample",
       "minimumTrainingSessions": 5,
-      "folds": 47,
-      "mae": 0.085,
-      "rmse": 0.292,
-      "exactRate": 0.915,
-      "bias": 0.043,
+      "folds": 48,
+      "mae": 0.083,
+      "rmse": 0.289,
+      "exactRate": 0.917,
+      "bias": 0.042,
       "underPredictionRate": 0.021,
-      "overPredictionRate": 0.064
+      "overPredictionRate": 0.063
     }
   },
   "shuttle": {
@@ -107,22 +107,22 @@
         "typeId": "rsl3",
         "trainingMode": "global-only",
         "formula": "ceil(rawExpected + riskScale * sqrt(max(rawExpected, 1)))",
-        "baseRate": 0.811103,
+        "baseRate": 0.811485,
         "riskQuantile": 0.7,
-        "riskScale": 0.095844,
+        "riskScale": 0.182155,
         "effects": {
           "gender": {},
           "genderLevel": {},
           "member": {}
         },
         "training": {
-          "sampleCount": 42,
-          "availableSampleCount": 42,
+          "sampleCount": 44,
+          "availableSampleCount": 44,
           "olderExcludedCount": 0,
           "mixedExcludedCount": 4,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-10-21"
+            "to": "2026-10-25"
           }
         },
         "regularization": {
@@ -139,18 +139,18 @@
             0.1
           ],
           "source": "time-holdout-conservative-grid-search",
-          "baselineMae": 1.728,
+          "baselineMae": 1.666,
           "requiredImprovement": 0.25
         },
         "validation": {
           "method": "time-holdout",
           "folds": 5,
-          "mae": 1.728,
-          "rmse": 2.529,
+          "mae": 1.666,
+          "rmse": 2.508,
           "exactRate": 0,
-          "bias": -0.832,
-          "underPredictionRate": 0.4,
-          "overPredictionRate": 0.6
+          "bias": -1.38,
+          "underPredictionRate": 0.6,
+          "overPredictionRate": 0.4
         },
         "riskCalibration": {
           "method": "time-holdout",
@@ -158,22 +158,22 @@
           "priorStrength": 5,
           "maximumScale": 2,
           "folds": 5,
-          "mae": 1.8,
-          "rmse": 2.49,
-          "exactRate": 0.2,
+          "mae": 1.4,
+          "rmse": 2.049,
+          "exactRate": 0.4,
           "bias": -0.2,
           "underPredictionRate": 0.2,
-          "overPredictionRate": 0.6
+          "overPredictionRate": 0.4
         },
         "fit": {
           "method": "global-rate",
-          "folds": 42,
-          "mae": 2.238,
-          "rmse": 2.734,
-          "exactRate": 0.143,
-          "bias": 1.048,
-          "underPredictionRate": 0.262,
-          "overPredictionRate": 0.595
+          "folds": 44,
+          "mae": 2.295,
+          "rmse": 2.824,
+          "exactRate": 0.136,
+          "bias": 1.386,
+          "underPredictionRate": 0.205,
+          "overPredictionRate": 0.659
         }
       },
       "as05": {

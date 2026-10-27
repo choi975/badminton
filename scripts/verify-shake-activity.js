@@ -49,7 +49,8 @@ let forecast = { candidates: [...players.map((p) => ({ playerId: p.id, eligible:
 const context = vm.createContext({
   state,
   getMemberStatistics: () => core.build({ players: state.players, sessions: state.sessions, now: clock }),
-  getJoinedPlayerIds: () => new Set(state.chainEntries.filter((e) => !e.isCompanion).map((e) => e.player.id)),
+  BadmintonMemberStatistics: core,
+  getJoinedSelfPlayerIds: () => new Set(state.chainEntries.filter((e) => !e.isCompanion).map((e) => e.player.id)),
   renderGroupForecast: () => forecast,
   getPlayerById: (id) => players.find((p) => p.id === Number(id)),
   normalizePlayerId: (id) => Number(id) || null,
@@ -91,13 +92,14 @@ assert.deepEqual(recommend(), [], "fallback must not fill empty recommendations 
 forecast = { candidates: players.map((p) => ({ playerId: p.id })) };
 assert.deepEqual(recommend(), []);
 
-// Preserve the pre-existing 60-day large-session probability feature independently of lists.
+// The rebuilt probability model shares the display list's minimum-activity gate.
 const probabilitySource = readFileSync(new URL("../group-probability.js", import.meta.url), "utf8");
 const modelContext = vm.createContext({ LEARNING_EVIDENCE_PRIOR: 5 });
 vm.runInContext(probabilitySource.slice(probabilitySource.indexOf("  function buildStatisticsProfile("), probabilitySource.indexOf("  function memberStatisticsEffect(")), modelContext);
 const profile = modelContext.buildStatisticsProfile(players, stats);
-assert.ok(profile.largeIds.has(1) && profile.largeIds.has(2));
-assert.equal(profile.largeConfidenceById.get(2), byId.get(2).attendance60 / (byId.get(2).attendance60 + 5));
+assert.ok(!profile.largeIds.has(1) && !profile.largeIds.has(2));
+assert.deepEqual([...profile.largeIds], ids("onlyLargeSessions"));
+assert.equal(profile.largeConfidenceById.get(3), byId.get(3).attendance60 / (byId.get(3).attendance60 + 5));
 
 assert.match(html, /id="shakeMemberStatisticsBlock"[^>]*\bopen[ >]/);
 let rendered = 0, opened = 0;

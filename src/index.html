@@ -4221,17 +4221,43 @@
     .member-statistics-list dd { margin: 4px 0 0; overflow-wrap: anywhere; }
     .member-statistics-ranking { margin: 0; padding: 0; list-style: none; columns: 2 220px; column-gap: 24px; }
     .member-statistics-ranking li { break-inside: avoid; font-variant-numeric: tabular-nums; }
-    .member-partner-pair { border-top: 1px solid var(--line); }
+    .member-partner-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .member-partner-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; border-top: 1px solid var(--line); }
+    .member-partner-pair { min-width: 0; }
     .member-partner-pair > summary { padding: 10px 2px; cursor: pointer; overflow-wrap: anywhere; }
     .member-partner-pair > summary:hover { color: var(--accent); }
     .member-partner-pair > summary:focus-visible,
-    .member-partner-more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .member-partner-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .member-partner-names { font-weight: 600; }
     .member-partner-count { margin-left: 10px; font-size: 12px; color: var(--muted); white-space: nowrap; }
     .member-partner-evidence { margin: 0 0 12px; padding-left: 18px; font-variant-numeric: tabular-nums; }
     .member-partner-evidence p { margin: 4px 0; }
-    .member-partner-more > summary { padding: 10px 2px; cursor: pointer; font-weight: 600; }
     .member-partner-scope { margin-top: 8px; }
+    .member-partner-actions { display: flex; align-items: flex-start; gap: 4px; padding-top: 7px; }
+    .member-partner-action { display: inline-flex; align-items: center; justify-content: center; width: 30px; min-height: 30px; padding: 4px; color: var(--muted); background: transparent; }
+    .member-partner-action svg { width: 16px; height: 16px; }
+    .member-partner-action[data-partner-action="delete"] { color: var(--danger); }
+    .member-partner-actions, .member-partner-heading > .member-partner-action { opacity: 0; pointer-events: none; }
+    .member-partner-row:hover > .member-partner-actions,
+    .member-partner-row:focus-within > .member-partner-actions,
+    .member-partner-heading:hover > .member-partner-action,
+    .member-partner-heading:focus-within > .member-partner-action { opacity: 1; pointer-events: auto; }
+    .member-partner-create { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 12px 0 16px; }
+    .member-partner-create label { display: grid; gap: 4px; }
+    .member-partner-create select { width: 100%; min-width: 0; min-height: 40px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 6px; background: var(--panel); color: var(--text); }
+    .member-partner-create-footer { display: flex; justify-content: flex-end; gap: 8px; grid-column: 1 / -1; }
+    .member-partner-status { margin: 8px 0; color: var(--muted); font-size: 12px; }
+    .member-partner-status[data-error="true"] { color: var(--danger); }
+    @media (hover: none), (pointer: coarse) {
+      .member-partner-actions, .member-partner-heading > .member-partner-action { opacity: 1; pointer-events: auto; }
+      .member-partner-action { width: 40px; min-height: 40px; }
+      .member-partner-actions { padding-top: 4px; }
+    }
+    @media (max-width: 480px) {
+      .member-partner-count { display: block; margin-left: 16px; }
+      .member-partner-row { gap: 4px; }
+    }
+
   </style>
 <script>
 /* Project Index shortcuts v2: 0..3 fixed; 4..9 resolved live with offline fallback. */
@@ -4937,7 +4963,7 @@
           </label>
           <button id="shakeFilterReset" class="shake-filter-reset" type="button" hidden>清除筛选</button>
         </div>
-        <p id="shakeProbabilityNote" class="shake-probability-note">仅推荐近30天已完成订场中有本人接龙记录的成员。到场概率根据此人和已接龙人员亲密度、近期出勤率、喜欢周几打、喜欢多少人打、体力是否支持连打（昨天前天是否有打）计算得出，仅供参考。</p>
+        <p id="shakeProbabilityNote" class="shake-probability-note">仅推荐近30天已完成订场中有本人记录的成员。到场概率指当天能组起球局时，此人实际出勤的估计，不是邀约答应率。综合近期出勤、星期与每周局数、最佳拍档、人数偏好和连打体力；历史习惯不是硬性禁打，仅供参考。</p>
         <div id="shakePeopleList" class="shake-people-list" aria-describedby="shakeProbabilityNote"></div>
         <div class="shake-rule-accordions">
           <div class="member-statistics-section">
@@ -5074,7 +5100,7 @@
       { key: "name", label: "成员", numeric: false },
       { key: "playCount", label: "打球次数", numeric: true, sortKey: "playCount" },
       { key: "guestCount", label: "带人数", numeric: true, sortKey: "guestCount" },
-      { key: "bestPartners", label: "同场最多", numeric: false },
+      { key: "bestPartners", label: "最佳拍档", numeric: false },
       { key: "weekdays", label: "打球日分布", numeric: false },
       { key: "change", label: "较上期变化", numeric: true, sortKey: "change" },
     ];
@@ -5143,6 +5169,11 @@
       currentPaymentRecord: null,
       shortTermRules: [],
       memberStatistics: null,
+      bestPartnerOverrides: globalThis.BadmintonMemberStatistics.normalizePartnerOverrides(null),
+      partnerDraft: null,
+      partnerSaving: false,
+      partnerStatus: "",
+      partnerError: false,
       memberStatisticsRefreshing: false,
       groupAttemptOutcomes: [],
       groupLearningSignals: null,
@@ -5507,6 +5538,7 @@
         ? data.groupLearningSignals
         : state.groupLearningSignals;
       if (data.memberStatistics) state.memberStatistics = data.memberStatistics;
+      state.bestPartnerOverrides = globalThis.BadmintonMemberStatistics.normalizePartnerOverrides(data.bestPartnerOverrides ?? data.memberStatistics?.bestPartnerOverrides);
       if (!state.estimator.shuttleTypes.some((type) => type.id === state.selectedEstimateShuttleTypeId)) {
         state.selectedEstimateShuttleTypeId = state.estimator.shuttleTypes[0]?.id || "rsl3";
       }
@@ -5800,7 +5832,7 @@
         signal: options.signal || controller.signal,
       }).finally(() => clearTimeout(timeoutId));
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      if (!response.ok) throw Object.assign(new Error(data.error || `HTTP ${response.status}`), { status: response.status });
       return data;
     }
 
@@ -7682,6 +7714,8 @@
         td.textContent = String(entry.guestCount);
       } else if (column.key === "bestPartners") {
         td.textContent = entry.bestPartners.join("，") || "—";
+        td.title = entry.bestPartnerSource === "coattendance"
+          ? "暂无最佳拍档；这里显示所选日期范围内同场最多的成员，不作为朋友关系" : "与摇人中的最佳拍档名单一致，按拍档排名展示";
       } else if (column.key === "weekdays") {
         td.append(createCalendarDetailHeatmap(entry.weekdays));
       } else if (column.key === "change") {
@@ -7697,7 +7731,21 @@
       return td;
     }
 
+    function refreshCalendarPartnerColumns() {
+      if (!Array.isArray(state.calendarDetailEntries)) return;
+      const direct = globalThis.BadmintonMemberStatistics.partnerIdsMap(getMemberStatistics());
+      const fallback = getBestPartnerIdsMap(state.calendarDetailSessions || []);
+      state.calendarDetailEntries.forEach((entry) => {
+        const friends = direct.get(Number(entry.playerId)) || [];
+        entry.bestPartnerSource = friends.length ? "partners" : "coattendance";
+        entry.bestPartners = (friends.length ? friends : fallback.get(Number(entry.playerId)) || [])
+          .map((id) => firstName(getPlayerById(id)?.name || `#${id}`));
+      });
+      if (els.calendarDetailModal.classList.contains("open")) renderCalendarDetailTable(state.calendarDetailEntries);
+    }
+
     function openCalendarDetailModal(sessions, title) {
+      state.calendarDetailSessions = sessions;
       const currentStats = getMemberDetailStatsMap(sessions);
       const comparison = getCalendarDetailComparisonRange(
         state.calendar.selectedDates,
@@ -7707,7 +7755,8 @@
       const previousSessions = getSessionsForDateRange(comparison.start, comparison.end);
       const previousStats = getMemberStatsMapForSessions(previousSessions);
       const playersById = new Map(state.players.map((player) => [Number(player.id), player]));
-      const bestPartnerIds = getBestPartnerIdsMap(sessions);
+      const bestPartnerIds = globalThis.BadmintonMemberStatistics.partnerIdsMap(getMemberStatistics());
+      const coattendanceIds = getBestPartnerIdsMap(sessions);
       const displayNameForId = (playerId) => {
         const player = playersById.get(Number(playerId));
         return player?.name ? firstName(player.name) : `#${playerId}`;
@@ -7716,11 +7765,10 @@
       const entries = [...currentStats.entries()].map(([playerId, stats]) => {
         const player = playersById.get(Number(playerId));
         const previous = previousStats.get(Number(playerId)) || { playCount: 0, guestCount: 0, amountTotal: 0 };
-        const bestPartners = (bestPartnerIds.get(Number(playerId)) || [])
-          .map((partnerId) => ({ partnerId, name: displayNameForId(partnerId) }))
-          .sort((a, b) => collator.compare(a.name, b.name) || a.partnerId - b.partnerId)
-          .slice(0, 3)
-          .map((partner) => partner.name);
+        const directPartners = bestPartnerIds.get(Number(playerId)) || [];
+        const bestPartnerSource = directPartners.length ? "partners" : "coattendance";
+        const bestPartners = (directPartners.length ? directPartners : coattendanceIds.get(Number(playerId)) || [])
+          .map(displayNameForId);
         return {
           playerId: Number(playerId),
           name: player?.name ? firstName(player.name) : `#${playerId}`,
@@ -7729,6 +7777,7 @@
           amountTotal: stats.amountTotal,
           weekdays: stats.weekdays,
           bestPartners,
+          bestPartnerSource,
           previousPlayCount: previous.playCount,
         };
       }).sort((a, b) => (
@@ -9964,6 +10013,8 @@
         entries,
         rules,
         state.memberStatistics?.calendar,
+        state.bestPartnerOverrides?.manualPairs,
+        state.bestPartnerOverrides?.excludedPairs,
       ]);
     }
 
@@ -9993,9 +10044,11 @@
           entries: state.chainEntries,
           shortTermRules: state.shortTermRules,
           memberStatistics: getMemberStatistics(),
+          bestPartnerOverrides: state.bestPartnerOverrides,
           targetDate,
           now: new Date(),
           includeCandidates,
+          includeCounterfactuals: false,
         });
         state.groupForecast = forecast;
         groupForecastCacheKey = cacheKey;
@@ -13206,6 +13259,11 @@
       groupForecastCacheKey = "";
     }
 
+    function getJoinedSelfPlayerIds() {
+      return new Set(state.chainEntries.filter((entry) => !entry.isCompanion && !entry.plusEntry)
+        .map((entry) => Number(entry.player?.id || entry.playerId)).filter((id) => Number.isInteger(id) && id > 0));
+    }
+
     function getJoinedPlayerIds() {
       return new Set(state.chainEntries
         .map((entry) => Number(entry.ownerPlayer?.id || entry.player?.id))
@@ -13215,7 +13273,7 @@
     function buildShakePeopleRecommendations(today) {
       const recentMemberIds = new Set(getMemberStatistics().members
         .filter((member) => member.attendance30 > 0).map((member) => member.playerId));
-      const joinedIds = getJoinedPlayerIds();
+      const joinedIds = getJoinedSelfPlayerIds();
       const forecast = renderGroupForecast({ includeCandidates: true });
       if (Array.isArray(forecast?.candidates)) {
         const joinedSelfIds = new Set(state.chainEntries
@@ -13235,7 +13293,7 @@
           ));
       }
 
-      const bestPartnerMap = getBestPartnerIdsMap(state.sessions);
+      const bestPartnerMap = globalThis.BadmintonMemberStatistics.partnerIdsMap(getMemberStatistics());
       const bestPartnerBoost = new Set();
       joinedIds.forEach((playerId) => {
         (bestPartnerMap.get(playerId) || []).forEach((partnerId) => bestPartnerBoost.add(Number(partnerId)));
@@ -13276,12 +13334,14 @@
       return globalThis.BadmintonMemberStatistics.build({
         players: state.players, sessions: state.sessions, now: new Date(),
         calendar: state.memberStatistics?.calendar,
+        bestPartnerOverrides: state.bestPartnerOverrides,
       });
     }
 
     async function loadMemberStatistics() {
       const data = await api("/api/member-statistics");
       state.memberStatistics = data.memberStatistics;
+      state.bestPartnerOverrides = globalThis.BadmintonMemberStatistics.normalizePartnerOverrides(data.bestPartnerOverrides ?? data.memberStatistics?.bestPartnerOverrides);
       groupForecastCacheKey = "";
     }
 
@@ -13335,17 +13395,20 @@
 
     function getShakeRecommendationBadges(item, statistics, targetDate, currentCount) {
       const current = globalThis.BadmintonMemberStatistics.recommendationTags({
-        statistics, playerId: item.player?.id ?? item.playerId, targetDate, currentCount,
+        statistics, playerId: item.player?.id ?? item.playerId, targetDate, currentCount, joinedPlayerIds: getJoinedSelfPlayerIds(),
       });
       // Rebuild statistics-dependent labels even when an old forecast is cached.
-      const managed = (text) => /^(近期更常来|近期常打|历史参与较多|(?:近期)?常带随行人员|近30天参与\d+天|10人及以下时可能退出|可能不喜欢人少的局|已达到近30天观察到的每周局数上限|每周可能最多打[12]局|近30天未在普通同星期接龙|周[日一二三四五六]可能无法打球)$/.test(text);
+      const managed = (text) => /^(与已接龙成员是朋友|常与已接龙成员同场|同场最多|近期更常来|近期常打|历史参与较多|(?:近期)?常带随行人员|近30天参与\d+天|10人及以下时可能退出|可能不喜欢人少的局|已达到近30天观察到的每周局数上限|每周可能最多打[12]局|近30天未在普通同星期接龙|周[日一二三四五六]可能无法打球)$/.test(text);
       const badges = [
         ...current.reasons.map((text) => ({ text, risk: false })),
         ...current.risks.map((text) => ({ text, risk: true })),
         ...(item.reasons || []).filter((text) => !managed(text)).map((text) => ({ text, risk: false })),
-        ...(item.risks || []).filter((text) => !managed(text) && !(text === "近期较少参与" && current.reasons.length)).map((text) => ({ text, risk: true })),
+        ...(item.risks || []).filter((text) => !managed(text) && !(text === "近期较少参与" && current.reasons.includes("近期常打"))).map((text) => ({ text, risk: true })),
       ];
-      if (item.isBestPartner && !badges.length) badges.push({ text: "同场最多", risk: false });
+      const friends = globalThis.BadmintonMemberStatistics.predictionFeatures({
+        statistics, playerId: item.player?.id ?? item.playerId, targetDate, currentCount, joinedPlayerIds: getJoinedSelfPlayerIds(),
+      }).friendIds;
+      badges.forEach((badge) => { if (badge.text === "与已接龙成员是朋友") badge.title = "已接龙的朋友：" + friends.map((id) => firstName(getPlayerById(id)?.name || String(id))).join("、"); });
       if (item.isLowLevelMatch) badges.push({ text: "水平相近", risk: false });
       return badges.filter((badge, index) => badges.findIndex((other) => other.text === badge.text) === index);
     }
@@ -13463,6 +13526,7 @@
           const badgeElement = document.createElement("span");
           badgeElement.className = `shake-reason${itemBadge.risk ? " risk" : ""}`;
           badgeElement.textContent = itemBadge.text;
+          if (itemBadge.title) badgeElement.title = itemBadge.title;
           meta.append(badgeElement);
         });
         primary.append(heading);
@@ -13600,7 +13664,117 @@
     }
 
 
-    function renderBestPartnerPair(pair, expandedPairs = new Set()) {
+    function makePartnerAction(icon, label, action, onClick) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "member-partner-action";
+      button.title = label;
+      button.setAttribute("aria-label", label);
+      button.dataset.partnerAction = action;
+      button.disabled = state.partnerSaving;
+      const symbol = document.createElement("i");
+      symbol.setAttribute("data-lucide", icon);
+      symbol.setAttribute("aria-hidden", "true");
+      button.append(symbol);
+      button.addEventListener("click", onClick);
+      return button;
+    }
+
+    function renderPartnerCreateForm(container) {
+      if (!state.partnerDraft || state.readOnly) return;
+      const form = document.createElement("form");
+      form.className = "member-partner-create";
+      form.id = "partnerCreateForm";
+      form.setAttribute("aria-label", "手动创建最佳拍档");
+      [0, 1].forEach((index) => {
+        const label = document.createElement("label");
+        label.textContent = index ? "第二位成员" : "第一位成员";
+        const select = document.createElement("select");
+        select.name = "partner" + index;
+        select.required = true;
+        select.disabled = state.partnerSaving;
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "请选择成员";
+        select.append(placeholder);
+        [...state.players].sort((a, b) => collator.compare(firstName(a.name), firstName(b.name)) || a.id - b.id).forEach((player) => {
+          const option = document.createElement("option");
+          option.value = String(player.id);
+          option.textContent = player.name;
+          select.append(option);
+        });
+        select.value = state.partnerDraft[index];
+        select.addEventListener("change", () => { state.partnerDraft[index] = select.value; });
+        label.append(select);
+        form.append(label);
+      });
+      const footer = document.createElement("div");
+      footer.className = "member-partner-create-footer";
+      const cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.textContent = "取消";
+      cancel.disabled = state.partnerSaving;
+      cancel.addEventListener("click", () => {
+        state.partnerDraft = null; state.partnerStatus = ""; state.partnerError = false;
+        renderShakeMemberStatistics();
+        document.querySelector('[data-partner-action="create"]')?.focus();
+      });
+      const submit = document.createElement("button");
+      submit.type = "submit";
+      submit.className = "primary-btn";
+      submit.textContent = state.partnerSaving ? "正在保存…" : "创建拍档";
+      submit.disabled = state.partnerSaving;
+      footer.append(cancel, submit);
+      form.append(footer);
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        void savePartnerEdit({ action: "create", playerIds: state.partnerDraft.map(Number) });
+      });
+      container.append(form);
+    }
+
+    async function savePartnerEdit(operation) {
+      if (state.readOnly || state.partnerSaving) return;
+      if (!globalThis.BadmintonMemberStatistics.partnerKey(operation.playerIds)) {
+        state.partnerStatus = "请选择两位不同的已有成员"; state.partnerError = true;
+        renderShakeMemberStatistics(); return;
+      }
+      const focusKey = globalThis.BadmintonMemberStatistics.partnerKey(operation.playerIds);
+      state.partnerSaving = true; state.partnerError = false; state.partnerStatus = "正在保存拍档名单…";
+      renderShakeMemberStatistics();
+      try {
+        const data = await api("/api/best-partners", { method: "POST", body: JSON.stringify({
+          ...operation, revision: state.bestPartnerOverrides.revision,
+        }) });
+        if (!data.ok || !data.memberStatistics || !data.bestPartnerOverrides) throw new Error("保存结果不完整，请刷新后确认");
+        state.bestPartnerOverrides = globalThis.BadmintonMemberStatistics.normalizePartnerOverrides(data.bestPartnerOverrides);
+        state.memberStatistics = data.memberStatistics;
+        if (operation.action === "create") state.partnerDraft = null;
+        state.partnerStatus = operation.action === "delete" ? "已删除；此组合不会自动恢复，可手工重新添加。"
+          : operation.action === "move" ? "排名已保存；仅调整展示顺序，不改变概率。" : "最佳拍档已创建，并同步到日历与概率计算。";
+        const cached = readCachedBootstrap();
+        if (cached?.data) cacheBootstrap({ ...cached.data, bestPartnerOverrides: state.bestPartnerOverrides, memberStatistics: state.memberStatistics });
+        if (operation.action !== "move") groupForecastCacheKey = "";
+        refreshCalendarPartnerColumns();
+      } catch (error) {
+        state.partnerError = true;
+        state.partnerStatus = "保存未完成：" + error.message;
+        // A concurrent edit or lost response may have changed the server. Read, never retry a write blindly.
+        try { await loadMemberStatistics(); } catch { /* Keep the previous confirmed state while offline. */ }
+      } finally {
+        state.partnerSaving = false;
+        refreshCalendarPartnerColumns();
+        renderShakePeopleModal();
+        const row = [...els.shakeMemberStatisticsList.querySelectorAll(".member-partner-row")]
+          .find((element) => element.dataset.partnerKey === focusKey);
+        const button = row?.querySelector('[data-partner-action="' + operation.direction + '"]');
+        if (button && !button.disabled) button.focus({ preventScroll: true });
+        else if (row) row.querySelector("summary")?.focus({ preventScroll: true });
+        else document.querySelector(state.partnerDraft ? "#partnerCreateForm select" : '[data-partner-action="create"]')?.focus({ preventScroll: true });
+      }
+    }
+
+    function renderBestPartnerPair(pair, expandedPairs = new Set(), index = 0, total = 1) {
       const details = document.createElement("details");
       details.className = "member-partner-pair";
       details.dataset.partnerKey = pair.playerIds.join(":");
@@ -13611,58 +13785,73 @@
       names.textContent = pair.names.join(" ↔ ");
       const count = document.createElement("span");
       count.className = "member-partner-count";
-      count.textContent = `共同出勤 ${pair.togetherDays} 天`;
+      count.textContent = `共同出勤 ${pair.togetherDays} 天${pair.source === "manual" ? " · 手工添加" : ""}`;
       summary.append(names, count);
       const evidence = document.createElement("div");
       evidence.className = "member-partner-evidence";
       const formatRate = (value) => value.opportunities > 0
         ? `${value.attended}/${value.opportunities}（${Math.round(value.attended / value.opportunities * 1000) / 10}%）`
         : "暂无对照记录";
-      pair.directions.forEach((direction, index) => {
+      (pair.directions || []).forEach((direction, index) => {
         const line = document.createElement("p");
         line.textContent = `${pair.names[1 - index]}参加时，${pair.names[index]}出勤：${formatRate(direction.withPartner)}；未参加时：${formatRate(direction.withoutPartner)}。`;
         evidence.append(line);
       });
       const scope = document.createElement("p");
       scope.className = "member-statistics-note member-partner-scope";
-      scope.textContent = `比较范围：${pair.start} 至 ${pair.end}，${pair.opportunityDays} 个有球局的日期；共同 ${pair.togetherSessions} 场。以上为原始场次比例，排序另做近期加权、星期及时期校正，不是邀约成功率。`;
+      scope.textContent = !pair.opportunityDays ? "暂无可比较的已完成订场记录；手工关系仍有效，不据此假定到场概率。" : `比较范围：${pair.start} 至 ${pair.end}，${pair.opportunityDays} 个有球局的日期；共同 ${pair.togetherSessions} 场。${pair.source === "manual" ? "此关系由手工添加，不要求达到自动识别的样本门槛。" : "自动识别采用近期加权、星期及时期校正。"}以上比例不是邀约成功率；人工排名只影响展示。`;
       evidence.append(scope);
       details.append(summary, evidence);
-      return details;
+      const row = document.createElement("div");
+      row.className = "member-partner-row";
+      row.dataset.partnerKey = details.dataset.partnerKey;
+      row.append(details);
+      if (!state.readOnly) {
+        const actions = document.createElement("div");
+        actions.className = "member-partner-actions";
+        const up = makePartnerAction("arrow-up", "上调排名", "up", () => void savePartnerEdit({ action: "move", playerIds: pair.playerIds, direction: "up" }));
+        const down = makePartnerAction("arrow-down", "下调排名", "down", () => void savePartnerEdit({ action: "move", playerIds: pair.playerIds, direction: "down" }));
+        up.disabled ||= index === 0; down.disabled ||= index === total - 1;
+        const remove = makePartnerAction("trash-2", "删除最佳拍档", "delete", () => {
+          if (confirm("删除“" + pair.names.join(" ↔ ") + "”？此组合不会自动恢复，以后可以手工重新添加。"))
+            void savePartnerEdit({ action: "delete", playerIds: pair.playerIds });
+        });
+        actions.append(up, down, remove); row.append(actions);
+      }
+      return row;
     }
 
-    function renderBestPartnerStatistics(container, statistics, expandedPairs = new Set(), moreOpen = false) {
+    function renderBestPartnerStatistics(container, statistics, expandedPairs = new Set()) {
       const note = document.createElement("p");
       note.className = "member-statistics-note";
-      note.textContent = "看近90天，双方近30天均有本人记录；按校正后的双向关联排序。同日多场不重复放大证据，样本不足不推断。仅供约球参考，不代表已确认的朋友关系。";
+      note.textContent = "自动识别看近90天，双方近30天均有本人记录，按校正后的双向关联排序；手工添加不受样本门槛限制。人工排序只影响展示，删除的组合不会自动恢复。拍档关系双向、不传递。";
       container.append(note);
+      renderPartnerCreateForm(container);
+      const status = document.createElement("p");
+      status.className = "member-partner-status";
+      status.setAttribute("role", "status");
+      status.setAttribute("aria-live", "polite");
+      status.dataset.error = String(state.partnerError);
+      status.hidden = !state.partnerStatus;
+      status.textContent = state.partnerStatus;
+      container.append(status);
       const pairs = statistics?.pairs || [];
       if (!pairs.length) {
         const empty = document.createElement("p");
-        empty.textContent = "暂无证据充分的拍档组合";
+        empty.textContent = "暂无最佳拍档，可手工创建或等待更多出勤记录。";
         container.append(empty);
         return;
       }
-      pairs.slice(0, 10).forEach((pair) => container.append(renderBestPartnerPair(pair, expandedPairs)));
-      if (pairs.length > 10) {
-        const more = document.createElement("details");
-        more.className = "member-partner-more";
-        more.open = moreOpen;
-        const summary = document.createElement("summary");
-        summary.textContent = `查看其余 ${pairs.length - 10} 组`;
-        more.append(summary);
-        pairs.slice(10).forEach((pair) => more.append(renderBestPartnerPair(pair, expandedPairs)));
-        container.append(more);
-      }
+      pairs.forEach((pair, index) => container.append(renderBestPartnerPair(pair, expandedPairs, index, pairs.length)));
     }
 
     function renderShakeMemberStatistics() {
       const container = els.shakeMemberStatisticsList;
       const statistics = getMemberStatistics();
-      const signature = JSON.stringify([statistics.version, statistics.asOf, statistics.lists, statistics.members, statistics.bestPartners, statistics.calendar]);
+      const signature = JSON.stringify([statistics.version, statistics.asOf, statistics.lists, statistics.members, statistics.bestPartners, statistics.calendar, state.readOnly, state.partnerDraft, state.partnerSaving, state.partnerStatus]);
       if (container.dataset.renderSignature === signature) return;
       const expandedPairs = new Set([...container.querySelectorAll(".member-partner-pair[open]")].map((pair) => pair.dataset.partnerKey));
-      const moreOpen = Boolean(container.querySelector(".member-partner-more[open]"));
+      container.setAttribute("aria-busy", String(state.partnerSaving));
       container.replaceChildren();
       container.dataset.renderSignature = signature;
       const note = document.createElement("p");
@@ -13686,7 +13875,21 @@
         const label = document.createElement("dt");
         label.textContent = `${definition.label}：`;
         const value = document.createElement("dd");
-        if (definition.key === "bestPartners") renderBestPartnerStatistics(value, statistics.bestPartners, expandedPairs, moreOpen);
+        if (definition.key === "bestPartners") {
+          label.className = "member-partner-heading";
+          if (!state.readOnly) {
+            const create = makePartnerAction("user-round-plus", "手动创建最佳拍档", "create", () => {
+              if (state.partnerDraft) { document.querySelector("#partnerCreateForm select")?.focus(); return; }
+              state.partnerDraft = ["", ""]; state.partnerStatus = ""; state.partnerError = false;
+              renderShakeMemberStatistics();
+              document.querySelector("#partnerCreateForm select")?.focus();
+            });
+            create.setAttribute("aria-expanded", String(Boolean(state.partnerDraft)));
+            create.setAttribute("aria-controls", "partnerCreateForm");
+            label.append(create);
+          }
+          renderBestPartnerStatistics(value, statistics.bestPartners, expandedPairs);
+        }
         else if (!definition.memberIds.length) value.textContent = "暂无符合条件的成员";
         else if (definition.key === "attendance15") {
           const ranking = document.createElement("ul");
@@ -13702,6 +13905,7 @@
         list.append(label, value);
       }
       container.append(list);
+      window.lucide?.createIcons({ attrs: { "aria-hidden": "true" } });
     }
 
     function shortRuleSchedule(rule) {

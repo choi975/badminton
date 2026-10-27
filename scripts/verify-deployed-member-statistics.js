@@ -39,11 +39,12 @@ assert.equal(statistics.lists.length, 14);
 assert.equal(bootstrap.groupLearningSignals.version, "group-learning-v2");
 const expected = globalThis.BadmintonMemberStatistics.build({
   players: bootstrap.players, sessions: bootstrap.sessions,
+  bestPartnerOverrides: bootstrap.bestPartnerOverrides,
   now: bootstrap.memberStatistics.generatedAt, asOf: bootstrap.memberStatistics.asOf, calendar: bootstrap.memberStatistics.calendar,
 });
 assert.deepEqual(bootstrap.memberStatistics.lists, expected.lists, "Worker and browser statistics must agree for live records");
 assert.deepEqual(bootstrap.memberStatistics.bestPartners, expected.bestPartners, "Worker and browser best-partner evidence must agree");
-assert.match(html, /key: "bestPartners", label: "同场最多"/);
+assert.match(html, /key: "bestPartners", label: "最佳拍档"/);
 assert.ok(html.includes('function renderBestPartnerStatistics('));
 assert.ok(statistics.lists.filter((list) => list.key === "onlyLargeSessions" || list.key.startsWith("noWeekday") || list.key.startsWith("weeklyMax")).every((list) => list.memberIds.every((id) => statistics.members.find((m) => m.playerId === id).attendance30 >= 2)));
 const ranking = statistics.lists.find((list) => list.key === "attendance15");

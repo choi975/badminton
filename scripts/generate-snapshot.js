@@ -97,6 +97,7 @@ const players = playerRows.map((row) => ({
 }));
 const levelDescriptions = Object.fromEntries(levelRows.map((row) => [row.level, row.description]));
 const levelGroups = globalThis.BadmintonLevelGroups.fromStored(settingRows.find((row) => row.key === "level_groups")?.value);
+const bestPartnerOverrides = globalThis.BadmintonMemberStatistics.normalizePartnerOverrides(settingRows.find((row) => row.key === "best_partner_overrides")?.value);
 const levelGuideRaw = settingRows.find((row) => row.key === "level_guide_raw")?.value || "";
 const storedEdcBalance = Number(settingRows.find((row) => row.key === "edc_balance")?.value);
 const edcBalance = Number.isFinite(storedEdcBalance) ? storedEdcBalance : 860;
@@ -300,7 +301,8 @@ const snapshot = {
     shakeLongTermLists,
     groupAttemptOutcomes,
     groupLearningSignals,
-    memberStatistics: globalThis.BadmintonMemberStatistics.build({ players, sessions }),
+    bestPartnerOverrides,
+    memberStatistics: globalThis.BadmintonMemberStatistics.build({ players, sessions, now: snapshotNow, bestPartnerOverrides }),
   },
 };
 

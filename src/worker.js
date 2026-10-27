@@ -630,7 +630,7 @@ async function handleApi(request, env, url) {
 
   if (pathname === "/api/bootstrap" && method === "GET") {
     const learningNow = new Date();
-    const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes, cachedGroupLearningSignals, edcBalance, levelGroups, statisticsCalendar] = await Promise.all([
+    const [players, guide, paymentState, sessions, estimator, groupAttemptOutcomes, cachedGroupLearningSignals, edcBalance, levelGroups, statisticsCalendar, partnerSettings] = await Promise.all([
       listPlayers(env.DB),
       getLevelGuide(env.DB),
       getPaymentOrderState(env.DB),
@@ -641,6 +641,7 @@ async function handleApi(request, env, url) {
       getEdcBalance(env.DB),
       getLevelGroups(env.DB),
       readMemberStatisticsCalendar(env.DB),
+      readBestPartnerSettings(env.DB),
     ]);
     const groupLearningSignals = cachedGroupLearningSignals || buildGroupLearningColdStart(players, sessions, learningNow);
     return json({
@@ -653,15 +654,46 @@ async function handleApi(request, env, url) {
       groupLearningSignals,
       edcBalance,
       levelGroups,
-      memberStatistics: globalThis.BadmintonMemberStatistics.build({ players, sessions, now: learningNow, calendar: statisticsCalendar }),
+      bestPartnerOverrides: partnerSettings.overrides,
+      memberStatistics: globalThis.BadmintonMemberStatistics.build({ players, sessions, now: learningNow, calendar: statisticsCalendar, bestPartnerOverrides: partnerSettings.overrides }),
     });
   }
 
   if (pathname === "/api/member-statistics" && method === "GET") {
-    const [players, sessions, calendar] = await Promise.all([listPlayers(env.DB), listSessions(env.DB), readMemberStatisticsCalendar(env.DB)]);
-    return json({ memberStatistics: globalThis.BadmintonMemberStatistics.build({ players, sessions, calendar }) });
+    const [players, sessions, calendar, settings] = await Promise.all([listPlayers(env.DB), listSessions(env.DB), readMemberStatisticsCalendar(env.DB), readBestPartnerSettings(env.DB)]);
+    return json({ bestPartnerOverrides: settings.overrides, memberStatistics: globalThis.BadmintonMemberStatistics.build({ players, sessions, calendar, now: new Date(), bestPartnerOverrides: settings.overrides }) });
   }
 
+
+  if (pathname === "/api/best-partners" && method === "POST") {
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以修改最佳拍档" }, 403);
+    if (!await consumeGroupAttemptRateLimit(request, env)) return json({ error: "操作过于频繁，请稍后重试" }, 429);
+    let body;
+    try {
+      const text = await request.text();
+      if (text.length > 4096) return json({ error: "拍档请求过大" }, 413);
+      body = JSON.parse(text);
+    } catch { return json({ error: "拍档请求格式错误" }, 400); }
+    if (!body || !Number.isSafeInteger(body.revision) || body.revision < 0) return json({ error: "请刷新拍档名单后重试" }, 400);
+    const [settings, players, sessions, calendar] = await Promise.all([
+      readBestPartnerSettings(env.DB), listPlayers(env.DB), listSessions(env.DB), readMemberStatisticsCalendar(env.DB),
+    ]);
+    if (body.revision !== settings.overrides.revision) return json({ error: "名单已被其他设备修改，请刷新后重试" }, 409);
+    const now = new Date(), core = globalThis.BadmintonMemberStatistics;
+    const current = core.build({ players, sessions, calendar, now, bestPartnerOverrides: settings.overrides });
+    let bestPartnerOverrides;
+    try {
+      bestPartnerOverrides = core.editPartnerOverrides({ overrides: settings.overrides,
+        pairs: current.bestPartners.pairs, players, action: body.action, playerIds: body.playerIds, direction: body.direction, now });
+    } catch (error) { return json({ error: error.message }, 400); }
+    // Compare-and-swap protects concurrent device edits, including first creation of the setting.
+    const saved = await env.DB.prepare(`INSERT INTO app_settings (key, value) VALUES ('best_partner_overrides', ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value WHERE app_settings.value = ?`)
+      .bind(JSON.stringify(bestPartnerOverrides), settings.raw).run();
+    if (saved.meta?.changes !== 1) return json({ error: "名单已被其他设备修改，请刷新后重试" }, 409);
+    return json({ ok: true, bestPartnerOverrides,
+      memberStatistics: core.build({ players, sessions, calendar, now, bestPartnerOverrides }) });
+  }
 
   if (pathname === "/api/member-statistics/refresh" && method === "POST") {
     if (!isAdminRequest(request)) return json({ error: "只有管理版可以重新训练并刷新统计" }, 403);
@@ -3352,11 +3384,16 @@ async function refreshMemberStatisticsCalendar(calendar, now) {
   return normalized;
 }
 
+async function readBestPartnerSettings(db) {
+  const row = await db.prepare("SELECT value FROM app_settings WHERE key = 'best_partner_overrides'").first();
+  return { raw: row?.value || "", overrides: globalThis.BadmintonMemberStatistics.normalizePartnerOverrides(row?.value) };
+}
+
 async function rebuildMemberStatistics(db, now = new Date(), refreshCalendar = false) {
   let calendar = await readMemberStatisticsCalendar(db);
   if (refreshCalendar) calendar = await refreshMemberStatisticsCalendar(calendar, now);
-  const [players, sessions] = await Promise.all([listPlayers(db), listSessions(db)]);
-  const memberStatistics = globalThis.BadmintonMemberStatistics.build({ players, sessions, calendar, now });
+  const [players, sessions, settings] = await Promise.all([listPlayers(db), listSessions(db), readBestPartnerSettings(db)]);
+  const memberStatistics = globalThis.BadmintonMemberStatistics.build({ players, sessions, calendar, now, bestPartnerOverrides: settings.overrides });
   await db.prepare(`INSERT INTO member_statistics_cache (id, statistics_json, generated_at, updated_at)
     VALUES ('current', ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(id) DO UPDATE SET statistics_json = excluded.statistics_json,
