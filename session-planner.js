@@ -7,7 +7,7 @@
     let store;
     try { store = JSON.parse(localStorage.getItem(KEY) || "null"); } catch {}
     if (!store || store.version !== 1) store = { version: 1, days: {}, pending: {} };
-    let activeDate = core.date(), applying = false, syncing = false, ready = false, timer, selectedSlot = null, selectedMember = null;
+    let activeDate = core.date(), applying = false, syncing = false, ready = false, timer, selectedSlot = null, selectedMember = null, activeTooltip = null;
     let sendingDate, focusBefore, conflict = null, saveError = "", localError = false;
     const status = document.getElementById("planSaveStatus"), dialog = document.getElementById("sessionPlanDialog");
     const grid = document.getElementById("planGrid"), cards = document.getElementById("planMembers"), hint = document.getElementById("planHint");
@@ -136,7 +136,20 @@
       editor.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); finish(true); } if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); finish(false); } });
       editor.addEventListener("blur", () => finish(true));
     }
+    function positionMemberTooltip(button, tooltip) {
+      if (tooltip.dataset.open !== "true") return;
+      const rect = button.getBoundingClientRect();
+      const width = tooltip.offsetWidth || 240;
+      const height = tooltip.offsetHeight || 32;
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+      const above = rect.top >= height + 12;
+      const top = above ? rect.top - height - 8 : Math.min(window.innerHeight - height - 8, rect.bottom + 8);
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${Math.max(8, top)}px`;
+    }
+
     function renderCards() {
+      activeTooltip = null;
       cards.replaceChildren();
       const members = core.recentMembers(state.players, state.sessions, activeDate), target = selectedSlot?.date;
       hint.textContent = selectedMember ? `已选中 ${selectedMember}，点击一个或多个日期快速添加；点击其他位置退出。`
@@ -149,11 +162,27 @@
         const signal = target ? adapter.signals(member.id, target, getDay(target).slots, plannedEntries()) : { reasons: [], risks: [] };
         if (signal.risks.length) button.classList.add("is-dim"); else if (signal.reasons.length) button.classList.add("is-highlight");
         button.classList.toggle("is-selected", selectedMember === name); button.setAttribute("aria-pressed", String(selectedMember === name));
-        button.title = [...signal.risks, ...signal.reasons].join("；") || "点击选择成员";
-        const title = document.createElement("span"); title.textContent = name;
-        const count = document.createElement("small"); count.textContent = `${member.attendance15}次`;
-        button.append(title, count);
-        if (target && (signal.risks.length || signal.reasons.length)) { const reason = document.createElement("small"); reason.className = "plan-member-reason"; reason.textContent = [...signal.risks, ...signal.reasons].join(" · "); button.append(reason); }
+        const tags = [`近15天实际出勤：${member.attendance15}次`, ...signal.risks, ...signal.reasons];
+        const tooltipId = `plan-member-tooltip-${member.id}`;
+        button.setAttribute("aria-label", name);
+        button.setAttribute("aria-describedby", tooltipId);
+        const title = document.createElement("span"); title.className = "plan-member-name"; title.textContent = name;
+        const tooltip = document.createElement("span"); tooltip.id = tooltipId; tooltip.className = "plan-member-tooltip"; tooltip.setAttribute("role", "tooltip"); tooltip.textContent = tags.join(" · ");
+        button.append(title, tooltip);
+        const showTooltip = () => {
+          if (activeTooltip && activeTooltip.tooltip !== tooltip) delete activeTooltip.tooltip.dataset.open;
+          activeTooltip = { button, tooltip };
+          tooltip.dataset.open = "true";
+          requestAnimationFrame(() => positionMemberTooltip(button, tooltip));
+        };
+        const hideTooltip = () => {
+          if (activeTooltip?.tooltip === tooltip) activeTooltip = null;
+          delete tooltip.dataset.open;
+        };
+        button.addEventListener("mouseenter", showTooltip);
+        button.addEventListener("mouseleave", hideTooltip);
+        button.addEventListener("focus", showTooltip);
+        button.addEventListener("blur", hideTooltip);
         button.addEventListener("click", () => {
           if (selectedSlot) { const { date, index } = selectedSlot; selectedSlot = null; selectedMember = null; edit(date, index, name); }
           else { selectedMember = selectedMember === name ? null : name; renderCards(); }
@@ -204,6 +233,8 @@
     window.addEventListener("online", () => void refresh());
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { rollover(); void refresh(); } });
     window.addEventListener("storage", (e) => { if (e.key === KEY && !Object.keys(store.pending).length) { try { const next = JSON.parse(e.newValue); if (next?.version === 1) { store = next; applyToday(); if (dialog.open) render(); } } catch {} } });
+    window.addEventListener("resize", () => { if (activeTooltip) positionMemberTooltip(activeTooltip.button, activeTooltip.tooltip); });
+    window.addEventListener("scroll", () => { if (activeTooltip) positionMemberTooltip(activeTooltip.button, activeTooltip.tooltip); }, true);
     setInterval(() => { rollover(); if (document.visibilityState === "visible") void refresh(); }, 30000);
     applyToday(); void refresh();
     return { capture, open, rollover, plannedEntries, refresh, restoreToday: applyToday, key: () => JSON.stringify(plannedEntries()), renderIfOpen: () => { if (dialog.open) renderCards(); } };

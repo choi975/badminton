@@ -47,6 +47,11 @@ assert.equal(JSON.stringify(sessions),textBefore,"plans must not modify historic
 const tomorrow=BadmintonGroupProbability.estimate({...input,entries:[],plannedEntries:{"2026-10-29":repeated}});
 assert.equal(tomorrow.tomorrowProbability,1,"tomorrow's plan affects tomorrow's estimate");
 const source=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+const plannerSource=readFileSync(new URL("../session-planner.js",import.meta.url),"utf8");
 assert.doesNotMatch(source,/id="(?:attemptTrialModeBtn|pasteInputBtn)"/);
 assert.match(source,/id="sessionPlanDialog"/); assert.match(source,/globalThis.sessionPlannerController\?\.capture/);
+assert.match(source,/plan-member-tooltip/);
+assert.match(plannerSource,/button\.setAttribute\("aria-describedby", tooltipId\)/);
+assert.doesNotMatch(plannerSource,/count\.textContent = `\$\{member\.attendance15\}次`/);
+assert.doesNotMatch(plannerSource,/className = "plan-member-reason"/);
 console.log("Session plans passed: Beijing rollover, seven dates, repeated-member friends, recent attendance, D1 save/retry/conflict/clear, origin isolation, validation, confirmed probabilities and history separation.");
