@@ -9,6 +9,8 @@
   <script src="./member-statistics.js"></script>
   <script src="./group-probability.js"></script>
   <script src="./forecast-client.js"></script>
+  <script src="./session-planner-core.js"></script>
+  <script src="./session-planner.js"></script>
   <script src="./optimistic-sync.js"></script>
   <script src="./court-pricing.js"></script>
   <script src="./level-groups.js"></script>
@@ -4264,6 +4266,40 @@
       .member-partner-row { gap: 4px; }
     }
 
+
+    .chain-plan-save { display: block; margin-top: 7px; color: var(--muted); font-size: 11px; }
+    button.group-probability { min-height: 32px; padding: 0 9px; border: 0; background: transparent; }
+    .session-plan-dialog { width: min(1120px, calc(100vw - 32px)); max-height: min(92dvh, 900px); padding: 0; border: 1px solid var(--line); border-radius: 12px; color: var(--text); background: var(--panel); }
+    .session-plan-dialog::backdrop { background: rgba(18,38,33,.42); }
+    .plan-dialog-inner { padding: 24px; }
+    .plan-header { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
+    .plan-header h2 { font-size: 22px; margin: 0; }
+    .plan-header p, .plan-footnote { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 8px 0 0; }
+    .plan-save-row { min-height: 44px; display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--accent-dark); flex-wrap: wrap; }
+    .plan-save-row [data-error="true"] { color: var(--danger); }
+    .plan-save-row button { min-height: 30px; font-size: 12px; }
+    .plan-grid-scroll { overflow-x: auto; scrollbar-color: var(--line-strong) var(--panel-soft); }
+    .plan-grid { min-width: 790px; }
+    .plan-day { display: grid; grid-template-columns: 68px repeat(10, minmax(0,1fr)); gap: 6px; margin-bottom: 6px; }
+    .plan-date { display: flex; flex-direction: column; gap: 3px; justify-content: center; align-items: center; padding: 5px; border: 0; background: var(--panel-soft); }
+    .plan-date strong { font-size: 13px; } .plan-date small { color: var(--muted); font-size: 11px; font-weight: 400; }
+    .plan-slot, .plan-slot-editor { width: 100%; min-width: 0; height: 48px; padding: 0 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+    .plan-slot.is-empty { color: var(--muted); background: var(--panel-soft); font-weight: 400; }
+    .plan-slot.is-selected, .plan-member.is-selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); outline: 2px solid var(--accent); outline-offset: -2px; }
+    .plan-slot-editor { border: 2px solid var(--accent); border-radius: 6px; color: var(--text); background: #fff; }
+    .plan-toolbar { margin: 14px 0 20px; display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+    .plan-toolbar p { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .plan-toolbar > div { display: flex; flex-shrink: 0; gap: 6px; } .plan-toolbar button { min-height: 32px; font-size: 12px; }
+    .plan-members-section h3 { font-size: 14px; margin: 0 0 12px; } .plan-members-section h3 small { font-size: 11px; font-weight: 400; color: var(--muted); margin-left: 8px; }
+    .plan-members { display: flex; flex-wrap: wrap; gap: 8px; max-height: 230px; overflow-y: auto; padding: 2px; }
+    .plan-member { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 38px; padding: 8px 12px; text-align: left; }
+    .plan-member small { color: var(--muted); font-size: 11px; font-weight: 400; }
+    .plan-member.is-highlight { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
+    .plan-member.is-dim { background: var(--panel-soft); border-color: var(--line); color: var(--muted); font-weight: 400; }
+    .plan-member .plan-member-reason { flex-basis: 100%; max-width: 230px; line-height: 1.5; }
+    .plan-footnote { margin-top: 20px; }
+    .session-plan-dialog :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    @media(max-width:600px) { .session-plan-dialog { width: calc(100vw - 16px); max-height: 94dvh; } .plan-dialog-inner { padding: 16px; } .plan-toolbar { align-items: start; flex-direction: column; gap: 8px; } .plan-header p { max-width: 230px; } .plan-members-section h3 small { display: block; margin: 5px 0 0; } .plan-member { min-height: 42px; } }
   </style>
 <script>
 /* Project Index shortcuts v2: 0..3 fixed; 4..9 resolved live with offline fallback. */
@@ -4542,20 +4578,19 @@
             <div class="chain-head chain-head--input">
               <span>接龙人员</span>
               <div class="chain-head-actions">
-                <button id="attemptTrialModeBtn" class="chain-icon-btn" type="button" aria-label="试算模式" aria-pressed="false" title="开启后，后续名单不计入学习"><i data-lucide="flask-conical"></i></button>
                 <button id="extractRosterBtn" class="chain-icon-btn" type="button" aria-label="只保留报名名单" title="移除活动说明，只保留报名名单并按数据库等级排序" disabled><i data-lucide="list-filter"></i></button>
                 <div id="groupProbabilityWrap" class="group-probability-wrap">
-                  <output id="groupProbability" class="group-probability" tabindex="0" data-tone="loading" aria-label="正在计算组局成功概率" aria-describedby="groupProbabilityTooltip">--%</output>
+                  <button type="button" id="groupProbability" class="group-probability" tabindex="0" data-tone="loading" aria-label="正在计算组局成功概率" aria-describedby="groupProbabilityTooltip" aria-haspopup="dialog">--%</button>
                   <div id="groupProbabilityTooltip" class="group-probability-tooltip" role="tooltip">
                     <span id="todayProbabilityText">今天组局成功的概率：--%</span>
                     <span id="tomorrowProbabilityText">明天组局成功的概率：--%</span>
                   </div>
                 </div>
                 <button id="shakePeopleBtn" class="chain-icon-btn" type="button" aria-label="摇人" title="摇人"><i data-lucide="dices"></i></button>
-                <button id="pasteInputBtn" class="chain-icon-btn" type="button" aria-label="一键粘贴" title="一键粘贴"><i data-lucide="clipboard-paste"></i></button>
               </div>
             </div>
             <textarea id="chainInput" class="chain-textarea" placeholder=""></textarea>
+            <small id="chainPlanSaveStatus" class="chain-plan-save" role="status" aria-live="polite"></small>
           </section>
           <section class="chain-panel">
             <div class="chain-head chain-head--output">
@@ -5036,6 +5071,17 @@
     </div>
   </div>
 
+  <dialog id="sessionPlanDialog" class="session-plan-dialog" aria-labelledby="sessionPlanTitle">
+    <div class="plan-dialog-inner">
+      <header class="plan-header"><div><h2 id="sessionPlanTitle">球局计划</h2><p>七天 · 每天十格 · 北京时间</p></div><button id="closeSessionPlan" type="button" aria-label="关闭球局计划">关闭</button></header>
+      <div class="plan-save-row"><span id="planSaveStatus" role="status" aria-live="polite"></span><button id="retryPlanSave" type="button" hidden>重试同步</button><button id="useCloudPlan" type="button" hidden>采用云端名单</button></div>
+      <div class="plan-grid-scroll" role="region" aria-label="七天球局计划，每天十格" tabindex="0"><div id="planGrid" class="plan-grid"></div></div>
+      <div class="plan-toolbar"><p id="planHint" aria-live="polite"></p><div><button id="editPlanSlot" type="button">自定义</button><button id="clearPlanSlot" type="button">清空格子</button></div></div>
+      <section class="plan-members-section" aria-labelledby="planMembersTitle"><h3 id="planMembersTitle">最近一起打球的人 <small>按近15天实际出勤次数排序</small></h3><div id="planMembers" class="plan-members"></div></section>
+      <p class="plan-footnote">暗淡仅为提醒，仍可选择。计划不会增加实际出勤次数；今天超出十人的接龙名单会完整保留。</p>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="./html2canvas.min.js"></script>
@@ -5315,9 +5361,7 @@
       groupProbabilityTooltip: document.getElementById("groupProbabilityTooltip"),
       todayProbabilityText: document.getElementById("todayProbabilityText"),
       tomorrowProbabilityText: document.getElementById("tomorrowProbabilityText"),
-      attemptTrialModeBtn: document.getElementById("attemptTrialModeBtn"),
       extractRosterBtn: document.getElementById("extractRosterBtn"),
-      pasteInputBtn: document.getElementById("pasteInputBtn"),
       shakePeopleBtn: document.getElementById("shakePeopleBtn"),
       shakePeopleModal: document.getElementById("shakePeopleModal"),
       shakePeopleSummary: document.getElementById("shakePeopleSummary"),
@@ -5440,6 +5484,7 @@
     const modalStack = [];
     const modalReturnFocus = new Map();
 
+
     function init() {
       if (shouldOpenRemoteApp) {
         setSync("正在打开联网版");
@@ -5451,6 +5496,7 @@
       renderColumnVisibilityMenu();
       wireEvents();
       initShakeOutbox();
+      initSessionPlanner();
       void loadBootstrap();
       setInterval(() => {
         if (document.visibilityState === "visible") refreshTimeSensitiveGroupForecast();
@@ -5646,7 +5692,6 @@
     function updateShakePeopleButtonVisibility() {
       if (!els.shakePeopleBtn) return;
       els.shakePeopleBtn.hidden = state.readOnly || Boolean(state.pendingSessionEdit);
-      els.attemptTrialModeBtn.hidden = state.readOnly || Boolean(state.pendingSessionEdit);
       els.groupProbabilityWrap.hidden = Boolean(state.pendingSessionEdit);
       syncAttemptTrialToggle();
     }
@@ -5784,7 +5829,6 @@
       els.unrecordedExitNumber.addEventListener("keydown", (event) => {
         if (event.key === "Enter") confirmUnrecordedExit();
       });
-      els.pasteInputBtn.addEventListener("click", pasteChainInput);
       els.shakePeopleBtn.addEventListener("click", openShakePeopleModal);
       els.refreshMemberStatisticsBtn.addEventListener("click", refreshShakeMemberStatistics);
       els.shakeGenderFilter.addEventListener("change", () => {
@@ -5802,11 +5846,10 @@
         els.shakeGenderFilter.focus();
       });
       els.shakeFiltersToggle.addEventListener("click", () => setShakeFiltersExpanded(els.shakePeopleFilters.hidden));
-      els.attemptTrialModeBtn.addEventListener("click", () => setAttemptTrialMode(!state.attemptTrialRequested));
       els.extractRosterBtn.addEventListener("click", extractMiniProgramRoster);
       els.groupProbability.addEventListener("click", (event) => {
         event.stopPropagation();
-        els.groupProbabilityWrap.classList.toggle("tooltip-open");
+        globalThis.sessionPlannerController?.open();
       });
       els.newShortRuleBtn.addEventListener("click", () => openShortRuleModal());
       els.saveShortRuleBtn.addEventListener("click", saveShortRule);
@@ -6566,6 +6609,7 @@
     }
 
     function handleGlobalKeydown(event) {
+      if (document.getElementById?.("sessionPlanDialog")?.open) return;
       if (event.altKey && event.key.toLowerCase() === "n" && els.shakePeopleModal?.classList.contains("open")) {
         event.preventDefault();
         openShortRuleModal();
@@ -8335,6 +8379,7 @@
         if (state.pendingSessionEdit) {
           state.pendingSessionEdit = null;
           state.returnToCalendar = false;
+          globalThis.sessionPlannerController?.restoreToday();
           closeModal("paymentModal");
           closeModal("chainModal");
           openModal("calendarModal");
@@ -9284,6 +9329,7 @@
       if (state.returnToCalendar && state.pendingSessionEdit && !els.chainModal.classList.contains("open")) {
         state.pendingSessionEdit = null;
         state.returnToCalendar = false;
+        globalThis.sessionPlannerController?.restoreToday();
         updateShakePeopleButtonVisibility();
         openModal("calendarModal");
         renderCalendar();
@@ -10006,6 +10052,52 @@
       );
     }
 
+    function initSessionPlanner() {
+      renderWeekProbability(null);
+      globalThis.sessionPlannerController = globalThis.BadmintonSessionPlanner.create({
+        state, input: els.chainInput, process: processChain, apiUrl: getApiUrl, toast,
+        names: () => state.chainEntries.map((entry) => entry.isCompanion && entry.ownerPlayerId
+          && getPlayerIdByListedName(getChainEntryBaseName(entry)) !== entry.ownerPlayerId
+          ? paymentDisplayName(getPlayerById(entry.ownerPlayerId)) || getChainEntryBaseName(entry)
+          : getChainEntryBaseName(entry)),
+        forecastEntries: () => state.chainEntries.map((entry) => ({ playerId: entry.player?.id ?? entry.playerId,
+          ownerPlayerId: entry.ownerPlayerId, isCompanion: Boolean(entry.isCompanion || entry.plusEntry),
+          slots: entry.slots || 1, levelText: entry.levelText, clean: entry.clean })),
+        forecastChanged: () => { groupForecastCacheKey = ""; scheduleGroupForecastRender(); },
+        signals: (playerId, date, slots, planned) => {
+          const entries = globalThis.BadmintonSessionPlannerCore.entries(slots, state.players);
+          const features = globalThis.BadmintonMemberStatistics.predictionFeatures({ statistics: getMemberStatistics(), playerId,
+            targetDate: date, currentCount: slots.filter(Boolean).length, joinedPlayerIds: entries.filter((e) => !e.isCompanion).map((e) => e.playerId) });
+          const risks = [], reasons = [];
+          if (features.friendIds.length) reasons.push("有最佳拍档参加");
+          if (features.largeRisk) risks.push("不喜欢人少的局");
+          if (features.weekdayAvoided) risks.push("当天星期不常打");
+          if (state.shortTermRules.some((rule) => ruleBlocksPlayerToday(rule, playerId, date))) risks.push("已请假或当天不可参加");
+          const actual = new Set(features.member?.dates60 || []);
+          let streak = 0;
+          for (let d = globalThis.BadmintonSessionPlannerCore.addDays(date, -1); streak < 14; d = globalThis.BadmintonSessionPlannerCore.addDays(d, -1)) {
+            if (!actual.has(d) && !planned[d]?.some((e) => !e.isCompanion && e.playerId === playerId)) break;
+            streak += 1;
+          }
+          if (streak >= features.capacity) risks.push("连续打球，体力可能不足");
+          return { risks, reasons };
+        },
+      });
+    }
+
+    function renderWeekProbability(forecast) {
+      const core = globalThis.BadmintonSessionPlannerCore, dates = core.dates();
+      const rows = forecast?.week || [];
+      dates.forEach((date, index) => {
+        let row = index === 0 ? els.todayProbabilityText : index === 1 ? els.tomorrowProbabilityText : document.getElementById("weekProbability" + index);
+        if (!row) { row = document.createElement("span"); row.id = "weekProbability" + index; els.groupProbabilityTooltip.append(row); }
+        const item = rows.find((r) => r.date === date);
+        const value = item ? forecastDisplayPercent(item.probability, index === 0 && item.settled) : null;
+        row.textContent = core.label(date) + "组局成功的概率：" + (value === null ? "--" : value) + "%";
+      });
+      els.groupProbability.setAttribute("aria-label", Array.from(els.groupProbabilityTooltip.children).map((el) => el.textContent).join("；") + "；点击打开球局计划");
+    }
+
     function getProbabilityTargetDate() {
       return state.pendingSessionEdit?.date || getBeijingDateString();
     }
@@ -10028,6 +10120,7 @@
       const sessionEvidence = state.sessions.map((session) => [session.id, session.date, session.updatedAt, session.players]);
       return JSON.stringify([
         targetDate,
+        globalThis.sessionPlannerController?.key(),
         Math.floor(Date.now() / 60000),
         state.players.map((player) => [player.id, player.name, player.level, player.gender, player.createdAt]),
         state.sessions.length,
@@ -10051,6 +10144,7 @@
           levelText: entry.levelText ?? entry.player?.level, clean: entry.clean,
         })), shortTermRules: state.shortTermRules, memberStatistics: { calendar: state.memberStatistics?.calendar },
         bestPartnerOverrides: state.bestPartnerOverrides, targetDate, now: new Date().toISOString(),
+        plannedEntries: globalThis.sessionPlannerController?.plannedEntries() || {}, confirmedEntries: true, includeWeek: true,
         includeCandidates: true, includeCounterfactuals: false };
     }
 
@@ -10070,6 +10164,8 @@
           state.forecastPending = false; state.forecastError = ""; state.forecastDurationMs = durationMs;
           if (forecast.memberStatistics) { state.memberStatistics = forecast.memberStatistics; shakeViewSource = null; }
           setProbabilityDisplay(forecastDisplayPercent(forecast.todayProbability, forecast.today?.settled), forecastDisplayPercent(forecast.tomorrowProbability));
+          renderWeekProbability(forecast);
+          globalThis.sessionPlannerController?.renderIfOpen();
           updateForecastPendingUi();
           // Yield a frame before updating the non-critical probability labels and ranking.
           clearTimeout(forecastNotifyTimer);
@@ -10209,10 +10305,7 @@
     }
 
     function syncAttemptTrialToggle() {
-      els.attemptTrialModeBtn.classList.toggle("active", state.attemptTrialRequested);
-      els.attemptTrialModeBtn.setAttribute("aria-pressed", String(state.attemptTrialRequested));
-      els.attemptTrialModeBtn.title = state.attemptTrialRequested ? "试算模式已开启，后续名单不计入学习" : "开启后，后续名单不计入学习";
-      els.attemptTrialModeBtn.setAttribute("aria-label", state.attemptTrialRequested ? "试算模式已开启" : "试算模式");
+      // Trial control removed; the existing attempt training contract remains unchanged.
     }
 
     async function loadCurrentGroupAttempt() {
@@ -10254,6 +10347,7 @@
         state.chainInputUserOwned = false;
         state.plusOverrides = {};
         els.chainInput.value = "";
+        globalThis.sessionPlannerController?.rollover();
         attemptLoadedDate = "";
         lastAttemptSnapshotKey = "";
         lastAttemptSnapshotAt = 0;
@@ -10391,6 +10485,7 @@
       renderChainStats(sorted, estimate);
       updatePaymentButton();
       resizeChainDialog(entries.length);
+      globalThis.sessionPlannerController?.capture();
       scheduleGroupForecastRender();
     }
 

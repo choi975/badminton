@@ -1,3 +1,6 @@
+import SESSION_PLANNER_CORE_JS from "./session-planner-core.txt";
+import SESSION_PLANNER_JS from "./session-planner.txt";
+import { isPlannerWrite, handleSessionPlans } from "./session-plans.js";
 import "../member-statistics.js";
 import MEMBER_STATISTICS_JS from "./member-statistics.txt";
 import "../level-groups.js";
@@ -171,11 +174,16 @@ export default {
           return await handleMemberExitOcr(request, env);
         }
         if (request.method.toUpperCase() === "OPTIONS") return preflight();
-        if (isBlockedGitHubWrite(request)) {
+        if (isBlockedGitHubWrite(request) && !isPlannerWrite(request)) {
           return json({ error: "GitHub 备用版为只读，请使用 Cloudflare 管理版修改数据" }, 403);
         }
         await ensureSeeded(env.DB);
         return await handleApi(request, env, url);
+      }
+
+      if (["/session-planner-core.js", "/session-planner.js"].includes(url.pathname)) {
+        return new Response(url.pathname === "/session-planner-core.js" ? SESSION_PLANNER_CORE_JS : SESSION_PLANNER_JS,
+          { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" } });
       }
 
       if (url.pathname === "/" || url.pathname === "/index.html") {
@@ -622,6 +630,8 @@ function memberExitOcrCorsHeaders(request) {
 async function handleApi(request, env, url) {
   const { pathname } = url;
   const method = request.method.toUpperCase();
+
+  if (pathname === "/api/session-plans") return handleSessionPlans(request, env, { json, rateLimit: consumeGroupAttemptRateLimit });
 
   if (pathname === "/api/integrations/todo/status" && method === "GET") {
     if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版可以检查累计同步" }, 403);

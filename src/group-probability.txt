@@ -968,7 +968,7 @@
       const random = stream(player.id, 0x27182818);
       const member = context.memberData[index];
       if (player.id === options.forcedAbsentId) continue;
-      const forcedPresent = player.id === options.forcedPresentId;
+      const forcedPresent = player.id === options.forcedPresentId || (context.confirmed && member.current);
       const isCurrent = member.current;
       const joinUniform = joinUniforms && context.friendNetwork.variance[index] > 0 ? joinUniforms[index] : random();
       const joinIntent = forcedPresent || isCurrent || joinUniform < joinProbability(context, index, previousStreaks, Boolean(options.neutral));
@@ -1007,13 +1007,13 @@
     }
 
     for (let index = 0; index < context.current.unknownSelfCount; index += 1) {
-      if (stream(index + 1, 0x44337711)() < 0.88) ordinaryCount += 1;
+      if (context.confirmed || stream(index + 1, 0x44337711)() < 0.88) ordinaryCount += 1;
     }
     for (const entry of context.current.companionRows) {
       const ownerKey = entry.ownerId ? `owner:${entry.ownerId}` : `guest:${entry.index}`;
       const random = stream(entry.index + 1, 0x66339922);
       for (let count = 0; count < entry.count; count += 1) {
-        if (makeBundleUniform(ownerKey, bundles, random) < context.guestRetention) ordinaryCount += 1;
+        if (context.confirmed || makeBundleUniform(ownerKey, bundles, random) < context.guestRetention) ordinaryCount += 1;
       }
     }
 
@@ -1114,7 +1114,7 @@
           signal,
           context.resolvedPriors.freshness,
         ),
-        baseStreak: historicalStreakBefore(context.history, player.id, targetDate),
+        baseStreak: Math.max(historicalStreakBefore(context.history, player.id, targetDate), plannedStreak(model, player.id, targetDate)),
         attendanceBaseline: baseline,
         baseEffect: clamp(logit(baseline) - logit(context.attendanceEvidence.prior), -2.5, 2.5),
         ...statisticsEffect,
@@ -1445,9 +1445,22 @@
       longTerm: buildStatisticsProfile(players, memberStatistics),
       friendNetwork: buildFriendNetwork(players, memberStatistics, history, learning, targetDate),
       attendanceEvidenceByDate: new Map(),
+      plannedEntries: input.plannedEntries || {},
       shortTermRules: Array.isArray(input.shortTermRules) ? input.shortTermRules : [],
       nowParts,
     };
+  }
+
+  function plannedStreak(model, playerId, targetDate) {
+    if (!Object.keys(model.plannedEntries).length) return 0;
+    let count = 0;
+    const actual = new Set(model.sessions.filter((session) => session.selfIds.includes(playerId)).map((session) => session.date));
+    for (let date = addDays(targetDate, -1); count < 14; date = addDays(date, -1)) {
+      const planned = normalizeEntries(model.plannedEntries[date]);
+      if (!actual.has(date) && !planned.some((entry) => !entry.companion && entry.playerId === playerId)) break;
+      count += 1;
+    }
+    return count;
   }
 
   function isHardSettled(targetDate, nowParts) {
@@ -1481,7 +1494,9 @@
     const todayIntercept = calibrateIntercept(model, targetDate, todayBaseline, seed ^ 0x13579BDF, calibrationSimulations);
     const tomorrowIntercept = calibrateIntercept(model, tomorrowDate, tomorrowBaseline, seed ^ 0x2468ACE0, calibrationSimulations);
     const todayContext = makeDayContext(model, targetDate, normalizedEntries, todayIntercept);
-    const tomorrowContext = makeDayContext(model, tomorrowDate, [], tomorrowIntercept);
+    const tomorrowContext = makeDayContext(model, tomorrowDate, input.plannedEntries?.[tomorrowDate] || [], tomorrowIntercept);
+    todayContext.confirmed = input.confirmedEntries === true;
+    tomorrowContext.confirmed = Array.isArray(input.plannedEntries?.[tomorrowDate]);
     const todayRandom = mulberry32(seed ^ 0xA5A5A5A5);
     const tomorrowRandom = mulberry32(seed ^ 0x5A5A5A5A);
     const attendanceCounts = new Uint32Array(model.players.length);

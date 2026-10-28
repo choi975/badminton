@@ -51,7 +51,7 @@ console.log(`Synced ${courtPricingSource} -> ${workerCourtPricingTarget}`);
 copyFileSync(resolve("member-statistics.js"), resolve("public/member-statistics.js"));
 copyFileSync(resolve("member-statistics.js"), resolve("src/member-statistics.txt"));
 
-for (const name of ["forecast-worker", "forecast-client", "optimistic-sync"]) {
+for (const name of ["forecast-worker", "forecast-client", "optimistic-sync", "session-planner-core", "session-planner"]) {
   copyFileSync(resolve(name + ".js"), resolve("public/" + name + ".js"));
   copyFileSync(resolve(name + ".js"), resolve("src/" + name + ".txt"));
 }

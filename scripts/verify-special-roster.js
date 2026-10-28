@@ -156,6 +156,7 @@ api.processChain();
 assert.equal(els.chainOutput.children.length,0);
 assert.equal(els.extractRosterBtn.disabled,true);
 assert.ok(before);
-assert.match(html,/id="attemptTrialModeBtn"[^\n]*\n\s*<button id="extractRosterBtn"/);
+assert.doesNotMatch(html,/id="(?:attemptTrialModeBtn|pasteInputBtn)"/);
+assert.match(html,/id="extractRosterBtn"/);
 assert.match(html,/els\.extractRosterBtn\.addEventListener\("click", extractMiniProgramRoster\)/);
 console.log("Special roster: 33/33 rows retained, 23 male/10 female, database levels, editable unknown levels, repeat/numbered companions, sorting, trial mode, GitHub controls and ordinary-roster regression passed.");
