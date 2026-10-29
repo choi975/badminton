@@ -10,7 +10,7 @@
     let activeDate = core.date(), applying = false, syncing = false, ready = false, timer, selectedSlot = null, selectedMember = null, activeTooltip = null;
     let sendingDate, focusBefore, conflict = null, saveError = "", localError = false;
     const status = document.getElementById("planSaveStatus"), dialog = document.getElementById("sessionPlanDialog");
-    const grid = document.getElementById("planGrid"), cards = document.getElementById("planMembers"), hint = document.getElementById("planHint");
+    const grid = document.getElementById("planGrid"), cards = document.getElementById("planMembers");
     const closeBtn = document.getElementById("closeSessionPlan"), retry = document.getElementById("retryPlanSave"), remote = document.getElementById("useCloudPlan");
     const getRow = (date) => store.pending[date] || store.days[date];
     const getDay = (date) => core.normalizeDay(getRow(date)?.day);
@@ -152,17 +152,19 @@
       activeTooltip = null;
       cards.replaceChildren();
       const members = core.recentMembers(state.players, state.sessions, activeDate), target = selectedSlot?.date;
-      hint.textContent = selectedMember ? `已选中 ${selectedMember}，点击一个或多个日期快速添加；点击其他位置退出。`
-        : selectedSlot ? `${core.label(target)} · 第${selectedSlot.index + 1}格：点击成员填入，双击格子或按 Enter 自定义，Delete 清空。`
-        : "单击格子选人，双击自定义。也可先选成员，再连续点击日期；重复名字代表携带朋友。";
+      const planned = target ? plannedEntries() : {}, slots = target ? getDay(target).slots : [];
+      // Use the full roster for today, including members beyond its ten visible slots.
+      const joinedIds = new Set((planned[target] || []).filter((entry) => !entry.isCompanion)
+        .map((entry) => Number(entry.playerId)).filter(Boolean));
       if (!members.length) { const empty = document.createElement("p"); empty.textContent = "近15天暂无实际出勤成员，双击上方格子可自定义填写。"; cards.append(empty); }
       for (const member of members) {
         const button = document.createElement("button"); button.type = "button"; button.className = "plan-member";
         const name = String(member.name).split(/[、,，;；/|\n]+/)[0].trim(); button.dataset.name = name;
-        const signal = target ? adapter.signals(member.id, target, getDay(target).slots, plannedEntries()) : { reasons: [], risks: [] };
-        if (signal.risks.length) button.classList.add("is-dim"); else if (signal.reasons.length) button.classList.add("is-highlight");
+        const joined = joinedIds.has(Number(member.id));
+        const signal = target ? adapter.signals(member.id, target, slots, planned) : { reasons: [], risks: [] };
+        if (joined || signal.risks.length) button.classList.add("is-dim"); else if (signal.reasons.length) button.classList.add("is-highlight");
         button.classList.toggle("is-selected", selectedMember === name); button.setAttribute("aria-pressed", String(selectedMember === name));
-        const tags = [`近15天实际出勤：${member.attendance15}次`, ...signal.risks, ...signal.reasons];
+        const tags = [`近15天实际出勤：${member.attendance15}次`, ...(joined ? ["已在当天名单中"] : []), ...signal.risks, ...signal.reasons];
         const tooltipId = `plan-member-tooltip-${member.id}`;
         button.setAttribute("aria-label", name);
         button.setAttribute("aria-describedby", tooltipId);
@@ -207,8 +209,9 @@
           slot.classList.toggle("is-selected", selected); slot.setAttribute("aria-pressed", String(selected));
           slot.setAttribute("aria-label", `${date}第${index + 1}格：${name || "空，双击自定义"}`);
           slot.addEventListener("click", () => { selectedMember = null; selectedSlot = { date, index }; grid.querySelectorAll(".plan-slot").forEach((s) => { const on = s === slot; s.classList.toggle("is-selected", on); s.setAttribute("aria-pressed", String(on)); }); renderCards(); });
+          slot.setAttribute("aria-keyshortcuts", "Enter F2 Backspace");
           slot.addEventListener("dblclick", () => startEditor(date, index));
-          slot.addEventListener("keydown", (e) => { if (["Enter", "F2"].includes(e.key)) { e.preventDefault(); startEditor(date, index); } else if (["Delete", "Backspace"].includes(e.key)) { e.preventDefault(); edit(date, index, ""); } });
+          slot.addEventListener("keydown", (e) => { if (["Enter", "F2"].includes(e.key)) { e.preventDefault(); startEditor(date, index); } else if (e.key === "Backspace") { e.preventDefault(); edit(date, index, ""); } });
           row.append(slot);
         });
         grid.append(row);

@@ -39,7 +39,7 @@
     "test:shake-refresh": "node scripts/verify-shake-refresh.js",
     "test:partner-management": "node scripts/verify-partner-management.js",
     "test:instant": "node scripts/verify-instant-interactions.js",
-    "test:session-plans": "node scripts/verify-session-plans.js"
+    "test:session-plans": "node scripts/verify-session-plans.js && node scripts/verify-session-planner-ui.js"
   },
   "devDependencies": {
     "wrangler": "latest"

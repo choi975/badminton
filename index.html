@@ -4274,7 +4274,7 @@
     .plan-dialog-inner { padding: 24px; }
     .plan-header { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
     .plan-header h2 { font-size: 22px; margin: 0; }
-    .plan-header p, .plan-footnote { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 8px 0 0; }
+    .plan-header p { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 8px 0 0; }
     .plan-save-row { min-height: 44px; display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--accent-dark); flex-wrap: wrap; }
     .plan-save-row [data-error="true"] { color: var(--danger); }
     .plan-save-row button { min-height: 30px; font-size: 12px; }
@@ -4287,8 +4287,7 @@
     .plan-slot.is-empty { color: var(--muted); background: var(--panel-soft); font-weight: 400; }
     .plan-slot.is-selected, .plan-member.is-selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); outline: 2px solid var(--accent); outline-offset: -2px; }
     .plan-slot-editor { border: 2px solid var(--accent); border-radius: 6px; color: var(--text); background: #fff; }
-    .plan-toolbar { margin: 14px 0 20px; display: flex; justify-content: space-between; align-items: center; gap: 14px; }
-    .plan-toolbar p { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .plan-toolbar { margin: 14px 0 20px; display: flex; justify-content: flex-end; align-items: center; gap: 14px; }
     .plan-toolbar > div { display: flex; flex-shrink: 0; gap: 6px; } .plan-toolbar button { min-height: 32px; font-size: 12px; }
     .plan-members-section h3 { font-size: 14px; margin: 0 0 12px; } .plan-members-section h3 small { font-size: 11px; font-weight: 400; color: var(--muted); margin-left: 8px; }
     .plan-members { display: flex; flex-wrap: wrap; gap: 8px; max-height: 230px; overflow-y: auto; padding: 2px; }
@@ -4298,9 +4297,8 @@
     .plan-member-tooltip[data-open="true"] { opacity: 1; visibility: visible; transform: translateY(0); }
     .plan-member.is-highlight { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
     .plan-member.is-dim { background: var(--panel-soft); border-color: var(--line); color: var(--muted); font-weight: 400; }
-    .plan-footnote { margin-top: 20px; }
     .session-plan-dialog :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-    @media(max-width:600px) { .session-plan-dialog { width: calc(100vw - 16px); max-height: 94dvh; } .plan-dialog-inner { padding: 16px; } .plan-toolbar { align-items: start; flex-direction: column; gap: 8px; } .plan-header p { max-width: 230px; } .plan-members-section h3 small { display: block; margin: 5px 0 0; } .plan-member { min-height: 42px; } .plan-member-name { max-width: 150px; } }
+    @media(max-width:600px) { .session-plan-dialog { width: calc(100vw - 16px); max-height: 94dvh; } .plan-dialog-inner { padding: 16px; } .plan-header p { max-width: 230px; } .plan-members-section h3 small { display: block; margin: 5px 0 0; } .plan-member { min-height: 42px; } .plan-member-name { max-width: 150px; } }
   </style>
 <script>
 /* Project Index shortcuts v2: 0..3 fixed; 4..9 resolved live with offline fallback. */
@@ -5077,9 +5075,8 @@
       <header class="plan-header"><div><h2 id="sessionPlanTitle">球局计划</h2><p>七天 · 每天十格 · 北京时间</p></div><button id="closeSessionPlan" type="button" aria-label="关闭球局计划">关闭</button></header>
       <div class="plan-save-row"><span id="planSaveStatus" role="status" aria-live="polite"></span><button id="retryPlanSave" type="button" hidden>重试同步</button><button id="useCloudPlan" type="button" hidden>采用云端名单</button></div>
       <div class="plan-grid-scroll" role="region" aria-label="七天球局计划，每天十格" tabindex="0"><div id="planGrid" class="plan-grid"></div></div>
-      <div class="plan-toolbar"><p id="planHint" aria-live="polite"></p><div><button id="editPlanSlot" type="button">自定义</button><button id="clearPlanSlot" type="button">清空格子</button></div></div>
+      <div class="plan-toolbar"><div><button id="editPlanSlot" type="button">自定义</button><button id="clearPlanSlot" type="button" title="清空格子（Backspace）">清空格子</button></div></div>
       <section class="plan-members-section" aria-labelledby="planMembersTitle"><h3 id="planMembersTitle">最近一起打球的人 <small>按近15天实际出勤次数排序</small></h3><div id="planMembers" class="plan-members"></div></section>
-      <p class="plan-footnote">暗淡仅为提醒，仍可选择。计划不会增加实际出勤次数；今天超出十人的接龙名单会完整保留。</p>
     </div>
   </dialog>
 
