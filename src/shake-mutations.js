@@ -11,7 +11,7 @@ export async function readShakeState(db) {
   // One read-only batch prevents interleaving different database revisions in a single response.
   const rows = await db.batch([
     db.prepare("SELECT value FROM app_settings WHERE key = 'shake_revision'"),
-    db.prepare("SELECT * FROM short_term_rules ORDER BY id ASC"),
+    db.prepare("SELECT * FROM short_term_rules WHERE rule_type != 'only_days' ORDER BY id ASC"),
     db.prepare("SELECT value FROM app_settings WHERE key = 'best_partner_overrides'"),
   ]);
   return { revision: Number(rows[0].results?.[0]?.value) || 0,

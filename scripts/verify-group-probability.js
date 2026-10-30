@@ -238,11 +238,15 @@ const blockedCandidate = blocked.candidates.find((candidate) => candidate.player
 assert.equal(blockedCandidate.attendanceProbability, 0, "an active weekly rule should hard-block an unjoined candidate");
 assert.equal(blockedCandidate.eligible, false);
 assert.ok(blockedCandidate.risks.some((risk) => risk.includes("规则")));
-const allowedTomorrowOnly = estimate({
-  entries: players.slice(0, 3).map(regularEntry),
-  shortTermRules: [{ ...blockedRule, type: "only_days", rule: { weekdays: [5] } }],
-});
-assert.ok(allowedTomorrowOnly.candidates.find((candidate) => candidate.playerId === 10).attendanceProbability > 0);
+const unrestricted = estimate({ entries: players.slice(0, 3).map(regularEntry) });
+for (const legacyRule of [
+  { ...blockedRule, type: "only_days", rule: { weekdays: [1] } },
+  { ...blockedRule, type: "only_days", rule: { weekdays: [1] }, expiresOn: "2099-01-01" },
+  { player_id: 10, rule_type: "only_days", rule_json: '{"weekdays":[1]}', starts_on: "2026-09-01" },
+]) {
+  const retired = estimate({ entries: players.slice(0, 3).map(regularEntry), shortTermRules: [legacyRule] });
+  assert.deepEqual(retired, unrestricted, "retired allowlists must not affect attendance, rankings or any day's group probability");
+}
 
 const yesterday = session("2026-09-03", [10, 11, 12, 13, 14, 1]);
 const fatigueSessions = [...buildHistory(players), yesterday];

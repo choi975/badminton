@@ -5032,7 +5032,6 @@
           <p>支持格式：</p>
           <ul>
             <li>成员名、成员名、成员名 周五、周六、周日 不打</li>
-            <li>成员名、成员名、成员名 只打 周五、周六</li>
             <li>成员名、成员名、成员名 15天后 再打 军训</li>
             <li>成员名、成员名、成员名 三天内 不打 培训</li>
             <li>成员名、成员名、成员名 下周二 再打 加班</li>
@@ -5605,7 +5604,8 @@
       if (cleanGroupDraft) state.levelGroupDraft = null;
       renderShakeLevelOptions();
       state.estimator = normalizeEstimator(data.estimator);
-      state.shortTermRules = Array.isArray(data.shortTermRules) ? data.shortTermRules : state.shortTermRules;
+      state.shortTermRules = Array.isArray(data.shortTermRules)
+        ? data.shortTermRules.filter((rule) => rule?.type !== "only_days") : state.shortTermRules;
       state.groupAttemptOutcomes = Array.isArray(data.groupAttemptOutcomes) ? data.groupAttemptOutcomes : state.groupAttemptOutcomes;
       state.groupLearningSignals = data.groupLearningSignals && typeof data.groupLearningSignals === "object"
         ? data.groupLearningSignals
@@ -13272,7 +13272,7 @@
     }
 
     function isLongTermRuleType(rule) {
-      return rule?.type === "only_days" || rule?.type === "not_days";
+      return rule?.type === "not_days";
     }
 
     function findRuleClauseStart(rawText) {
@@ -13358,11 +13358,7 @@
         rule = { resumeOn, note };
         expiresOn = addDaysToIsoDate(resumeOn, -1);
       } else if (onlyMatch) {
-        const weekdays = parseWeekdayNames(onlyMatch[1]);
-        if (!weekdays.length) return { error: "请在“只打”后填写周一至周日" };
-        note = normalizeShortRuleNote(onlyMatch[2]);
-        type = "only_days";
-        rule = { weekdays, note };
+        return { error: "已取消手动“只打周X”规则；“不打周几”的习惯由订场记录自动统计" };
       } else if (notMatch) {
         const weekdays = parseWeekdayNames(notMatch[1]);
         if (!weekdays.length) return { error: "请在“不打”前填写周一至周日" };
@@ -13385,7 +13381,7 @@
     function ruleBlocksPlayerToday(rule, playerId, today) {
       if (Number(rule.playerId) !== Number(playerId)) return false;
       const weekday = getBeijingWeekday(today);
-      if (rule.type === "only_days") return !(rule.rule?.weekdays || []).includes(weekday);
+      if (rule.type === "only_days") return false;
       if (rule.type === "not_days") return (rule.rule?.weekdays || []).includes(weekday);
       if (rule.expiresOn) return today <= rule.expiresOn;
       return false;
@@ -13489,7 +13485,8 @@
 
     function applyPendingShake({ render = true } = {}) {
       const pending = pendingShakeOperations();
-      state.shortTermRules = globalThis.BadmintonOptimisticSync.projectRules(confirmedShake.rules, pending);
+      state.shortTermRules = globalThis.BadmintonOptimisticSync.projectRules(confirmedShake.rules, pending)
+        .filter((rule) => rule?.type !== "only_days");
       const projected = globalThis.BadmintonOptimisticSync.projectPartners(state.memberStatistics, confirmedShake.bestPartnerOverrides, pending, state.players);
       state.bestPartnerOverrides = projected.overrides;
       shakeViewSource = null;
@@ -13905,7 +13902,7 @@
     function getActiveRules() {
       const today = getBeijingDateString();
       return state.shortTermRules
-        .filter((rule) => !rule.expiresOn || rule.expiresOn >= today)
+        .filter((rule) => rule?.type !== "only_days" && (!rule.expiresOn || rule.expiresOn >= today))
         .sort((a, b) => {
           if (Boolean(a.expiresOn) !== Boolean(b.expiresOn)) return a.expiresOn ? 1 : -1;
           if (a.expiresOn && b.expiresOn && a.expiresOn !== b.expiresOn) return a.expiresOn.localeCompare(b.expiresOn);
@@ -14132,7 +14129,6 @@
     }
 
     function shortRuleSchedule(rule) {
-      if (rule.type === "only_days") return `只打 ${formatWeekdayNames(rule.rule?.weekdays)}`;
       if (rule.type === "not_days") return `${formatWeekdayNames(rule.rule?.weekdays)} 不打`;
       if (rule.expiresOn) return `${formatShortRuleDate(addDaysToIsoDate(rule.expiresOn, 1))} 再打`;
       return "规则";

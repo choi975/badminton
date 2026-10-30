@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
+import { DatabaseSync } from "node:sqlite";
 
 const indexHtml = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const workerSource = readFileSync(new URL("../src/worker.js", import.meta.url), "utf8");
@@ -57,6 +58,8 @@ const functionNames = [
   "parseShortRuleTextMultiple",
   "shortRuleSchedule",
   "shortRuleDescription",
+  "ruleBlocksPlayerToday",
+  "getActiveRules",
 ];
 vm.runInContext(`${functionNames.map((name) => extractFunction(indexHtml, name)).join("\n\n")}
 globalThis.shortRuleApi = { parseShortRuleText, parseShortRuleTextMultiple, parseChineseNumber, shortRuleDescription };`, context);
@@ -107,8 +110,9 @@ const explicitYear = parseShortRuleText("阿达 2027.1.2 再打", today);
 assert.equal(explicitYear.rule.resumeOn, "2027-01-02");
 
 const onlyDays = parseShortRuleText("果花 只打 周五、周六 周末限定", today);
-assert.deepEqual([...onlyDays.rule.weekdays], [5, 6]);
-assert.equal(shortRuleDescription(onlyDays), "只打 周五、周六 周末限定");
+assert.match(onlyDays.error, /已取消手动“只打周X”规则/);
+assert.match(parseShortRuleTextMultiple("果花、阿达 只打 周五、周六", today).error, /自动统计/);
+assert.doesNotMatch(indexHtml, /<li>[^<]*只打 周/);
 const notDays = parseShortRuleText("果花 周五、周六、周日 不打", today);
 assert.deepEqual([...notDays.rule.weekdays], [5, 6, 0]);
 assert.equal(shortRuleDescription(notDays), "周五、周六、周日 不打");
@@ -142,7 +146,14 @@ assert.equal(context.formatShortRuleDate("2028-02-29"), "2.29（星期二）");
 assert.equal(context.formatShortRuleDate("2026-02-29"), "日期未知");
 assert.equal(context.formatRuleWeekdaySuffix(""), "");
 assert.equal(context.shortRuleSchedule(crossYear), "1.2（星期六） 再打");
-assert.equal(context.shortRuleSchedule(onlyDays), "只打 周五、周六");
+const legacyOnlyDays = { id: 99, playerId: 1, type: "only_days", rule: { weekdays: [5, 6] } };
+assert.equal(context.ruleBlocksPlayerToday(legacyOnlyDays, 1, today), false, "legacy allowlists cannot exclude a Monday candidate");
+assert.equal(context.ruleBlocksPlayerToday({ ...legacyOnlyDays, expiresOn: "2099-01-01" }, 1, today), false, "retired rules cannot fall through into date blocking");
+assert.equal(context.ruleBlocksPlayerToday(notDays, 1, "2026-09-04"), true, "explicit not_days restrictions still work");
+assert.equal(context.ruleBlocksPlayerToday(within, 1, today), true, "temporary absences still work");
+context.state = { shortTermRules: [legacyOnlyDays, notDays, within] };
+context.getBeijingDateString = () => today;
+assert.deepEqual([...context.getActiveRules()].map((rule) => rule.type), ["not_days", "not_within_days"], "old local caches must not show retired rules");
 for (let day = 18; day <= 24; day += 1) {
   assert.equal(context.formatRuleWeekdaySuffix(`2026-10-${day}`), `（星期${"日一二三四五六"[day - 18]}）`);
 }
@@ -181,4 +192,18 @@ assert.doesNotMatch(indexHtml, /short-rule-type/);
 assert.match(indexHtml, /\.short-rule-row \{\s*display: grid;/);
 assert.match(indexHtml, /\.short-rule-note \{ grid-column: 2; grid-row: 2; \}/);
 
-console.log("Short-term rule parsing, aligned display, weekday labels, deletion, and early-return checks passed.");
+// The production migration removes only allowlists, leaving all other rules and related state intact.
+const db = new DatabaseSync(":memory:");
+db.exec("PRAGMA foreign_keys = ON; CREATE TABLE players (id INTEGER PRIMARY KEY); INSERT INTO players VALUES (1);");
+db.exec("CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO app_settings VALUES ('shake_revision', '7'), ('best_partner_overrides', '{}');");
+db.exec(readFileSync(new URL("../migrations/0013_short_term_rules.sql", import.meta.url), "utf8"));
+db.exec("ALTER TABLE short_term_rules ADD COLUMN starts_on TEXT;");
+db.exec(`INSERT INTO short_term_rules (id, player_id, rule_type, rule_json, expires_on, raw_text) VALUES (1, 1, 'only_days', '{"weekdays":[5]}', NULL, '只打周五'), (2, 1, 'not_days', '{"weekdays":[2]}', NULL, '周二不打'), (3, 1, 'not_before_date', '{}', '2099-01-01', '请假'), (4, 1, 'only_days', '{}', '2099-01-01', '旧只打规则');`);
+const preservedRules = db.prepare("SELECT * FROM short_term_rules WHERE rule_type != 'only_days' ORDER BY id").all();
+db.exec(readFileSync(new URL("../migrations/0027_retire_only_days_rules.sql", import.meta.url), "utf8"));
+assert.deepEqual(db.prepare("SELECT * FROM short_term_rules ORDER BY id").all(), preservedRules);
+assert.equal(db.prepare("SELECT value FROM app_settings WHERE key='shake_revision'").get().value, "8");
+assert.equal(db.prepare("SELECT value FROM app_settings WHERE key='best_partner_overrides'").get().value, "{}");
+assert.equal(db.prepare("SELECT COUNT(*) AS n FROM players").get().n, 1);
+db.close();
+console.log("Short-term rule parsing, retired allowlists, safe migration, aligned display, weekday labels, deletion, and early-return checks passed.");

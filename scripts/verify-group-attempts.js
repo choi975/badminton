@@ -62,7 +62,7 @@ const GROUP_ATTEMPT_TRIGGERS = new Set(["paste", "input", "companion", "rule_cha
 const GROUP_ATTEMPT_RANKING_MODES = new Set(["attendanceProbability", "attendanceProbabilityTimesUplift"]);
 const GROUP_ATTEMPT_CONSTRAINT_TYPES = new Set([
   "not_before_days", "not_within_days", "not_before_next_week", "not_before_date",
-  "only_days", "not_days", "threeDayStreak", "twoDayStreak", "onlyLargeSessions",
+  "not_days", "threeDayStreak", "twoDayStreak", "onlyLargeSessions",
 ]);
 const CLIENT_EVENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function addDaysToDateString(dateString, days) {

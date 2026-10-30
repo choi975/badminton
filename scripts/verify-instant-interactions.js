@@ -22,7 +22,9 @@ function extract(source, name, indent = "") {
   const a = source.indexOf("function " + name + "("); assert.ok(a >= 0, name);
   return (source.slice(Math.max(0, a - 6), a) === "async " ? "async " : "") + source.slice(a, source.indexOf("\n" + indent + "}", a) + indent.length + 2);
 }
-const backend = vm.createContext({ WEEKLY_SHORT_TERM_RULE_TYPES: new Set(["only_days", "not_days"]),
+const weeklyTypes = JSON.parse(worker.match(/const WEEKLY_SHORT_TERM_RULE_TYPES = new Set\((\[[^\]]*\])\)/)[1]);
+assert.deepEqual(weeklyTypes, ["not_days"]);
+const backend = vm.createContext({ WEEKLY_SHORT_TERM_RULE_TYPES: new Set(weeklyTypes),
   EXPIRING_SHORT_TERM_RULE_TYPES: new Set(["not_before_days", "not_within_days", "not_before_next_week", "not_before_date"]),
   SESSION_DATE_PATTERN: /^\d{4}-\d{2}-\d{2}$/, Date });
 for (const name of ["isValidDateString", "addDaysToDateString", "normalizedWeekdays", "normalizeShortTermRuleInput"]) vm.runInContext(extract(worker, name), backend);
@@ -60,6 +62,13 @@ const helpers = { json: (data, status = 200) => Response.json(data, { status }),
 const call = (body) => handleShakeMutation(new Request("https://example.test/api/shake-mutations", { method: "POST", body: JSON.stringify(body) }), { DB: db }, helpers);
 const send = async (body) => { const r = await call(body), data = await r.json(); if (!r.ok) throw Object.assign(Error(data.error), { status: r.status, data }); return data; };
 const payload = (playerId = 1) => ({ playerId, type: "not_days", rawText: "周二不打", startsOn: "2026-10-27", expiresOn: null, rule: { weekdays: [2], note: "" } });
+const retiredPayload = { ...payload(), type: "only_days", rawText: "只打周二" };
+assert.equal(backend.normalizeShortTermRuleInput(retiredPayload), null, "both rule creation APIs share the retired-type rejection");
+await assert.rejects(send({ id: randomUUID(), kind: "rule-create", payload: retiredPayload }), (e) => e.status === 400);
+assert.equal(sql.prepare("SELECT COUNT(*) AS n FROM shake_mutation_receipts").get().n, 0, "rejected old outbox writes must not acquire a receipt");
+sql.exec("INSERT INTO short_term_rules (player_id, rule_type, rule_json) VALUES (1, 'only_days', '{}');");
+assert.equal((await readShakeState(db)).rules.length, 0, "state API filters legacy rows even before migration");
+sql.exec("DELETE FROM short_term_rules;");
 const body = { id: randomUUID(), kind: "rule-create", payload: payload() };
 const first = await send(body), replay = await send(body);
 assert.equal(first.result.ruleId, replay.result.ruleId);
@@ -126,6 +135,15 @@ const pcreate = { id: "a", kind: "rule-create", payload: payload(6), createdAt: 
 const pdelete = { id: "b", kind: "rule-delete", payload: { createOperationId: "a" }, createdAt: new Date().toISOString() };
 assert.ok(!BadmintonOptimisticSync.projectRules([], [pcreate, pdelete]).length);
 const base = core.build({ players, sessions: [] });
+const projectedState = { players, memberStatistics: base, shortTermRules: [] };
+const overlay = vm.createContext({ state: projectedState, BadmintonOptimisticSync,
+  confirmedShake: { rules: [{ id: 99, ...retiredPayload }], bestPartnerOverrides: null },
+  pendingShakeOperations: () => [pcreate, { ...pcreate, id: "legacy", payload: retiredPayload }],
+  updateShakeSyncStatus() {}, shakeViewSource: null,
+});
+vm.runInContext(extract(html, "applyPendingShake", "    "), overlay);
+overlay.applyPendingShake({ render: false });
+assert.deepEqual(projectedState.shortTermRules.map((rule) => rule.type), ["not_days"], "cached and pending retired rules are removed without losing supported optimistic edits");
 const pending = [{ id: "p1", kind: "partner", payload: { action: "create", playerIds: [1, 2] }, createdAt: new Date().toISOString() },
  { id: "p2", kind: "partner", payload: { action: "create", playerIds: [2, 3] }, createdAt: new Date().toISOString() },
  { id: "p3", kind: "partner", payload: { action: "move", playerIds: [1, 2], direction: "up" }, createdAt: new Date().toISOString() }];

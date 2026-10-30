@@ -29,6 +29,7 @@ assert.match(html, /id="shakeMemberStatisticsBlock"[^>]*\bopen[ >]/);
 assert.match(html, /recentMemberIds\.has\(Number\(candidate.player.id\)\)/);
 assert.match(html, /!recentMemberIds\.has\(playerId\)/);
 assert.doesNotMatch(html, /长期规则|短期规则|成员统计名单|每周固定安排/);
+assert.doesNotMatch(html, /<li>[^<]*只打 周/, "retired allowlists are not offered in the rule editor");
 const digest = (text) => createHash("sha256").update(text.replaceAll("\r\n", "\n").trim()).digest("hex");
 assert.equal(digest(statisticsSource), digest(readFileSync(new URL("../member-statistics.js", import.meta.url), "utf8")), "Cloudflare must serve the current shared statistics module");
 assert.equal(digest(probabilitySource), digest(readFileSync(new URL("../group-probability.js", import.meta.url), "utf8")), "Cloudflare must serve the current probability module");
@@ -37,6 +38,7 @@ const bootstrap = JSON.parse(bootstrapText);
 assert.equal(statistics.version, globalThis.BadmintonMemberStatistics.VERSION);
 assert.equal(statistics.lists.length, 14);
 assert.equal(bootstrap.groupLearningSignals.version, "group-learning-v2");
+assert.ok(bootstrap.shortTermRules.every((rule) => rule.type !== "only_days"), "live bootstrap excludes retired allowlists");
 const expected = globalThis.BadmintonMemberStatistics.build({
   players: bootstrap.players, sessions: bootstrap.sessions,
   bestPartnerOverrides: bootstrap.bestPartnerOverrides,
@@ -59,6 +61,10 @@ for (const file of backgroundFiles) {
 }
 const shakeState = JSON.parse(await get("/api/shake-state")).confirmed;
 assert.ok(Number.isInteger(shakeState.revision) && Array.isArray(shakeState.rules));
+assert.ok(shakeState.rules.every((rule) => rule.type !== "only_days"));
+const [rulesText, snapshotText] = await Promise.all([get("/api/short-term-rules"), get("/bootstrap-snapshot.json")]);
+assert.ok(JSON.parse(rulesText).rules.every((rule) => rule.type !== "only_days"));
+assert.ok(JSON.parse(snapshotText).data.shortTermRules.every((rule) => rule.type !== "only_days"), "deployed fallback snapshot excludes retired allowlists");
 assert.match(html, /forecast-client\.js/);
 assert.ok(!html.includes("engine.estimate("));
 console.log("Background forecast assets and durable shake state verified live.");

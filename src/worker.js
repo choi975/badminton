@@ -124,7 +124,7 @@ const EXPIRING_SHORT_TERM_RULE_TYPES = new Set([
   "not_before_next_week",
   "not_before_date",
 ]);
-const WEEKLY_SHORT_TERM_RULE_TYPES = new Set(["only_days", "not_days"]);
+const WEEKLY_SHORT_TERM_RULE_TYPES = new Set(["not_days"]);
 const SHAKE_LONG_TERM_LIST_KEYS = new Set([
   "threeDayStreak",
   "twoDayStreak",
@@ -1264,6 +1264,7 @@ async function listShortTermRules(db) {
   const { results } = await db.prepare(
     `SELECT id, player_id, rule_type, rule_json, starts_on, expires_on, raw_text, created_at, updated_at
      FROM short_term_rules
+     WHERE rule_type != 'only_days'
      ORDER BY CASE WHEN expires_on IS NULL THEN 0 ELSE 1 END ASC, expires_on ASC, created_at ASC, id ASC`
   ).all();
   return results.map(mapShortTermRuleRow);

@@ -740,7 +740,8 @@
       const rule = ruleFields(rawRule);
       if (rule.playerId !== playerId) return false;
       if (rule.startsOn && compareDates(targetDate, rule.startsOn) < 0) return false;
-      if (rule.type === "only_days") return !(rule.data.weekdays || []).map(Number).includes(weekday);
+      // Retired manual weekday allowlists must not block members, even in old snapshots.
+      if (rule.type === "only_days") return false;
       if (rule.type === "not_days") return (rule.data.weekdays || []).map(Number).includes(weekday);
       return Boolean(rule.expiresOn && compareDates(targetDate, rule.expiresOn) <= 0);
     });

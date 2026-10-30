@@ -24,7 +24,7 @@ SELECT level, description, sort_order FROM level_guides ORDER BY sort_order ASC;
 SELECT affiliation, player_id, join_number FROM group_join_numbers ORDER BY affiliation ASC, join_number ASC, player_id ASC;
 SELECT id, date, venue, court_count, court_fee, shuttle_price, shuttle_count, court_price_rows, shuttle_price_rows, train_court, train_shuttle, actual_shuttle_confirmed, created_at, updated_at FROM booking_sessions ORDER BY date ASC, id ASC;
 SELECT id, session_id, player_id, player_name, owner_player_id, owner_name_snapshot, is_companion, slots, plus_count, amount, is_female, gender_snapshot, level_snapshot, profile_snapshot_reliable FROM booking_session_players ORDER BY session_id ASC, id ASC;
-SELECT id, player_id, rule_type, rule_json, starts_on, expires_on, raw_text, created_at, updated_at FROM short_term_rules ORDER BY CASE WHEN expires_on IS NULL THEN 0 ELSE 1 END ASC, expires_on ASC, created_at ASC, id ASC;
+SELECT id, player_id, rule_type, rule_json, starts_on, expires_on, raw_text, created_at, updated_at FROM short_term_rules WHERE rule_type != 'only_days' ORDER BY CASE WHEN expires_on IS NULL THEN 0 ELSE 1 END ASC, expires_on ASC, created_at ASC, id ASC;
 SELECT list_key, label, members_json, updated_at FROM shake_long_term_lists ORDER BY list_key ASC;
 SELECT attempts.activity_date, attempts.outcome, attempts.training_state, attempts.source, EXISTS (SELECT 1 FROM group_attempt_snapshots snapshots WHERE snapshots.attempt_id = attempts.id AND snapshots.training_state = 'eligible') AS has_eligible_snapshots FROM group_attempts attempts WHERE attempts.group_key = 'main' ORDER BY attempts.activity_date ASC;
 WITH selected_group_learning_attempts AS (
