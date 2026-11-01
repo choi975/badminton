@@ -1,3 +1,4 @@
+import "../roster-review.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
@@ -18,7 +19,7 @@ function declaration(name) {
   assert.ok(match, `Missing declaration: ${name}`);
   return match[0];
 }
-const config = new Function(`${["LEVELS", "GENDERS", "AFFILIATIONS", "COLUMNS", "DEFAULT_NEW_MEMBER"].map(declaration).join("\n")}\nreturn { LEVELS, GENDERS, AFFILIATIONS, COLUMNS, DEFAULT_NEW_MEMBER };`)();
+const config = new Function("RosterReview", `${["LEVELS", "GENDERS", "AFFILIATIONS", "COLUMNS", "DEFAULT_NEW_MEMBER"].map(declaration).join("\n")}\nreturn { LEVELS, GENDERS, AFFILIATIONS, COLUMNS, DEFAULT_NEW_MEMBER };`)(globalThis.BadmintonRosterReview);
 const hiddenColumns = new Set(JSON.parse(html.match(/hiddenColumns: new Set\((\[[^\n]*\])\)/)[1]));
 assert.deepEqual(config.COLUMNS.filter((column) => !hiddenColumns.has(column.key)).map((column) => column.label), [
   "名称", "性别", "中羽等级", "备注", "所属", "球友群序号", "Hytronik群序号",

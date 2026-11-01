@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { GROUP_LEARNING_VERSION } from "../src/group-learning-core.js";
 
@@ -36,5 +36,9 @@ try {
   process.stdout.write(stdout);
   console.log(`Published ${model.version} to D1 group-learning cache`);
 } finally {
-  await rm(tempDirectory, { recursive: true, force: true });
+  const resolvedTempDirectory = resolve(tempDirectory);
+  if (dirname(resolvedTempDirectory) !== resolve(tmpdir()) || !basename(resolvedTempDirectory).startsWith("badminton-group-learning-")) {
+    throw new Error("Refusing to remove a temporary directory outside the expected deployment workspace");
+  }
+  await rm(resolvedTempDirectory, { recursive: true, force: true });
 }

@@ -1,6 +1,6 @@
 (function attachBadmintonLevelGroups(root) {
   "use strict";
-  const ranks = Object.freeze([0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 6, 7, 8, 9]);
+  const ranks = Object.freeze(Array.from({ length: 18 }, (_, index) => (index + 1) / 2));
   const defaults = Object.freeze([
     Object.freeze({ name: "新手", min: 0.5, max: 2 }),
     Object.freeze({ name: "中手", min: 2.5, max: 3.5 }),
@@ -12,7 +12,7 @@
 
   function validate(groups) {
     if (!Array.isArray(groups) || !groups.length || groups.length > ranks.length) {
-      return { error: "请保留 1～14 个分组" };
+      return { error: `请保留 1～${ranks.length} 个分组` };
     }
     const normalized = [];
     for (let index = 0; index < groups.length; index++) {

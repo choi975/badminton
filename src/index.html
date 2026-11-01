@@ -14,6 +14,7 @@
   <script src="./optimistic-sync.js"></script>
   <script src="./court-pricing.js"></script>
   <script src="./level-groups.js"></script>
+  <script src="./roster-review.js"></script>
   <style>
     :root {
       --bg: #f2f6f5;
@@ -1919,6 +1920,40 @@
       font-size: 13px;
       color: var(--muted);
       font-weight: 600;
+    }
+
+    #rosterReviewModal { z-index: 100; }
+    .modal.roster-review-dialog { width: min(980px, 100%); max-height: calc(100dvh - 36px); }
+    .roster-review-dialog .modal-body { background: var(--panel); padding-block: 0; }
+    .roster-review-summary { margin: 14px 0; color: var(--muted); line-height: 1.6; }
+    .roster-review-row { padding: 18px 0; border-top: 1px solid var(--line); min-width: 0; }
+    .roster-review-row-heading { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px 16px; }
+    .roster-review-row-heading h3 { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+    .roster-review-row-heading > span { color: var(--amber); font-size: 13px; }
+    .roster-review-raw { margin: 5px 0 14px; color: var(--muted); overflow-wrap: anywhere; line-height: 1.5; }
+    .roster-review-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
+    .roster-review-field { min-width: 0; }
+    .roster-review-field input, .roster-review-field select { width: 100%; min-height: 42px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel); color: var(--text); padding: 7px 10px; font-size: 16px; }
+    .roster-review-field input::placeholder { color: var(--muted); }
+    .roster-review-profile { margin: 14px 0 8px; line-height: 1.6; }
+    .roster-review-profile span, .roster-review-grade-source, .roster-review-note { color: var(--muted); }
+    .roster-review-grade-source { margin: 14px 0 8px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+    .roster-review-note { margin: 8px 0 0; line-height: 1.6; align-self: center; }
+    .roster-review-error { margin: 12px 0 0; color: var(--danger); line-height: 1.6; }
+    .roster-review-message { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-soft); color: var(--text); line-height: 1.6; overflow-wrap: anywhere; }
+    .roster-review-readonly { background: var(--amber-soft); color: var(--amber); }
+    .roster-review-readonly a { color: var(--accent-dark); text-underline-offset: 3px; }
+    .roster-review-dialog ::selection { background: var(--accent-soft); color: var(--accent-dark); }
+    .roster-review-dialog input { caret-color: var(--accent); }
+    .roster-review-dialog .modal-body { scrollbar-color: var(--line-strong) var(--panel-soft); }
+    .roster-review-dialog .modal-footer { flex-wrap: wrap; }
+    @media (max-width: 620px) {
+      #rosterReviewModal { padding: 10px; }
+      .modal.roster-review-dialog { max-height: calc(100dvh - 20px); }
+      .roster-review-fields { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+      .roster-review-dialog .modal-header, .roster-review-dialog .modal-body, .roster-review-dialog .modal-footer { padding-inline: 14px; }
+      .roster-review-dialog .modal-footer { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; }
+      .roster-review-dialog .modal-footer button { padding-inline: 10px; min-height: 44px; }
     }
 
     .payment-dialog {
@@ -4679,6 +4714,25 @@
     </div>
   </div>
 
+  <div id="rosterReviewModal" class="modal-backdrop">
+    <div class="modal roster-review-dialog" role="dialog" aria-modal="true" aria-labelledby="rosterReviewTitle" aria-describedby="rosterReviewSummary">
+      <div class="modal-header">
+        <h2 id="rosterReviewTitle" class="modal-title">收款前人员核对</h2>
+        <button class="modal-close-btn" type="button" data-close="rosterReviewModal" aria-label="关闭人员核对" title="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="rosterReviewSummary" class="roster-review-summary" aria-live="polite"></p>
+        <p id="rosterReviewReadOnly" class="roster-review-message roster-review-readonly" hidden>当前为只读备用版。可以核对已有成员和随行人员；新建成员、添加外号或更新等级，请在 <a href="https://badminton.choi975.workers.dev/" target="_blank" rel="noopener">Cloudflare 管理版</a> 完成。</p>
+        <div id="rosterReviewList"></div>
+        <p id="rosterReviewMessage" class="roster-review-message" role="status" aria-live="polite" hidden></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" data-close="rosterReviewModal">取消</button>
+        <button id="rosterReviewConfirmBtn" class="primary-btn" type="button">确认并进入群收款</button>
+      </div>
+    </div>
+  </div>
+
   <div id="paymentModal" class="modal-backdrop">
     <div id="paymentDialog" class="modal payment-dialog" role="dialog" aria-modal="true" aria-labelledby="paymentTitle">
       <div class="modal-header">
@@ -5083,7 +5137,8 @@
 
   <script src="./html2canvas.min.js"></script>
   <script>
-    const LEVELS = ["不详", "0.5级", "1级", "1.5级", "2级", "2.5级", "3级", "3.5级", "4级", "4.5级", "5级", "6级", "7级", "8级", "9级"];
+    const RosterReview = globalThis.BadmintonRosterReview;
+    const LEVELS = [...RosterReview.levels];
     const GENDERS = ["男", "女"];
     const AFFILIATIONS = ["球友", "Hytronik", "球友+Hytronik", "特殊"];
     const CHAIN_NUMBER_PREFIX = /^\s*\d+\s*[\.、\):：-]\s*/;
@@ -5187,6 +5242,8 @@
       specialChain: null,
       specialChainSource: "",
       plusOverrides: {},
+      rosterReview: null,
+      rosterReviewSaving: false,
       autoFeeDefaults: { fee: 70, shuttle: 4, courts: 1 },
       feeMode: "basic",
       paymentRule: { mode: "discount", amount: 3.5 },
@@ -5394,6 +5451,11 @@
       courtPriceRows: document.getElementById("courtPriceRows"),
       shuttlePriceRows: document.getElementById("shuttlePriceRows"),
       paymentBtn: document.getElementById("paymentBtn"),
+      rosterReviewSummary: document.getElementById("rosterReviewSummary"),
+      rosterReviewReadOnly: document.getElementById("rosterReviewReadOnly"),
+      rosterReviewList: document.getElementById("rosterReviewList"),
+      rosterReviewMessage: document.getElementById("rosterReviewMessage"),
+      rosterReviewConfirmBtn: document.getElementById("rosterReviewConfirmBtn"),
       paymentModal: document.getElementById("paymentModal"),
       paymentDialog: document.getElementById("paymentDialog"),
       paymentCaptureBtn: document.getElementById("paymentCaptureBtn"),
@@ -5777,6 +5839,7 @@
         processChain();
       });
       els.paymentBtn.addEventListener("click", openPaymentModal);
+      els.rosterReviewConfirmBtn.addEventListener("click", confirmRosterReview);
       els.paymentFriendsSortBtn.addEventListener("click", () => togglePaymentSortMode("球友"));
       els.paymentHeinekenSortBtn.addEventListener("click", () => togglePaymentSortMode("Hytronik"));
       renderPaymentSortButtons();
@@ -10451,7 +10514,7 @@
       processChain();
       scheduleGroupAttemptSnapshot("input");
       els.chainInput.focus();
-      toast("已只保留报名名单，等级以数据库或手动选择为准");
+      toast("已只保留报名名单，等级已标准化；收款前会统一核对成员资料");
     }
 
     function processChain() {
@@ -10543,14 +10606,14 @@
 
       entriesByOwner.forEach((ownerEntries) => {
         const personalEntries = ownerEntries.filter((entry) => !entry.plusEntry);
-        personalEntries.slice(1).forEach((entry) => {
+        personalEntries.slice(1).filter((entry) => !entry.identityReviewed && !entry.preservedSnapshot).forEach((entry) => {
           const override = state.plusOverrides[entry.overrideKey];
           entry.player = null;
           entry.plusEntry = true;
-          entry.detectedLevelText = "不详";
-          entry.detectedLevelGroupLabel = "不详";
+          entry.detectedLevelText = entry.sourceLevel || "不详";
+          entry.detectedLevelGroupLabel = getLevelGroupLabel(entry.detectedLevelText);
           entry.detectedGender = entry.sharedRoster ? entry.detectedGender : "不详";
-          entry.levelText = override?.levelText || "不详";
+          entry.levelText = override?.levelText || entry.sourceLevel || "不详";
           entry.levelGroupLabel = getLevelGroupLabel(entry.levelText);
           entry.gender = entry.sharedRoster && !entry.preservedSnapshot ? entry.detectedGender : (override?.gender || "不详");
           entry.isFemale = entry.gender === "女";
@@ -10632,66 +10695,46 @@
       const playerText = sharedLevel?.name || rawClean;
       const playerMatch = findPlayerMatchForLine(playerText, aliasIndex);
       const matchedPlayer = playerMatch.player;
-      const plusMetadata = parsePlusEntryMetadata(playerText, matchedPlayer, { allowNumberedCompanion: sharedRoster });
-      const clean = plusMetadata.displayName;
+      const plusMetadata = parsePlusEntryMetadata(playerText, matchedPlayer, { allowNumberedCompanion: true });
       const preservedSnapshot = override?.preserveSnapshot === true;
       const preservedPlayerId = preservedSnapshot ? normalizePlayerId(override.playerId) : null;
       const preservedOwnerPlayerId = preservedSnapshot ? normalizePlayerId(override.ownerPlayerId) : null;
-      const preservedProfileSnapshotReliable = preservedSnapshot
-        ? override.profileSnapshotReliable !== false
-        : true;
-      const player = plusMetadata.plusEntry ? null : (getPlayerById(preservedPlayerId) || matchedPlayer);
-      const ownerPlayer = getPlayerById(preservedOwnerPlayerId) || matchedPlayer;
-      const knownLevel = player?.level || "不详";
-      const detectedLevelText = sharedRoster ? knownLevel : (plusMetadata.plusEntry ? plusMetadata.levelText : knownLevel);
-      const detectedGender = sharedRoster
-        ? (playerText.includes("🌸") ? "女" : "男")
-        : plusMetadata.plusEntry
-        ? (plusMetadata.isFemale ? "女" : "不详")
+      const preservedProfileSnapshotReliable = preservedSnapshot ? override.profileSnapshotReliable !== false : true;
+      const review = preservedSnapshot ? null : override?.reviewResolution;
+      const reviewedPlayer = review?.kind === "member" ? getPlayerById(review.playerId) : null;
+      const reviewedOwner = review?.kind === "companion" ? getPlayerById(review.ownerPlayerId) : null;
+      const identityReviewed = Boolean(reviewedPlayer || reviewedOwner);
+      const plusEntry = identityReviewed ? review.kind === "companion" : plusMetadata.plusEntry;
+      const player = plusEntry ? null : (getPlayerById(preservedPlayerId) || reviewedPlayer || matchedPlayer);
+      const ownerPlayer = identityReviewed ? (reviewedPlayer || reviewedOwner) : (getPlayerById(preservedOwnerPlayerId) || matchedPlayer);
+      const useCanonicalName = reviewedPlayer && (plusMetadata.plusEntry || (matchedPlayer && Number(reviewedPlayer.id) !== Number(matchedPlayer.id)));
+      const clean = useCanonicalName ? paymentDisplayName(reviewedPlayer) : plusMetadata.displayName;
+      const knownLevel = RosterReview.normalizeLevel(player?.level) || "不详";
+      const sourceLevel = sharedLevel?.normalizedLevel || null;
+      const invalidInputLevel = sharedRoster && sharedLevel.normalizedLevel === null;
+      const detectedLevelText = sourceLevel && sourceLevel !== "不详" ? sourceLevel : (plusEntry ? plusMetadata.levelText || "不详" : knownLevel);
+      const levelReviewValid = identityReviewed && (review.kind === "companion" ||
+        (RosterReview.normalizeLevel(review.databaseLevel) === knownLevel && review.sourceLevel === sourceLevel
+          && review.levelText === override?.levelText));
+      const levelEditable = plusEntry || !player || knownLevel === "不详";
+      const levelText = (preservedSnapshot || levelEditable || levelReviewValid) && override?.levelText ? override.levelText : detectedLevelText;
+      const detectedGender = sharedRoster ? (playerText.includes("🌸") ? "女" : "男")
+        : plusEntry ? (plusMetadata.isFemale ? "女" : "不详")
         : (playerText.includes("🌸") ? "女" : player?.gender === "女" ? "女" : player?.gender === "男" ? "男" : "不详");
-      const levelEditable = plusMetadata.plusEntry || (sharedRoster && !player);
-      const levelText = (preservedSnapshot || levelEditable) && override?.levelText
-        ? override.levelText
-        : detectedLevelText;
-      const levelGroupLabel = getLevelGroupLabel(levelText);
-      const overrideGender = (preservedSnapshot || plusMetadata.plusEntry)
-        ? (typeof override?.gender === "string"
-          ? override.gender
-          : typeof override?.isFemale === "boolean"
-            ? (override.isFemale ? "女" : "男")
-            : null)
+      const overrideGender = preservedSnapshot || plusEntry || identityReviewed
+        ? (typeof override?.gender === "string" ? override.gender : typeof override?.isFemale === "boolean" ? (override.isFemale ? "女" : "男") : null)
         : null;
-      const gender = sharedRoster && !preservedSnapshot ? detectedGender : (overrideGender || detectedGender);
-      const isFemale = gender === "女";
-      return {
-        index,
-        raw: line,
-        sharedRoster,
-        clean,
-        player,
-        ownerPlayer,
-        ownerIssue: !preservedSnapshot && playerMatch.ambiguousPlayers.length
-          ? { type: "ambiguous", players: playerMatch.ambiguousPlayers }
-          : null,
-        explicitOwnerName: plusMetadata.explicitOwnerName || "",
-        plusEntry: plusMetadata.plusEntry,
-        overrideKey,
-        preservedSnapshot,
-        preservedPlayerId,
-        preservedPlayerName: preservedSnapshot ? String(override.playerName || "") : "",
-        preservedOwnerPlayerId,
-        preservedOwnerName: preservedSnapshot ? String(override.ownerName || "") : "",
-        preservedIsCompanion: preservedSnapshot ? Boolean(override.isCompanion) : plusMetadata.plusEntry,
-        preservedProfileSnapshotReliable,
-        detectedLevelText,
-        detectedLevelGroupLabel: getLevelGroupLabel(detectedLevelText),
-        detectedGender,
-        gender,
-        levelText,
-        levelGroupLabel,
-        isFemale,
-        sortRank: levelRank(levelText),
-      };
+      const gender = identityReviewed && review.gender ? review.gender
+        : (sharedRoster && !preservedSnapshot ? detectedGender : (overrideGender || detectedGender));
+      return { index, raw: line, sharedRoster, clean, player, ownerPlayer,
+        ownerIssue: !preservedSnapshot && !identityReviewed && playerMatch.ambiguousPlayers.length ? { type: "ambiguous", players: playerMatch.ambiguousPlayers } : null,
+        explicitOwnerName: plusMetadata.explicitOwnerName || "", plusEntry, sourcePlusEntry: plusMetadata.plusEntry,
+        identityReviewed, levelReviewValid, sourceLevel, rawInputLevel: sharedLevel?.rawLevel || "", invalidInputLevel, overrideKey,
+        preservedSnapshot, preservedPlayerId, preservedPlayerName: preservedSnapshot ? String(override.playerName || "") : "",
+        preservedOwnerPlayerId, preservedOwnerName: preservedSnapshot ? String(override.ownerName || "") : "",
+        preservedIsCompanion: preservedSnapshot ? Boolean(override.isCompanion) : plusEntry, preservedProfileSnapshotReliable,
+        detectedLevelText, detectedLevelGroupLabel: getLevelGroupLabel(detectedLevelText), detectedGender,
+        gender, levelText, levelGroupLabel: getLevelGroupLabel(levelText), isFemale: gender === "女", sortRank: levelRank(levelText) };
     }
 
     function getChainEntryBaseName(entry) {
@@ -10706,7 +10749,7 @@
     }
 
     function canEditChainEntryLevel(entry) {
-      return entry.plusEntry || (entry.sharedRoster && !entry.player);
+      return entry.plusEntry || !entry.player || !entry.player.level || entry.player.level === "不详";
     }
 
     function formatChainOutputLine(entry, index) {
@@ -10852,7 +10895,7 @@
       return "";
     }
 
-    function parsePlusEntryMetadata(value, matchedPlayer = null, { allowNumberedCompanion = false } = {}) {
+    function parsePlusEntryMetadata(value, matchedPlayer = null, { allowNumberedCompanion = true } = {}) {
       const displayName = String(value || "");
       const memberSuffix = getMemberLineSuffix(displayName, matchedPlayer);
       const suffixMatch = memberSuffix.match(/^(?:[+＋➕]\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|代\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+)|加\s*(?:\d+|[零〇一二两三四五六七八九十百千万]+))/);
@@ -10863,7 +10906,7 @@
 
       const suffix = memberSuffix || displayName.slice((genericSuffixMatch?.index || 0) + (genericSuffixMatch?.[0]?.length || 0));
       const levelMapping = LevelGroups.annotationLabels(state.levelGroups).find(([label]) => suffix.includes(label));
-      let cleanedDisplayName = displayName;
+      let cleanedDisplayName = numberedCompanion ? RosterReview.canonicalNumberedCompanion(displayName, memberSuffix) : displayName;
 
       if (levelMapping) {
         cleanedDisplayName = cleanedDisplayName.replace(levelMapping[0], "").replace(/\s{2,}/g, " ").trim();
@@ -11514,12 +11557,313 @@
       }));
     }
 
+    function isRosterGradeReviewNeeded(entry, player = entry.player) {
+      if (!player || entry.preservedSnapshot || entry.levelReviewValid) return false;
+      const databaseLevel = RosterReview.normalizeLevel(player.level) || "不详";
+      return databaseLevel === "不详" || entry.invalidInputLevel
+        || (entry.levelText !== "不详" && entry.levelText !== databaseLevel);
+    }
+
+    function buildRosterReviewItems() {
+      return state.chainEntries.flatMap((entry) => {
+        if (entry.preservedSnapshot) return [];
+        const identity = !entry.identityReviewed && (entry.plusEntry || !entry.player || entry.ownerIssue);
+        if (!identity && !isRosterGradeReviewNeeded(entry)) return [];
+        const category = identity ? (entry.plusEntry ? "companion" : entry.ownerIssue?.type === "ambiguous" ? "ambiguous" : "unknown") : "level";
+        const hint = entry.sourceLevel && entry.sourceLevel !== "不详" ? entry.sourceLevel
+          : entry.levelText !== "不详" ? entry.levelText : "";
+        return [{ key: "entry-" + entry.index, entry, category, mode: category === "level" ? "member" : "",
+          playerId: category === "level" ? Number(entry.player.id) : null,
+          ownerId: entry.ownerPlayer?.id ? Number(entry.ownerPlayer.id) : null,
+          profile: category === "level" ? { ...entry.player } : null,
+          name: category === "unknown" ? entry.clean.replace(/🌸/g, "").trim() : "",
+          alias: entry.clean.replace(/🌸/g, "").trim(), memberSearch: "", hint,
+          level: hint || "不详", levelTouched: false, gender: entry.gender === "女" ? "女" : "男",
+          affiliation: "球友", update: "", error: "" }];
+      });
+    }
+
+    function maybeOpenRosterReview() {
+      if (state.rosterReviewSaving) return true;
+      const items = buildRosterReviewItems();
+      if (!items.length) return false;
+      state.rosterReview = { items, input: els.chainInput.value, overrides: JSON.stringify(state.plusOverrides), requestId: "", payload: "" };
+      els.rosterReviewMessage.textContent = "";
+      els.rosterReviewMessage.hidden = true;
+      els.rosterReviewReadOnly.hidden = !state.readOnly;
+      els.rosterReviewList.replaceChildren(...items.map((item) => {
+        const row = document.createElement("section");
+        row.className = "roster-review-row";
+        row.dataset.reviewKey = item.key;
+        renderRosterReviewRow(row, item);
+        return row;
+      }));
+      updateRosterReviewSummary();
+      openModal("rosterReviewModal");
+      return true;
+    }
+
+    function rosterReviewOptions(options, value) {
+      return options.map(([key, label, disabled]) => `<option value="${escapeHtml(key)}"${String(value ?? "") === String(key) ? " selected" : ""}${disabled ? " disabled" : ""}>${escapeHtml(label)}</option>`).join("");
+    }
+
+    function rosterReviewField(item, field, label, control, extra = "") {
+      return `<div class="field roster-review-field ${extra}"><label for="review-${item.key}-${field}">${escapeHtml(label)}</label>${control}</div>`;
+    }
+
+    function rosterReviewSelect(item, field, label, options) {
+      return rosterReviewField(item, field, label, `<select id="review-${item.key}-${field}" data-review-field="${field}">${rosterReviewOptions(options, item[field])}</select>`);
+    }
+
+    function rosterReviewMemberOptions(item, field) {
+      const needle = RosterReview.normalizeName(item.memberSearch);
+      const players = state.players.filter((player) => !needle || RosterReview.normalizeName(player.name).includes(needle) || Number(player.id) === Number(item[field]));
+      return [["", "请选择数据库中的成员"], ...players.map((player) => [String(player.id), `${paymentDisplayName(player)} · ${player.level || "等级不详"} · ${player.affiliation}`])];
+    }
+
+    function renderRosterReviewRow(row, item) {
+      const select = (field, label, options) => rosterReviewSelect(item, field, label, options);
+      const input = (field, label, placeholder, max = 200) => rosterReviewField(item, field, label,
+        `<input id="review-${item.key}-${field}" data-review-field="${field}" value="${escapeHtml(item[field] || "")}" maxlength="${max}" placeholder="${escapeHtml(placeholder)}" autocomplete="off">`);
+      const entry = item.entry;
+      const labels = { level: "等级核对", unknown: "未登记的名字", ambiguous: "名字匹配多个成员", companion: "代报名 / 随行人员" };
+      let fields = "";
+      if (item.category !== "level") {
+        const choices = item.category === "companion"
+          ? [["", "请选择处理方式"], ["member", "已有成员，由他人代报名"], ["companion", "未登记随行人员（不入库）"], ["new", "新成员，加入数据库", state.readOnly]]
+          : item.category === "ambiguous" ? [["", "请选择处理方式"], ["member", "确认实际参加的已有成员"], ["companion", "现有成员的随行人员（不入库）"]]
+          : [["", "请选择处理方式"], ["alias", "已有成员的新外号", state.readOnly], ["new", "新成员，加入数据库", state.readOnly], ["companion", "现有成员的 +1（不入库）"]];
+        fields += select("mode", "这条报名是谁？", choices);
+      }
+      const memberField = item.mode === "companion" ? "ownerId" : "playerId";
+      if (["alias", "member", "companion"].includes(item.mode) && item.category !== "level") {
+        fields += input("memberSearch", "搜索成员 / 外号", "可输入任何已有外号");
+        fields += select(memberField, item.mode === "companion" ? "由哪位成员带来、代付？" : "实际参加的成员", rosterReviewMemberOptions(item, memberField));
+      }
+      if (item.mode === "alias") fields += input("alias", "加入该成员档案的外号", "保留本次报名使用的名字");
+      if (item.mode === "new") {
+        fields += input("name", "新成员名字", item.category === "companion" ? "请填写实际名字，不使用 +1 编号" : "填写成员名字");
+        fields += select("gender", "性别", [["男", "男"], ["女", "女"]]);
+        fields += select("affiliation", "成员分组", [["球友", "球友"], ["特殊", "特殊"]]);
+      }
+      const player = item.profile;
+      const profile = player ? `<p class="roster-review-profile">实际参加者：<strong>${escapeHtml(paymentDisplayName(player))}</strong> · ${escapeHtml(player.affiliation)}<br><span>数据库等级：${escapeHtml(player.level || "不详")}</span></p>` : "";
+      let grade = "";
+      if (item.mode) {
+        const rawGrade = entry.rawInputLevel ? `原始等级 ${entry.rawInputLevel}${entry.invalidInputLevel ? " 无法转换，请手动选择" : " → " + entry.sourceLevel}` : "报名未提供数字等级";
+        grade = `<p class="roster-review-grade-source">${escapeHtml(rawGrade)}</p><div class="roster-review-fields">`;
+        grade += select("level", item.mode === "new" ? "保存到数据库的等级" : "本次参加的等级", RosterReview.levels.map((level) => [level, level === "不详" ? "等级不详" : level]));
+        if (player) {
+          const databaseLevel = RosterReview.normalizeLevel(player.level) || "不详";
+          const needsChoice = databaseLevel === "不详" || item.level !== databaseLevel;
+          if (needsChoice) grade += select("update", "是否更新该成员的数据库等级？", [["", "请选择是 / 否"], ["update", `是，更新为 ${item.level}`, state.readOnly || item.level === "不详"], ["keep", "否，数据库不变，本次用所选等级"]]);
+          else grade += `<p class="roster-review-note">本次等级与数据库一致，无需更新。</p>`;
+        }
+        grade += "</div>";
+        if (item.mode === "companion") grade += `<p class="roster-review-note">作为未登记随行人员处理：费用与带人次数归带来者，不增加成员档案。</p>`;
+        if (item.mode === "member" && item.category === "companion") grade += `<p class="roster-review-note">收款、出勤都归实际参加者，不计入代报名者的带人次数。</p>`;
+        if (item.mode === "new" && item.category === "unknown") grade += `<p class="roster-review-note">如果修改了名字，原报名名也会作为外号保留。</p>`;
+      }
+      row.innerHTML = `<div class="roster-review-row-heading"><h3>第 ${entry.index + 1} 行 · ${escapeHtml(entry.clean)}</h3><span>${labels[item.category]}</span></div>
+        <p class="roster-review-raw">${escapeHtml(entry.raw)}</p><div class="roster-review-fields">${fields}</div>${profile}${grade}
+        <p class="roster-review-error" role="alert"${item.error ? "" : " hidden"}>${escapeHtml(item.error)}</p>`;
+      row.querySelectorAll("[data-review-field]").forEach((control) => {
+        const field = control.dataset.reviewField;
+        control.addEventListener(control.tagName === "SELECT" ? "change" : "input", () => {
+          item[field] = control.value;
+          item.error = "";
+          row.querySelector(".roster-review-error").hidden = true;
+          if (field === "memberSearch") {
+            const memberSelect = row.querySelector(`[data-review-field="${memberField}"]`);
+            if (memberSelect) memberSelect.innerHTML = rosterReviewOptions(rosterReviewMemberOptions(item, memberField), item[memberField]);
+          } else if (["mode", "playerId", "ownerId", "level"].includes(field)) {
+            if (field === "mode") {
+              item.profile = null; item.playerId = null; item.update = ""; item.memberSearch = "";
+              item.level = item.hint || "不详"; item.levelTouched = false;
+            }
+            if (field === "playerId") {
+              const member = getPlayerById(Number(item.playerId));
+              item.profile = member ? { ...member } : null; item.update = "";
+              if (!item.levelTouched) item.level = item.hint || member?.level || "不详";
+            }
+            if (field === "level") {
+              item.levelTouched = true;
+              if (item.level === "不详" && item.update === "update") item.update = "";
+            }
+            renderRosterReviewRow(row, item);
+            row.querySelector(`[data-review-field="${field}"]`)?.focus({ preventScroll: true });
+          }
+          updateRosterReviewSummary();
+        });
+      });
+    }
+
+    function buildRosterReviewPlan(items) {
+      const errors = new Map(), updates = new Map(), creates = [], resolutions = [];
+      const names = new Map();
+      state.players.forEach((player) => splitAliases(player.name).forEach((alias) => {
+        const key = RosterReview.normalizeName(alias), owners = names.get(key) || new Set();
+        owners.add("player:" + player.id); names.set(key, owners);
+      }));
+      const reviewing = new Set(items.map((item) => item.entry.overrideKey));
+      const attendance = new Map(state.chainEntries.filter((entry) => entry.player && !entry.plusEntry && !reviewing.has(entry.overrideKey))
+        .map((entry) => ["player:" + entry.player.id, entry.index + 1]));
+      const fail = (item, message) => { if (!errors.has(item.key)) errors.set(item.key, message); };
+      const claim = (item, value, owner) => {
+        const aliases = splitAliases(value);
+        if (!aliases.length || value.length > 200 || /[\r\n\t]/.test(value)) { fail(item, "名字 / 外号需填写 1～200 个字符，且不能换行"); return; }
+        aliases.forEach((alias) => {
+          const key = RosterReview.normalizeName(alias), owners = names.get(key);
+          if (owners && [...owners].some((id) => id !== owner)) fail(item, `“${alias}”已属于其他成员，请重新选择或修改名字`);
+          else names.set(key, new Set([owner]));
+        });
+      };
+      items.forEach((item) => {
+        const entry = item.entry;
+        if (!item.mode) { fail(item, "请选择：已有成员、新成员，或现有成员的随行人员"); return; }
+        if (!RosterReview.levels.includes(item.level)) { fail(item, "请选择有效的标准等级"); return; }
+        const resolution = { overrideKey: entry.overrideKey, kind: item.mode === "companion" ? "companion" : "member",
+          levelText: item.level, sourceLevel: entry.sourceLevel || null, gender: item.gender };
+        if (item.mode === "companion") {
+          const owner = getPlayerById(Number(item.ownerId));
+          if (!owner) { fail(item, "请选择数据库中负责这位随行人员的成员"); return; }
+          resolution.ownerPlayerId = Number(owner.id);
+          resolution.gender = entry.gender || "不详";
+        } else if (item.mode === "new") {
+          if (state.readOnly) { fail(item, "请在 Cloudflare 管理版创建成员"); return; }
+          const name = String(item.name || "").trim(), owner = "new:" + item.key;
+          claim(item, name, owner);
+          const aliases = item.category === "unknown" && RosterReview.normalizeName(item.alias) !== RosterReview.normalizeName(name) ? [item.alias] : [];
+          aliases.forEach((alias) => claim(item, alias, owner));
+          if (!["男", "女"].includes(item.gender) || !["球友", "特殊"].includes(item.affiliation)) fail(item, "请选择新成员的性别和分组");
+          creates.push({ key: item.key, name, aliases, gender: item.gender, level: item.level, affiliation: item.affiliation });
+          resolution.createKey = item.key;
+        } else if (["alias", "member"].includes(item.mode)) {
+          const player = getPlayerById(Number(item.playerId));
+          if (!player || !item.profile) { fail(item, "请选择实际参加的已有成员"); return; }
+          if (!RosterReview.sameProfile(item.profile, player)) { fail(item, "该成员档案已变化，请关闭核对窗口后重新点击群收款"); return; }
+          const databaseLevel = RosterReview.normalizeLevel(player.level) || "不详";
+          if ((databaseLevel === "不详" || item.level !== databaseLevel) && !["update", "keep"].includes(item.update)) fail(item, "请明确选择是否更新数据库等级");
+          if (item.update === "update" && (state.readOnly || item.level === "不详")) fail(item, state.readOnly ? "只读版不能更新等级，请选否或打开管理版" : "更新等级时请选择一个数字等级");
+          const update = updates.get(Number(player.id)) || { playerId: Number(player.id), expected: { name: player.name, level: player.level, updatedAt: player.updatedAt }, aliases: [] };
+          if (item.update === "update") {
+            if (update.level && update.level !== item.level) fail(item, "同一个成员有不同的等级更新，请统一选择");
+            update.level = item.level;
+          }
+          if (item.mode === "alias") {
+            if (state.readOnly) fail(item, "请在 Cloudflare 管理版保存新外号");
+            claim(item, String(item.alias || "").trim(), "player:" + player.id);
+            update.aliases.push(String(item.alias || "").trim());
+          }
+          if (update.aliases.length || (update.level && update.level !== player.level)) updates.set(Number(player.id), update);
+          resolution.playerId = Number(player.id);
+          resolution.gender = item.category === "level" ? entry.gender : (entry.sharedRoster ? entry.gender : entry.clean.includes("🌸") ? "女" : player.gender);
+        } else { fail(item, "请选择有效的处理方式"); return; }
+        if (resolution.kind === "member") {
+          const identity = resolution.playerId ? "player:" + resolution.playerId : "new:" + resolution.createKey;
+          if (attendance.has(identity)) fail(item, `该成员已在第 ${attendance.get(identity)} 行报名，不能重复收款；请修改名单或选择其他人员`);
+          else attendance.set(identity, entry.index + 1);
+        }
+        resolutions.push(resolution);
+      });
+      return { errors, updates: [...updates.values()], creates, resolutions };
+    }
+
+    function updateRosterReviewSummary() {
+      if (!state.rosterReview) return;
+      const plan = buildRosterReviewPlan(state.rosterReview.items);
+      const total = state.rosterReview.items.length;
+      els.rosterReviewSummary.textContent = `需要核对 ${total} 项，已完成 ${total - plan.errors.size} 项。确认后统一保存，再进入群收款。`;
+      els.rosterReviewConfirmBtn.textContent = plan.updates.length || plan.creates.length ? "确认并保存，进入群收款" : "确认并进入群收款";
+    }
+
+    async function confirmRosterReview() {
+      const review = state.rosterReview;
+      if (!review || state.rosterReviewSaving) return;
+      if (review.input !== els.chainInput.value || review.overrides !== JSON.stringify(state.plusOverrides)) {
+        els.rosterReviewMessage.hidden = false;
+        els.rosterReviewMessage.textContent = "报名名单已变化，请关闭核对窗口后重新点击群收款。尚未保存任何修改。";
+        return;
+      }
+      const plan = buildRosterReviewPlan(review.items);
+      if (plan.errors.size) {
+        review.items.forEach((item) => {
+          item.error = plan.errors.get(item.key) || "";
+          renderRosterReviewRow(els.rosterReviewList.querySelector(`[data-review-key="${item.key}"]`), item);
+        });
+        els.rosterReviewList.querySelector(".roster-review-error:not([hidden])")?.closest("section")?.querySelector("select, input")?.focus();
+        updateRosterReviewSummary();
+        return;
+      }
+      state.rosterReviewSaving = true;
+      els.rosterReviewConfirmBtn.disabled = true;
+      document.getElementById("rosterReviewModal").querySelectorAll("[data-close], input, select").forEach((element) => { element.disabled = true; });
+      els.rosterReviewMessage.hidden = false;
+      els.rosterReviewMessage.textContent = plan.updates.length || plan.creates.length ? "正在统一保存人员资料，请稍候…" : "正在应用核对结果…";
+      try {
+        let createdPlayers = [];
+        if (plan.updates.length || plan.creates.length) {
+          const payload = JSON.stringify({ updates: plan.updates, creates: plan.creates });
+          if (payload !== review.payload) { review.payload = payload; review.requestId = crypto.randomUUID(); }
+          const data = await api("/api/roster-review", { method: "POST", timeout: 30000,
+            body: JSON.stringify({ requestId: review.requestId, updates: plan.updates, creates: plan.creates }) });
+          state.players = data.players;
+          applyPaymentOrderState(data);
+          createdPlayers = data.createdPlayers;
+          renderTable();
+          setSync("已保存");
+        }
+        if (review.input !== els.chainInput.value || review.overrides !== JSON.stringify(state.plusOverrides)) {
+          els.rosterReviewMessage.textContent = "人员档案已保存，但报名名单刚刚发生变化。请关闭核对窗口后重新点击群收款。";
+          return;
+        }
+        const createdByKey = new Map(createdPlayers.map((player) => [player.key, player.playerId]));
+        plan.resolutions.forEach((resolution) => {
+          const playerId = resolution.playerId || createdByKey.get(resolution.createKey) || null;
+          const player = getPlayerById(playerId);
+          const saved = { kind: resolution.kind, playerId, ownerPlayerId: resolution.ownerPlayerId || playerId,
+            levelText: resolution.levelText, sourceLevel: resolution.sourceLevel, databaseLevel: player?.level || null, gender: resolution.gender };
+          state.plusOverrides[resolution.overrideKey] = { ...(state.plusOverrides[resolution.overrideKey] || {}),
+            levelText: saved.levelText, gender: saved.gender, reviewResolution: saved };
+        });
+        state.chainInputUserOwned = true;
+        state.rosterReviewSaving = false;
+        closeModal("rosterReviewModal");
+        state.rosterReview = null;
+        processChain();
+        scheduleGroupAttemptSnapshot("roster_review");
+        openPaymentModal();
+      } catch (error) {
+        els.rosterReviewMessage.hidden = false;
+        els.rosterReviewMessage.textContent = `${error.message}。核对选择已保留，未进入群收款。`;
+        if (error.status === 409) {
+          try {
+            const data = await api("/api/players");
+            state.players = data.players;
+            review.items.forEach((item) => {
+              const player = getPlayerById(Number(item.playerId));
+              item.profile = player ? { ...player } : null;
+              item.update = "";
+              renderRosterReviewRow(els.rosterReviewList.querySelector(`[data-review-key="${item.key}"]`), item);
+            });
+            updateRosterReviewSummary();
+          } catch { /* Keep every choice visible if refreshing is also offline. */ }
+        }
+      } finally {
+        state.rosterReviewSaving = false;
+        els.rosterReviewConfirmBtn.disabled = false;
+        document.getElementById("rosterReviewModal").querySelectorAll("[data-close]").forEach((element) => { element.disabled = false; });
+        if (state.rosterReview) review.items.forEach((item) => renderRosterReviewRow(els.rosterReviewList.querySelector(`[data-review-key="${item.key}"]`), item));
+      }
+    }
+
     function openPaymentModal() {
       if (!isPaymentRuleValid(state.paymentRule)) {
         toast("请在费用计算的高级设置中填写有效的群收款金额");
         return;
       }
       processChain();
+      if (maybeOpenRosterReview()) return;
       const ownerIssueEntry = state.chainEntries.find((entry) => entry.ownerIssue);
       if (ownerIssueEntry) {
         if (ownerIssueEntry.ownerIssue.type === "ambiguous") {
@@ -13068,18 +13412,7 @@
     }
 
     function findPlayerMatchForLine(line, aliasIndex) {
-      const normalized = normalizeAlias(removeChainAnnotations(line));
-      const matches = aliasIndex.filter((item) => normalized.includes(item.normalized));
-      if (!matches.length) return { player: null, ambiguousPlayers: [] };
-      const longest = Math.max(...matches.map((item) => item.normalized.length));
-      const players = new Map();
-      matches
-        .filter((item) => item.normalized.length === longest)
-        .forEach((item) => players.set(Number(item.player.id), item.player));
-      const candidates = [...players.values()];
-      return candidates.length === 1
-        ? { player: candidates[0], ambiguousPlayers: [] }
-        : { player: null, ambiguousPlayers: candidates };
+      return RosterReview.findPlayerMatch(line, aliasIndex);
     }
 
     function findPlayerForLine(line, aliasIndex) {
@@ -14279,6 +14612,8 @@
     }
 
     function closeModal(id) {
+      if (id === "rosterReviewModal" && state.rosterReviewSaving) return;
+      if (id === "rosterReviewModal") state.rosterReview = null;
       if (id === "memberCreateModal" && state.creatingPlayer) return;
       if (id === "trainingAnomalyModal" && !state.trainingAnomaly?.confirmed) state.trainingAnomaly = null;
       const modal = document.getElementById(id);
@@ -14327,7 +14662,7 @@
         if (topId) appShell.setAttribute("aria-hidden", "true");
         else appShell.removeAttribute("aria-hidden");
       }
-      const memberCreateOpen = openIds.includes("memberCreateModal");
+      const memberCreateOpen = openIds.includes("memberCreateModal") || openIds.includes("rosterReviewModal");
       document.querySelectorAll(".nav-preview-sidebar, .nav-preview-header").forEach((element) => {
         element.inert = memberCreateOpen;
         if (memberCreateOpen) element.setAttribute("aria-hidden", "true");
@@ -14371,8 +14706,7 @@
     }
 
     function parseSharedChainLevelPrefix(value) {
-      const match = String(value || "").match(/^\s*[【[]\s*((?:\d+(?:\.\d+)?)级|等级不详|不详)\s*[】\]]\s*(.+?)\s*$/);
-      return match ? { level: match[1], name: match[2] } : null;
+      return RosterReview.parseLevelPrefix(value);
     }
 
     function parseMiniProgramChain(rawInput) {

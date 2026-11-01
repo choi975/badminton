@@ -1,3 +1,6 @@
+import "../roster-review.js";
+import ROSTER_REVIEW_JS from "./roster-review.txt";
+import { handleRosterReview } from "./roster-review-api.js";
 import SESSION_PLANNER_CORE_JS from "./session-planner-core.txt";
 import SESSION_PLANNER_JS from "./session-planner.txt";
 import { isPlannerWrite, handleSessionPlans } from "./session-plans.js";
@@ -94,7 +97,7 @@ const DEFAULT_LEVEL_GUIDE_RAW = `中羽等级表格
 •  在全国性比赛获得冠军`;
 
 const VALID_GENDERS = new Set(["男", "女"]);
-const VALID_LEVELS = new Set(["不详", "0.5级", "1级", "1.5级", "2级", "2.5级", "3级", "3.5级", "4级", "4.5级", "5级", "6级", "7级", "8级", "9级"]);
+const VALID_LEVELS = new Set(globalThis.BadmintonRosterReview.levels);
 const VALID_AFFILIATIONS = new Set(["球友", "Hytronik", "球友+Hytronik", "特殊"]);
 const PAYMENT_ORDER_AFFILIATIONS = ["球友", "Hytronik"];
 const ORDERABLE_AFFILIATIONS = new Set(PAYMENT_ORDER_AFFILIATIONS);
@@ -152,7 +155,7 @@ const GROUP_LEARNING_RAW_DATA_KEYS = new Set([
   "companions_by_owner",
   "companions_by_owner_json",
 ]);
-const GROUP_ATTEMPT_TRIGGERS = new Set(["paste", "input", "companion", "rule_change"]);
+const GROUP_ATTEMPT_TRIGGERS = new Set(["paste", "input", "companion", "rule_change", "roster_review"]);
 const GROUP_ATTEMPT_RANKING_MODES = new Set(["attendanceProbability", "attendanceProbabilityTimesUplift"]);
 const GROUP_ATTEMPT_CONSTRAINT_TYPES = new Set([
   ...EXPIRING_SHORT_TERM_RULE_TYPES,
@@ -203,6 +206,8 @@ export default {
           },
         });
       }
+
+      if (url.pathname === "/roster-review.js") return new Response(ROSTER_REVIEW_JS, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" } });
 
       if (url.pathname === "/level-groups.js") {
         return new Response(LEVEL_GROUPS_JS, { headers: {
@@ -630,6 +635,8 @@ function memberExitOcrCorsHeaders(request) {
 async function handleApi(request, env, url) {
   const { pathname } = url;
   const method = request.method.toUpperCase();
+
+  if (pathname === "/api/roster-review") return handleRosterReview(request, env, { json, listPlayers, getPaymentOrderState, isAdminRequest });
 
   if (pathname === "/api/session-plans") return handleSessionPlans(request, env, { json, rateLimit: consumeGroupAttemptRateLimit });
 

@@ -6,7 +6,7 @@ const LevelGroups = globalThis.BadmintonLevelGroups;
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 const worker = readFileSync(new URL("../src/worker.js", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 const defaults = LevelGroups.normalize(null);
-assert.deepEqual(LevelGroups.ranks.map(rank => LevelGroups.getLabel(rank + "级")), ["新手", "新手", "新手", "新手", "中手", "中手", "中手", "高手", "高手", "高手", "比赛级高手", "比赛级高手", "比赛级高手", "比赛级高手"]);
+assert.deepEqual(LevelGroups.ranks.map(rank => LevelGroups.getLabel(rank + "级")), ["新手", "新手", "新手", "新手", "中手", "中手", "中手", "高手", "高手", "高手", "未分组", "比赛级高手", "比赛级高手", "比赛级高手", "比赛级高手", "比赛级高手", "比赛级高手", "比赛级高手"]);
 for (const level of [null, "", "不详", "等级不详", "NaN", "3级oops", "0级", "10级"]) assert.equal(LevelGroups.getLabel(level), "不详");
 assert.deepEqual(LevelGroups.fromStored("bad json"), defaults);
 assert.deepEqual(LevelGroups.fromStored("[]"), defaults);
@@ -15,7 +15,7 @@ const groups = [{ name: "入门", min: 0.5, max: 1.5 }, { name: "进阶", min: 2
 assert.equal(LevelGroups.validate(groups).error, undefined);
 assert.equal(LevelGroups.getLabel("2级", groups), "进阶");
 assert.equal(LevelGroups.getLabel("4.5级", groups), "未分组");
-for (const invalid of [null, [], Array(15).fill(groups[0]), [{ name: "", min: 1, max: 2 }], [{ name: "不详", min: 1, max: 2 }], [{ name: "等级不详", min: 1, max: 2 }], [{ name: "未分组", min: 1, max: 2 }], [{ name: "x".repeat(21), min: 1, max: 2 }], [{ name: "a\nb", min: 1, max: 2 }], [{ name: "a", min: 3, max: 2 }], [{ name: "a", min: 5.5, max: 9 }], [{ name: "a", min: "1", max: 2 }], [{ name: "a", min: null, max: 2 }], [{ name: "A", min: 1, max: 2 }, { name: " a ", min: 3, max: 4 }], [{ name: "a", min: 1, max: 2 }, { name: "b", min: 2, max: 3 }]]) assert.ok(LevelGroups.validate(invalid).error, JSON.stringify(invalid));
+for (const invalid of [null, [], Array(19).fill(groups[0]), [{ name: "", min: 1, max: 2 }], [{ name: "不详", min: 1, max: 2 }], [{ name: "等级不详", min: 1, max: 2 }], [{ name: "未分组", min: 1, max: 2 }], [{ name: "x".repeat(21), min: 1, max: 2 }], [{ name: "a\nb", min: 1, max: 2 }], [{ name: "a", min: 3, max: 2 }], [{ name: "a", min: 5.25, max: 9 }], [{ name: "a", min: "1", max: 2 }], [{ name: "a", min: null, max: 2 }], [{ name: "A", min: 1, max: 2 }, { name: " a ", min: 3, max: 4 }], [{ name: "a", min: 1, max: 2 }, { name: "b", min: 2, max: 3 }]]) assert.ok(LevelGroups.validate(invalid).error, JSON.stringify(invalid));
 assert.deepEqual(LevelGroups.validate([{ name: " 单级 ", min: 4, max: 4 }]).groups, [{ name: "单级", min: 4, max: 4 }]);
 assert.equal(LevelGroups.options().find(option => option.label === "新手").level, "2级");
 assert.equal(LevelGroups.options().find(option => option.label === "比赛级高手").level, "6级");
@@ -25,7 +25,7 @@ assert.equal(LevelGroups.annotationLabels([{ name: "超级高手", min: 8, max: 
 assert.equal(LevelGroups.annotationLabels(groups).find(([label]) => label === "比赛级高手")[1], "6级", "Old annotations remain supported after a rename");
 const entries = LevelGroups.ranks.map(rank => ({ levelText: rank + "级", levelGroupLabel: "stale cached name" })).concat([{ levelText: "不详", levelGroupLabel: "高手" }]);
 const stats = LevelGroups.stats(entries, groups);
-assert.deepEqual(stats, ["竞赛：4人", "进阶：5人", "入门：3人", "未分组：2人", "等级不详：1人"]);
+assert.deepEqual(stats, ["竞赛：7人", "进阶：5人", "入门：3人", "未分组：3人", "等级不详：1人"]);
 assert.equal(stats.reduce((total, line) => total + Number(line.match(/：(\d+)人/)[1]), 0), entries.length, "Every person appears in exactly one bucket");
 function front(name) {
   const start = html.indexOf("    function " + name + "(");

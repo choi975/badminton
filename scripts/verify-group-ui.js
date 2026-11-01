@@ -1,3 +1,4 @@
+import "../roster-review.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
@@ -253,7 +254,7 @@ const sharedParserStart = html.indexOf("function parseSharedChainLevelPrefix(");
 const sharedParserEnd = html.indexOf("\n    function getChainInputLines(", sharedParserStart);
 assert.ok(appendMemberStart >= 0 && appendMemberEnd > appendMemberStart, "Expected chain append helper");
 assert.ok(sharedParserStart >= 0 && sharedParserEnd > sharedParserStart, "Expected shared-chain parser helpers");
-const appendMemberContext = vm.createContext({});
+const appendMemberContext = vm.createContext({ RosterReview: globalThis.BadmintonRosterReview });
 vm.runInContext(`
 const CHAIN_NUMBER_PREFIX = /^\\s*\\d+\\s*[\\.、\\):：-]\\s*/;
 const SHARED_CHAIN_METADATA_PREFIXES = ["组织者", "活动时间", "活动地点", "收费类型", "AA预收费用", "已报名"];

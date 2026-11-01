@@ -39,6 +39,9 @@ jobs:
       - name: Verify deployed Cloudflare member statistics
         run: node scripts/verify-deployed-member-statistics.js
 
+      - name: Verify deployed Cloudflare roster review
+        run: node scripts/verify-deployed-roster-review.js
+
       - name: Build static site
         run: npm run build
 
@@ -53,3 +56,6 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify deployed GitHub Pages assets
+        run: node scripts/verify-deployed-pages.js

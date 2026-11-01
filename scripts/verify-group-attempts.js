@@ -58,7 +58,7 @@ const GROUP_LEARNING_RAW_DATA_KEYS = new Set([
   "snapshots", "knownPlayerIds", "known_player_ids", "known_player_ids_json",
   "companionsByOwner", "companions_by_owner", "companions_by_owner_json",
 ]);
-const GROUP_ATTEMPT_TRIGGERS = new Set(["paste", "input", "companion", "rule_change"]);
+const GROUP_ATTEMPT_TRIGGERS = new Set(["paste", "input", "companion", "rule_change", "roster_review"]);
 const GROUP_ATTEMPT_RANKING_MODES = new Set(["attendanceProbability", "attendanceProbabilityTimesUplift"]);
 const GROUP_ATTEMPT_CONSTRAINT_TYPES = new Set([
   "not_before_days", "not_within_days", "not_before_next_week", "not_before_date",
