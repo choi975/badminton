@@ -58,3 +58,6 @@ for (const name of ["forecast-worker", "forecast-client", "optimistic-sync", "se
 
 copyFileSync(resolve("roster-review.js"), resolve("public/roster-review.js"));
 copyFileSync(resolve("roster-review.js"), resolve("src/roster-review.txt"));
+
+copyFileSync(resolve("session-save.js"), resolve("public/session-save.js"));
+copyFileSync(resolve("session-save.js"), resolve("src/session-save.txt"));

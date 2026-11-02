@@ -134,10 +134,10 @@ assert.match(html, /const venues = \["EDC", "文体", "广羽"\]/);
 assert.match(html, /els\.recordModal\.dataset\.venue = editing \? session\.venue : "广羽"/);
 assert.match(html, /venue: editing \? \(els\.recordModal\.dataset\.venue \|\| "文体"\) : "广羽"/);
 assert.doesNotMatch(html, /FRIDAY_SATURDAY_COURT_UNIT_PRICE|paymentWeekendNotice|周五周六场地80元/);
-assert.match(worker, /normalizeSessionInput\(await readJson\(request\), "广羽", shuttleTypes\)/);
+assert.match(worker, /const body = await readJson\(request\);\s*const input = normalizeSessionInput\(body, "广羽", shuttleTypes\)/);
 assert.doesNotMatch(html, /id="edcBalanceInput"|id="edcHistoryBtn"|id="edcHistoryPanel"/);
 assert.match(worker, /pathname === "\/api\/edc-balance" && method === "PUT"/);
-assert.match(worker, /edcCharge: input\.venue === "EDC" \? input\.courtCount \* 80 : 0/);
+assert.match(readFileSync(new URL("../src/session-save-receipts.js", import.meta.url), "utf8"), /const edcCharge = !sessionId && input\.venue === "EDC" \? input\.courtCount \* 80 : 0/);
 assert.match(worker, /statements\.push\(\.\.\.buildSessionPlayerStatements\(db, null, input\.players, true\)\)[\s\S]*await db\.batch\(statements\)/);
 
 console.log("Court-pricing and EDC-balance verification passed.");

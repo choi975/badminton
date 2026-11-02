@@ -192,6 +192,9 @@ const dependencies = { ...ui, state, els, CourtPricing: globalThis.BadmintonCour
     return { session };
   },
 };
+dependencies.saveSessionRequest = (path, body) => dependencies.api(path, { method: path === "/api/sessions" ? "POST" : "PATCH", timeout: 60000, body: JSON.stringify(body) });
+dependencies.finishSessionSaveFollowups = noop;
+dependencies.recoverPreviousSessionSave = () => false;
 const saves = new Function(...Object.keys(dependencies), ["saveRecordDialog", "deleteSessionRecord"]
   .map((name) => extract(paymentHtml, name, "    ")).join("\n") + "\nreturn { saveRecordDialog, deleteSessionRecord };")(...Object.values(dependencies));
 state.sessions = [saved1, getStored(adapter, saved2.id)];

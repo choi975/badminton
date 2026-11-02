@@ -816,11 +816,11 @@ assert.doesNotMatch(shortRuleGet, /deleteExpiredShortTermRules/, "GET 不得再�
 const sessionRoutesStart = workerSource.indexOf('if (pathname === "/api/sessions" && method === "POST")');
 const sessionRoutesEnd = workerSource.indexOf('if (pathname === "/api/payment-settings"', sessionRoutesStart);
 const sessionRoutes = workerSource.slice(sessionRoutesStart, sessionRoutesEnd);
-assert.equal(
-  (sessionRoutes.match(/safelyReconcileGroupAttemptOutcome/g) || []).length,
-  4,
-  "订场新增、改期前后和删除都必须安全地重新结算接龙结果",
-);
+assert.equal((sessionRoutes.match(/await sessionSaveFollowups/g) || []).length, 2, "新增和编辑共享安全的保存后对账");
+assert.match(sessionRoutes, /await safelyReconcileGroupAttemptOutcome\(env.DB, existing.date\)/, "删除仍须对账原日期");
+const saveFollowups = readFileSync(new URL("../src/session-save-receipts.js", import.meta.url), "utf8");
+assert.match(saveFollowups, /previousDate && previousDate !== session.date[\s\S]*safelyReconcileGroupAttemptOutcome\(env.DB, previousDate\)/, "改期必须重结算原日期");
+assert.match(saveFollowups, /safelyReconcileGroupAttemptOutcome\(env.DB, session.date\)/, "新日期必须重新结算");
 assert.doesNotMatch(sessionRoutes, /await reconcileGroupAttemptOutcome/, "追踪对账失败不能让已写入的订场返回500");
 const scheduledSectionStart = workerSource.indexOf("async function settleDueGroupAttempts(");
 const scheduledSectionEnd = workerSource.indexOf("function buildShortTermRuleInsert(", scheduledSectionStart);

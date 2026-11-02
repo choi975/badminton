@@ -1,4 +1,6 @@
 import "../roster-review.js";
+import SESSION_SAVE_JS from "./session-save.txt";
+import { commitSessionSave, readSessionSaveReceipt, sessionSaveFollowups } from "./session-save-receipts.js";
 import ROSTER_REVIEW_JS from "./roster-review.txt";
 import { handleRosterReview } from "./roster-review-api.js";
 import SESSION_PLANNER_CORE_JS from "./session-planner-core.txt";
@@ -167,7 +169,7 @@ const CLIENT_EVENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab
 const LEVEL_PATTERN = /^(\d+(?:\.5)?级)$/;
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, context) {
     const url = new URL(request.url);
 
     try {
@@ -181,7 +183,7 @@ export default {
           return json({ error: "GitHub 备用版为只读，请使用 Cloudflare 管理版修改数据" }, 403);
         }
         await ensureSeeded(env.DB);
-        return await handleApi(request, env, url);
+        return await handleApi(request, env, url, context);
       }
 
       if (["/session-planner-core.js", "/session-planner.js"].includes(url.pathname)) {
@@ -206,6 +208,8 @@ export default {
           },
         });
       }
+
+      if (url.pathname === "/session-save.js") return new Response(SESSION_SAVE_JS, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" } });
 
       if (url.pathname === "/roster-review.js") return new Response(ROSTER_REVIEW_JS, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" } });
 
@@ -632,7 +636,7 @@ function memberExitOcrCorsHeaders(request) {
     : {};
 }
 
-async function handleApi(request, env, url) {
+async function handleApi(request, env, url, context) {
   const { pathname } = url;
   const method = request.method.toUpperCase();
 
@@ -1018,26 +1022,34 @@ async function handleApi(request, env, url) {
     return json({ sessions: await listSessions(env.DB) });
   }
 
+  const saveReceiptMatch = pathname.match(/^\/api\/session-save-receipts\/([0-9a-f-]+)$/i);
+  if (saveReceiptMatch && method === "GET") {
+    const requestOrigin = new URL(request.url).origin;
+    const localReceiptRead = ["http://127.0.0.1:8787", "http://localhost:8787"].includes(requestOrigin)
+      && (request.headers.get("referer") || "").startsWith(requestOrigin + "/")
+      && (!request.headers.get("origin") || request.headers.get("origin") === requestOrigin);
+    if (!isAdminRequest(request) && !localReceiptRead) return json({ error: "请在 Cloudflare 管理版确认订场保存结果" }, 403);
+    try {
+      const saved = await readSessionSaveReceipt(env.DB, saveReceiptMatch[1], getSessionById);
+      if (!saved) return json({ error: "保存结果尚未确认，请用原请求重试" }, 404);
+      return json({ session: saved.session, requestId: saveReceiptMatch[1], replayed: true,
+        todoCounter: { eligible: saved.receipt.operation === "create" && sessionContainsExactChoi(saved.session), status: "pending" },
+        edcBalance: await getEdcBalance(env.DB), edcCharge: Number(saved.receipt.edc_charge) || 0 });
+    } catch (cause) { if (cause.status) return json({ error: cause.message }, cause.status); throw cause; }
+  }
+
   if (pathname === "/api/sessions" && method === "POST") {
     const shuttleTypes = await listShuttleTypes(env.DB);
-    const input = normalizeSessionInput(await readJson(request), "广羽", shuttleTypes);
+    const body = await readJson(request);
+    const input = normalizeSessionInput(body, "广羽", shuttleTypes);
     if (!input) return json({ error: "订场记录数据无效" }, 400);
-    const session = await createSession(env.DB, input);
-    const todoCounter = await syncTodoBadmintonCounter(env, session);
-    const removedShortRuleCount = await deleteShortTermRulesForEarlyReturn(env.DB, input.date, input.players);
-    const groupAttempt = await safelyReconcileGroupAttemptOutcome(env.DB, input.date);
-    const estimator = input.trainCourt || input.trainShuttle
-      ? await retrainEstimator(env.DB)
-      : await getCurrentEstimator(env.DB);
-    return json({
-      session,
-      estimator,
-      removedShortRuleCount,
-      groupAttempt,
-      todoCounter,
-      edcBalance: await getEdcBalance(env.DB),
-      edcCharge: input.venue === "EDC" ? input.courtCount * 80 : 0,
-    }, 201);
+    try {
+      const saved = await commitSessionSave(env.DB, input, { requestId: body.requestId }, { createSession, updateSession, getSessionById });
+      const followups = await sessionSaveFollowups(env, saved.session, null, context, {
+        retrainEstimator, syncTodoBadmintonCounter, deleteShortTermRulesForEarlyReturn, safelyReconcileGroupAttemptOutcome, getEdcBalance,
+      });
+      return json({ ...saved, ...followups }, 201);
+    } catch (cause) { if (cause.status) return json({ error: cause.message }, cause.status); throw cause; }
   }
 
   const sessionVenueMatch = pathname.match(/^\/api\/sessions\/(\d+)\/venue$/);
@@ -1060,18 +1072,16 @@ async function handleApi(request, env, url) {
     const existing = await env.DB.prepare("SELECT id, date, venue FROM booking_sessions WHERE id = ?").bind(id).first();
     if (!existing) return json({ error: "找不到这个订场记录" }, 404);
     const shuttleTypes = await listShuttleTypes(env.DB);
-    const input = normalizeSessionInput(
-      await readJson(request),
-      normalizeSessionVenue(existing.venue) || "文体",
-      shuttleTypes,
-    );
+    const body = await readJson(request);
+    const input = normalizeSessionInput(body, normalizeSessionVenue(existing.venue) || "文体", shuttleTypes);
     if (!input) return json({ error: "订场记录数据无效" }, 400);
-    const session = await updateSession(env.DB, id, input);
-    const removedShortRuleCount = await deleteShortTermRulesForEarlyReturn(env.DB, input.date, input.players);
-    if (existing.date !== input.date) await safelyReconcileGroupAttemptOutcome(env.DB, existing.date);
-    const groupAttempt = await safelyReconcileGroupAttemptOutcome(env.DB, input.date);
-    const estimator = await retrainEstimator(env.DB);
-    return json({ session, estimator, removedShortRuleCount, groupAttempt });
+    try {
+      const saved = await commitSessionSave(env.DB, input, { requestId: body.requestId, sessionId: id }, { createSession, updateSession, getSessionById });
+      const followups = await sessionSaveFollowups(env, saved.session, existing.date, context, {
+        retrainEstimator, syncTodoBadmintonCounter, deleteShortTermRulesForEarlyReturn, safelyReconcileGroupAttemptOutcome, getEdcBalance,
+      });
+      return json({ ...saved, ...followups });
+    } catch (cause) { if (cause.status) return json({ error: cause.message }, cause.status); throw cause; }
   }
 
   if (sessionMatch && method === "DELETE") {
@@ -2445,7 +2455,7 @@ async function listPlayers(db) {
   return results.map(normalizePlayer);
 }
 
-async function listSessions(db) {
+async function listSessions(db, sessionId = null) {
   const shuttleTypes = await listShuttleTypes(db);
   const { results } = await db.prepare(
     `SELECT
@@ -2455,8 +2465,9 @@ async function listSessions(db) {
        p.slots, p.plus_count, p.amount, p.is_female, p.gender_snapshot, p.level_snapshot, p.profile_snapshot_reliable
      FROM booking_sessions s
      LEFT JOIN booking_session_players p ON p.session_id = s.id
+     ${sessionId === null ? "" : "WHERE s.id = ?"}
      ORDER BY s.date ASC, s.id ASC, p.id ASC`
-  ).all();
+  ).bind(...(sessionId === null ? [] : [Number(sessionId)])).all();
 
   const sessionsById = new Map();
   for (const row of results) {
@@ -2503,7 +2514,7 @@ async function listSessions(db) {
 }
 
 async function getSessionById(db, id) {
-  const session = (await listSessions(db)).find((item) => item.id === Number(id));
+  const session = (await listSessions(db, id))[0];
   if (!session) throw new Error("保存后读取订场记录失败");
   return session;
 }
@@ -2690,7 +2701,7 @@ function serializePriceRows(rows) {
   return rows && rows.length ? JSON.stringify(rows) : "";
 }
 
-async function createSession(db, input) {
+async function createSession(db, input, receipt = null) {
   const statements = [db.prepare(
     `INSERT INTO booking_sessions
        (date, venue, court_count, court_fee, shuttle_price, shuttle_count, court_price_rows, shuttle_price_rows, train_court, train_shuttle, actual_shuttle_confirmed, updated_at)
@@ -2708,13 +2719,19 @@ async function createSession(db, input) {
     input.trainShuttle ? 1 : 0,
     input.actualShuttleConfirmed ? 1 : 0
   )];
+  if (receipt) {
+    statements.unshift(db.prepare("INSERT INTO session_save_receipts (request_id, payload_hash, operation, edc_charge) VALUES (?, ?, ?, ?)")
+      .bind(receipt.requestId, receipt.payloadHash, receipt.operation, receipt.edcCharge));
+    statements.push(db.prepare("UPDATE session_save_receipts SET session_id = (SELECT seq FROM sqlite_sequence WHERE name = 'booking_sessions') WHERE request_id = ?")
+      .bind(receipt.requestId));
+  }
   statements.push(...buildSessionPlayerStatements(db, null, input.players, true));
   const results = await db.batch(statements);
-  const sessionId = Number(results[0].meta.last_row_id);
+  const sessionId = Number(results[receipt ? 1 : 0].meta.last_row_id);
   return getSessionById(db, sessionId);
 }
 
-async function updateSession(db, id, input) {
+async function updateSession(db, id, input, receipt = null) {
   const statements = [
     db.prepare(
       `UPDATE booking_sessions
@@ -2737,6 +2754,8 @@ async function updateSession(db, id, input) {
     ),
     db.prepare("DELETE FROM booking_session_players WHERE session_id = ?").bind(id),
   ];
+  if (receipt) statements.unshift(db.prepare("INSERT INTO session_save_receipts (request_id, payload_hash, operation, session_id) VALUES (?, ?, ?, ?)")
+    .bind(receipt.requestId, receipt.payloadHash, receipt.operation, id));
   statements.push(...buildSessionPlayerStatements(db, id, input.players));
   await db.batch(statements);
   return getSessionById(db, id);

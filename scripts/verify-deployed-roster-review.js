@@ -11,11 +11,13 @@ async function request(path, options = {}) {
   throw error;
 }
 const digest = text => createHash("sha256").update(text.replaceAll("\r\n", "\n").trim()).digest("hex");
-for (const [path, file] of [["/", "../index.html"], ["/roster-review.js", "../roster-review.js"], ["/level-groups.js", "../level-groups.js"]]) {
+for (const [path, file] of [["/", "../index.html"], ["/roster-review.js", "../roster-review.js"], ["/level-groups.js", "../level-groups.js"], ["/session-save.js", "../session-save.js"]]) {
   const response = await request(path);
   assert.equal(response.status, 200, path + " must be served");
   assert.equal(digest(await response.text()), digest(readFileSync(new URL(file, import.meta.url), "utf8")), "Cloudflare must serve the committed " + file);
 }
+const missingSaveReceipt = await request("/api/session-save-receipts/" + randomUUID(), { headers: { origin } });
+assert.equal(missingSaveReceipt.status, 404, "Session save receipt migration and recovery route must be ready");
 const get = await request("/api/roster-review");
 assert.equal(get.status, 405, "Transactional review route must be deployed");
 // Invalid updates exercise the receipt-table read but cannot modify any member or create a receipt.

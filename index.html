@@ -15,6 +15,7 @@
   <script src="./court-pricing.js"></script>
   <script src="./level-groups.js"></script>
   <script src="./roster-review.js"></script>
+  <script src="./session-save.js"></script>
   <style>
     :root {
       --bg: #f2f6f5;
@@ -5244,6 +5245,7 @@
       plusOverrides: {},
       rosterReview: null,
       rosterReviewSaving: false,
+      sessionSaveClient: null, sessionSaving: false,
       autoFeeDefaults: { fee: 70, shuttle: 4, courts: 1 },
       feeMode: "basic",
       paymentRule: { mode: "discount", amount: 3.5 },
@@ -5952,24 +5954,65 @@
 
     async function api(path, options = {}) {
       const method = String(options.method || "GET").toUpperCase();
-      if (state.readOnly && !["GET", "HEAD", "OPTIONS"].includes(method)) {
-        throw new Error("当前为只读模式，不能修改数据库");
-      }
+      if (state.readOnly && !["GET", "HEAD", "OPTIONS"].includes(method)) throw new Error("当前为只读模式，不能修改数据库");
+      const { timeout = 12000, signal, ...requestOptions } = options;
       const headers = { ...(options.headers || {}) };
-      const hasBody = options.body !== undefined && options.body !== null;
-      const hasContentType = Object.keys(headers).some((key) => key.toLowerCase() === "content-type");
-      if (hasBody && !hasContentType) headers["content-type"] = "text/plain; charset=utf-8";
-
+      if (options.body !== undefined && options.body !== null && !Object.keys(headers).some(key => key.toLowerCase() === "content-type")) headers["content-type"] = "text/plain; charset=utf-8";
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), options.timeout || 12000);
-      const response = await fetch(getApiUrl(path), {
-        ...options,
-        headers,
-        signal: options.signal || controller.signal,
-      }).finally(() => clearTimeout(timeoutId));
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw Object.assign(new Error(data.error || `HTTP ${response.status}`), { status: response.status, data });
-      return data;
+      let timedOut = false;
+      const cancel = () => controller.abort(signal.reason);
+      if (signal?.aborted) cancel(); else signal?.addEventListener("abort", cancel, { once: true });
+      const timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, timeout);
+      try {
+        const response = await fetch(getApiUrl(path), { ...requestOptions, headers, signal: controller.signal });
+        let data;
+        try { data = response.status === 204 ? {} : await response.json(); }
+        catch (cause) {
+          if (controller.signal.aborted) throw cause;
+          throw Object.assign(new Error("服务器响应不完整，请重试确认结果"), { code: "INVALID_RESPONSE" });
+        }
+        if (!response.ok) throw Object.assign(new Error(data.error || `HTTP ${response.status}`), { status: response.status, data });
+        return data;
+      } catch (cause) {
+        if (timedOut) throw Object.assign(new Error("请求超时，请稍后重试"), { code: "REQUEST_TIMEOUT", cause });
+        if (controller.signal.aborted) throw Object.assign(new Error("请求已取消"), { code: "REQUEST_CANCELLED", cause });
+        if (cause instanceof TypeError) throw Object.assign(new Error("网络连接中断，请检查网络后重试"), { code: "NETWORK_ERROR", cause });
+        throw cause;
+      } finally { clearTimeout(timeoutId); signal?.removeEventListener("abort", cancel); }
+    }
+
+    async function saveSessionRequest(path, body) {
+      if (!state.sessionSaveClient) {
+        let storage;
+        try { storage = localStorage; } catch { throw new Error("浏览器存储不可用，无法安全保存重试记录；本次未提交"); }
+        state.sessionSaveClient = BadmintonSessionSave.createClient({ api, storage });
+      }
+      return state.sessionSaveClient.save(path, body);
+    }
+
+    function finishSessionSaveFollowups(data) {
+      if (data.removedShortRuleCount) void loadShortTermRules().catch(cause => console.warn("记录已保存，返场规则刷新失败", cause.message));
+      if (data.estimatorPending) {
+        setTimeout(() => { void api("/api/estimator", { timeout: 60000 }).then(result => {
+          if (Number(result.estimator?.trainingRevision) >= Number(state.estimator?.trainingRevision || 0)) state.estimator = normalizeEstimator(result.estimator);
+        }).catch(cause => console.warn("记录已保存，预估模型稍后刷新", cause.message)); }, 1000);
+      }
+
+    }
+
+    function recoverPreviousSessionSave(error, dialog = false) {
+      if (error.code !== "PREVIOUS_SESSION_SAVED" || !error.data?.session) return false;
+      const session = error.data.session;
+      upsertSession(session);
+      applyEdcBalanceResponse(error.data);
+      applyGroupAttemptResponse(error.data.groupAttempt);
+      finishSessionSaveFollowups(error.data);
+      if (dialog) {
+        els.recordModal.dataset.editing = "1"; els.recordModal.dataset.sessionId = String(session.id); els.recordModal.dataset.venue = session.venue;
+        els.recordTitle.textContent = "编辑已保存的订场记录";
+      } else state.pendingSessionEdit = { id: session.id, date: session.date, venue: session.venue, trainCourt: session.trainCourt, trainShuttle: session.trainShuttle };
+      setSync("上次记录已保存"); toast(error.message, 8000);
+      return true;
     }
 
     function normalizeEdcBalanceValue(value) {
@@ -8002,6 +8045,8 @@
         messages.push("羽毛球累计已+1");
       } else if (todoCounter.status === "already_recorded") {
         messages.push("羽毛球累计已同步");
+      } else if (todoCounter.status === "pending") {
+        messages.push("羽毛球累计同步待确认，请稍后在todo中核对");
       } else {
         messages.push("羽毛球累计同步失败，请在todo中补记");
       }
@@ -8032,6 +8077,7 @@
     }
 
     async function savePaymentRecordDirect(courtCount) {
+      if (state.sessionSaving || state.readOnly) return;
       const record = state.currentPaymentRecord;
       if (!record) return;
       const anomaly = assessCurrentRecordAnomaly(record, courtCount);
@@ -8043,6 +8089,7 @@
         openTrainingDecision({ mode: "direct", record, courtCount });
         return;
       }
+      state.sessionSaving = true;
       els.paymentRecordBtn.disabled = true;
       setSync("正在记录订场");
       try {
@@ -8060,16 +8107,14 @@
         };
         if (record.courtPriceRows?.length) body.courtPriceRows = record.courtPriceRows;
         if (record.shuttlePriceRows?.length) body.shuttlePriceRows = record.shuttlePriceRows;
-        const data = await api("/api/sessions", {
-          method: "POST",
-          body: JSON.stringify(body),
-        });
+        const data = await saveSessionRequest("/api/sessions", body);
         upsertSession(data.session);
         const balanceMessage = applyEdcBalanceResponse(data);
         if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
-        if (data.removedShortRuleCount) await loadShortTermRules();
+        finishSessionSaveFollowups(data);
         applyGroupAttemptResponse(data.groupAttempt);
         state.trainingAnomaly = null;
+        state.sessionSaving = false;
         setSync("已保存");
         closeModal("paymentModal");
         renderTable();
@@ -8077,11 +8122,12 @@
         if (balanceMessage) savedMessages.push(balanceMessage);
         if (data.removedShortRuleCount) savedMessages.push(`已删除${data.removedShortRuleCount}条提前返场规则`);
         appendTodoCounterMessage(savedMessages, data.todoCounter);
+        if (data.followupWarnings?.length) savedMessages.push(data.followupWarnings.join("、") + "稍后刷新，请勿重复记录");
         toast(savedMessages.join("，"));
       } catch (error) {
-        setSync("保存失败");
-        toast(`保存订场记录失败：${error.message}`);
+        if (!recoverPreviousSessionSave(error)) { setSync(error.code === "SAVE_UNCONFIRMED" ? "保存未确认" : "保存失败"); toast(`${error.code === "SAVE_UNCONFIRMED" ? "订场保存待确认" : "保存订场记录失败"}：${error.message}`, 8000); }
       } finally {
+        state.sessionSaving = false;
         els.paymentRecordBtn.disabled = false;
       }
     }
@@ -8318,6 +8364,7 @@
     }
 
     async function saveRecordDialog() {
+      if (state.sessionSaving) return;
       if (state.readOnly) {
         toast("当前为只读模式，不能保存订场记录");
         return;
@@ -8407,6 +8454,7 @@
           return;
         }
       }
+      state.sessionSaving = true;
       els.saveRecordBtn.disabled = true;
       setSync(editing ? "正在保存订场记录" : "正在记录订场");
       try {
@@ -8425,15 +8473,14 @@
         };
         if (courtPriceRows.length) body.courtPriceRows = courtPriceRows;
         if (shuttlePriceRows.length) body.shuttlePriceRows = shuttlePriceRows;
-        const data = editing
-          ? await api(`/api/sessions/${sessionId}`, { method: "PATCH", body: JSON.stringify(body) })
-          : await api("/api/sessions", { method: "POST", body: JSON.stringify(body) });
+        const data = await saveSessionRequest(editing ? `/api/sessions/${sessionId}` : "/api/sessions", body);
         upsertSession(data.session);
         const balanceMessage = editing ? "" : applyEdcBalanceResponse(data);
         if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
-        if (data.removedShortRuleCount) await loadShortTermRules();
+        finishSessionSaveFollowups(data);
         applyGroupAttemptResponse(data.groupAttempt);
         state.trainingAnomaly = null;
+        state.sessionSaving = false;
         setSync("已保存");
         closeModal("recordModal");
         renderTable();
@@ -8452,11 +8499,12 @@
         if (balanceMessage) savedMessages.push(balanceMessage);
         if (data.removedShortRuleCount) savedMessages.push(`已删除${data.removedShortRuleCount}条提前返场规则`);
         appendTodoCounterMessage(savedMessages, data.todoCounter);
+        if (data.followupWarnings?.length) savedMessages.push(data.followupWarnings.join("、") + "稍后刷新，请勿重复记录");
         toast(savedMessages.join("，"));
       } catch (error) {
-        setSync("保存失败");
-        toast(`保存订场记录失败：${error.message}`);
+        if (!recoverPreviousSessionSave(error, true)) { setSync(error.code === "SAVE_UNCONFIRMED" ? "保存未确认" : "保存失败"); toast(`${error.code === "SAVE_UNCONFIRMED" ? "订场保存待确认" : "保存订场记录失败"}：${error.message}`, 8000); }
       } finally {
+        state.sessionSaving = false;
         els.saveRecordBtn.disabled = false;
       }
     }
@@ -14712,6 +14760,7 @@
     }
 
     function closeModal(id) {
+      if (state.sessionSaving && ["paymentModal", "recordModal"].includes(id)) return;
       if (id === "rosterReviewModal" && state.rosterReviewSaving) return;
       if (id === "rosterReviewModal") state.rosterReview = null;
       if (id === "memberCreateModal" && state.creatingPlayer) return;
@@ -14798,11 +14847,11 @@
       }
     }
 
-    function toast(message) {
+    function toast(message, duration = 2600) {
       els.toast.textContent = message;
       els.toast.classList.add("show");
       clearTimeout(toast.timer);
-      toast.timer = setTimeout(() => els.toast.classList.remove("show"), 2600);
+      toast.timer = setTimeout(() => els.toast.classList.remove("show"), duration);
     }
 
     function parseSharedChainLevelPrefix(value) {
