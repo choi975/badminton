@@ -37,7 +37,7 @@ assert.match(html, /memberCreateForm\.addEventListener\("submit", submitNewMembe
 assert.match(source("focusSelectedCell"), /!isAnyModalOpen\(\)/, "Table updates must not steal modal focus");
 assert.doesNotMatch(source("getDisplayRows"), /draft|rows\.push/);
 assert.match(html, /#memberCreateModal \{ z-index: 100; \}/, "Member dialog must sit above the navigation sidebar on mobile");
-assert.match(source("syncModalLayers"), /element\.inert = memberCreateOpen/, "Background navigation cannot receive focus while creating a member");
+assert.match(source("syncModalLayers"), /element\.inert = navigationBlocked/, "Background navigation cannot receive focus while creating a member");
 for (const script of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)) new vm.Script(script[1]);
 
 function harness({ readOnly = false, dataSource = "cloud", visible = true } = {}) {

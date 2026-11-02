@@ -3561,13 +3561,26 @@
       color: var(--accent);
     }
 
+    #calendarDetailModal { z-index: 95; }
+
     .modal.calendar-detail-dialog {
-      width: fit-content;
-      max-width: calc(100vw - 36px);
-      grid-template-rows: auto 1fr;
+      width: min(1120px, 100%);
+      min-width: 0;
+      max-width: 100%;
+      max-height: min(88dvh, 860px);
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .calendar-detail-dialog .modal-body {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
     }
 
     .calendar-detail-summary {
+      flex-shrink: 0;
       margin: 0 0 12px;
       color: var(--muted);
       font-size: 13px;
@@ -3575,16 +3588,28 @@
     }
 
     .calendar-detail-table-wrap {
-      width: max-content;
+      flex: 1 1 auto;
+      width: 100%;
+      min-width: 0;
+      min-height: 0;
       max-width: 100%;
       overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+      scrollbar-color: var(--line-strong) var(--panel-soft);
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
     }
 
+    .calendar-detail-table-wrap:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
     .calendar-detail-table {
-      width: max-content;
+      width: 100%;
+      min-width: 0;
       border-collapse: separate;
       border-spacing: 0;
       font-size: 14px;
@@ -3601,11 +3626,42 @@
     .calendar-detail-table th {
       position: sticky;
       top: 0;
-      z-index: 1;
+      z-index: 2;
       background: var(--panel-soft);
       color: var(--text);
       font-size: 13px;
       font-weight: 700;
+    }
+
+    .calendar-detail-table td[data-column-key="name"]:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: #fff;
+    }
+
+    .calendar-detail-table th[data-column-key="name"]:first-child {
+      left: 0;
+      z-index: 3;
+    }
+
+    .calendar-detail-name,
+    .calendar-detail-partners {
+      display: block;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .calendar-detail-name { width: clamp(100px, 12vw, 160px); }
+    .calendar-detail-partners { width: clamp(180px, 24vw, 280px); }
+
+    @media (max-width: 560px) {
+      .modal.calendar-detail-dialog { max-height: 100dvh; }
+      .calendar-detail-dialog .modal-close-btn {
+        width: 44px;
+        min-width: 44px;
+        min-height: 44px;
+      }
     }
 
     .calendar-detail-sort-btn {
@@ -4883,7 +4939,7 @@
       </div>
       <div class="modal-body">
         <div id="calendarDetailSummary" class="calendar-detail-summary"></div>
-        <div id="calendarDetailTableWrap" class="calendar-detail-table-wrap"></div>
+        <div id="calendarDetailTableWrap" class="calendar-detail-table-wrap" role="region" tabindex="0" aria-label="成员详细统计，可上下及左右滚动"></div>
       </div>
     </div>
   </div>
@@ -7883,15 +7939,22 @@
 
     function createCalendarDetailCell(entry, column) {
       const td = document.createElement("td");
+      td.dataset.columnKey = column.key;
       if (column.numeric) td.className = "num";
       if (column.key === "name") {
-        td.textContent = entry.name;
+        const name = document.createElement("span");
+        name.className = "calendar-detail-name";
+        name.textContent = entry.name;
+        td.append(name);
       } else if (column.key === "playCount") {
         td.textContent = String(entry.playCount);
       } else if (column.key === "guestCount") {
         td.textContent = String(entry.guestCount);
       } else if (column.key === "bestPartners") {
-        td.textContent = entry.bestPartners.join("，") || "—";
+        const partners = document.createElement("span");
+        partners.className = "calendar-detail-partners";
+        partners.textContent = entry.bestPartners.join("，") || "—";
+        td.append(partners);
         td.title = entry.bestPartnerSource === "coattendance"
           ? "暂无最佳拍档；这里显示所选日期范围内同场最多的成员，不作为朋友关系" : "与摇人中的最佳拍档名单一致，按拍档排名展示";
       } else if (column.key === "weekdays") {
@@ -7966,7 +8029,7 @@
 
       state.calendarDetailEntries = entries;
       els.calendarDetailTitle.textContent = "详细统计";
-      els.calendarDetailSummary.textContent = `${title} · 对比${comparison.label} · 颜色越深，表示该成员在当天打球次数越多`;
+      els.calendarDetailSummary.textContent = `${title} · 对比${comparison.label} · 颜色越深，表示该成员在当天打球次数越多 · 表格可上下、左右滚动`;
       renderCalendarDetailTable(entries);
       openModal("calendarDetailModal");
     }
@@ -14814,10 +14877,10 @@
         if (topId) appShell.setAttribute("aria-hidden", "true");
         else appShell.removeAttribute("aria-hidden");
       }
-      const memberCreateOpen = openIds.includes("memberCreateModal") || openIds.includes("rosterReviewModal");
+      const navigationBlocked = openIds.includes("memberCreateModal") || openIds.includes("rosterReviewModal") || openIds.includes("calendarDetailModal");
       document.querySelectorAll(".nav-preview-sidebar, .nav-preview-header").forEach((element) => {
-        element.inert = memberCreateOpen;
-        if (memberCreateOpen) element.setAttribute("aria-hidden", "true");
+        element.inert = navigationBlocked;
+        if (navigationBlocked) element.setAttribute("aria-hidden", "true");
         else element.removeAttribute("aria-hidden");
       });
     }
