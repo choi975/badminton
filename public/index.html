@@ -6009,8 +6009,11 @@
       finishSessionSaveFollowups(error.data);
       if (dialog) {
         els.recordModal.dataset.editing = "1"; els.recordModal.dataset.sessionId = String(session.id); els.recordModal.dataset.venue = session.venue;
+        els.recordModal.dataset.trainCourt = session.trainCourt === false ? "0" : "1";
+        els.recordModal.dataset.trainShuttle = session.trainShuttle === false ? "0" : "1";
+        els.recordModal.dataset.actualShuttleConfirmed = session.actualShuttleConfirmed === false ? "0" : "1";
         els.recordTitle.textContent = "编辑已保存的订场记录";
-      } else state.pendingSessionEdit = { id: session.id, date: session.date, venue: session.venue, trainCourt: session.trainCourt, trainShuttle: session.trainShuttle };
+      } else state.pendingSessionEdit = { id: session.id, date: session.date, venue: session.venue, trainCourt: session.trainCourt, trainShuttle: session.trainShuttle, actualShuttleConfirmed: session.actualShuttleConfirmed };
       setSync("上次记录已保存"); toast(error.message, 8000);
       return true;
     }

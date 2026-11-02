@@ -110,9 +110,10 @@ await timeoutCase();await timeoutCase(true);await timeoutCase(false,true);
 const recoveredCalls=[], recoveredState={}, recoveredEls={recordModal:{dataset:{}},recordTitle:{textContent:""}};
 const recover=new Function("state","els","upsertSession","applyEdcBalanceResponse","applyGroupAttemptResponse","finishSessionSaveFollowups","setSync","toast",source(html,"recoverPreviousSessionSave","    ")+"\nreturn recoverPreviousSessionSave;")
   (recoveredState,recoveredEls,session=>recoveredCalls.push(["session",session.id]),data=>recoveredCalls.push(["balance",data.edcBalance]),()=>{},()=>{},()=>{},()=>{});
-const recoveredError={code:"PREVIOUS_SESSION_SAVED",message:"confirmed",data:{session:{id:99,date:"2026-11-02",venue:"EDC",trainCourt:false,trainShuttle:false},edcBalance:780}};
+const recoveredError={code:"PREVIOUS_SESSION_SAVED",message:"confirmed",data:{session:{id:99,date:"2026-11-02",venue:"EDC",trainCourt:false,trainShuttle:false,actualShuttleConfirmed:false},edcBalance:780}};
 assert.equal(recover(recoveredError,true),true);assert.equal(recoveredEls.recordModal.dataset.sessionId,"99");assert.equal(recoveredEls.recordModal.dataset.editing,"1");assert.deepEqual(recoveredCalls.slice(0,2),[["session",99],["balance",780]]);
 assert.equal(recover(recoveredError,false),true);assert.equal(recoveredState.pendingSessionEdit.id,99,"Modified direct-save flow must edit the recovered record, not issue another POST");
+assert.equal(recoveredState.pendingSessionEdit.actualShuttleConfirmed,false);assert.equal(recoveredEls.recordModal.dataset.actualShuttleConfirmed,"0");assert.equal(recoveredEls.recordModal.dataset.trainCourt,"0");
 
 assert.match(html,/saveSessionRequest\(editing \?/);assert.match(html,/state\.sessionSaving = true/);assert.match(worker,/async fetch\(request, env, context\)/);
 sqlite.close();
