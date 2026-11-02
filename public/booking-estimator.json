@@ -1,11 +1,11 @@
 {
   "version": 5,
-  "generatedAt": "2026-11-02T03:30:48.466Z",
-  "trainingRevision": 1132,
+  "generatedAt": "2026-11-02T04:05:40.049Z",
+  "trainingRevision": 1151,
   "training": {
     "dateRange": {
       "from": "2026-07-01",
-      "to": "2026-10-30"
+      "to": "2026-10-31"
     },
     "court": {
       "sampleCount": 50,
@@ -16,14 +16,14 @@
     },
     "shuttle": {
       "sampleCount": 48,
-      "eligibleSessionCount": 54,
+      "eligibleSessionCount": 55,
       "unconfirmedExcludedCount": 0,
-      "mixedExcludedCount": 5,
+      "mixedExcludedCount": 6,
       "unknownTypeExcludedCount": 0,
       "byType": {
         "rsl3": {
           "sampleCount": 47,
-          "mixedExcludedCount": 5,
+          "mixedExcludedCount": 6,
           "dateRange": {
             "from": "2026-07-13",
             "to": "2026-10-28"
@@ -31,7 +31,7 @@
         },
         "as05": {
           "sampleCount": 1,
-          "mixedExcludedCount": 5,
+          "mixedExcludedCount": 6,
           "dateRange": {
             "from": "2026-09-06",
             "to": "2026-09-06"
@@ -119,7 +119,7 @@
           "sampleCount": 47,
           "availableSampleCount": 47,
           "olderExcludedCount": 0,
-          "mixedExcludedCount": 5,
+          "mixedExcludedCount": 6,
           "dateRange": {
             "from": "2026-07-13",
             "to": "2026-10-28"
@@ -192,7 +192,7 @@
           "sampleCount": 1,
           "availableSampleCount": 1,
           "olderExcludedCount": 0,
-          "mixedExcludedCount": 5,
+          "mixedExcludedCount": 6,
           "dateRange": {
             "from": "2026-09-06",
             "to": "2026-09-06"

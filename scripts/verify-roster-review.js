@@ -19,7 +19,7 @@ const players = [
 const state = { players, plusOverrides: {}, chainEntries: [], readOnly: false, levelGroups: globalThis.BadmintonLevelGroups.normalize(null) };
 const names = ["parseChainLine", "parseSharedChainLevelPrefix", "parsePlusEntryMetadata", "cleanChainLine", "findPlayerMatchForLine", "getPlayerById", "normalizePlayerId",
   "getMemberLineSuffix", "getLevelGroupLabel", "extractCompanionOwnerName", "paymentDisplayName", "firstName", "splitAliases", "normalizeAlias", "removeChainAnnotations", "levelRank",
-  "buildAliasIndex", "normalizeRepeatedMemberEntries", "resolveChainEntryOwnership", "getChainEntryBaseName", "getChainEntryDisplayName", "getSessionOwnerKey", "projectSessionParticipants", "isRosterGradeReviewNeeded", "buildRosterReviewItems", "buildRosterReviewPlan", "renderRosterReviewRow", "rosterReviewSelect", "rosterReviewField", "rosterReviewOptions", "rosterReviewMemberOptions", "escapeHtml"];
+  "buildAliasIndex", "normalizeRepeatedMemberEntries", "resolveChainEntryOwnership", "getChainEntryBaseName", "getChainEntryDisplayName", "getSessionOwnerKey", "projectSessionParticipants", "isRosterGradeReviewNeeded", "buildRosterReviewItems", "buildRosterReviewPlan", "renderRosterReviewRow", "rosterReviewSelect", "rosterReviewField", "rosterReviewOptions", "rosterReviewMemberOptions", "rosterReviewPendingMembers", "materializeRosterReviewResolutions", "escapeHtml"];
 const source = names.map(name => {
   const start = html.indexOf(`    function ${name}(`), end = html.indexOf("\n    }", start);
   assert.ok(start >= 0 && end > start, "Production function " + name);
@@ -165,10 +165,10 @@ for (const readOnly of [false, true]) {
   const elements = { chainInput: { value: jokeLine }, rosterReviewConfirmBtn: { disabled: false }, rosterReviewMessage: {} };
   const fakeDocument = { getElementById: () => ({ querySelectorAll: () => controls }) };
   let profileWrites = 0, paymentsOpened = 0;
-  const confirm = new Function("state", "els", "document", "buildRosterReviewPlan", "getPlayerById", "api", "closeModal", "processChain", "scheduleGroupAttemptSnapshot", "openPaymentModal", "renderRosterReviewRow",
+  const confirm = new Function("state", "els", "document", "buildRosterReviewPlan", "getPlayerById", "api", "closeModal", "processChain", "scheduleGroupAttemptSnapshot", "openPaymentModal", "renderRosterReviewRow", "materializeRosterReviewResolutions",
     confirmSource + "\nreturn confirmRosterReview;")(state, elements, fakeDocument, api.buildRosterReviewPlan, api.getPlayerById,
     async () => { profileWrites++; throw new Error("Unexpected member-profile write"); },
-    () => {}, () => roster([jokeLine], state.plusOverrides), () => {}, () => { paymentsOpened++; }, () => {});
+    () => {}, () => roster([jokeLine], state.plusOverrides), () => {}, () => { paymentsOpened++; }, () => {}, api.materializeRosterReviewResolutions);
   state.rosterReview = { items: [item], input: jokeLine, overrides: JSON.stringify(state.plusOverrides), requestId: "", payload: "" };
   await confirm();
   assert.equal(profileWrites, 0, "Actual confirmation must not call the profile API");

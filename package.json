@@ -40,7 +40,7 @@
     "test:partner-management": "node scripts/verify-partner-management.js",
     "test:instant": "node scripts/verify-instant-interactions.js",
     "test:session-plans": "node scripts/verify-session-plans.js && node scripts/verify-session-planner-ui.js",
-    "test:roster-review": "node scripts/verify-roster-review.js && node scripts/verify-roster-review-api.js"
+    "test:roster-review": "node scripts/verify-roster-review.js && node scripts/verify-roster-review-api.js && node scripts/verify-roster-review-pending.js"
   },
   "devDependencies": {
     "wrangler": "latest"

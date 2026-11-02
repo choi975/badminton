@@ -1938,7 +1938,7 @@
     .roster-review-profile { margin: 14px 0 8px; line-height: 1.6; }
     .roster-review-profile span, .roster-review-grade-source, .roster-review-note { color: var(--muted); }
     .roster-review-grade-source { margin: 14px 0 8px; line-height: 1.5; font-variant-numeric: tabular-nums; }
-    .roster-review-note { margin: 8px 0 0; line-height: 1.6; align-self: center; }
+    .roster-review-note { margin: 8px 0 0; line-height: 1.6; align-self: center; overflow-wrap: anywhere; }
     .roster-review-error { margin: 12px 0 0; color: var(--danger); line-height: 1.6; }
     .roster-review-message { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-soft); color: var(--text); line-height: 1.6; overflow-wrap: anywhere; }
     .roster-review-readonly { background: var(--amber-soft); color: var(--amber); }
@@ -10709,7 +10709,8 @@
       const ownerPlayer = identityReviewed ? (reviewedPlayer || reviewedOwner) : (getPlayerById(preservedOwnerPlayerId) || matchedPlayer);
       // A one-time identity changes this roster, not the member's registered names.
       const useCanonicalName = reviewedPlayer && (!matchedPlayer || plusMetadata.plusEntry || Number(reviewedPlayer.id) !== Number(matchedPlayer.id));
-      const clean = useCanonicalName ? paymentDisplayName(reviewedPlayer) : plusMetadata.displayName;
+      const clean = useCanonicalName ? paymentDisplayName(reviewedPlayer)
+        : reviewedOwner && review.companionName ? review.companionName : plusMetadata.displayName;
       const knownLevel = RosterReview.normalizeLevel(player?.level) || "不详";
       const sourceLevel = sharedLevel?.normalizedLevel || null;
       const invalidInputLevel = sharedRoster && sharedLevel.normalizedLevel === null;
@@ -11575,7 +11576,8 @@
           : entry.levelText !== "不详" ? entry.levelText : "";
         return [{ key: "entry-" + entry.index, entry, category, mode: category === "level" ? "member" : "",
           playerId: category === "level" ? Number(entry.player.id) : null,
-          ownerId: entry.ownerPlayer?.id ? Number(entry.ownerPlayer.id) : null,
+          ownerId: entry.ownerPlayer?.id ? Number(entry.ownerPlayer.id) : null, ownerTouched: false, autoOwnerKey: "",
+          companionGender: entry.gender || "不详",
           profile: category === "level" ? { ...entry.player } : null,
           name: category === "unknown" ? entry.clean.replace(/🌸/g, "").trim() : "",
           alias: entry.clean.replace(/🌸/g, "").trim(), memberSearch: "", hint,
@@ -11589,6 +11591,7 @@
       const items = buildRosterReviewItems();
       if (!items.length) return false;
       state.rosterReview = { items, input: els.chainInput.value, overrides: JSON.stringify(state.plusOverrides), requestId: "", payload: "" };
+      autoSelectRosterReviewPendingOwners(items);
       els.rosterReviewMessage.textContent = "";
       els.rosterReviewMessage.hidden = true;
       els.rosterReviewReadOnly.hidden = !state.readOnly;
@@ -11616,10 +11619,65 @@
       return rosterReviewField(item, field, label, `<select id="review-${item.key}-${field}" data-review-field="${field}">${rosterReviewOptions(options, item[field])}</select>`);
     }
 
+    function rosterReviewPendingMembers(items = state.rosterReview?.items || []) {
+      return items.filter(item => item.mode === "new" && firstName(item.name)).map(item => ({ key: item.key,
+        name: String(item.name).trim(), aliases: item.category === "unknown" ? [item.alias] : [],
+        level: item.level, affiliation: item.affiliation, index: item.entry.index }));
+    }
+
+    function autoSelectRosterReviewPendingOwners(items) {
+      const changed = new Set();
+      const pending = rosterReviewPendingMembers(items);
+      items.forEach(item => {
+        if (!["unknown", "companion"].includes(item.category) || item.entry.player || item.entry.ownerPlayer
+          || item.entry.ownerIssue?.type === "ambiguous" || (item.mode && item.mode !== "companion")
+          || item.ownerTouched || (item.ownerId && !item.autoOwnerKey)) return;
+        // A removed draft remains visibly invalid; never silently transfer its guests to someone else.
+        if (item.autoOwnerKey && !pending.some(member => member.key === item.autoOwnerKey)) return;
+        const match = RosterReview.findPendingCompanion(item.entry.clean, pending.filter(member => member.key !== item.key));
+        if (!match) {
+          if (item.autoOwnerKey) { item.ownerId = null; item.autoOwnerKey = ""; changed.add(item.key); }
+          return;
+        }
+        if (item.mode === "companion" && item.ownerId === "new:" + match.key) return;
+        item.mode = "companion";
+        item.ownerId = "new:" + match.key;
+        item.autoOwnerKey = match.key;
+        changed.add(item.key);
+      });
+      return changed;
+    }
+
+    function refreshRosterReviewPendingOwners(changedItem) {
+      if (!state.rosterReview) return;
+      const focus = document.activeElement;
+      const focusKey = focus?.closest("[data-review-key]")?.dataset.reviewKey, focusField = focus?.dataset.reviewField;
+      const changed = autoSelectRosterReviewPendingOwners(state.rosterReview.items);
+      const plan = buildRosterReviewPlan(state.rosterReview.items);
+      state.rosterReview.items.forEach(item => {
+        if ((item === changedItem && !changed.has(item.key)) || item.mode !== "companion") return;
+        if (item.error) item.error = plan.errors.get(item.key) || "";
+        const row = els.rosterReviewList.querySelector(`[data-review-key="${item.key}"]`);
+        if (row) {
+          renderRosterReviewRow(row, item);
+          if (item.key === focusKey && focusField) row.querySelector(`[data-review-field="${focusField}"]`)?.focus({ preventScroll: true });
+        }
+      });
+    }
+
     function rosterReviewMemberOptions(item, field) {
       const needle = RosterReview.normalizeName(item.memberSearch);
       const players = state.players.filter((player) => !needle || RosterReview.normalizeName(player.name).includes(needle) || Number(player.id) === Number(item[field]));
-      return [["", "请选择数据库中的成员"], ...players.map((player) => [String(player.id), `${paymentDisplayName(player)} · ${player.level || "等级不详"} · ${player.affiliation}`])];
+      const pending = field === "ownerId" ? rosterReviewPendingMembers().filter(member => member.key !== item.key) : [];
+      const options = [["", field === "ownerId" ? "请选择已有成员或本次待新增成员" : "请选择数据库中的成员"],
+        ...players.map((player) => [String(player.id), `${paymentDisplayName(player)} · ${player.level || "等级不详"} · ${player.affiliation}`]),
+        ...pending.filter(member => !needle || RosterReview.normalizeName([member.name, ...member.aliases].join("，")).includes(needle)
+          || item[field] === "new:" + member.key).map(member => ["new:" + member.key,
+          `${firstName(member.name)} · ${member.level || "不详"} · ${member.affiliation}（本次待新增，第 ${member.index + 1} 行）`, state.readOnly])];
+      if (field === "ownerId" && String(item[field] || "").startsWith("new:") && !pending.some(member => "new:" + member.key === item[field])) {
+        options.push([item[field], "原待新增成员已取消，请重新选择带来者", true]);
+      }
+      return options;
     }
 
     function renderRosterReviewRow(row, item) {
@@ -11631,22 +11689,26 @@
       let fields = "";
       if (item.category !== "level") {
         const choices = item.category === "companion"
-          ? [["", "请选择处理方式"], ["member", "已有成员，由他人代报名"], ["companion", "未登记随行人员（不入库）"], ["new", "新成员，加入数据库", state.readOnly]]
-          : item.category === "ambiguous" ? [["", "请选择处理方式"], ["member", "确认实际参加的已有成员"], ["companion", "现有成员的随行人员（不入库）"]]
-          : [["", "请选择处理方式"], ["member", "已有成员，仅本次关联（不保存外号）"], ["alias", "已有成员的新外号", state.readOnly], ["new", "新成员，加入数据库", state.readOnly], ["companion", "现有成员的 +1（不入库）"]];
+          ? [["", "请选择处理方式"], ["member", "已有成员，由他人代报名"], ["companion", "随行人员（不入库）"], ["new", "新成员，加入数据库", state.readOnly]]
+          : item.category === "ambiguous" ? [["", "请选择处理方式"], ["member", "确认实际参加的已有成员"], ["companion", "随行人员（不入库）"]]
+          : [["", "请选择处理方式"], ["member", "已有成员，仅本次关联（不保存外号）"], ["alias", "已有成员的新外号", state.readOnly], ["new", "新成员，加入数据库", state.readOnly], ["companion", "随行人员（不入库）"]];
         fields += select("mode", "这条报名是谁？", choices);
       }
       const memberField = item.mode === "companion" ? "ownerId" : "playerId";
       if (["alias", "member", "companion"].includes(item.mode) && item.category !== "level") {
-        fields += input("memberSearch", "搜索成员 / 外号", "可输入任何已有外号");
+        fields += input("memberSearch", "搜索成员 / 外号", item.mode === "companion" ? "可搜索已有成员或本次新成员" : "可输入任何已有外号");
         fields += select(memberField, item.mode === "companion" ? "由哪位成员带来、代付？" : "实际参加的成员", rosterReviewMemberOptions(item, memberField));
       }
+      if (item.mode === "companion") fields += select("companionGender", "随行人员性别", [["不详", "性别不详"], ["男", "男"], ["女", "女"]]);
       if (item.mode === "alias") fields += input("alias", "加入该成员档案的外号", "保留本次报名使用的名字");
       if (item.mode === "new") {
         fields += input("name", "新成员名字", item.category === "companion" ? "请填写实际名字，不使用 +1 编号" : "填写成员名字");
         fields += select("gender", "性别", [["男", "男"], ["女", "女"]]);
         fields += select("affiliation", "成员分组", [["球友", "球友"], ["特殊", "特殊"]]);
       }
+      const pendingOwner = item.mode === "companion" ? rosterReviewPendingMembers().find(member => "new:" + member.key === item.ownerId) : null;
+      const reviewError = item.error || (item.mode === "companion" && String(item.ownerId || "").startsWith("new:") && !pendingOwner
+        ? "所选待新增成员已取消新增，请重新选择带来者。" : "");
       const player = item.profile;
       const profile = player ? `<p class="roster-review-profile">实际参加者：<strong>${escapeHtml(paymentDisplayName(player))}</strong> · ${escapeHtml(player.affiliation)}<br><span>数据库等级：${escapeHtml(player.level || "不详")}</span></p>` : "";
       let grade = "";
@@ -11661,18 +11723,23 @@
           else grade += `<p class="roster-review-note">本次等级与数据库一致，无需更新。</p>`;
         }
         grade += "</div>";
-        if (item.mode === "companion") grade += `<p class="roster-review-note">作为未登记随行人员处理：费用与带人次数归带来者，不增加成员档案。</p>`;
+        if (item.mode === "companion") {
+          const ownerNote = pendingOwner ? `带来者：${firstName(pendingOwner.name)}（本次待新增）。确认时一并新增并绑定。` : "";
+          const suggested = item.autoOwnerKey && !item.ownerTouched && pendingOwner ? "已根据报名预选，可更改带来者或处理方式。" : "";
+          grade += `<p class="roster-review-note">${escapeHtml(ownerNote + suggested)}随行人员的性别、等级独立填写；费用与带人次数归带来者，随行人员不增加成员档案。</p>`;
+        }
         if (item.mode === "member" && item.category === "companion") grade += `<p class="roster-review-note">收款、出勤都归实际参加者，不计入代报名者的带人次数。</p>`;
         if (item.mode === "member" && item.category === "unknown") grade += `<p class="roster-review-note">仅关联本次报名：收款、出勤归所选成员，收款名单使用数据库名字。原报名名保留，不保存为外号；下次活动仍需确认。</p>`;
         if (item.mode === "new" && item.category === "unknown") grade += `<p class="roster-review-note">如果修改了名字，原报名名也会作为外号保留。</p>`;
       }
       row.innerHTML = `<div class="roster-review-row-heading"><h3>第 ${entry.index + 1} 行 · ${escapeHtml(entry.clean)}</h3><span>${labels[item.category]}</span></div>
         <p class="roster-review-raw">${escapeHtml(entry.raw)}</p><div class="roster-review-fields">${fields}</div>${profile}${grade}
-        <p class="roster-review-error" role="alert"${item.error ? "" : " hidden"}>${escapeHtml(item.error)}</p>`;
+        <p class="roster-review-error" role="alert"${reviewError ? "" : " hidden"}>${escapeHtml(reviewError)}</p>`;
       row.querySelectorAll("[data-review-field]").forEach((control) => {
         const field = control.dataset.reviewField;
         control.addEventListener(control.tagName === "SELECT" ? "change" : "input", () => {
           item[field] = control.value;
+          if (field === "ownerId") { item.ownerTouched = true; item.autoOwnerKey = ""; }
           item.error = "";
           row.querySelector(".roster-review-error").hidden = true;
           if (field === "memberSearch") {
@@ -11695,6 +11762,7 @@
             renderRosterReviewRow(row, item);
             row.querySelector(`[data-review-field="${field}"]`)?.focus({ preventScroll: true });
           }
+          if (["mode", "name", "level", "affiliation"].includes(field)) refreshRosterReviewPendingOwners(item);
           updateRosterReviewSummary();
         });
       });
@@ -11707,6 +11775,8 @@
         const key = RosterReview.normalizeName(alias), owners = names.get(key) || new Set();
         owners.add("player:" + player.id); names.set(key, owners);
       }));
+      const pending = new Map(rosterReviewPendingMembers(items).map(member => [member.key, member]));
+      const ownerDependencies = [];
       const reviewing = new Set(items.map((item) => item.entry.overrideKey));
       const attendance = new Map(state.chainEntries.filter((entry) => entry.player && !entry.plusEntry && !reviewing.has(entry.overrideKey))
         .map((entry) => ["player:" + entry.player.id, entry.index + 1]));
@@ -11727,10 +11797,20 @@
         const resolution = { overrideKey: entry.overrideKey, kind: item.mode === "companion" ? "companion" : "member",
           levelText: item.level, sourceLevel: entry.sourceLevel || null, gender: item.gender };
         if (item.mode === "companion") {
-          const owner = getPlayerById(Number(item.ownerId));
-          if (!owner) { fail(item, "请选择数据库中负责这位随行人员的成员"); return; }
-          resolution.ownerPlayerId = Number(owner.id);
-          resolution.gender = entry.gender || "不详";
+          if (String(item.ownerId || "").startsWith("new:")) {
+            const owner = pending.get(String(item.ownerId).slice(4));
+            if (!owner || owner.key === item.key) { fail(item, "所选待新增成员已取消新增或资料未填写，请重新选择带来者"); return; }
+            if (state.readOnly) { fail(item, "请在 Cloudflare 管理版新增带来者并绑定随行人员"); return; }
+            resolution.ownerCreateKey = owner.key;
+            resolution.companionSuffix = RosterReview.findPendingCompanion(entry.clean, [owner])?.suffix || null;
+            ownerDependencies.push({ item, owner });
+          } else {
+            const owner = getPlayerById(Number(item.ownerId));
+            if (!owner) { fail(item, "请选择负责这位随行人员的已有成员或本次待新增成员"); return; }
+            resolution.ownerPlayerId = Number(owner.id);
+          }
+          resolution.gender = item.companionGender ?? entry.gender ?? "不详";
+          if (!["男", "女", "不详"].includes(resolution.gender)) fail(item, "请选择有效的随行人员性别");
         } else if (item.mode === "new") {
           if (state.readOnly) { fail(item, "请在 Cloudflare 管理版创建成员"); return; }
           const name = String(item.name || "").trim(), owner = "new:" + item.key;
@@ -11768,6 +11848,9 @@
         }
         resolutions.push(resolution);
       });
+      ownerDependencies.forEach(({ item, owner }) => {
+        if (errors.has(owner.key)) fail(item, `请先完成第 ${owner.index + 1} 行的新成员资料，再确认随行人员归属`);
+      });
       return { errors, updates: [...updates.values()], creates, resolutions };
     }
 
@@ -11777,6 +11860,24 @@
       const total = state.rosterReview.items.length;
       els.rosterReviewSummary.textContent = `需要核对 ${total} 项，已完成 ${total - plan.errors.size} 项。确认后统一保存，再进入群收款。`;
       els.rosterReviewConfirmBtn.textContent = plan.updates.length || plan.creates.length ? "确认并保存，进入群收款" : "确认并进入群收款";
+    }
+
+    function materializeRosterReviewResolutions(resolutions, createdPlayers, players = state.players) {
+      const createdByKey = new Map((createdPlayers || []).map(player => [player.key, normalizePlayerId(player.playerId)]));
+      const byId = new Map(players.map(player => [Number(player.id), player]));
+      // Resolve every dependency before changing any roster override. New owners may occur after their guests.
+      return resolutions.map(resolution => {
+        const playerId = normalizePlayerId(resolution.playerId || createdByKey.get(resolution.createKey));
+        const ownerPlayerId = normalizePlayerId(resolution.ownerPlayerId || createdByKey.get(resolution.ownerCreateKey) || playerId);
+        if ((resolution.kind === "member" && !byId.has(playerId)) || !byId.has(ownerPlayerId)) {
+          throw new Error("人员保存结果缺少实际成员或随行人员归属，请重试本次确认");
+        }
+        const player = byId.get(playerId), owner = byId.get(ownerPlayerId);
+        return { overrideKey: resolution.overrideKey, kind: resolution.kind, playerId, ownerPlayerId,
+          levelText: resolution.levelText, sourceLevel: resolution.sourceLevel, databaseLevel: player?.level || null, gender: resolution.gender,
+          ...(resolution.kind === "companion" && resolution.companionSuffix
+            ? { companionName: paymentDisplayName(owner) + "+" + resolution.companionSuffix } : {}) };
+      });
     }
 
     async function confirmRosterReview() {
@@ -11803,29 +11904,26 @@
       els.rosterReviewMessage.hidden = false;
       els.rosterReviewMessage.textContent = plan.updates.length || plan.creates.length ? "正在统一保存人员资料，请稍候…" : "正在应用核对结果…";
       try {
-        let createdPlayers = [];
+        let savedResolutions;
         if (plan.updates.length || plan.creates.length) {
           const payload = JSON.stringify({ updates: plan.updates, creates: plan.creates });
           if (payload !== review.payload) { review.payload = payload; review.requestId = crypto.randomUUID(); }
           const data = await api("/api/roster-review", { method: "POST", timeout: 30000,
             body: JSON.stringify({ requestId: review.requestId, updates: plan.updates, creates: plan.creates }) });
+          savedResolutions = materializeRosterReviewResolutions(plan.resolutions, data.createdPlayers, data.players);
           state.players = data.players;
           applyPaymentOrderState(data);
-          createdPlayers = data.createdPlayers;
           renderTable();
           setSync("已保存");
+        } else {
+          savedResolutions = materializeRosterReviewResolutions(plan.resolutions, []);
         }
         if (review.input !== els.chainInput.value || review.overrides !== JSON.stringify(state.plusOverrides)) {
           els.rosterReviewMessage.textContent = "人员档案已保存，但报名名单刚刚发生变化。请关闭核对窗口后重新点击群收款。";
           return;
         }
-        const createdByKey = new Map(createdPlayers.map((player) => [player.key, player.playerId]));
-        plan.resolutions.forEach((resolution) => {
-          const playerId = resolution.playerId || createdByKey.get(resolution.createKey) || null;
-          const player = getPlayerById(playerId);
-          const saved = { kind: resolution.kind, playerId, ownerPlayerId: resolution.ownerPlayerId || playerId,
-            levelText: resolution.levelText, sourceLevel: resolution.sourceLevel, databaseLevel: player?.level || null, gender: resolution.gender };
-          state.plusOverrides[resolution.overrideKey] = { ...(state.plusOverrides[resolution.overrideKey] || {}),
+        savedResolutions.forEach(({ overrideKey, ...saved }) => {
+          state.plusOverrides[overrideKey] = { ...(state.plusOverrides[overrideKey] || {}),
             levelText: saved.levelText, gender: saved.gender, reviewResolution: saved };
         });
         state.chainInputUserOwned = true;

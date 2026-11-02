@@ -56,11 +56,33 @@
     return String(value).replace(pattern, "+" + suffix);
   }
 
+  function findPendingCompanion(value, members) {
+    const clean = text => normalizeName(removeAnnotations(text).replace(/[🌸🍀]/gu, ""));
+    const candidate = clean(value);
+    const aliases = members.flatMap(member => splitAliases([member.name, ...(member.aliases || [])].join("，"))
+      .map(alias => ({ key: member.key, alias: clean(alias) })).filter(item => item.alias));
+    // Complete names win, including a draft whose actual name contains digits.
+    if (!candidate || aliases.some(item => item.alias === candidate)) return null;
+    const matches = aliases.flatMap(item => {
+      if (!candidate.startsWith(item.alias)) return [];
+      const suffix = candidate.slice(item.alias.length).match(/^(?:([0-9]+)|(?:[+➕]|代|加)([0-9]+|[零〇一二两三四五六七八九十百千万]+))$/u);
+      const number = suffix?.[1] || suffix?.[2];
+      if (!number || /^[0零〇]+$/u.test(number)) return [];
+      return [{ key: item.key, suffix: number, length: item.alias.length }];
+    });
+    if (!matches.length) return null;
+    const longest = Math.max(...matches.map(item => item.length));
+    const owners = new Map(matches.filter(item => item.length === longest).map(item => [item.key, item]));
+    if (owners.size !== 1) return null;
+    const { key, suffix } = [...owners.values()][0];
+    return { key, suffix };
+  }
+
   function sameProfile(expected, player) {
     return Boolean(expected && player && expected.name === player.name && expected.level === player.level
       && (expected.updatedAt === undefined || expected.updatedAt === player.updatedAt));
   }
 
   root.BadmintonRosterReview = Object.freeze({ ranks, levels, normalizeName, splitAliases, normalizeLevel, parseLevelPrefix,
-    findPlayerMatch, canonicalNumberedCompanion, sameProfile });
+    findPlayerMatch, canonicalNumberedCompanion, findPendingCompanion, sameProfile });
 })(globalThis);
