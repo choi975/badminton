@@ -19,7 +19,7 @@ const players = [
 const state = { players, plusOverrides: {}, chainEntries: [], readOnly: false, levelGroups: globalThis.BadmintonLevelGroups.normalize(null) };
 const names = ["parseChainLine", "parseSharedChainLevelPrefix", "parsePlusEntryMetadata", "cleanChainLine", "findPlayerMatchForLine", "getPlayerById", "normalizePlayerId",
   "getMemberLineSuffix", "getLevelGroupLabel", "extractCompanionOwnerName", "paymentDisplayName", "firstName", "splitAliases", "normalizeAlias", "removeChainAnnotations", "levelRank",
-  "buildAliasIndex", "normalizeRepeatedMemberEntries", "resolveChainEntryOwnership", "getChainEntryBaseName", "getChainEntryDisplayName", "getSessionOwnerKey", "projectSessionParticipants", "isRosterGradeReviewNeeded", "buildRosterReviewItems", "buildRosterReviewPlan"];
+  "buildAliasIndex", "normalizeRepeatedMemberEntries", "resolveChainEntryOwnership", "getChainEntryBaseName", "getChainEntryDisplayName", "getSessionOwnerKey", "projectSessionParticipants", "isRosterGradeReviewNeeded", "buildRosterReviewItems", "buildRosterReviewPlan", "renderRosterReviewRow", "rosterReviewSelect", "rosterReviewField", "rosterReviewOptions", "rosterReviewMemberOptions", "escapeHtml"];
 const source = names.map(name => {
   const start = html.indexOf(`    function ${name}(`), end = html.indexOf("\n    }", start);
   assert.ok(start >= 0 && end > start, "Production function " + name);
@@ -94,9 +94,9 @@ assert.deepEqual(plan.creates.map(p => [p.name, p.level, p.affiliation]), [["新
 assert.equal(plan.creates[0].gender, "女");
 roster(["陌生成员"]);
 item = api.buildRosterReviewItems()[0];
-assert.equal(api.buildRosterReviewPlan([item]).errors.size, 1, "Unknown people cannot bypass registration");
+assert.equal(api.buildRosterReviewPlan([item]).errors.size, 1, "Unknown names require an explicit identity decision");
 item.mode = "companion"; item.ownerId = 1;
-assert.equal(api.buildRosterReviewPlan([item]).creates.length, 0, "Only a confirmed registered member's guest may remain unregistered");
+assert.equal(api.buildRosterReviewPlan([item]).creates.length, 0, "A confirmed registered member's guest needs no new profile");
 assert.equal(api.buildRosterReviewPlan([item]).errors.size, 0);
 assert.equal(api.buildRosterReviewPlan([item]).resolutions[0].gender,"不详","Identity confirmation does not guess a guest gender");
 roster(["choi", "choi"], {"row-1": {levelText:"3.5级",reviewResolution:{kind:"member",playerId:1,ownerPlayerId:1,sourceLevel:null,databaseLevel:"3.5级",levelText:"3.5级",gender:"男"}}});
@@ -130,6 +130,92 @@ assert.equal(result.groups.special[0].playerId, 2);
 assert.equal(result.groups.special[0].guestCount, 0);
 assert.equal(result.groups.friends[0].playerId, 1);
 assert.equal(result.groups.friends[0].slots, 1, "oi is not charged for choi");
+
+// Unknown names can identify an existing member without becoming a permanent alias.
+function reviewRowMarkup(item) {
+  const row = { innerHTML: "", querySelectorAll: () => [] };
+  api.renderRosterReviewRow(row, item);
+  return row.innerHTML;
+}
+const confirmStart = html.indexOf("    async function confirmRosterReview(");
+const confirmEnd = html.indexOf("\n    }", confirmStart);
+assert.ok(confirmStart >= 0 && confirmEnd > confirmStart, "Production confirmation function");
+const confirmSource = html.slice(confirmStart, confirmEnd + 6);
+const profilesBeforeOnce = JSON.stringify(players);
+const jokeLine = "1、【2.5级】神秘嘉宾1号";
+for (const readOnly of [false, true]) {
+  state.readOnly = readOnly;
+  roster([jokeLine]);
+  item = api.buildRosterReviewItems()[0];
+  assert.equal(item.category, "unknown");
+  assert.match(reviewRowMarkup(item), /<option value="member">已有成员，仅本次关联（不保存外号）<\/option>/,
+    "One-time association must also be enabled in the read-only backup");
+  item.mode = "member";
+  assert.match(api.buildRosterReviewPlan([item]).errors.get(item.key), /请选择实际参加的已有成员/);
+  member(item, 2);
+  assert.match(reviewRowMarkup(item), /不保存为外号；下次活动仍需确认/);
+  assert.doesNotMatch(reviewRowMarkup(item), /data-review-field="alias"/);
+  plan = api.buildRosterReviewPlan([item]);
+  assert.equal(plan.errors.size, 0);
+  assert.deepEqual(plan.updates, [], "Identity alone never updates a profile");
+  assert.deepEqual(plan.creates, []);
+  assert.equal(plan.resolutions[0].kind, "member");
+  assert.equal(plan.resolutions[0].playerId, 2);
+  const controls = [{ disabled: false }];
+  const elements = { chainInput: { value: jokeLine }, rosterReviewConfirmBtn: { disabled: false }, rosterReviewMessage: {} };
+  const fakeDocument = { getElementById: () => ({ querySelectorAll: () => controls }) };
+  let profileWrites = 0, paymentsOpened = 0;
+  const confirm = new Function("state", "els", "document", "buildRosterReviewPlan", "getPlayerById", "api", "closeModal", "processChain", "scheduleGroupAttemptSnapshot", "openPaymentModal", "renderRosterReviewRow",
+    confirmSource + "\nreturn confirmRosterReview;")(state, elements, fakeDocument, api.buildRosterReviewPlan, api.getPlayerById,
+    async () => { profileWrites++; throw new Error("Unexpected member-profile write"); },
+    () => {}, () => roster([jokeLine], state.plusOverrides), () => {}, () => { paymentsOpened++; }, () => {});
+  state.rosterReview = { items: [item], input: jokeLine, overrides: JSON.stringify(state.plusOverrides), requestId: "", payload: "" };
+  await confirm();
+  assert.equal(profileWrites, 0, "Actual confirmation must not call the profile API");
+  assert.equal(paymentsOpened, 1);
+  assert.equal(controls[0].disabled, false);
+  const onceEntry = state.chainEntries[0];
+  assert.equal(onceEntry.raw, jokeLine, "Original joke nickname remains in this roster's source record");
+  assert.equal(onceEntry.clean, "choi", "Resolved roster uses the actual member's canonical name");
+  assert.equal(onceEntry.player.id, 2);
+  assert.equal(onceEntry.ownerPlayerId, 2);
+  assert.equal(onceEntry.isCompanion, false);
+  const oncePayment = payments.calculatePayment(state.chainEntries, 70, 5, 1, { mode: "discount", amount: 3.5 });
+  assert.equal(oncePayment.groups.special[0].name, "choi", "Payment must not show the joke nickname");
+  assert.equal(oncePayment.groups.special[0].playerId, 2);
+  assert.equal(oncePayment.groups.special[0].guestCount, 0);
+  const onceAttendance = api.projectSessionParticipants([{ playerId: 2, playerName: onceEntry.clean, ownerPlayerId: 2, ownerName: onceEntry.ownerName, isCompanion: false, slots: 1, plusCount: 0, amount: 75 }]);
+  assert.equal(onceAttendance[0].ownerPresent, true);
+  assert.equal(onceAttendance[0].guestCount, 0);
+  assert.equal(api.buildRosterReviewItems().length, 0, "This roster reuses its accepted one-time decision");
+  assert.equal(api.findPlayerMatchForLine("神秘嘉宾1号", api.buildAliasIndex()).player, null, "The nickname is never added to the alias index");
+  assert.equal(JSON.stringify(players), profilesBeforeOnce);
+  roster([jokeLine]);
+  assert.equal(api.buildRosterReviewItems()[0].category, "unknown", "A fresh activity must confirm the joke nickname again");
+}
+state.readOnly = false;
+roster(["【2.8级】临时玩笑昵称"]);
+item = member(api.buildRosterReviewItems()[0], 2);
+assert.match(api.buildRosterReviewPlan([item]).errors.get(item.key), /是否更新数据库等级/);
+item.update = "keep";
+plan = api.buildRosterReviewPlan([item]);
+assert.equal(plan.updates.length, 0);
+assert.equal(plan.resolutions[0].levelText, "3级");
+item.update = "update";
+plan = api.buildRosterReviewPlan([item]);
+assert.equal(plan.updates[0].level, "3级", "Explicit grade updates remain available for one-time identities");
+assert.deepEqual(plan.updates[0].aliases, [], "Even an explicit grade update never stores the joke nickname");
+state.readOnly = true;
+assert.match(api.buildRosterReviewPlan([item]).errors.get(item.key), /只读版不能更新等级/);
+state.readOnly = false;
+roster(["choi", jokeLine]);
+item = member(api.buildRosterReviewItems()[0], 2);
+assert.match(api.buildRosterReviewPlan([item]).errors.get(item.key), /不能重复收款/);
+roster([jokeLine, "【2.5级】另一个玩笑昵称"]);
+const duplicateOnceItems = api.buildRosterReviewItems().map(item => member(item, 2));
+assert.match(api.buildRosterReviewPlan(duplicateOnceItems).errors.get(duplicateOnceItems[1].key), /不能重复收款/);
+assert.equal(JSON.stringify(players), profilesBeforeOnce);
+
 roster(["choi", "oi1"]);
 item = member(api.buildRosterReviewItems()[0], 2);
 assert.match(api.buildRosterReviewPlan([item]).errors.get(item.key), /不能重复收款/);
@@ -158,7 +244,7 @@ for (const [, script] of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>
 assert.match(html, /processChain\(\);\s*if \(maybeOpenRosterReview\(\)\) return;/);
 assert.match(html, /id="rosterReviewModal"/);
 assert.match(html, /id === "rosterReviewModal" && state\.rosterReviewSaving/);
-console.log("Roster review: standardized grades, exact numeric names, required registration, one-row identity/grade decisions, actual-member payment ownership, duplicate protection, accepted decision reuse, read-only mode and historical snapshots passed.");
+console.log("Roster review: standardized grades, exact numeric names, explicit identities including one-time nicknames without profile writes, one-row identity/grade decisions, actual-member payment ownership, duplicate protection, accepted decision reuse, read-only mode and historical snapshots passed.");
 
 
 

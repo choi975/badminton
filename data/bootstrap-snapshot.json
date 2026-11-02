@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-01T17:47:23.623Z",
+  "generatedAt": "2026-11-02T03:30:48.920Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -16434,7 +16434,7 @@
     ],
     "estimator": {
       "version": 5,
-      "generatedAt": "2026-11-01T17:47:23.207Z",
+      "generatedAt": "2026-11-02T03:30:48.466Z",
       "trainingRevision": 1132,
       "training": {
         "dateRange": {
@@ -18086,7 +18086,7 @@
     ],
     "groupLearningSignals": {
       "version": "group-learning-v2",
-      "generatedAt": "2026-11-01T17:47:23.623Z",
+      "generatedAt": "2026-11-02T03:30:48.920Z",
       "generatedDate": "2026-11-02",
       "halfLifeDays": 30,
       "training": {
@@ -20801,7 +20801,7 @@
     "memberStatistics": {
       "version": "member-statistics-v5",
       "asOf": "2026-11-01",
-      "generatedAt": "2026-11-01T17:47:23.623Z",
+      "generatedAt": "2026-11-02T03:30:48.920Z",
       "windows": {
         "start15": "2026-10-18",
         "start30": "2026-10-03",

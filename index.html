@@ -4722,7 +4722,7 @@
       </div>
       <div class="modal-body">
         <p id="rosterReviewSummary" class="roster-review-summary" aria-live="polite"></p>
-        <p id="rosterReviewReadOnly" class="roster-review-message roster-review-readonly" hidden>当前为只读备用版。可以核对已有成员和随行人员；新建成员、添加外号或更新等级，请在 <a href="https://badminton.choi975.workers.dev/" target="_blank" rel="noopener">Cloudflare 管理版</a> 完成。</p>
+        <p id="rosterReviewReadOnly" class="roster-review-message roster-review-readonly" hidden>当前为只读备用版。可以仅本次关联已有成员、核对代报名和随行人员；新建成员、添加外号或更新等级，请在 <a href="https://badminton.choi975.workers.dev/" target="_blank" rel="noopener">Cloudflare 管理版</a> 完成。</p>
         <div id="rosterReviewList"></div>
         <p id="rosterReviewMessage" class="roster-review-message" role="status" aria-live="polite" hidden></p>
       </div>
@@ -10707,7 +10707,8 @@
       const plusEntry = identityReviewed ? review.kind === "companion" : plusMetadata.plusEntry;
       const player = plusEntry ? null : (getPlayerById(preservedPlayerId) || reviewedPlayer || matchedPlayer);
       const ownerPlayer = identityReviewed ? (reviewedPlayer || reviewedOwner) : (getPlayerById(preservedOwnerPlayerId) || matchedPlayer);
-      const useCanonicalName = reviewedPlayer && (plusMetadata.plusEntry || (matchedPlayer && Number(reviewedPlayer.id) !== Number(matchedPlayer.id)));
+      // A one-time identity changes this roster, not the member's registered names.
+      const useCanonicalName = reviewedPlayer && (!matchedPlayer || plusMetadata.plusEntry || Number(reviewedPlayer.id) !== Number(matchedPlayer.id));
       const clean = useCanonicalName ? paymentDisplayName(reviewedPlayer) : plusMetadata.displayName;
       const knownLevel = RosterReview.normalizeLevel(player?.level) || "不详";
       const sourceLevel = sharedLevel?.normalizedLevel || null;
@@ -11632,7 +11633,7 @@
         const choices = item.category === "companion"
           ? [["", "请选择处理方式"], ["member", "已有成员，由他人代报名"], ["companion", "未登记随行人员（不入库）"], ["new", "新成员，加入数据库", state.readOnly]]
           : item.category === "ambiguous" ? [["", "请选择处理方式"], ["member", "确认实际参加的已有成员"], ["companion", "现有成员的随行人员（不入库）"]]
-          : [["", "请选择处理方式"], ["alias", "已有成员的新外号", state.readOnly], ["new", "新成员，加入数据库", state.readOnly], ["companion", "现有成员的 +1（不入库）"]];
+          : [["", "请选择处理方式"], ["member", "已有成员，仅本次关联（不保存外号）"], ["alias", "已有成员的新外号", state.readOnly], ["new", "新成员，加入数据库", state.readOnly], ["companion", "现有成员的 +1（不入库）"]];
         fields += select("mode", "这条报名是谁？", choices);
       }
       const memberField = item.mode === "companion" ? "ownerId" : "playerId";
@@ -11662,6 +11663,7 @@
         grade += "</div>";
         if (item.mode === "companion") grade += `<p class="roster-review-note">作为未登记随行人员处理：费用与带人次数归带来者，不增加成员档案。</p>`;
         if (item.mode === "member" && item.category === "companion") grade += `<p class="roster-review-note">收款、出勤都归实际参加者，不计入代报名者的带人次数。</p>`;
+        if (item.mode === "member" && item.category === "unknown") grade += `<p class="roster-review-note">仅关联本次报名：收款、出勤归所选成员，收款名单使用数据库名字。原报名名保留，不保存为外号；下次活动仍需确认。</p>`;
         if (item.mode === "new" && item.category === "unknown") grade += `<p class="roster-review-note">如果修改了名字，原报名名也会作为外号保留。</p>`;
       }
       row.innerHTML = `<div class="roster-review-row-heading"><h3>第 ${entry.index + 1} 行 · ${escapeHtml(entry.clean)}</h3><span>${labels[item.category]}</span></div>
