@@ -47,40 +47,56 @@ async function post(payload, origin = "https://badminton.choi975.workers.dev") {
   const response = await handleRosterReview(new Request("https://badminton.choi975.workers.dev/api/roster-review", { method: "POST", headers: { origin }, body: JSON.stringify(payload) }), env, deps);
   return { status: response.status, ...(await response.json()) };
 }
+db.sqlite.exec("UPDATE players SET notes = '已有成员备注' WHERE id = 2");
 const initial = await listPlayers(db);
+const rawNotes = "  喜欢双打 🌸\n周末参加 <只记文字> & \"备注\"  ";
 const commit = body([{ playerId: 2, expected: await expected(2), aliases: ["joker唐"], level: "3级" }, { playerId: 3, expected: await expected(3), level: "2.5级" }],
-  [{ key: "friend", name: "新球友", aliases: ["新的报名名"], gender: "女", level: "2.5级", affiliation: "球友" },
-    { key: "special", name: "新特殊", gender: "男", level: "3.5级", affiliation: "特殊" },
+  [{ key: "friend", name: "新球友", aliases: ["新的报名名"], gender: "女", level: "2.5级", affiliation: "球友", notes: rawNotes },
+    { key: "special", name: "新特殊", gender: "男", level: "3.5级", affiliation: "特殊", notes: " \n " },
     { key: "friend2", name: "另一个球友", gender: "男", level: "5.5级", affiliation: "球友" }]);
 let result = await post(commit);
 assert.equal(result.status, 200, JSON.stringify(result));
 assert.equal(result.players.find(p => p.id === 2).name, "choi，joker唐");
 assert.equal(result.players.find(p => p.id === 2).level, "3级");
 assert.equal(result.players.find(p => p.id === 3).level, "2.5级");
+assert.equal(result.players.find(p => p.id === 2).notes, "已有成员备注", "Level and alias updates must not overwrite existing notes");
 assert.equal(result.createdPlayers.length, 3);
 for (const created of result.createdPlayers) {
   const player = result.players.find(p => p.id === created.playerId);
   assert.ok(player, "Receipt must retain each created player's actual id");
   assert.equal(player.affiliation, created.key === "special" ? "特殊" : "球友");
+  assert.equal(player.notes, created.key === "friend" ? rawNotes.trim() : "", "D1 stores multiline notes or optional blank defaults per member");
 }
 const joinRows = (await getPaymentOrderState(db)).groupJoinNumbers.球友;
 assert.deepEqual(joinRows.map(row => row.joinNumber), [1, 2, 3]);
 assert.equal(joinRows[1].playerId, result.createdPlayers.find(p => p.key === "friend").playerId);
 assert.equal(joinRows[2].playerId, result.createdPlayers.find(p => p.key === "friend2").playerId, "Receipt writes never confuse last_insert_rowid with join numbers");
 assert.equal(result.players.find(p => p.name.startsWith("新球友")).name, "新球友，新的报名名");
-assert.equal((await post(commit)).status, 200, "Retrying the same request is idempotent");
+const retried = await post(commit);
+assert.equal(retried.status, 200, "Retrying the same request is idempotent");
+assert.equal(retried.players.find(p => p.name.startsWith("新球友")).notes, rawNotes.trim(), "An idempotent retry returns the saved note");
+assert.equal((await post({ ...commit, creates: commit.creates.map(create => ({ ...create, notes: "修改后的备注" })) })).status, 409, "The same request id cannot be reused for different notes");
 assert.equal((await listPlayers(db)).length, initial.length + 3);
 assert.equal((await post({ ...commit, creates: [] })).status, 409, "One request id cannot be reused for different edits");
 const beforeFailure = await listPlayers(db);
 db.failName = "故障新成员";
-const failed = body([{ playerId: 2, expected: await expected(2), level: "4级" }], [{ key: "fail", name: db.failName, gender: "男", level: "2级", affiliation: "球友" }]);
+const failed = body([{ playerId: 2, expected: await expected(2), level: "4级" }], [{ key: "fail", name: db.failName, gender: "男", level: "2级", affiliation: "球友", notes: "失败重试保留的备注" }]);
 result = await post(failed);
 assert.equal(result.status, 500);
 assert.deepEqual(await listPlayers(db), beforeFailure, "Failed create rolls back earlier grade updates as well");
 assert.equal(await db.prepare("SELECT * FROM roster_review_commits WHERE request_id = ?").bind(failed.requestId).first(), null);
 db.failName = "";
-assert.equal((await post(failed)).status, 200, "A failed transaction remains safely retryable");
+const recovered = await post(failed);
+assert.equal(recovered.status, 200, "A failed transaction remains safely retryable");
+assert.equal(recovered.players.find(p => p.name === "故障新成员").notes, "失败重试保留的备注");
 const beforeInvalid = await listPlayers(db);
+for (const notes of [null, 42, true, [], {}]) {
+  const invalid = body([], [{ key: "badnotes", name: "无效备注", gender: "男", level: "2级", affiliation: "球友", notes }]);
+  const rejected = await post(invalid);
+  assert.equal(rejected.status, 400, "Non-text notes must be rejected before writing any member");
+  assert.match(rejected.error, /备注需填写文字/);
+  assert.equal(await db.prepare("SELECT * FROM roster_review_commits WHERE request_id = ?").bind(invalid.requestId).first(), null);
+}
 for (const create of [{ key: "duplicate", name: "ＣＨＯＩ", gender: "男", level: "2级", affiliation: "球友" },
   { key: "badlevel", name: "等级未标准化", gender: "男", level: "2.8级", affiliation: "球友" },
   { key: "badgroup", name: "非法分组", gender: "男", level: "2级", affiliation: "Hytronik" }]) assert.equal((await post(body([], [create]))).status, 400);
@@ -102,4 +118,4 @@ assert.equal(badJson.status, 400);
 const get = await handleRosterReview(new Request("https://badminton.choi975.workers.dev/api/roster-review"), env, deps);
 assert.equal(get.status, 405);
 db.close();
-console.log("Roster review API: atomic levels/aliases/member creation, join numbers, durable idempotency, rollback/retry, stale profiles, concurrent name changes, normalized alias collisions, standard levels and admin-only writes passed.");
+console.log("Roster review API: atomic levels/aliases/member creation and optional multiline notes, join numbers, durable idempotency, rollback/retry, stale profiles, concurrent name changes, normalized alias collisions, standard levels and admin-only writes passed.");

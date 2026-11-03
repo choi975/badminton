@@ -1934,8 +1934,9 @@
     .roster-review-raw { margin: 5px 0 14px; color: var(--muted); overflow-wrap: anywhere; line-height: 1.5; }
     .roster-review-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
     .roster-review-field { min-width: 0; }
-    .roster-review-field input, .roster-review-field select { width: 100%; min-height: 42px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel); color: var(--text); padding: 7px 10px; font-size: 16px; }
-    .roster-review-field input::placeholder { color: var(--muted); }
+    .roster-review-field input, .roster-review-field select, .roster-review-field textarea { width: 100%; min-height: 42px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel); color: var(--text); padding: 7px 10px; font-size: 16px; }
+    .roster-review-field textarea { display: block; min-height: 84px; resize: vertical; line-height: 1.5; }
+    .roster-review-field input::placeholder, .roster-review-field textarea::placeholder { color: var(--muted); }
     .roster-review-profile { margin: 14px 0 8px; line-height: 1.6; }
     .roster-review-profile span, .roster-review-grade-source, .roster-review-note { color: var(--muted); }
     .roster-review-grade-source { margin: 14px 0 8px; line-height: 1.5; font-variant-numeric: tabular-nums; }
@@ -1945,7 +1946,7 @@
     .roster-review-readonly { background: var(--amber-soft); color: var(--amber); }
     .roster-review-readonly a { color: var(--accent-dark); text-underline-offset: 3px; }
     .roster-review-dialog ::selection { background: var(--accent-soft); color: var(--accent-dark); }
-    .roster-review-dialog input { caret-color: var(--accent); }
+    .roster-review-dialog input, .roster-review-dialog textarea { caret-color: var(--accent); }
     .roster-review-dialog .modal-body { scrollbar-color: var(--line-strong) var(--panel-soft); }
     .roster-review-dialog .modal-footer { flex-wrap: wrap; }
     @media (max-width: 620px) {
@@ -11696,7 +11697,7 @@
           name: category === "unknown" ? entry.clean.replace(/🌸/g, "").trim() : "",
           alias: entry.clean.replace(/🌸/g, "").trim(), memberSearch: "", hint,
           level: hint || "不详", levelTouched: false, gender: entry.gender === "女" ? "女" : "男",
-          affiliation: "球友", update: "", error: "" }];
+          affiliation: "球友", notes: "", update: "", error: "" }];
       });
     }
 
@@ -11830,6 +11831,8 @@
         const rawGrade = entry.rawInputLevel ? `原始等级 ${entry.rawInputLevel}${entry.invalidInputLevel ? " 无法转换，请手动选择" : " → " + entry.sourceLevel}` : "报名未提供数字等级";
         grade = `<p class="roster-review-grade-source">${escapeHtml(rawGrade)}</p><div class="roster-review-fields">`;
         grade += select("level", item.mode === "new" ? "保存到数据库的等级" : "本次参加的等级", RosterReview.levels.map((level) => [level, level === "不详" ? "等级不详" : level]));
+        if (item.mode === "new") grade += rosterReviewField(item, "notes", "备注（选填）",
+          `<textarea id="review-${item.key}-notes" data-review-field="notes" rows="2" placeholder="填写需要记录的成员信息">${escapeHtml(item.notes || "")}</textarea>`);
         if (player) {
           const databaseLevel = RosterReview.normalizeLevel(player.level) || "不详";
           const needsChoice = databaseLevel === "不详" || item.level !== databaseLevel;
@@ -11932,7 +11935,7 @@
           const aliases = item.category === "unknown" && RosterReview.normalizeName(item.alias) !== RosterReview.normalizeName(name) ? [item.alias] : [];
           aliases.forEach((alias) => claim(item, alias, owner));
           if (!["男", "女"].includes(item.gender) || !["球友", "特殊"].includes(item.affiliation)) fail(item, "请选择新成员的性别和分组");
-          creates.push({ key: item.key, name, aliases, gender: item.gender, level: item.level, affiliation: item.affiliation });
+          creates.push({ key: item.key, name, aliases, gender: item.gender, level: item.level, affiliation: item.affiliation, notes: String(item.notes || "").trim() });
           resolution.createKey = item.key;
         } else if (["alias", "member"].includes(item.mode)) {
           const player = getPlayerById(Number(item.playerId));
@@ -12008,13 +12011,13 @@
           item.error = plan.errors.get(item.key) || "";
           renderRosterReviewRow(els.rosterReviewList.querySelector(`[data-review-key="${item.key}"]`), item);
         });
-        els.rosterReviewList.querySelector(".roster-review-error:not([hidden])")?.closest("section")?.querySelector("select, input")?.focus();
+        els.rosterReviewList.querySelector(".roster-review-error:not([hidden])")?.closest("section")?.querySelector("select, input, textarea")?.focus();
         updateRosterReviewSummary();
         return;
       }
       state.rosterReviewSaving = true;
       els.rosterReviewConfirmBtn.disabled = true;
-      document.getElementById("rosterReviewModal").querySelectorAll("[data-close], input, select").forEach((element) => { element.disabled = true; });
+      document.getElementById("rosterReviewModal").querySelectorAll("[data-close], input, select, textarea").forEach((element) => { element.disabled = true; });
       els.rosterReviewMessage.hidden = false;
       els.rosterReviewMessage.textContent = plan.updates.length || plan.creates.length ? "正在统一保存人员资料，请稍候…" : "正在应用核对结果…";
       try {

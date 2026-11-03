@@ -175,6 +175,7 @@ assert.equal(items[2].ownerId, "new:entry-1", "Unconfirmed automatic matches fol
 
 // Exercise the real confirmation and retry control flow with keyed IDs returned by the profile API.
 items = roster(["【3级】刘1🌸", "【2.5级】刘🌸"]); create(items[1], "刘", "特殊"); api.autoSelectRosterReviewPendingOwners(items);
+items[1].notes = "喜欢双打 🌸\n周末参加";
 const requestBodies = [], controls = [{ disabled: false }];
 const elements = { chainInput: { value: state.rosterReview.input }, rosterReviewConfirmBtn: { disabled: false }, rosterReviewMessage: {}, rosterReviewList: { querySelector: () => ({}) } };
 const fakeDocument = { getElementById: () => ({ querySelectorAll: () => controls }) };
@@ -183,7 +184,7 @@ const confirmSource = production("confirmRosterReview", true);
 const confirm = new Function("state", "els", "document", "buildRosterReviewPlan", "materializeRosterReviewResolutions", "api", "applyPaymentOrderState", "renderTable", "setSync", "closeModal", "processChain", "scheduleGroupAttemptSnapshot", "openPaymentModal", "renderRosterReviewRow",
   confirmSource + "\nreturn confirmRosterReview;")(state, elements, fakeDocument, api.buildRosterReviewPlan, api.materializeRosterReviewResolutions,
   async (_, options) => { requestBodies.push(JSON.parse(options.body)); if (fail) throw new Error("Injected lost response");
-    return { players: [...initialPlayers, { id: 105, name: "刘", level: "2.5级", gender: "女", affiliation: "特殊" }], createdPlayers: [{ key: "entry-1", playerId: 105 }] }; },
+    return { players: [...initialPlayers, { id: 105, name: "刘", level: "2.5级", gender: "女", affiliation: "特殊", notes: items[1].notes }], createdPlayers: [{ key: "entry-1", playerId: 105 }] }; },
   () => {}, () => {}, () => {}, () => {}, () => parse(elements.chainInput.value.split("\n"), state.plusOverrides), () => {}, () => { opened++; }, () => {});
 await confirm();
 assert.equal(opened, 0);
@@ -191,12 +192,16 @@ assert.equal(state.players.length, initialPlayers.length);
 assert.deepEqual(state.plusOverrides, {});
 assert.equal(state.rosterReview.items[0].ownerId, "new:entry-1");
 assert.match(elements.rosterReviewMessage.textContent, /核对选择已保留/);
+assert.equal(state.rosterReview.items[1].notes, "喜欢双打 🌸\n周末参加", "Failed saves retain the new member note in its draft");
 assert.equal(controls[0].disabled, false);
 fail = false;
 await confirm();
 assert.equal(requestBodies[0].requestId, requestBodies[1].requestId, "Lost-response retries reuse the durable request id");
 assert.equal(requestBodies[1].creates.length, 1);
 assert.equal(requestBodies[1].creates[0].name, "刘");
+assert.equal(requestBodies[1].creates[0].notes, "喜欢双打 🌸\n周末参加");
+assert.equal(requestBodies[0].creates[0].notes, requestBodies[1].creates[0].notes, "Lost-response retries send identical member notes");
+assert.equal(state.players.find(player => player.id === 105).notes, requestBodies[1].creates[0].notes);
 assert.equal(opened, 1);
 assert.equal(state.chainEntries[0].ownerPlayerId, 105);
 assert.equal(state.chainEntries[0].isCompanion, true);

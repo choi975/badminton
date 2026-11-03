@@ -66,6 +66,7 @@ export async function handleRosterReview(request, env, { json, listPlayers, getP
     if (!create || typeof create.key !== "string" || !create.key || create.key.length > 1000 || seenCreates.has(create.key)
       || typeof create.name !== "string" || !["男", "女"].includes(create.gender)
       || !["球友", "特殊"].includes(create.affiliation) || !Review.levels.includes(create.level)) return json({ error: "请填写新成员的名字、性别、标准等级和分组" }, 400);
+    if (create.notes !== undefined && typeof create.notes !== "string") return json({ error: "新成员备注需填写文字" }, 400);
     seenCreates.add(create.key);
     const owner = "new:" + create.key;
     const aliases = Review.splitAliases(create.name);
@@ -80,7 +81,7 @@ export async function handleRosterReview(request, env, { json, listPlayers, getP
     }
     const name = aliases.join("，");
     if (name.length > 2000) return json({ error: "新成员名字或外号过长" }, 400);
-    creates.push({ ...create, name });
+    creates.push({ ...create, name, notes: (create.notes || "").trim() });
   }
 
   const snapshot = JSON.stringify(players.map(player => [Number(player.id), player.name, player.level, player.updatedAt]));
@@ -93,8 +94,8 @@ export async function handleRosterReview(request, env, { json, listPlayers, getP
   updates.forEach(update => statements.push(env.DB.prepare("UPDATE players SET name = ?, level = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
     .bind(update.name, update.level, update.id)));
   creates.forEach(create => {
-    statements.push(env.DB.prepare("INSERT INTO players (name, gender, level, affiliation, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)")
-      .bind(create.name, create.gender, create.level, create.affiliation));
+    statements.push(env.DB.prepare("INSERT INTO players (name, gender, level, affiliation, notes, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)")
+      .bind(create.name, create.gender, create.level, create.affiliation, create.notes));
     // UPDATE does not change last_insert_rowid(): capture the member id before inserting its join number.
     statements.push(env.DB.prepare(`UPDATE roster_review_commits SET created_players_json = json_insert(created_players_json, '$[#]',
       json_object('key', ?, 'playerId', last_insert_rowid())) WHERE request_id = ?`).bind(create.key, body.requestId));

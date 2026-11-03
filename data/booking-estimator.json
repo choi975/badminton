@@ -1,11 +1,11 @@
 {
   "version": 5,
-  "generatedAt": "2026-11-02T07:42:10.403Z",
-  "trainingRevision": 1151,
+  "generatedAt": "2026-11-03T01:14:41.085Z",
+  "trainingRevision": 1163,
   "training": {
     "dateRange": {
       "from": "2026-07-01",
-      "to": "2026-10-31"
+      "to": "2026-11-01"
     },
     "court": {
       "sampleCount": 50,
@@ -15,18 +15,18 @@
       }
     },
     "shuttle": {
-      "sampleCount": 48,
-      "eligibleSessionCount": 55,
+      "sampleCount": 49,
+      "eligibleSessionCount": 56,
       "unconfirmedExcludedCount": 0,
       "mixedExcludedCount": 6,
       "unknownTypeExcludedCount": 0,
       "byType": {
         "rsl3": {
-          "sampleCount": 47,
+          "sampleCount": 48,
           "mixedExcludedCount": 6,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-10-28"
+            "to": "2026-11-01"
           }
         },
         "as05": {
@@ -50,8 +50,8 @@
         11.3,
         11.5
       ],
-      "sampleCount": 47,
-      "trainingMode": "global-only"
+      "sampleCount": 48,
+      "trainingMode": "hierarchical"
     },
     {
       "id": "as05",
@@ -105,29 +105,117 @@
     "models": {
       "rsl3": {
         "typeId": "rsl3",
-        "trainingMode": "global-only",
+        "trainingMode": "hierarchical",
         "formula": "ceil(rawExpected + riskScale * sqrt(max(rawExpected, 1)))",
-        "baseRate": 0.817776,
+        "baseRate": 0.795456,
         "riskQuantile": 0.7,
-        "riskScale": 0.170253,
+        "riskScale": 0.142201,
         "effects": {
-          "gender": {},
-          "genderLevel": {},
-          "member": {}
+          "gender": {
+            "不详": -0.030559,
+            "男": 0.041653,
+            "女": -0.160187
+          },
+          "genderLevel": {
+            "不详|不详": -0.029825,
+            "男|1.5级": -0.123256,
+            "男|2.5级": 0.097496,
+            "男|2级": 0.112426,
+            "男|3.5级": -0.350892,
+            "男|3级": 0.316584,
+            "男|4.5级": 0.05363,
+            "男|4级": -0.02963,
+            "男|5级": 0.539352,
+            "男|不详": 0.185767,
+            "女|0.5级": 0.389118,
+            "女|1.5级": -0.701105,
+            "女|1级": -0.189915,
+            "女|2.5级": -0.673901,
+            "女|2级": 0.49636,
+            "女|3.5级": 0.01151,
+            "女|3级": 0.146129,
+            "女|4级": -0.434797,
+            "女|不详": 0.202241
+          },
+          "member": {
+            "1": -0.784283,
+            "4": 0.249025,
+            "5": 0.582291,
+            "6": 0.177902,
+            "7": -0.115175,
+            "8": 0.313689,
+            "9": -0.974457,
+            "10": -0.41728,
+            "11": 0.206249,
+            "12": -0.044046,
+            "13": 0.306495,
+            "14": 0.638672,
+            "15": -0.724084,
+            "16": 0.69989,
+            "17": 0.149739,
+            "18": -0.054464,
+            "19": -0.231186,
+            "20": 0.286755,
+            "24": 0.23005,
+            "26": 1.012762,
+            "29": -0.621301,
+            "31": 0.68101,
+            "33": -0.149524,
+            "35": -0.319084,
+            "36": -0.517644,
+            "37": -0.603877,
+            "38": -0.311227,
+            "39": -0.640719,
+            "40": -0.189805,
+            "41": -0.736488,
+            "42": -0.758372,
+            "43": 0.171719,
+            "44": 0.913735,
+            "45": -0.388906,
+            "48": 0.727488,
+            "49": -0.052626,
+            "51": -0.998652,
+            "53": 0.067727,
+            "54": -0.670281,
+            "57": -0.605255,
+            "59": 0.763385,
+            "60": -0.589407,
+            "67": 0.611779,
+            "69": 0.262073,
+            "73": -0.145713,
+            "74": -0.223611,
+            "75": 0.96459,
+            "78": -0.296764,
+            "82": -0.472543,
+            "83": 0.015477,
+            "88": -0.129535,
+            "89": -0.301437,
+            "94": 0.097521,
+            "95": -0.115493,
+            "97": -0.631406,
+            "99": -0.890209,
+            "104": 0.537405,
+            "108": -0.357355,
+            "112": 0.155456,
+            "113": 1.336576,
+            "122": -0.871496,
+            "126": 0.192051,
+            "135": 0.653951
+          }
         },
         "training": {
-          "sampleCount": 47,
-          "availableSampleCount": 47,
+          "sampleCount": 48,
+          "availableSampleCount": 48,
           "olderExcludedCount": 0,
           "mixedExcludedCount": 6,
           "dateRange": {
             "from": "2026-07-13",
-            "to": "2026-10-28"
+            "to": "2026-11-01"
           }
         },
         "regularization": {
-          "selectedKind": "global-only",
-          "scale": null,
+          "selectedKind": "hierarchical",
+          "scale": 0.001,
           "multipliers": {
             "gender": 1,
             "genderLevel": 2,
@@ -139,18 +227,18 @@
             0.1
           ],
           "source": "time-holdout-conservative-grid-search",
-          "baselineMae": 1.869,
+          "baselineMae": 2.438,
           "requiredImprovement": 0.25
         },
         "validation": {
           "method": "time-holdout",
           "folds": 5,
-          "mae": 1.869,
-          "rmse": 2.337,
+          "mae": 1.685,
+          "rmse": 1.831,
           "exactRate": 0,
-          "bias": -0.482,
-          "underPredictionRate": 0.6,
-          "overPredictionRate": 0.4
+          "bias": 0.293,
+          "underPredictionRate": 0.4,
+          "overPredictionRate": 0.6
         },
         "riskCalibration": {
           "method": "time-holdout",
@@ -158,22 +246,22 @@
           "priorStrength": 5,
           "maximumScale": 2,
           "folds": 5,
-          "mae": 1.8,
-          "rmse": 2.408,
-          "exactRate": 0.4,
-          "bias": 0.6,
+          "mae": 2,
+          "rmse": 2.28,
+          "exactRate": 0.2,
+          "bias": 1.2,
           "underPredictionRate": 0.2,
-          "overPredictionRate": 0.4
+          "overPredictionRate": 0.6
         },
         "fit": {
-          "method": "global-rate",
-          "folds": 47,
-          "mae": 2.319,
-          "rmse": 2.847,
-          "exactRate": 0.128,
-          "bias": 1.426,
-          "underPredictionRate": 0.213,
-          "overPredictionRate": 0.66
+          "method": "regularized-hierarchical-poisson",
+          "folds": 48,
+          "mae": 1.167,
+          "rmse": 1.443,
+          "exactRate": 0.208,
+          "bias": 0.917,
+          "underPredictionRate": 0.063,
+          "overPredictionRate": 0.729
         }
       },
       "as05": {

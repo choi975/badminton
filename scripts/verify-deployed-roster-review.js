@@ -23,6 +23,11 @@ assert.equal(get.status, 405, "Transactional review route must be deployed");
 // Invalid updates exercise the receipt-table read but cannot modify any member or create a receipt.
 const invalid = await request("/api/roster-review", { method: "POST", headers: { origin, "content-type": "text/plain" }, body: JSON.stringify({ requestId: randomUUID(), updates: [{}], creates: [] }) });
 assert.equal(invalid.status, 400, "Review migration and validation must be ready");
+// A blank name also fails on the old API, so this probe can never create a member.
+const invalidNotes = await request("/api/roster-review", { method: "POST", headers: { origin, "content-type": "text/plain" },
+  body: JSON.stringify({ requestId: randomUUID(), updates: [], creates: [{ key: "notes-validation", name: " ", gender: "男", level: "2级", affiliation: "球友", notes: {} }] }) });
+assert.equal(invalidNotes.status, 400, "Member notes validation must be deployed");
+assert.equal((await invalidNotes.json()).error, "新成员备注需填写文字");
 const readOnly = await request("/api/roster-review", { method: "POST", headers: { origin: "https://choi975.github.io", "content-type": "text/plain" }, body: "{}" });
 assert.equal(readOnly.status, 403, "GitHub must remain unable to update member profiles");
-console.log("Cloudflare roster review verified live: committed HTML/grade assets, transactional API, receipt-table migration, validation and GitHub read-only protection. No member data changed.");
+console.log("Cloudflare roster review verified live: committed HTML/grade assets, transactional API, receipt-table migration, member notes validation and GitHub read-only protection. No member data changed.");
