@@ -25,7 +25,23 @@ assert.equal(LevelGroups.annotationLabels([{ name: "超级高手", min: 8, max: 
 assert.equal(LevelGroups.annotationLabels(groups).find(([label]) => label === "比赛级高手")[1], "6级", "Old annotations remain supported after a rename");
 const entries = LevelGroups.ranks.map(rank => ({ levelText: rank + "级", levelGroupLabel: "stale cached name" })).concat([{ levelText: "不详", levelGroupLabel: "高手" }]);
 const stats = LevelGroups.stats(entries, groups);
-assert.deepEqual(stats, ["竞赛：7人", "进阶：5人", "入门：3人", "未分组：3人", "等级不详：1人"]);
+assert.deepEqual(stats, ["竞赛（6~9级）：7人", "进阶（2~4级）：5人", "入门（0.5~1.5级）：3人", "未分组：3人", "等级不详：1人"]);
+assert.deepEqual(LevelGroups.stats(entries), ["比赛级高手（6~9级）：7人", "高手（4~5级）：3人", "中手（2.5~3.5级）：3人", "新手（0.5~2级）：4人", "未分组：1人", "等级不详：1人"]);
+const cardGroups = [
+  { name: "新手", min: 0.5, max: 1.5 },
+  { name: "中手", min: 2, max: 2.5 },
+  { name: "高手", min: 3, max: 3.5 },
+  { name: "比赛级高手", min: 4, max: 9 },
+];
+const cardEntries = [
+  ...Array.from({ length: 5 }, (_, index) => ({ levelText: (index % 2 ? 3.5 : 3) + "级" })),
+  ...Array.from({ length: 6 }, (_, index) => ({ levelText: (index % 2 ? 2.5 : 2) + "级" })),
+  ...Array.from({ length: 10 }, (_, index) => ({ levelText: (index % 2 ? 1.5 : 0.5) + "级" })),
+];
+assert.deepEqual(LevelGroups.stats(cardEntries, cardGroups), ["高手（3~3.5级）：5人", "中手（2~2.5级）：6人", "新手（0.5~1.5级）：10人"], "The statistics card uses the configured ranges and omits empty groups");
+assert.deepEqual(cardGroups.map(group => group.name), ["新手", "中手", "高手", "比赛级高手"], "Statistics must not reorder the saved editor settings");
+assert.deepEqual(LevelGroups.stats([{ levelText: "4级" }, { levelText: "4.5级" }, { levelText: "不详" }], [{ name: "单级", min: 4, max: 4 }]), ["单级（4级）：1人", "未分组：1人", "等级不详：1人"]);
+assert.deepEqual(LevelGroups.stats([], cardGroups), [], "An empty roster still has no statistics lines");
 assert.equal(stats.reduce((total, line) => total + Number(line.match(/：(\d+)人/)[1]), 0), entries.length, "Every person appears in exactly one bucket");
 function front(name) {
   const start = html.indexOf("    function " + name + "(");

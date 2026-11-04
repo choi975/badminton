@@ -71,9 +71,13 @@
       const label = getLabel(entry.levelText, groups);
       counts.set(label, (counts.get(label) || 0) + 1);
     });
-    return [...groups].sort((a, b) => b.max - a.max).map(group => group.name)
-      .concat(["未分组", "不详"]).filter(name => counts.has(name))
-      .map(name => (name === "不详" ? "等级不详" : name) + "：" + counts.get(name) + "人");
+    const labels = [...groups].sort((a, b) => b.max - a.max).map(group => {
+      const range = group.min === group.max ? group.min : group.min + "~" + group.max;
+      return [group.name, group.name + "（" + range + "级）"];
+    });
+    return labels.concat([["未分组", "未分组"], ["不详", "等级不详"]])
+      .filter(([name]) => counts.has(name))
+      .map(([name, label]) => label + "：" + counts.get(name) + "人");
   }
 
   root.BadmintonLevelGroups = Object.freeze({ ranks, defaults, validate, normalize, fromStored, getLabel, representativeLevel, options, annotationLabels, stats });
