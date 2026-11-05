@@ -4,12 +4,15 @@ import { DatabaseSync } from "node:sqlite";
 import { loadPaymentFunctions, paymentHtml } from "./payment-test-helpers.js";
 
 function node() {
+  let text = "";
   return {
     children: [], dataset: {}, attrs: {}, events: {}, value: "", hidden: false, disabled: false,
-    textContent: "", className: "", scrollTop: 0,
+    className: "", scrollTop: 0,
+    get textContent() { return text + this.children.map((child) => child.textContent).join(""); },
+    set textContent(value) { text = value; this.children = []; },
     classList: { toggle() {}, contains() { return false; } },
     append(...items) { this.children.push(...items); },
-    replaceChildren(...items) { this.children = items; },
+    replaceChildren(...items) { text = ""; this.children = items; },
     setAttribute(key, value) { this.attrs[key] = value; },
     getAttribute(key) { return this.attrs[key]; },
     addEventListener(key, fn) { this.events[key] = fn; },
@@ -34,14 +37,16 @@ const first = { id: 10, date: "2026-10-08", venue: "广羽", courtCount: 1, cour
 const second = { ...first, id: 11, venue: "文体", courtCount: 2, courtFee: 140 };
 state.sessions = [first, second];
 const names = ["getSessionsOnDate", "getSessionsForSelection", "createCalendarDayButton", "renderCalendarDayPanel",
-  "renderCalendarSelection", "createCalendarRecordCard", "getLocalDateString", "calendarMonthKey", "formatCalendarDate",
+  "renderCalendarSelection", "createCalendarRecordCard", "setCalendarRecordMetaText", "getLocalDateString", "calendarMonthKey", "formatCalendarDate",
   "formatCalendarSummaryMonth", "parseLocalDate", "openChainForNewDate", "maybeCancelChainEditFlow",
   "openRecordDialog", "openRecordDialogForChainEdit", "inferCourtCounts", "makeCourtCountHint", "formatCompactNumber", "formatMoney",
   "upsertSession"];
 const ui = loadPaymentFunctions(names, {
-  state, els, document: { createElement: node }, setTimeout: (fn) => fn(),
+  state, els, document: {
+    createElement: node,
+    createTextNode: (text) => { const el = node(); el.textContent = text; return el; },
+  }, setTimeout: (fn) => fn(),
   calculateSessionsLedgerAmount: () => 0, buildCalendarSummaryLine: (sessions) => `费用${sessions[0].courtFee}`,
-  setCalendarRecordMetaText: (el, title, text) => { el.textContent = `${title}：${text}`; },
   createAggregateCalendarCard: node, projectSessionParticipants: (rows) => rows,
   openChainForSessionEdit: (s) => calls.push(["edit", s.id]),
   deleteSessionRecord: (s) => calls.push(["delete", s.id]),
@@ -60,8 +65,11 @@ assert.equal(els.calendarAddSessionBtn.hidden, false, "A populated date must sti
 assert.equal(els.calendarAddSessionBtn.textContent, "新增记录");
 assert.equal(els.calendarDayTitle.parentElement.hidden, false);
 assert.equal(els.calendarDayRecords.children.length, 2);
-assert.match(byClass(els.calendarDayRecords.children[0], "calendar-record-meta").textContent, /第1场 · 广羽/);
-assert.match(byClass(els.calendarDayRecords.children[1], "calendar-record-meta").textContent, /第2场 · 文体/);
+assert.equal(els.calendarDayTitle.textContent, ui.formatCalendarDate(first.date), "Daily heading must contain only the date and weekday, not the session count");
+assert.equal(byClass(els.calendarDayRecords.children[0], "calendar-record-meta").textContent, "第1场 · 广羽：费用70");
+assert.equal(byClass(els.calendarDayRecords.children[1], "calendar-record-meta").textContent, "第2场 · 文体：费用140");
+assert.ok(byClass(els.calendarDayRecords.children[0], "calendar-record-meta-title"));
+assert.ok(byClass(els.calendarDayRecords.children[1], "calendar-record-meta-title"));
 const secondButtons = byClass(els.calendarDayRecords.children[1], "calendar-record-actions").children;
 secondButtons.forEach((button) => button.events.click());
 assert.deepEqual(calls, [["venue", 11], ["edit", 11], ["delete", 11]], "Every action targets the actual record ID");
@@ -74,9 +82,16 @@ assert.match(day.attrs["aria-label"], /2场球局，3个场地，广羽、文体
 ui.renderCalendarSelection();
 assert.match(els.calendarSelectionText.textContent, /2 场球局 · 3 个场地/);
 second.venue = "广羽";
+ui.renderCalendarDayPanel();
+assert.equal(byClass(els.calendarDayRecords.children[1], "calendar-record-meta").textContent, "第2场 · 广羽：费用140", "Same-venue sessions must retain separate numbered prefixes");
 assert.equal(byClass(ui.createCalendarDayButton(new Date(2026, 9, 8)), "calendar-day-venue").textContent, "广羽");
 state.sessions = [first];
 ui.renderCalendarDayPanel();
+assert.equal(els.calendarDayTitle.textContent, ui.formatCalendarDate(first.date));
+assert.equal(byClass(els.calendarDayRecords.children[0], "calendar-record-meta").textContent, "费用70", "A single session must start directly with its summary, with no prefix or dangling colon");
+assert.equal(byClass(els.calendarDayRecords.children[0], "calendar-record-meta-title"), undefined);
+assert.equal(els.calendarDayRecords.children[0].dataset.sessionId, "10", "Single-session actions must still target the saved record");
+assert.deepEqual(byClass(els.calendarDayRecords.children[0], "calendar-record-actions").children.map((button) => button.attrs["aria-label"]), ["切换第1场 · 广羽的球馆", "编辑第1场 · 广羽", "删除第1场 · 广羽"], "Hiding the visual prefix must preserve descriptive accessible action labels");
 assert.equal(els.calendarAddSessionBtn.hidden, false);
 assert.equal(els.calendarAddSessionBtn.textContent, "新增记录");
 els.calendarAddSessionBtn.onclick();
@@ -88,6 +103,8 @@ assert.equal(byClass(day, "calendar-day-session-count"), undefined);
 assert.equal(byClass(day, "calendar-day-venue").attrs.role, "button", "Keep single-session quick venue switching");
 state.readOnly = true;
 ui.renderCalendarDayPanel();
+assert.equal(byClass(els.calendarDayRecords.children[0], "calendar-record-meta").textContent, "费用70", "Read-only single-session cards must also omit the prefix");
+assert.equal(byClass(els.calendarDayRecords.children[0], "calendar-record-meta-title"), undefined);
 assert.equal(els.calendarAddSessionBtn.hidden, true);
 assert.equal(byClass(els.calendarDayRecords.children[0], "calendar-record-actions"), undefined);
 assert.equal(byClass(ui.createCalendarDayButton(new Date(2026, 9, 8)), "calendar-day-venue").attrs.role, undefined);
@@ -100,6 +117,8 @@ ui.renderCalendarDayPanel();
 assert.equal(els.calendarAddSessionBtn.hidden, true);
 state.calendar.selectedDates = ["2026-10-09"];
 ui.renderCalendarDayPanel();
+assert.equal(els.calendarDayTitle.textContent, ui.formatCalendarDate("2026-10-09"), "Empty-date headings must also omit the count suffix");
+assert.equal(byClass(els.calendarDayRecords, "empty-hint").textContent, "当天没有订场记录");
 assert.equal(els.calendarAddSessionBtn.textContent, "新增记录");
 assert.equal(els.calendarAddSessionBtn.hidden, false);
 state.trainingAnomaly = { trainCourt: false };

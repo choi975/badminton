@@ -9123,7 +9123,7 @@
       if (selection.length === 1) {
         const dateString = selection[0];
         const dateTitle = formatCalendarDate(dateString);
-        els.calendarDayTitle.textContent = `${dateTitle} · ${sessions.length}场球局`;
+        els.calendarDayTitle.textContent = dateTitle;
         els.calendarAddSessionBtn.textContent = "新增记录";
         els.calendarAddSessionBtn.onclick = () => openChainForNewDate(dateString);
         if (dayHead) dayHead.hidden = false;
@@ -9138,7 +9138,9 @@
           els.calendarDayRecords.replaceChildren(wrap);
           return;
         }
-        els.calendarDayRecords.replaceChildren(...sessions.map((session, index) => createCalendarRecordCard(session, `第${index + 1}场 · ${session.venue}`)));
+        els.calendarDayRecords.replaceChildren(...sessions.map((session, index) => (
+          createCalendarRecordCard(session, `第${index + 1}场 · ${session.venue}`, sessions.length > 1)
+        )));
         return;
       }
       const monthLabel = formatCalendarSummaryMonth(state.calendar.year, state.calendar.month);
@@ -9512,7 +9514,7 @@
       }
     }
 
-    function createCalendarRecordCard(session, title) {
+    function createCalendarRecordCard(session, title, showTitle = true) {
       const card = document.createElement("div");
       card.className = "calendar-record";
       card.dataset.sessionId = String(session.id);
@@ -9522,7 +9524,7 @@
       const titleWrap = document.createElement("div");
       const meta = document.createElement("div");
       meta.className = "calendar-record-meta";
-      setCalendarRecordMetaText(meta, title, buildCalendarSummaryLine([session]));
+      setCalendarRecordMetaText(meta, showTitle ? title : "", buildCalendarSummaryLine([session]));
       titleWrap.append(meta);
       head.append(titleWrap);
 
