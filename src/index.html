@@ -9288,7 +9288,7 @@
 
       const meta = document.createElement("div");
       meta.className = "calendar-record-meta";
-      setCalendarRecordMetaText(meta, title, buildCalendarSummaryLine(sessions));
+      meta.textContent = buildCalendarSummaryLine(sessions);
       titleWrap.append(meta);
       head.append(titleWrap);
 

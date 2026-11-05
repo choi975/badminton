@@ -64,4 +64,49 @@ assert.match(summary([session([], [person("男",20)])]), /男性平均20\.00元\
 assert.match(summary([]), /共0\.00元，男性平均暂无数据，女性平均暂无数据/);
 assert.doesNotMatch(summary([]), /NaN|Infinity/);
 assert.match(summary([session([], [{slots:1,amount:25,isFemale:true}])]), /女性平均25\.00元\/人次/, "Legacy explicit female flag can still be used if a gender field was never saved");
+function element() {
+  let text = "";
+  return {
+    children: [], className: "", events: {},
+    get textContent() { return text + this.children.map((child) => child.textContent).join(""); },
+    set textContent(value) { text = value; this.children = []; },
+    append(...children) { this.children.push(...children); },
+    replaceChildren(...children) { text = ""; this.children = children; },
+    addEventListener(event, handler) { this.events[event] = handler; },
+  };
+}
+const descendants = (el) => [el, ...el.children.flatMap(descendants)];
+const byClass = (el, className) => descendants(el).find((child) => child.className === className);
+const detailCalls = [];
+const cards = loadPaymentFunctions([
+  "createAggregateCalendarCard", "setCalendarRecordMetaText",
+  "buildCalendarSummaryLine", "getCalendarGenderStats", "courtPriceBreakdown", "formatCompactNumber", "formatMoney",
+], {
+  document: {
+    createElement: element,
+    createTextNode: (text) => { const node = element(); node.textContent = text; return node; },
+  },
+  projectSessionParticipants: (rows) => rows.map((row) => ({ key: row.playerId, ownerName: row.playerName, amount: row.amount })),
+  collator: new Intl.Collator("zh-CN"),
+  openCalendarDetailModal: (...args) => detailCalls.push(args),
+});
+const cardSessions = [session([{ price: 70, count: 1 }], [person("男", 70, { playerId: 1, playerName: "球友" })])];
+const originalCardSessions = structuredClone(cardSessions);
+for (const title of ["11月合计", "选中 2 天", "选中 10 天"]) {
+  const card = cards.createAggregateCalendarCard(cardSessions, title);
+  const meta = byClass(card, "calendar-record-meta");
+  assert.equal(meta.textContent, summary(cardSessions), "Aggregate rows must start with the statistics, without repeating the heading");
+  assert.equal(byClass(meta, "calendar-record-meta-title"), undefined, "Month and multi-day summary prefixes must be omitted");
+  assert.equal(byClass(card, "calendar-record-player").textContent, "球友（70.00元）", "Removing the prefix must preserve member totals");
+  byClass(card, "primary-btn").events.click();
+  const [openedSessions, openedTitle] = detailCalls.at(-1);
+  assert.equal(openedSessions, cardSessions);
+  assert.equal(openedTitle, title, "The detail dialog must retain its month or selected-days context");
+}
+assert.deepEqual(cardSessions, originalCardSessions, "Aggregate rendering must not mutate booking or payment records");
+const dailyMeta = element();
+cards.setCalendarRecordMetaText(dailyMeta, "第1场 · 广羽", summary(cardSessions));
+assert.equal(dailyMeta.textContent, "第1场 · 广羽：" + summary(cardSessions), "Individual session labels must remain intact");
+assert.ok(byClass(dailyMeta, "calendar-record-meta-title"));
+
 console.log("Calendar summary passed: exact three-hour equivalents, actual-price preservation, sample total, gender-weighted averages, companions, legacy/unknown/zero/empty cases.");
