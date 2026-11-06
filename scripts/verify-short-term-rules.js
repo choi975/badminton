@@ -40,6 +40,7 @@ const context = vm.createContext({
 });
 
 const functionNames = [
+  "getBeijingDateString",
   "addDaysToIsoDate",
   "getBeijingWeekday",
   "getNextMondayIso",
@@ -66,6 +67,8 @@ globalThis.shortRuleApi = { parseShortRuleText, parseShortRuleTextMultiple, pars
 
 const { parseShortRuleText, parseShortRuleTextMultiple, parseChineseNumber, shortRuleDescription } = context.shortRuleApi;
 const today = "2026-08-31";
+const beijingDateString = context.getBeijingDateString;
+context.getBeijingDateString = () => today;
 
 const shakePeopleSection = indexHtml.slice(
   indexHtml.indexOf('<div id="shakePeopleModal"'),
@@ -84,7 +87,7 @@ assert.equal(within.startsOn, today);
 assert.equal(within.expiresOn, "2026-09-02");
 assert.equal(within.rule.resumeOn, "2026-09-03");
 assert.equal(within.rule.note, "培训");
-assert.equal(shortRuleDescription(within), "9.3（星期四） 再打 培训");
+assert.equal(shortRuleDescription(within), "3天后（星期四） 再打 培训");
 
 const after = parseShortRuleText("果花 15天后 再打 军训", today);
 assert.equal(after.expiresOn, "2026-09-14");
@@ -94,7 +97,7 @@ assert.equal(after.rule.note, "军训");
 const nextTuesday = parseShortRuleText("阿达 下周二 再打 加班", today);
 assert.equal(nextTuesday.expiresOn, "2026-09-07");
 assert.equal(nextTuesday.rule.resumeOn, "2026-09-08");
-assert.equal(shortRuleDescription(nextTuesday), "9.8（星期二） 再打 加班");
+assert.equal(shortRuleDescription(nextTuesday), "8天后（星期二） 再打 加班");
 
 const nextMonday = parseShortRuleText("阿达 下周一 再打", today);
 assert.equal(nextMonday.rule.resumeOn, "2026-09-07");
@@ -138,14 +141,36 @@ assert.match(migrationSource, /date\(created_at, '\+8 hours'\)/);
 assert.match(correctionMigrationSource, /starts_on = substr\(created_at, 1, 10\)/);
 
 
-// Date labels use the activity's calendar day, independent of the browser timezone.
-assert.equal(context.formatShortRuleDate("2026-10-18"), "10.18（星期日）");
-assert.equal(context.formatShortRuleDate("2026-12-31"), "12.31（星期四）");
-assert.equal(context.formatShortRuleDate("2027-01-01"), "1.1（星期五）");
-assert.equal(context.formatShortRuleDate("2028-02-29"), "2.29（星期二）");
+// Relative dates use Beijing calendar days, not elapsed hours or the browser timezone.
+for (const [date, base, expected] of [
+  ["2026-11-07", "2026-11-06", "明天（星期六）"],
+  ["2026-11-08", "2026-11-06", "后天（星期日）"],
+  ["2026-11-09", "2026-11-06", "3天后（星期一）"],
+  ["2026-11-16", "2026-11-06", "10天后（星期一）"],
+  ["2026-11-01", "2026-10-31", "明天（星期日）"],
+  ["2027-01-01", "2026-12-31", "明天（星期五）"],
+  ["2028-02-29", "2028-02-27", "后天（星期二）"],
+  ["2028-03-01", "2028-02-28", "后天（星期三）"],
+  ["2027-08-10", "2026-11-06", "277天后（星期二）"],
+  ["2026-11-06", "2026-11-06", "今天（星期五）"],
+  ["2026-11-05", "2026-11-06", "1天前（星期四）"],
+]) assert.equal(context.formatShortRuleDate(date, base), expected);
 assert.equal(context.formatShortRuleDate("2026-02-29"), "日期未知");
+assert.equal(context.formatShortRuleDate("2026-11-07", "invalid"), "日期未知");
 assert.equal(context.formatRuleWeekdaySuffix(""), "");
-assert.equal(context.shortRuleSchedule(crossYear), "1.2（星期六） 再打");
+const beforeMidnight = beijingDateString(new Date("2026-11-06T15:59:59Z"));
+const afterMidnight = beijingDateString(new Date("2026-11-06T16:00:00Z"));
+assert.equal(beforeMidnight, "2026-11-06");
+assert.equal(afterMidnight, "2026-11-07");
+assert.equal(context.formatShortRuleDate("2026-11-08", beforeMidnight), "后天（星期日）");
+assert.equal(context.formatShortRuleDate("2026-11-08", afterMidnight), "明天（星期日）");
+context.getBeijingDateString = () => "2026-12-31";
+assert.equal(context.shortRuleSchedule(crossYear), "后天（星期六） 再打");
+assert.equal(context.shortRuleDescription(crossYear), "后天（星期六） 再打");
+context.getBeijingDateString = () => today;
+assert.equal(context.shortRuleSchedule({ type: "not_before_date", expiresOn: today }), "明天（星期二） 再打");
+const ruleEditorSection = indexHtml.slice(indexHtml.indexOf('<div id="shortRuleModal"'), indexHtml.indexOf('<div id="photoModal"'));
+assert.doesNotMatch(ruleEditorSection, /星期规则持续有效|日期规则到期后自动失效|short-rule-hint/);
 const legacyOnlyDays = { id: 99, playerId: 1, type: "only_days", rule: { weekdays: [5, 6] } };
 assert.equal(context.ruleBlocksPlayerToday(legacyOnlyDays, 1, today), false, "legacy allowlists cannot exclude a Monday candidate");
 assert.equal(context.ruleBlocksPlayerToday({ ...legacyOnlyDays, expiresOn: "2099-01-01" }, 1, today), false, "retired rules cannot fall through into date blocking");
@@ -157,6 +182,26 @@ assert.deepEqual([...context.getActiveRules()].map((rule) => rule.type), ["not_d
 for (let day = 18; day <= 24; day += 1) {
   assert.equal(context.formatRuleWeekdaySuffix(`2026-10-${day}`), `（星期${"日一二三四五六"[day - 18]}）`);
 }
+
+// An open editor updates on Beijing rollover even if cloud synchronization fails.
+let rolloverDate = "2026-11-06", rolloverRenders = 0;
+const rolloverContext = vm.createContext({
+  console: { warn() {} }, activeGroupDate: rolloverDate,
+  state: { shakeBottomedPlayerIds: new Set() },
+  els: { chainInput: {}, shortRuleModal: { classList: { contains: () => true } }, shakePeopleModal: { classList: { contains: () => false } } },
+  getBeijingDateString: () => rolloverDate,
+  processChain() {}, loadCurrentGroupAttempt: async () => {},
+  loadMemberStatistics: async () => { throw new Error("offline"); },
+  renderGroupForecast() {}, renderShortTermRulesList() { rolloverRenders++; },
+});
+vm.runInContext(extractFunction(indexHtml, "refreshTimeSensitiveGroupForecast"), rolloverContext);
+rolloverContext.refreshTimeSensitiveGroupForecast();
+assert.equal(rolloverRenders, 0);
+rolloverDate = "2026-11-07";
+rolloverContext.refreshTimeSensitiveGroupForecast();
+assert.equal(rolloverRenders, 1, "relative dates refresh immediately at midnight without waiting for the cloud");
+rolloverContext.refreshTimeSensitiveGroupForecast();
+assert.equal(rolloverRenders, 1, "same-day forecast refreshes leave the editor intact");
 
 // Both categorized lists and the rule editor share independent, aligned cells.
 class RuleElement {
@@ -178,7 +223,7 @@ assert.deepEqual(displayRow.children.map((cell) => cell.className || cell.tagNam
 ]);
 assert.equal(displayRow.children[0].textContent, "果花");
 assert.equal(displayRow.children[0].children.length, 0, "Names must not have a short-term subtitle");
-assert.equal(displayRow.children[1].textContent, "9.3（星期四） 再打");
+assert.equal(displayRow.children[1].textContent, "3天后（星期四） 再打");
 assert.equal(displayRow.children[2].textContent, "培训");
 displayRow.children[3].listeners.click();
 assert.equal(deletedRuleId, 42);
@@ -206,4 +251,4 @@ assert.equal(db.prepare("SELECT value FROM app_settings WHERE key='shake_revisio
 assert.equal(db.prepare("SELECT value FROM app_settings WHERE key='best_partner_overrides'").get().value, "{}");
 assert.equal(db.prepare("SELECT COUNT(*) AS n FROM players").get().n, 1);
 db.close();
-console.log("Short-term rule parsing, retired allowlists, safe migration, aligned display, weekday labels, deletion, and early-return checks passed.");
+console.log("Short-term rule parsing, retired allowlists, safe migration, aligned display, Beijing-relative dates, deletion, and early-return checks passed.");

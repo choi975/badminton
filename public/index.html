@@ -1245,11 +1245,6 @@
       font-size: 14px;
     }
 
-    .short-rule-hint {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
     .short-term-rules-list {
       display: grid;
       gap: 7px;
@@ -5154,7 +5149,6 @@
         <div class="short-rule-divider"></div>
         <div class="short-rule-head">
           <h3>现有规则</h3>
-          <span class="short-rule-hint">星期规则持续有效，日期规则到期后自动失效</span>
         </div>
         <div id="shortTermRulesList" class="short-term-rules-list"></div>
       </div>
@@ -10532,6 +10526,7 @@
         processChain();
         void loadCurrentGroupAttempt();
         void loadMemberStatistics().catch((error) => console.warn("成员统计日历刷新失败，使用本地日历", error));
+        if (els.shortRuleModal.classList.contains("open")) renderShortTermRulesList();
       }
       groupForecastCacheKey = "";
       renderGroupForecast({ force: true });
@@ -13795,10 +13790,12 @@
       return `（星期${"日一二三四五六"[getBeijingWeekday(dateString)]}）`;
     }
 
-    function formatShortRuleDate(dateString) {
-      if (!isValidIsoDate(dateString)) return "日期未知";
-      const [, month, day] = dateString.split("-").map(Number);
-      return `${month}.${day}${formatRuleWeekdaySuffix(dateString)}`;
+    function formatShortRuleDate(dateString, today = getBeijingDateString()) {
+      if (!isValidIsoDate(dateString) || !isValidIsoDate(today)) return "日期未知";
+      const days = Math.round((Date.parse(`${dateString}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000);
+      const label = days === 0 ? "今天" : days === 1 ? "明天" : days === 2 ? "后天"
+        : days > 0 ? `${days}天后` : `${Math.abs(days)}天前`;
+      return `${label}${formatRuleWeekdaySuffix(dateString)}`;
     }
 
     function normalizeShortRuleNote(value) {
@@ -14559,10 +14556,13 @@
       const names = document.createElement("span");
       names.className = "member-partner-names";
       names.textContent = pair.names.join(" ↔ ");
-      const count = document.createElement("span");
-      count.className = "member-partner-count";
-      count.textContent = pair.pendingEvidence ? "手工添加 · 历史统计更新中" : `共同出勤 ${pair.togetherDays} 天${pair.source === "manual" ? " · 手工添加" : ""}`;
-      summary.append(names, count);
+      summary.append(names);
+      if (pair.pendingEvidence || pair.source === "manual") {
+        const metadata = document.createElement("span");
+        metadata.className = "member-partner-count";
+        metadata.textContent = pair.pendingEvidence ? "手工添加 · 历史统计更新中" : "手工添加";
+        summary.append(metadata);
+      }
       const evidence = document.createElement("div");
       evidence.className = "member-partner-evidence";
       const formatRate = (value) => value.opportunities > 0
@@ -14573,10 +14573,12 @@
         line.textContent = `${pair.names[1 - index]}参加时，${pair.names[index]}出勤：${formatRate(direction.withPartner)}；未参加时：${formatRate(direction.withoutPartner)}。`;
         evidence.append(line);
       });
-      const scope = document.createElement("p");
-      scope.className = "member-statistics-note member-partner-scope";
-      scope.textContent = !pair.opportunityDays ? "暂无可比较的已完成订场记录；手工关系仍有效，不据此假定到场概率。" : `比较范围：${pair.start} 至 ${pair.end}，${pair.opportunityDays} 个有球局的日期；共同 ${pair.togetherSessions} 场。${pair.source === "manual" ? "此关系由手工添加，不要求达到自动识别的样本门槛。" : "自动识别采用近期加权、星期及时期校正。"}以上比例不是邀约成功率；人工排名只影响展示。`;
-      evidence.append(scope);
+      if (!pair.opportunityDays) {
+        const scope = document.createElement("p");
+        scope.className = "member-statistics-note member-partner-scope";
+        scope.textContent = "暂无可比较的已完成订场记录；手工关系仍有效，不据此假定到场概率。";
+        evidence.append(scope);
+      }
       details.append(summary, evidence);
       const row = document.createElement("div");
       row.className = "member-partner-row";
