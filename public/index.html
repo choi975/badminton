@@ -1673,7 +1673,14 @@
 
     .registered-shuttle-types { display: grid; gap: 6px; margin: 0; font-size: 12px; }
     .registered-shuttle-type { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 8px; }
-    .registered-shuttle-type dt { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+    .registered-shuttle-type dt { display: flex; align-items: start; gap: 6px; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+    .registered-shuttle-type dt > span { min-width: 0; flex: 1; }
+    .registered-shuttle-edit { min-height: 28px; padding: 0 6px; flex: 0 0 auto; font-size: 12px; }
+    .registered-shuttle-history { display: block; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .shuttle-type-actions { display: flex; gap: 6px; grid-column: 1 / -1; }
+    .shuttle-type-actions button { flex: 1; }
+    .shuttle-type-actions button[hidden] { display: none; }
+    .shuttle-type-form-error { grid-column: 1 / -1; margin: 0; color: var(--danger); font-size: 12px; line-height: 1.5; }
     .registered-shuttle-type dd { min-width: 0; margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
     .shuttle-type-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 6px; margin-top: 8px; }
     .shuttle-type-editor[hidden] { display: none; }
@@ -1879,6 +1886,10 @@
       min-height: 32px;
       padding: 4px 7px;
     }
+
+    .shuttle-price-row input[type="number"] { appearance: textfield; }
+    .shuttle-price-row input::-webkit-inner-spin-button,
+    .shuttle-price-row input::-webkit-outer-spin-button { appearance: none; margin: 0; }
 
     .court-count-control { display: flex; min-width: 0; position: relative; }
     .court-count-control input { width: 100%; padding-right: 26px; appearance: textfield; }
@@ -4745,14 +4756,18 @@
                   <dl id="registeredShuttleTypes" class="registered-shuttle-types" aria-labelledby="registeredShuttleTypesTitle"></dl>
                   <form id="shuttleTypeRegistrationForm" class="shuttle-type-editor" hidden>
                     <div class="field">
-                      <label for="newShuttleTypeName">新增球型</label>
+                      <label id="newShuttleTypeNameLabel" for="newShuttleTypeName">新增球型</label>
                       <input id="newShuttleTypeName" maxlength="40" autocomplete="off" placeholder="球型名称" required>
                     </div>
                     <div class="field">
-                      <label for="newShuttleTypePrices">单价（元/颗）</label>
+                      <label id="newShuttleTypePricesLabel" for="newShuttleTypePrices">单价（元/颗）</label>
                       <input id="newShuttleTypePrices" inputmode="decimal" autocomplete="off" placeholder="多个用逗号隔开" required>
                     </div>
-                    <button id="registerShuttleTypeBtn" type="submit">登记球型号</button>
+                    <div class="shuttle-type-actions">
+                      <button id="registerShuttleTypeBtn" type="submit">登记球型号</button>
+                      <button id="cancelShuttleTypeEditBtn" type="button" hidden>取消编辑</button>
+                    </div>
+                    <p id="shuttleTypeFormError" class="shuttle-type-form-error" role="alert" hidden></p>
                   </form>
                 </div>
               </div>
@@ -5220,8 +5235,8 @@
       version: 5,
       training: {},
       shuttleTypes: [
-        { id: "rsl3", name: "亚3", prices: [11, 11.3, 11.5], sampleCount: 0, trainingMode: "cold-start" },
-        { id: "as05", name: "AS05", prices: [13.5], sampleCount: 0, trainingMode: "cold-start" },
+        { id: "rsl3", name: "亚3", defaultPrice: 11.3, prices: [11, 11.3, 11.5], sampleCount: 0, trainingMode: "cold-start" },
+        { id: "as05", name: "AS05", defaultPrice: 13.5, prices: [13.5], sampleCount: 0, trainingMode: "cold-start" },
       ],
       court: {
         formula: "ceil(participantCount / peoplePerCourt)",
@@ -5365,6 +5380,9 @@
       trainingAnomaly: null,
       estimatorAdvancedOpen: false,
       shuttleTypeSaving: false,
+      shuttleTypeEdit: null,
+      shuttleTypeFormError: "",
+      shuttlePriceUserOwned: false,
       levelGroups: LevelGroups.normalize(null),
       levelGroupDraft: null,
       levelGroupsSaving: false,
@@ -5521,6 +5539,10 @@
       newShuttleTypeName: document.getElementById("newShuttleTypeName"),
       newShuttleTypePrices: document.getElementById("newShuttleTypePrices"),
       registerShuttleTypeBtn: document.getElementById("registerShuttleTypeBtn"),
+      newShuttleTypeNameLabel: document.getElementById("newShuttleTypeNameLabel"),
+      newShuttleTypePricesLabel: document.getElementById("newShuttleTypePricesLabel"),
+      cancelShuttleTypeEditBtn: document.getElementById("cancelShuttleTypeEditBtn"),
+      shuttleTypeFormError: document.getElementById("shuttleTypeFormError"),
       courtPriceRows: document.getElementById("courtPriceRows"),
       shuttlePriceRows: document.getElementById("shuttlePriceRows"),
       paymentBtn: document.getElementById("paymentBtn"),
@@ -5738,7 +5760,7 @@
       }
       if (cleanGroupDraft) state.levelGroupDraft = null;
       renderShakeLevelOptions();
-      state.estimator = normalizeEstimator(data.estimator);
+      applyShuttleEstimator(data.estimator);
       state.shortTermRules = Array.isArray(data.shortTermRules)
         ? data.shortTermRules.filter((rule) => rule?.type !== "only_days") : state.shortTermRules;
       state.groupAttemptOutcomes = Array.isArray(data.groupAttemptOutcomes) ? data.groupAttemptOutcomes : state.groupAttemptOutcomes;
@@ -5889,13 +5911,13 @@
           }
         });
         input.addEventListener("input", () => {
-          if (input === els.shuttlePriceInput) applyShuttlePriceSelection();
+          if (input === els.shuttlePriceInput) { state.shuttlePriceUserOwned = true; applyShuttlePriceSelection(); }
           processChain();
         });
       });
       els.shuttlePriceInput.addEventListener("change", () => {
         const price = Number(els.shuttlePriceInput.value);
-        if (Number.isFinite(price) && !findShuttleTypeByPrice(price)) {
+        if (Number.isFinite(price) && !getCurrentShuttleTypeForPrice(price)) {
           toast("未登记球型号，请先记录");
         }
       });
@@ -5920,6 +5942,7 @@
       els.paymentRecordBtn.addEventListener("click", handleRecordPayment);
       els.estimatorAdvancedBtn.addEventListener("click", toggleEstimatorAdvancedPanel);
       els.shuttleTypeRegistrationForm.addEventListener("submit", registerShuttleType);
+      els.cancelShuttleTypeEditBtn.addEventListener("click", cancelShuttleTypeEdit);
       els.trainingSkipBtn.addEventListener("click", () => finishAnomalyTraining(false));
       els.trainingAcceptBtn.addEventListener("click", () => finishAnomalyTraining(true));
       els.recordCourtFeeInput.addEventListener("input", onRecordCourtFeeChange);
@@ -6066,7 +6089,7 @@
       if (data.removedShortRuleCount) void loadShortTermRules().catch(cause => console.warn("记录已保存，返场规则刷新失败", cause.message));
       if (data.estimatorPending) {
         setTimeout(() => { void api("/api/estimator", { timeout: 60000 }).then(result => {
-          if (Number(result.estimator?.trainingRevision) >= Number(state.estimator?.trainingRevision || 0)) state.estimator = normalizeEstimator(result.estimator);
+          if (Number(result.estimator?.trainingRevision) >= Number(state.estimator?.trainingRevision || 0)) applyShuttleEstimator(result.estimator);
         }).catch(cause => console.warn("记录已保存，预估模型稍后刷新", cause.message)); }, 1000);
       }
 
@@ -7374,6 +7397,41 @@
       return (a.joinNumber - b.joinNumber) || (a.playerId - b.playerId);
     }
 
+    function getShuttleDefaultPrice(type) {
+      const explicit = Number(type?.defaultPrice);
+      if (Number.isFinite(explicit) && explicit > 0) return explicit;
+      const fallback = DEFAULT_ESTIMATOR.shuttleTypes.find(item => item.id === type?.id);
+      const legacy = Number(fallback?.defaultPrice) || fallback?.prices?.[0];
+      if (legacy && (type?.prices || []).some(price => Number(price) === Number(legacy))) return Number(legacy);
+      return (type?.prices || []).map(Number).find(price => Number.isFinite(price) && price > 0) || 0;
+    }
+
+    function applyShuttleEstimator(raw) {
+      if (Number.isFinite(Number(raw?.trainingRevision)) && Number(raw.trainingRevision) < Number(state.estimator?.trainingRevision || 0)) return;
+      const previous = state.estimator;
+      state.estimator = normalizeEstimator(raw);
+      syncShuttleDefaultPrices(previous);
+    }
+
+    function syncShuttleDefaultPrices(previous) {
+      if (state.pendingSessionEdit?.id) return;
+      const oldTypes = previous?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
+      const types = state.estimator.shuttleTypes;
+      const selected = types.find(type => type.id === state.selectedEstimateShuttleTypeId) || types[0];
+      const oldSelected = oldTypes.find(type => type.id === selected?.id);
+      const input = els.shuttlePriceInput;
+      if (input && !state.shuttlePriceUserOwned && oldSelected && Number(input.value) === getShuttleDefaultPrice(oldSelected)) {
+        input.value = String(getShuttleDefaultPrice(selected));
+        input.dataset.defaultValue = input.value;
+      }
+      for (const row of state.advancedRows?.shuttle || []) {
+        const oldType = oldTypes.find(type => type.id === row.type), type = types.find(type => type.id === row.type);
+        if (oldType && type && !row.priceUserOwned && Number(row.price) === getShuttleDefaultPrice(oldType)) row.price = getShuttleDefaultPrice(type);
+      }
+      const signature = rows => JSON.stringify(rows.map(type => [type.id, type.name, getShuttleDefaultPrice(type)]));
+      if (state.feeMode === "advanced" && signature(oldTypes) !== signature(types)) renderAllFeeAdvancedRows();
+    }
+
     function normalizeEstimator(raw) {
       if (!raw || typeof raw !== "object") return DEFAULT_ESTIMATOR;
       const rawTypes = Array.isArray(raw.shuttleTypes) && raw.shuttleTypes.length
@@ -7384,6 +7442,7 @@
         return {
           ...fields,
           id: String(type.id),
+          defaultPrice: getShuttleDefaultPrice(type),
           prices: Array.isArray(type.prices) ? type.prices.map(Number).filter(Number.isFinite) : [],
         };
       });
@@ -8192,7 +8251,7 @@
         const data = await saveSessionRequest("/api/sessions", body);
         upsertSession(data.session);
         const balanceMessage = applyEdcBalanceResponse(data);
-        if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
+        if (data.estimator) applyShuttleEstimator(data.estimator);
         finishSessionSaveFollowups(data);
         applyGroupAttemptResponse(data.groupAttempt);
         state.trainingAnomaly = null;
@@ -8558,7 +8617,7 @@
         const data = await saveSessionRequest(editing ? `/api/sessions/${sessionId}` : "/api/sessions", body);
         upsertSession(data.session);
         const balanceMessage = editing ? "" : applyEdcBalanceResponse(data);
-        if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
+        if (data.estimator) applyShuttleEstimator(data.estimator);
         finishSessionSaveFollowups(data);
         applyGroupAttemptResponse(data.groupAttempt);
         state.trainingAnomaly = null;
@@ -9430,6 +9489,7 @@
     }
 
     function openChainForSessionEdit(session) {
+      state.shuttlePriceUserOwned = true;
       if (state.readOnly) {
         toast("当前为只读模式，不能编辑订场记录");
         return;
@@ -9507,7 +9567,11 @@
       els.feeAdvancedBtn.textContent = "高级";
       const courtUnit = getCourtUnitPriceForDate(dateString);
       els.courtFeeInput.value = String(courtUnit);
-      els.shuttlePriceInput.value = "11.3";
+      const firstType = state.estimator.shuttleTypes[0];
+      state.selectedEstimateShuttleTypeId = firstType?.id || "rsl3";
+      state.shuttlePriceUserOwned = false;
+      els.shuttlePriceInput.value = String(getShuttleDefaultPrice(firstType));
+      els.shuttlePriceInput.dataset.defaultValue = els.shuttlePriceInput.value;
       els.shuttleCountInput.value = "4";
       els.courtFeeInput.dataset.defaultValue = String(courtUnit);
       els.shuttleCountInput.dataset.defaultValue = "4";
@@ -9599,7 +9663,7 @@
       try {
         const data = await api(`/api/sessions/${session.id}`, { method: "DELETE" });
         state.sessions = state.sessions.filter((item) => item.id !== session.id);
-        if (data.estimator) state.estimator = normalizeEstimator(data.estimator);
+        if (data.estimator) applyShuttleEstimator(data.estimator);
         applyGroupAttemptResponse(data.groupAttempt);
         setSync("已删除");
         renderTable();
@@ -9766,6 +9830,17 @@
       return concatUint8([...localParts, ...centralParts, end]);
     }
 
+    function getCurrentShuttleTypeForPrice(price) {
+      if (!Number.isFinite(price)) return null;
+      if (state.pendingSessionEdit?.id) return findShuttleTypeByPrice(price);
+      const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
+      const selected = types.find(type => type.id === state.selectedEstimateShuttleTypeId) || types[0];
+      const matches = type => Math.abs(getShuttleDefaultPrice(type) - price) < 0.02 || (type.prices || []).some(known => Math.abs(Number(known) - price) < 0.02);
+      if (selected && matches(selected)) return selected;
+      const defaults = types.filter(type => Math.abs(getShuttleDefaultPrice(type) - price) < 0.02);
+      return defaults.length === 1 ? defaults[0] : findShuttleTypeByPrice(price);
+    }
+
     function findShuttleTypeByPrice(price) {
       if (!Number.isFinite(price)) return null;
       const matches = (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes).filter((type) => (
@@ -9853,7 +9928,7 @@
     }
 
     function predictedShuttleCountForPrice(estimate, price) {
-      const type = findShuttleTypeByPrice(price);
+      const type = getCurrentShuttleTypeForPrice(price);
       if (!type || !estimate) return null;
       return estimate.shuttleCounts?.[type.id] ?? null;
     }
@@ -9861,7 +9936,7 @@
     function updateShuttleTypeNotice() {
       const raw = els.shuttlePriceInput.value.trim();
       const price = raw === "" ? null : Number(raw);
-      const unknown = price !== null && Number.isFinite(price) && !findShuttleTypeByPrice(price);
+      const unknown = price !== null && Number.isFinite(price) && !getCurrentShuttleTypeForPrice(price);
       els.shuttleTypeNotice.hidden = !unknown;
       els.shuttleTypeNotice.textContent = unknown ? "未登记球型号，请先记录" : "";
     }
@@ -9907,9 +9982,9 @@
         typeSelect.addEventListener("change", () => {
           row.type = typeSelect.value;
           const type = types.find((item) => item.id === row.type);
-          if (type?.prices?.length && !Number.isFinite(Number(row.price))) row.price = Number(type.prices[0]);
-          if (type?.prices?.length && !type.prices.some((price) => Math.abs(Number(price) - Number(row.price)) < 0.02)) {
-            row.price = Number(type.prices[0]);
+          if (type) {
+            row.price = getShuttleDefaultPrice(type);
+            row.priceUserOwned = false;
             priceInput.value = formatCompactNumber(row.price);
           }
           onChanged?.();
@@ -9988,6 +10063,7 @@
 
       priceInput.addEventListener("input", () => {
         row.price = Number(priceInput.value) || 0;
+        if (kind === "shuttle") row.priceUserOwned = true;
         onChanged?.();
       });
       countInput.addEventListener("input", () => {
@@ -10012,7 +10088,7 @@
         onlyRow: rows.length === 1,
         onAdd: () => {
           const firstType = kind === "shuttle" ? (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes)[0] : null;
-          rows.push({ price: Number(firstType?.prices?.[0] || 0), count: 1, ...(firstType ? { type: firstType.id } : {}) });
+          rows.push({ price: firstType ? getShuttleDefaultPrice(firstType) : 0, count: 1, ...(firstType ? { type: firstType.id } : {}) });
           renderPriceRows(container, rows, onChanged, kind);
           onChanged?.();
         },
@@ -10105,9 +10181,11 @@
         ? breakdown
         : [{ price: courts ? currentFee / courts : 0, count: courts || 1 }];
       const shuttleCount = Math.max(0, Math.floor(Number(els.shuttleCountInput.value) || 0));
-      const firstShuttleType = (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes)[0];
+      const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
+      const firstShuttleType = types.find(type => type.id === state.selectedEstimateShuttleTypeId) || types[0];
       const shuttleRows = [{
-        price: Number(els.shuttlePriceInput.value) || Number(firstShuttleType?.prices?.[0] || 0),
+        price: Number(els.shuttlePriceInput.value) || getShuttleDefaultPrice(firstShuttleType),
+        priceUserOwned: Boolean(state.shuttlePriceUserOwned),
         count: shuttleCount,
         type: firstShuttleType?.id || "rsl3",
       }];
@@ -10128,6 +10206,8 @@
 
     function exitAdvancedFeeMode() {
       const totals = getAdvancedTotals();
+      state.shuttlePriceUserOwned = totals.shuttleRows.length !== 1 || Boolean(totals.shuttleRows[0]?.priceUserOwned);
+      if (totals.shuttleRows.length === 1) state.selectedEstimateShuttleTypeId = totals.shuttleRows[0].type;
       els.courtFeeInput.value = formatCompactNumber(totals.courtFee);
       els.shuttlePriceInput.value = formatCompactNumber(totals.shuttlePrice);
       els.shuttleCountInput.value = String(totals.shuttleCount);
@@ -11059,7 +11139,7 @@
       const shuttlePrice = advanced ? advanced.shuttlePrice : shuttlePriceRaw === "" ? null : Number(shuttlePriceRaw);
       const shuttleCount = advanced ? advanced.shuttleCount : shuttleCountRaw === "" ? null : Number(shuttleCountRaw);
       const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
-      const typeByPrice = findShuttleTypeByPrice(shuttlePrice);
+      const typeByPrice = advanced ? findShuttleTypeByPrice(shuttlePrice) : getCurrentShuttleTypeForPrice(shuttlePrice);
       const type = typeByPrice
         || types.find((item) => item.id === state.selectedEstimateShuttleTypeId)
         || types[0]
@@ -11089,7 +11169,7 @@
     function applyShuttlePriceSelection() {
       if (!state.chainEntries.length) return;
       const price = Number(els.shuttlePriceInput.value);
-      const type = findShuttleTypeByPrice(price);
+      const type = getCurrentShuttleTypeForPrice(price);
       if (!type) return;
       const estimate = estimateBooking(state.chainEntries);
       const predicted = estimate.shuttleCounts?.[type.id] || estimate.primaryShuttleCount || 0;
@@ -11194,8 +11274,9 @@
         const type = state.estimator?.shuttleTypes?.find((item) => item.id === shuttlePicker.value);
         state.selectedEstimateShuttleTypeId = shuttlePicker.value;
         if (type?.prices?.length) {
-          els.shuttlePriceInput.value = String(type.prices[0]);
-          els.shuttlePriceInput.dataset.defaultValue = String(type.prices[0]);
+          state.shuttlePriceUserOwned = false;
+          els.shuttlePriceInput.value = String(getShuttleDefaultPrice(type));
+          els.shuttlePriceInput.dataset.defaultValue = els.shuttlePriceInput.value;
         }
         const predicted = estimate.shuttleCounts?.[shuttlePicker.value] || 0;
         els.shuttleCountInput.value = String(predicted);
@@ -11405,49 +11486,101 @@
 
     function renderRegisteredShuttleTypes() {
       const types = (state.estimator || DEFAULT_ESTIMATOR).shuttleTypes || [];
+      const canRegister = IS_WORKER_APP && !state.readOnly;
       els.registeredShuttleTypes.replaceChildren();
       types.forEach((type) => {
         const row = document.createElement("div");
         row.className = "registered-shuttle-type";
-        const name = document.createElement("dt");
-        name.textContent = type.name;
-        const price = document.createElement("dd");
-        const prices = [...new Set((type.prices || []).map(Number).filter((amount) => Number.isFinite(amount) && amount > 0))];
-        price.textContent = prices.length ? `${prices.map(formatMoney).join("、")} 元/颗` : "暂未登记价格";
-        row.append(name, price);
+        const name = document.createElement("dt"), label = document.createElement("span");
+        label.textContent = type.name;
+        name.append(label);
+        if (canRegister) {
+          const edit = document.createElement("button");
+          edit.type = "button"; edit.className = "registered-shuttle-edit";
+          edit.textContent = "编辑";
+          edit.setAttribute("aria-label", `编辑${type.name}默认价格`);
+          edit.disabled = state.shuttleTypeSaving || Boolean(state.shuttleTypeEdit);
+          edit.addEventListener("click", () => editShuttleType(type.id));
+          name.append(edit);
+        }
+        const price = document.createElement("dd"), current = document.createElement("strong"), history = document.createElement("span");
+        const defaultPrice = getShuttleDefaultPrice(type);
+        current.textContent = defaultPrice ? `默认 ${formatMoney(defaultPrice)} 元/颗` : "暂未设置默认价";
+        const prices = [...new Set((type.prices || []).map(Number).filter(amount => Number.isFinite(amount) && amount > 0))];
+        history.className = "registered-shuttle-history";
+        history.textContent = prices.length ? `历史价 ${prices.map(formatMoney).join("、")}` : "暂未登记价格";
+        price.append(current, history); row.append(name, price);
         els.registeredShuttleTypes.append(row);
       });
       if (!types.length) {
-        const empty = document.createElement("div");
-        empty.className = "empty-hint";
-        empty.textContent = "暂无已登记球型";
+        const empty = document.createElement("div"); empty.className = "empty-hint"; empty.textContent = "暂无已登记球型";
         els.registeredShuttleTypes.append(empty);
       }
-      const canRegister = IS_WORKER_APP && !state.readOnly;
       els.shuttleTypeRegistrationForm.hidden = !canRegister;
-      const disabled = !canRegister || state.shuttleTypeSaving;
-      els.newShuttleTypeName.disabled = disabled;
-      els.newShuttleTypePrices.disabled = disabled;
-      els.registerShuttleTypeBtn.disabled = disabled;
+      const disabled = !canRegister || state.shuttleTypeSaving, editing = Boolean(state.shuttleTypeEdit);
+      els.newShuttleTypeName.disabled = disabled; els.newShuttleTypePrices.disabled = disabled;
+      els.registerShuttleTypeBtn.disabled = disabled; els.cancelShuttleTypeEditBtn.disabled = disabled;
+      els.newShuttleTypeNameLabel.textContent = editing ? "球型名称" : "新增球型";
+      els.newShuttleTypePricesLabel.textContent = editing ? "默认单价（元/颗）" : "单价（元/颗）";
+      els.newShuttleTypePrices.placeholder = editing ? "默认单价" : "多个用逗号隔开";
+      els.registerShuttleTypeBtn.textContent = editing ? "保存修改" : "登记球型号";
+      els.cancelShuttleTypeEditBtn.hidden = !editing;
+      els.shuttleTypeFormError.hidden = !state.shuttleTypeFormError;
+      els.shuttleTypeFormError.textContent = state.shuttleTypeFormError || "";
+    }
+
+    function editShuttleType(id) {
+      if (!IS_WORKER_APP || state.readOnly || state.shuttleTypeSaving || state.shuttleTypeEdit) return;
+      const type = state.estimator.shuttleTypes.find(type => type.id === id);
+      if (!type) return;
+      state.shuttleTypeEdit = { id, expectedName: type.name, expectedDefaultPrice: getShuttleDefaultPrice(type), draft: { name: els.newShuttleTypeName.value, prices: els.newShuttleTypePrices.value } };
+      state.shuttleTypeFormError = "";
+      els.newShuttleTypeName.value = type.name;
+      els.newShuttleTypePrices.value = String(getShuttleDefaultPrice(type));
+      renderRegisteredShuttleTypes();
+      els.newShuttleTypePrices.focus();
+    }
+
+    function cancelShuttleTypeEdit() {
+      if (state.shuttleTypeSaving || !state.shuttleTypeEdit) return;
+      const draft = state.shuttleTypeEdit.draft;
+      state.shuttleTypeEdit = null; state.shuttleTypeFormError = "";
+      els.newShuttleTypeName.value = draft.name; els.newShuttleTypePrices.value = draft.prices;
+      renderRegisteredShuttleTypes();
     }
 
     async function registerShuttleType(event) {
       event.preventDefault();
       if (!IS_WORKER_APP || state.readOnly || state.shuttleTypeSaving) return;
-      const name = els.newShuttleTypeName.value.trim();
-      const prices = els.newShuttleTypePrices.value.split(/[，,\s]+/).map(Number).filter((amount) => Number.isFinite(amount) && amount > 0);
-      if (!name || name.length > 40 || !prices.length || prices.some((amount) => amount > 1000)) return toast("请填写40字以内的球型号和有效价格");
+      const name = els.newShuttleTypeName.value.trim(), editing = state.shuttleTypeEdit;
+      const prices = els.newShuttleTypePrices.value.split(/[，,\s]+/).map(Number).filter(amount => Number.isFinite(amount) && amount > 0);
+      const defaultPrice = Number(els.newShuttleTypePrices.value);
+      state.shuttleTypeFormError = "";
+      if (!name || name.length > 40 || (!editing && (!prices.length || prices.some(amount => amount > 1000)))) state.shuttleTypeFormError = "请填写40字以内的球型名称和有效价格";
+      else if (editing && (!Number.isFinite(defaultPrice) || defaultPrice <= 0 || defaultPrice > 1000 || Math.abs(defaultPrice * 100 - Math.round(defaultPrice * 100)) > 1e-7)) state.shuttleTypeFormError = "默认单价需大于0、不超过1000元，最多两位小数";
+      if (state.shuttleTypeFormError) { renderRegisteredShuttleTypes(); toast(state.shuttleTypeFormError); return; }
       state.shuttleTypeSaving = true;
       renderRegisteredShuttleTypes();
       try {
-        const data = await api("/api/estimator/shuttle-types", { method: "POST", body: JSON.stringify({ name, prices }) });
-        state.estimator = normalizeEstimator(data.estimator);
-        els.newShuttleTypeName.value = "";
-        els.newShuttleTypePrices.value = "";
+        const path = editing ? "/api/estimator/shuttle-types/" + encodeURIComponent(editing.id) : "/api/estimator/shuttle-types";
+        const body = editing ? { name, defaultPrice, expectedName: editing.expectedName, expectedDefaultPrice: editing.expectedDefaultPrice } : { name, prices };
+        const data = await api(path, { method: editing ? "PATCH" : "POST", body: JSON.stringify(body), timeout: 60000 });
+        applyShuttleEstimator(data.estimator || { ...state.estimator, shuttleTypes: data.shuttleTypes, trainingRevision: data.trainingRevision ?? state.estimator.trainingRevision });
+        const cached = readCachedBootstrap();
+        if (cached?.data) { cached.data.estimator = state.estimator; cacheBootstrap(cached.data); }
+        if (editing) {
+          const draft = editing.draft;
+          state.shuttleTypeEdit = null; els.newShuttleTypeName.value = draft.name; els.newShuttleTypePrices.value = draft.prices;
+        } else { els.newShuttleTypeName.value = ""; els.newShuttleTypePrices.value = ""; }
         processChain();
-        toast("球型号已登记，预估公式已更新");
+        toast(editing ? "球型默认价格已保存" + (data.estimatorPending ? "，预估模型稍后更新" : "") : "球型号已登记，预估公式已更新");
+        if (data.estimatorPending) void api("/api/estimator", { timeout: 60000 }).then(result => { applyShuttleEstimator(result.estimator); processChain(); }).catch(error => console.warn("预估模型稍后重试更新", error.message));
       } catch (error) {
-        toast(`登记失败：${error.message}`);
+        if (editing && error.status === 409 && error.data?.type) {
+          applyShuttleEstimator({ ...state.estimator, trainingRevision: error.data.trainingRevision ?? state.estimator.trainingRevision, shuttleTypes: state.estimator.shuttleTypes.map(type => type.id === error.data.type.id ? { ...type, ...error.data.type } : type) });
+        }
+        state.shuttleTypeFormError = (editing ? "保存失败：" : "登记失败：") + error.message;
+        toast(state.shuttleTypeFormError);
       } finally {
         state.shuttleTypeSaving = false;
         renderRegisteredShuttleTypes();
@@ -12134,7 +12267,7 @@
           courtRows = deriveCourtRows(courtFee, courtCount);
         }
         if (shuttleCount > 0) {
-          shuttleRows = withShuttleTypes([{ price: shuttlePrice, count: shuttleCount }]);
+          shuttleRows = withShuttleTypes([{ price: shuttlePrice, count: shuttleCount, type: getCurrentShuttleTypeForPrice(shuttlePrice)?.id || "unknown" }]);
         }
         shuttleCost = shuttlePrice * shuttleCount;
       }

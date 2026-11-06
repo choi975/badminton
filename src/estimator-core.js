@@ -1,3 +1,4 @@
+import { defaultPriceForShuttleType } from "./shuttle-types.js";
 const DEFAULT_PEOPLE_PER_COURT = 7.5;
 const COURT_CAPACITY_SEARCH = { min: 6, max: 9, step: 0.25 };
 const DEFAULT_SHUTTLES_PER_PARTICIPANT = 0.81;
@@ -549,6 +550,7 @@ export function trainEstimatorModel({ sessions, shuttleTypes, generatedAt = new 
     id: String(type.id),
     name: String(type.name),
     fullName: String(type.fullName || type.name),
+    defaultPrice: defaultPriceForShuttleType(type),
     prices: [...new Set((type.prices || []).map(Number).filter((price) => Number.isFinite(price) && price >= 0))],
   }));
   if (!types.length) throw new Error("At least one shuttle type is required");

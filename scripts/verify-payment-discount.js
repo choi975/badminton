@@ -266,6 +266,7 @@ const feeApi = loadPaymentFunctions([
 ], {
   state: feeState, els: feeEls,
   estimateBooking: () => feeEstimate, courtPriceBreakdown: () => [],
+  getShuttleDefaultPrice: type => Number(type?.defaultPrice || type?.prices?.[0] || 0), getCurrentShuttleTypeForPrice: () => shuttleType,
   getCourtUnitPriceForDate: () => 70, getChainActivityDate: () => "2026-10-08",
   predictedShuttleCountForPrice: () => 4, renderAllFeeAdvancedRows() {}, updatePaymentButton() {},
   updateShuttleTypeNotice() {}, findShuttleTypeByPrice: () => shuttleType, inferPreferredCourtCount: () => null,

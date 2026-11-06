@@ -1,3 +1,4 @@
+import { defaultPriceForShuttleType, normalizeShuttleTypeRow, editRegisteredShuttleType } from "./shuttle-types.js";
 import "../roster-review.js";
 import SESSION_SAVE_JS from "./session-save.txt";
 import { commitSessionSave, readSessionSaveReceipt, sessionSaveFollowups } from "./session-save-receipts.js";
@@ -859,6 +860,17 @@ async function handleApi(request, env, url, context) {
     return handleMemberExitConfirmation(request, env);
   }
 
+  const shuttleTypeEditMatch = pathname.match(/^\/api\/estimator\/shuttle-types\/([^/]+)$/);
+  if (shuttleTypeEditMatch && method === "PATCH") {
+    if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版管理员可以编辑球型" }, 403);
+    const edited = await editRegisteredShuttleType(env.DB, decodeURIComponent(shuttleTypeEditMatch[1]), await readJson(request));
+    if (edited.status !== 200) return json({ ...edited, trainingRevision: await getEstimatorTrainingRevision(env.DB) }, edited.status);
+    let estimator, estimatorPending = false;
+    try { estimator = edited.unchanged ? await getCurrentEstimator(env.DB) : await retrainEstimator(env.DB); }
+    catch (error) { estimatorPending = true; console.warn("球型已保存，预估模型稍后重试更新", error.message); }
+    return json({ ok: true, type: edited.type, shuttleTypes: await listShuttleTypes(env.DB), estimator, estimatorPending, trainingRevision: await getEstimatorTrainingRevision(env.DB) });
+  }
+
   if (pathname === "/api/estimator/shuttle-types" && method === "POST") {
     if (!isAdminRequest(request)) return json({ error: "只有 Cloudflare 管理版管理员可以登记球型号" }, 403);
     const body = await readJson(request);
@@ -1223,24 +1235,19 @@ async function ensureSeeded(db) {
   const shuttleTypeRow = await db.prepare("SELECT id FROM shuttle_types LIMIT 1").first();
   if (!shuttleTypeRow) {
     await db.batch([
-      db.prepare("INSERT OR IGNORE INTO shuttle_types (id, name, full_name, prices_json) VALUES (?, ?, ?, ?)")
-        .bind("rsl3", "亚3", "亚狮龙3号", JSON.stringify([11, 11.3, 11.5])),
-      db.prepare("INSERT OR IGNORE INTO shuttle_types (id, name, full_name, prices_json) VALUES (?, ?, ?, ?)")
-        .bind("as05", "AS05", "尤尼克斯AS05", JSON.stringify([13.5])),
+      db.prepare("INSERT OR IGNORE INTO shuttle_types (id, name, full_name, prices_json, default_price) VALUES (?, ?, ?, ?, ?)")
+        .bind("rsl3", "亚3", "亚狮龙3号", JSON.stringify([11, 11.3, 11.5]), 11.3),
+      db.prepare("INSERT OR IGNORE INTO shuttle_types (id, name, full_name, prices_json, default_price) VALUES (?, ?, ?, ?, ?)")
+        .bind("as05", "AS05", "尤尼克斯AS05", JSON.stringify([13.5]), 13.5),
     ]);
   }
 }
 
 async function listShuttleTypes(db) {
   const { results } = await db.prepare(
-    "SELECT id, name, full_name, prices_json, enabled FROM shuttle_types WHERE enabled = 1 ORDER BY CASE WHEN id = 'rsl3' THEN 0 ELSE 1 END, created_at ASC, id ASC"
+    "SELECT id, name, full_name, prices_json, default_price, enabled FROM shuttle_types WHERE enabled = 1 ORDER BY CASE WHEN id = 'rsl3' THEN 0 ELSE 1 END, created_at ASC, id ASC"
   ).all();
-  return results.map((row) => ({
-    id: String(row.id),
-    name: String(row.name),
-    fullName: String(row.full_name || row.name),
-    prices: safeJsonArray(row.prices_json).map(Number).filter((price) => Number.isFinite(price) && price >= 0),
-  }));
+  return results.map(normalizeShuttleTypeRow);
 }
 
 function safeJsonArray(value) {
@@ -2368,7 +2375,8 @@ async function getCurrentEstimator(db) {
       const typeIds = (model?.shuttleTypes || []).map((type) => type.id);
       const hasCompleteTypeModels = typeIds.length > 0
         && typeIds.every((typeId) => model?.shuttle?.models?.[typeId]);
-      if (model?.version === 5 && hasCompleteTypeModels && Number(model.trainingRevision) === trainingRevision) return model;
+      const hasDefaultPrices = (model?.shuttleTypes || []).every(type => Number.isFinite(Number(type.defaultPrice)) && Number(type.defaultPrice) > 0);
+      if (model?.version === 5 && hasCompleteTypeModels && hasDefaultPrices && Number(model.trainingRevision) === trainingRevision) return model;
     } catch (error) { /* retrain below */ }
   }
   return retrainEstimator(db);
@@ -2445,8 +2453,8 @@ async function createShuttleType(db, name, prices, fullName = "") {
   if (existing) throw new Error("该球型号已经登记");
   const base = `type_${Date.now().toString(36)}`;
   await db.prepare(
-    "INSERT INTO shuttle_types (id, name, full_name, prices_json) VALUES (?, ?, ?, ?)"
-  ).bind(base, name, String(fullName || name).trim() || name, JSON.stringify(prices)).run();
+    "INSERT INTO shuttle_types (id, name, full_name, prices_json, default_price) VALUES (?, ?, ?, ?, ?)"
+  ).bind(base, name, String(fullName || name).trim() || name, JSON.stringify(prices), defaultPriceForShuttleType({ prices })).run();
   return base;
 }
 

@@ -21,7 +21,7 @@ function node() {
 }
 assert.match(paymentHtml, /id="calendarDayRecords"[^>]*><\/div>\s*<button id="calendarAddSessionBtn"[^>]*>新增记录<\/button>/, "The shared add-record button must follow the records, not sit in the heading");
 const noop = () => {};
-const state = { readOnly: false, sessions: [], feeMode: "basic", calendar: {
+const state = { readOnly: false, sessions: [], feeMode: "basic", estimator: { shuttleTypes: [{ id: "rsl3", name: "亚3", prices: [11.3], defaultPrice: 14.25 }] }, calendar: {
   year: 2026, month: 10, selectedDates: ["2026-10-08"], showLedger: false,
 } };
 const els = Object.fromEntries([
@@ -38,7 +38,7 @@ const second = { ...first, id: 11, venue: "文体", courtCount: 2, courtFee: 140
 state.sessions = [first, second];
 const names = ["getSessionsOnDate", "getSessionsForSelection", "createCalendarDayButton", "renderCalendarDayPanel",
   "renderCalendarSelection", "createCalendarRecordCard", "setCalendarRecordMetaText", "getLocalDateString", "calendarMonthKey", "formatCalendarDate",
-  "formatCalendarSummaryMonth", "parseLocalDate", "openChainForNewDate", "maybeCancelChainEditFlow",
+  "formatCalendarSummaryMonth", "parseLocalDate", "getShuttleDefaultPrice", "openChainForNewDate", "maybeCancelChainEditFlow",
   "openRecordDialog", "openRecordDialogForChainEdit", "inferCourtCounts", "makeCourtCountHint", "formatCompactNumber", "formatMoney",
   "upsertSession"];
 const ui = loadPaymentFunctions(names, {

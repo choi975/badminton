@@ -14,7 +14,7 @@ const query = `
 SELECT id, date, court_count, train_court, train_shuttle, actual_shuttle_confirmed, shuttle_price_rows, shuttle_price, shuttle_count FROM booking_sessions ORDER BY date ASC, id ASC;
 SELECT session_id, player_id, is_companion, slots, plus_count, gender_snapshot, level_snapshot, profile_snapshot_reliable
 FROM booking_session_players ORDER BY session_id ASC, id ASC;
-SELECT id, name, full_name, prices_json, enabled FROM shuttle_types WHERE enabled = 1 ORDER BY CASE WHEN id = 'rsl3' THEN 0 ELSE 1 END, created_at ASC, id ASC;
+SELECT id, name, full_name, prices_json, default_price, enabled FROM shuttle_types WHERE enabled = 1 ORDER BY CASE WHEN id = 'rsl3' THEN 0 ELSE 1 END, created_at ASC, id ASC;
 SELECT revision FROM booking_estimator_training_state WHERE id = 'current';
 `;
 
@@ -40,6 +40,7 @@ const shuttleTypes = shuttleRows.map((row) => ({
   id: String(row.id),
   name: String(row.name),
   fullName: String(row.full_name || row.name),
+  defaultPrice: Number(row.default_price),
   prices: JSON.parse(row.prices_json || "[]").map(Number),
 }));
 const shuttleTypesById = new Map(shuttleTypes.map((type) => [type.id, type]));
