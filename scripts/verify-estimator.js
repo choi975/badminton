@@ -379,7 +379,7 @@ await check("browser estimator mirrors the positive-rate and dynamic-risk formul
   assert.match(html, /Math\.exp\(Math\.min\(Math\.log\(5\)/);
   assert.match(html, /typeModel\.riskScale/);
   assert.match(html, /Math\.sqrt\(Math\.max\(rawExpected, 1\)\)/);
-  assert.match(html, /型号 × 性别 × 等级 × 成员/);
+  assert.doesNotMatch(html, /型号 × 性别 × 等级 × 成员/, "training diagnostics are no longer shown in the fee interface");
   assert.doesNotMatch(html, /rsl3Equivalent\s*=/);
 });
 

@@ -1671,11 +1671,14 @@
       line-height: 1.5;
     }
 
-    .estimator-advanced-panel strong { min-width: 0; color: var(--text); text-align: right; overflow-wrap: anywhere; }
-    .estimator-advanced-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; }
-    .estimator-type-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 6px; margin-top: 8px; }
-    .estimator-type-editor input { min-height: 30px; }
-    .estimator-type-editor button { grid-column: 1 / -1; min-height: 30px; }
+    .registered-shuttle-types { display: grid; gap: 6px; margin: 0; font-size: 12px; }
+    .registered-shuttle-type { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 8px; }
+    .registered-shuttle-type dt { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+    .registered-shuttle-type dd { min-width: 0; margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .shuttle-type-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 6px; margin-top: 8px; }
+    .shuttle-type-editor[hidden] { display: none; }
+    .shuttle-type-editor input { min-height: 32px; }
+    .shuttle-type-editor button { grid-column: 1 / -1; min-height: 32px; }
 
     .summary-panel:has(.estimator-advanced-panel:not([hidden])) { overflow-y: auto; overscroll-behavior-y: contain; }
     .summary-panel:has(.estimator-advanced-panel:not([hidden])) > .summary-head { position: sticky; top: 0; z-index: 2; }
@@ -1683,7 +1686,7 @@
       .summary-panel:has(.estimator-advanced-panel:not([hidden])) { overflow: visible; }
       .summary-panel:has(.estimator-advanced-panel:not([hidden])) > .summary-head { position: static; }
     }
-    .level-group-editor { display: grid; gap: 8px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+    .level-group-editor { display: grid; gap: 8px; }
     .level-group-editor h3 { margin: 0 0 2px; color: var(--text); font-size: 14px; }
     .level-group-editor p { margin: 0; overflow-wrap: anywhere; }
     .level-group-row { display: grid; grid-template-columns: minmax(0, 1fr) 56px 10px 56px 24px; align-items: center; gap: 4px; }
@@ -1829,14 +1832,14 @@
       font-weight: 600;
     }
 
-    .payment-rule-settings {
+    .payment-rule-settings, .shuttle-type-settings {
       padding-top: 10px;
       border-top: 1px solid var(--line);
     }
 
     .payment-rule-settings select { width: 100%; min-width: 0; }
     .payment-rule-amount[hidden] { display: none; }
-    .payment-rule-hint, .payment-rule-summary {
+    .payment-rule-hint {
       margin: 0;
       color: var(--muted);
       font-size: 12px;
@@ -1844,7 +1847,6 @@
       overflow-wrap: anywhere;
     }
     .payment-rule-hint.is-error { color: var(--danger); }
-    .payment-rule-summary { margin-bottom: 10px; }
 
     .fee-advanced-rows {
       display: grid;
@@ -4721,7 +4723,6 @@
                 <div class="fee-advanced-group">
                   <div class="fee-advanced-label">场地</div>
                   <div id="courtPriceRows" class="fee-advanced-rows"></div>
-                  <p class="payment-rule-hint">1 场按 3 小时计 70 元；提前结束：1 小时 24 元，2 小时 47 元。数量按 1 → 1.333 → 1.666 → 2 递增。</p>
                 </div>
                 <div class="fee-advanced-group">
                   <div class="fee-advanced-label">球</div>
@@ -4738,10 +4739,24 @@
                     <label id="paymentRuleAmountLabel" for="paymentRuleAmountInput">每位女生少 A（元）</label>
                     <input id="paymentRuleAmountInput" inputmode="decimal" autocomplete="off" aria-describedby="paymentRuleHint" value="3.5" required>
                   </div>
-                  <p id="paymentRuleHint" class="payment-rule-hint" aria-live="polite">女生最低付 0 元，其余费用由男生分摊。只有一种性别时仍均摊；性别不详按男生计算。</p>
+                </div>
+                <div class="fee-advanced-group shuttle-type-settings">
+                  <div id="registeredShuttleTypesTitle" class="fee-advanced-label">已登记球型</div>
+                  <dl id="registeredShuttleTypes" class="registered-shuttle-types" aria-labelledby="registeredShuttleTypesTitle"></dl>
+                  <form id="shuttleTypeRegistrationForm" class="shuttle-type-editor" hidden>
+                    <div class="field">
+                      <label for="newShuttleTypeName">新增球型</label>
+                      <input id="newShuttleTypeName" maxlength="40" autocomplete="off" placeholder="球型名称" required>
+                    </div>
+                    <div class="field">
+                      <label for="newShuttleTypePrices">单价（元/颗）</label>
+                      <input id="newShuttleTypePrices" inputmode="decimal" autocomplete="off" placeholder="多个用逗号隔开" required>
+                    </div>
+                    <button id="registerShuttleTypeBtn" type="submit">登记球型号</button>
+                  </form>
                 </div>
               </div>
-              <p id="paymentRuleSummary" class="payment-rule-summary" aria-live="polite">群收款：女生每人比男生少 A 3.50 元</p>
+              <p id="paymentRuleHint" class="payment-rule-hint" aria-live="polite" hidden></p>
               <div id="shuttleTypeNotice" class="fee-notice" hidden></div>
               <button id="paymentBtn" class="primary-btn" disabled>群收款</button>
             </div>
@@ -5349,6 +5364,7 @@
       chainInputUserOwned: false,
       trainingAnomaly: null,
       estimatorAdvancedOpen: false,
+      shuttleTypeSaving: false,
       levelGroups: LevelGroups.normalize(null),
       levelGroupDraft: null,
       levelGroupsSaving: false,
@@ -5500,7 +5516,11 @@
       paymentRuleAmountLabel: document.getElementById("paymentRuleAmountLabel"),
       paymentRuleAmountInput: document.getElementById("paymentRuleAmountInput"),
       paymentRuleHint: document.getElementById("paymentRuleHint"),
-      paymentRuleSummary: document.getElementById("paymentRuleSummary"),
+      registeredShuttleTypes: document.getElementById("registeredShuttleTypes"),
+      shuttleTypeRegistrationForm: document.getElementById("shuttleTypeRegistrationForm"),
+      newShuttleTypeName: document.getElementById("newShuttleTypeName"),
+      newShuttleTypePrices: document.getElementById("newShuttleTypePrices"),
+      registerShuttleTypeBtn: document.getElementById("registerShuttleTypeBtn"),
       courtPriceRows: document.getElementById("courtPriceRows"),
       shuttlePriceRows: document.getElementById("shuttlePriceRows"),
       paymentBtn: document.getElementById("paymentBtn"),
@@ -5899,6 +5919,7 @@
       els.paymentCaptureBtn.addEventListener("click", copyPaymentScreenshot);
       els.paymentRecordBtn.addEventListener("click", handleRecordPayment);
       els.estimatorAdvancedBtn.addEventListener("click", toggleEstimatorAdvancedPanel);
+      els.shuttleTypeRegistrationForm.addEventListener("submit", registerShuttleType);
       els.trainingSkipBtn.addEventListener("click", () => finishAnomalyTraining(false));
       els.trainingAcceptBtn.addEventListener("click", () => finishAnomalyTraining(true));
       els.recordCourtFeeInput.addEventListener("input", onRecordCourtFeeChange);
@@ -10014,6 +10035,7 @@
     }
 
     function renderAllFeeAdvancedRows() {
+      renderRegisteredShuttleTypes();
       renderFeeAdvancedRows("court");
       renderFeeAdvancedRows("shuttle");
     }
@@ -10060,16 +10082,8 @@
       els.paymentRuleAmountLabel.textContent = capped ? "每位女生封顶（元）" : "每位女生少 A（元）";
       els.paymentRuleAmountInput.setAttribute("aria-invalid", String(!valid));
       els.paymentRuleHint.classList.toggle("is-error", !valid);
-      els.paymentRuleHint.textContent = !valid
-        ? "请输入不小于 0 的有效金额，最多两位小数。"
-        : equal ? "所有人按人数均摊，不区分性别。"
-        : capped
-          ? "先均摊，女生超出上限的部分由男生分摊。只有一种性别时仍均摊；性别不详按男生计算。"
-          : "女生最低付 0 元，其余费用由男生分摊。只有一种性别时仍均摊；性别不详按男生计算。";
-      els.paymentRuleSummary.textContent = !valid ? "群收款：金额无效，请在高级设置中修改"
-        : equal ? "群收款：男女平 A"
-        : capped ? `群收款：女生每人 ${formatMoney(Number(rule.amount))} 元封顶`
-        : `群收款：女生每人比男生少 A ${formatMoney(Number(rule.amount))} 元`;
+      els.paymentRuleHint.hidden = valid;
+      els.paymentRuleHint.textContent = valid ? "" : "请输入不小于 0 的有效金额，最多两位小数。";
     }
 
     function resetPaymentRule() {
@@ -11112,6 +11126,7 @@
     }
 
     function renderChainStats(entries, estimate) {
+      renderRegisteredShuttleTypes();
       if (!entries.length) {
         els.chainStats.replaceChildren();
         return;
@@ -11383,67 +11398,59 @@
 
     function renderEstimatorAdvancedPanel() {
       if (!state.estimatorAdvancedOpen) return;
-      const model = state.estimator || DEFAULT_ESTIMATOR;
       const panel = els.estimatorAdvancedPanel;
       const groupEditor = panel.querySelector(".level-group-editor") || createLevelGroupEditor();
       panel.replaceChildren(groupEditor);
-      const lines = [
-        `场地：每场约${formatCompactNumber(model.court?.peoplePerCourt || 0)}人，训练${model.training?.court?.sampleCount || 0}场`,
-        `用球：型号 × 性别 × 等级 × 成员`,
-      ];
-      lines.forEach((text) => {
+    }
+
+    function renderRegisteredShuttleTypes() {
+      const types = (state.estimator || DEFAULT_ESTIMATOR).shuttleTypes || [];
+      els.registeredShuttleTypes.replaceChildren();
+      types.forEach((type) => {
         const row = document.createElement("div");
-        row.className = "estimator-advanced-row";
-        row.textContent = text;
-        panel.append(row);
-      });
-      (model.shuttleTypes || []).forEach((type) => {
-        const typeModel = model.shuttle?.models?.[type.id] || {};
-        const row = document.createElement("div");
-        row.className = "estimator-advanced-row";
-        const name = document.createElement("span");
+        row.className = "registered-shuttle-type";
+        const name = document.createElement("dt");
         name.textContent = type.name;
-        const detail = document.createElement("strong");
-        const modeLabel = typeModel.trainingMode === "hierarchical"
-          ? "分层"
-          : typeModel.trainingMode === "global-only"
-            ? "基础"
-            : "冷启动";
-        const mixedCount = Number(typeModel.training?.mixedExcludedCount) || 0;
-        const riskLabel = Number.isFinite(Number(typeModel.riskScale))
-          ? `风险${formatCompactNumber(typeModel.riskScale)}`
-          : `缓冲${formatCompactNumber(typeModel.riskBuffer || 0)}`;
-        detail.textContent = `${formatCompactNumber(typeModel.baseRate || 0.81)}颗/人 · ${riskLabel} · ${typeModel.training?.sampleCount || 0}场 · ${modeLabel}${mixedCount ? ` · 排除混用${mixedCount}场` : ""}`;
-        row.append(name, detail);
-        panel.append(row);
+        const price = document.createElement("dd");
+        const prices = [...new Set((type.prices || []).map(Number).filter((amount) => Number.isFinite(amount) && amount > 0))];
+        price.textContent = prices.length ? `${prices.map(formatMoney).join("、")} 元/颗` : "暂未登记价格";
+        row.append(name, price);
+        els.registeredShuttleTypes.append(row);
       });
-      if (IS_WORKER_APP && !state.readOnly) {
-        const editor = document.createElement("div");
-        editor.className = "estimator-type-editor";
-        const input = document.createElement("input");
-        input.placeholder = "新增球型号";
-        input.maxLength = 40;
-        const price = document.createElement("input");
-        price.type = "text";
-        price.inputMode = "decimal";
-        price.placeholder = "价格（多个用逗号隔开）";
-        const button = document.createElement("button");
-        button.type = "button";
-        button.textContent = "登记球型号";
-        button.addEventListener("click", async () => {
-          const name = input.value.trim();
-          const prices = price.value.split(/[，,\s]+/).map(Number).filter((amount) => Number.isFinite(amount) && amount > 0);
-          if (!name || !prices.length) return toast("请填写球型号和有效价格");
-          try {
-            const data = await api("/api/estimator/shuttle-types", { method: "POST", body: JSON.stringify({ name, prices }) });
-            state.estimator = normalizeEstimator(data.estimator);
-            renderEstimatorAdvancedPanel();
-            processChain();
-            toast("球型号已登记，预估公式已更新");
-          } catch (error) { toast(`登记失败：${error.message}`); }
-        });
-        editor.append(input, price, button);
-        panel.append(editor);
+      if (!types.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-hint";
+        empty.textContent = "暂无已登记球型";
+        els.registeredShuttleTypes.append(empty);
+      }
+      const canRegister = IS_WORKER_APP && !state.readOnly;
+      els.shuttleTypeRegistrationForm.hidden = !canRegister;
+      const disabled = !canRegister || state.shuttleTypeSaving;
+      els.newShuttleTypeName.disabled = disabled;
+      els.newShuttleTypePrices.disabled = disabled;
+      els.registerShuttleTypeBtn.disabled = disabled;
+    }
+
+    async function registerShuttleType(event) {
+      event.preventDefault();
+      if (!IS_WORKER_APP || state.readOnly || state.shuttleTypeSaving) return;
+      const name = els.newShuttleTypeName.value.trim();
+      const prices = els.newShuttleTypePrices.value.split(/[，,\s]+/).map(Number).filter((amount) => Number.isFinite(amount) && amount > 0);
+      if (!name || name.length > 40 || !prices.length || prices.some((amount) => amount > 1000)) return toast("请填写40字以内的球型号和有效价格");
+      state.shuttleTypeSaving = true;
+      renderRegisteredShuttleTypes();
+      try {
+        const data = await api("/api/estimator/shuttle-types", { method: "POST", body: JSON.stringify({ name, prices }) });
+        state.estimator = normalizeEstimator(data.estimator);
+        els.newShuttleTypeName.value = "";
+        els.newShuttleTypePrices.value = "";
+        processChain();
+        toast("球型号已登记，预估公式已更新");
+      } catch (error) {
+        toast(`登记失败：${error.message}`);
+      } finally {
+        state.shuttleTypeSaving = false;
+        renderRegisteredShuttleTypes();
       }
     }
 

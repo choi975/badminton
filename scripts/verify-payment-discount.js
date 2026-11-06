@@ -18,7 +18,7 @@ const text = (element) => element.textContent + element.children.map(text).join(
 const state = { players: [], paymentOrders: {}, paymentSortModes: {}, paymentGroupOverrides: {} };
 const els = Object.fromEntries([
   "paymentCostSummary", "paymentRuleSelect", "paymentRuleAmountField", "paymentRuleAmountLabel",
-  "paymentRuleAmountInput", "paymentRuleHint", "paymentRuleSummary", "paymentBtn", "chainInput",
+  "paymentRuleAmountInput", "paymentRuleHint", "paymentBtn", "chainInput",
   "courtFeeInput", "shuttlePriceInput", "shuttleCountInput",
 ].map((name) => [name, { ...node(), value: "" }]));
 const api = loadPaymentFunctions([
@@ -204,7 +204,8 @@ assert.equal(els.paymentRuleAmountField.hidden, false);
 assert.equal(els.paymentRuleAmountInput.disabled, false);
 assert.equal(els.paymentRuleAmountInput.required, true);
 assert.equal(els.paymentBtn.disabled, false);
-assert.match(els.paymentRuleSummary.textContent, /女生每人比男生少 A 3\.50 元/);
+assert.equal(els.paymentRuleHint.hidden, true);
+assert.equal(els.paymentRuleHint.textContent, "");
 for (const mode of ["discount", "cap"]) {
   state.paymentRule = { mode, amount: "12.5" };
   api.renderPaymentRuleSettings(true);
@@ -213,7 +214,8 @@ for (const mode of ["discount", "cap"]) {
   assert.equal(els.paymentRuleAmountInput.required, true);
   assert.equal(els.paymentRuleAmountInput.value, "12.5");
   assert.match(els.paymentRuleAmountLabel.textContent, mode === "cap" ? /封顶/ : /少 A/);
-  assert.match(els.paymentRuleSummary.textContent, /12\.50/);
+  assert.equal(els.paymentRuleHint.hidden, true);
+  assert.equal(els.paymentRuleHint.textContent, "");
   els.paymentRuleAmountInput.value = "12.";
   state.paymentRule.amount = "12.";
   api.renderPaymentRuleSettings();
@@ -223,7 +225,8 @@ for (const mode of ["discount", "cap"]) {
     api.renderPaymentRuleSettings();
     assert.equal(els.paymentRuleAmountInput.attrs["aria-invalid"], "true");
     assert.equal(els.paymentRuleHint.classList.values.has("is-error"), true);
-    assert.match(els.paymentRuleSummary.textContent, /金额无效/);
+    assert.equal(els.paymentRuleHint.hidden, false);
+    assert.match(els.paymentRuleHint.textContent, /请输入.*有效金额/);
     for (const feeMode of ["basic", "advanced"]) {
       state.feeMode = feeMode;
       api.updatePaymentButton();
@@ -243,7 +246,8 @@ api.resetPaymentRule();
 assert.deepEqual(state.paymentRule, { mode: "discount", amount: 3.5 });
 assert.equal(els.paymentRuleAmountInput.value, "3.5");
 assert.equal(els.paymentRuleAmountInput.attrs["aria-invalid"], "false");
-assert.match(els.paymentRuleSummary.textContent, /女生每人比男生少 A 3\.50 元/);
+assert.equal(els.paymentRuleHint.hidden, true);
+assert.equal(els.paymentRuleHint.textContent, "");
 assert.deepEqual(share(api.calculatePayment(entries, 115, 0, 0)), [30.5, 27], "Default collection charges women 3.50 less (two women, two men)");
 assert.match(paymentHtml, /paymentRule: \{ mode: "discount", amount: 3\.5 \}/);
 assert.match(paymentHtml, /function openChainForNewDate[\s\S]*?resetPaymentRule\(\)/);

@@ -8,7 +8,7 @@
     "estimator": "node scripts/train-estimator.js",
     "snapshot": "node scripts/generate-snapshot.js",
     "build:fresh": "npm run estimator && npm run snapshot && npm run build",
-    "test": "npm run test:session-save && npm run test:roster-review && npm run test:level-groups && npm run test:chain && npm run test:special-roster && npm run test:payment && npm run test:calendar-multiple && npm run test:calendar-summary && npm run test:calendar-detail && npm run test:calendar-ledger && npm run test:participant-ownership && npm run test:member-exit-analysis && npm run test:best-partners && npm run test:partner-management && npm run test:instant && npm run test:session-plans && npm run test:court-pricing && npm run test:short-term-rules && npm run test:group-learning && npm run test:member-statistics && npm run test:group-probability && npm run test:group-attempts && npm run test:group-ui && npm run test:shake-activity && npm run test:shake-refresh && npm run test:database-ui && npm run test:todo-sync && npm run test:estimator",
+    "test": "npm run test:session-save && npm run test:roster-review && npm run test:level-groups && npm run test:chain && npm run test:special-roster && npm run test:payment && npm run test:fee-card && npm run test:calendar-multiple && npm run test:calendar-summary && npm run test:calendar-detail && npm run test:calendar-ledger && npm run test:participant-ownership && npm run test:member-exit-analysis && npm run test:best-partners && npm run test:partner-management && npm run test:instant && npm run test:session-plans && npm run test:court-pricing && npm run test:short-term-rules && npm run test:group-learning && npm run test:member-statistics && npm run test:group-probability && npm run test:group-attempts && npm run test:group-ui && npm run test:shake-activity && npm run test:shake-refresh && npm run test:database-ui && npm run test:todo-sync && npm run test:estimator",
     "test:chain": "node scripts/verify-chain.js && node scripts/verify-payment-group-toggle.js",
     "test:participant-ownership": "node scripts/verify-participant-ownership.js",
     "test:member-exit-analysis": "node scripts/verify-member-exit-analysis.js",
@@ -42,7 +42,8 @@
     "test:session-plans": "node scripts/verify-session-plans.js && node scripts/verify-session-planner-ui.js",
     "test:roster-review": "node scripts/verify-roster-review.js && node scripts/verify-roster-review-api.js && node scripts/verify-roster-review-pending.js",
     "test:session-save": "node scripts/verify-session-save.js",
-    "test:calendar-detail": "node scripts/verify-calendar-detail.js"
+    "test:calendar-detail": "node scripts/verify-calendar-detail.js",
+    "test:fee-card": "node scripts/verify-fee-card.js"
   },
   "devDependencies": {
     "wrangler": "latest"
