@@ -32,13 +32,13 @@ const ids = (key) => stats.lists.find((l) => l.key === key).memberIds;
 assert.deepEqual(ids("onlyLargeSessions").slice().sort((a, b) => a - b), [3, 4, 11, 12]);
 assert.deepEqual(ids("weeklyMax1"), [12], "a member can satisfy >=2 total with one session per week");
 assert.ok(ids("weeklyMax2").includes(3));
-assert.ok(ids("noWeekday0").includes(3));
+assert.ok(!ids("noWeekday0").includes(3), "two games on one date and no Sunday opportunities cannot imply Sunday unavailability");
 assert.ok(ids("attendance15").includes(9), "one signup still participates in the attendance ranking");
 assert.ok(byId.get(1).onlyLargeSessions && byId.get(2).onlyLargeSessions, "display gates do not erase model features");
 assert.deepEqual(core.build({ players, sessions: [...sessions].reverse(), now }).lists, stats.lists);
 const holidayStats = core.build({ players, sessions: [game("2026-10-02", [1]), game("2026-10-10", [1])], now });
-assert.ok(holidayStats.lists.find((l) => l.key === "noWeekday5").memberIds.includes(1), "holiday signups meet activity gate but do not establish ordinary-Friday attendance");
-assert.ok(holidayStats.lists.find((l) => l.key === "noWeekday6").memberIds.includes(1));
+assert.ok(!holidayStats.lists.find((l) => l.key === "noWeekday5").memberIds.includes(1), "holiday activity alone cannot establish Friday unavailability");
+assert.ok(!holidayStats.lists.find((l) => l.key === "noWeekday6").memberIds.includes(1));
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const recommendationSource = html.slice(html.indexOf("    function buildShakePeopleRecommendations("), html.indexOf("    function getMemberStatistics("));

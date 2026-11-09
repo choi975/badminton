@@ -4,16 +4,19 @@ import vm from "node:vm";
 import "../member-statistics.js";
 const core = BadmintonMemberStatistics;
 const now = "2026-10-23T12:00:00+08:00", targetDate = "2026-10-23";
-const players = [{ id: 1, name: "成员A", level: "3级" }];
+const players = [{ id: 1, name: "成员A", level: "3级", createdAt: "2026-01-01" }];
 let nextId = 1;
 const session = (date) => ({ id: nextId++, date, players: [{ playerId: 1, slots: 1, plusCount: 0 }, { playerId: null, isCompanion: true, slots: 10, plusCount: 10 }] });
 const history = [session("2026-10-12"), session("2026-10-19")];
-const build = (sessions = history) => core.build({ players, sessions, now });
+const opportunities = ["2026-09-25", "2026-10-09", "2026-10-16", "2026-09-26", "2026-10-17", "2026-10-10"]
+  .map(date => ({ id: nextId++, date, players: [{ playerId: null, isCompanion: true, slots: 10, plusCount: 10 }] }));
+const build = (sessions = history) => core.build({ players, sessions: [...opportunities, ...sessions], now,
+  calendar: { knownYears: [2026], excludedDates: [] } });
 const tags = (statistics = build(), extras = {}) => core.recommendationTags({ statistics, playerId: 1, targetDate, currentCount: 5, ...extras });
 const initial = build();
 assert.ok(tags().reasons.includes("近期常打"));
 assert.deepEqual(tags().risks, ["周五可能无法打球", "每周可能最多打1局", "可能不喜欢人少的局"]);
-assert.ok(tags(initial, { currentCount: 10 }).risks.includes("可能不喜欢人少的局"), "ten is not more than ten");
+assert.ok(!tags(initial, { currentCount: 10 }).risks.includes("可能不喜欢人少的局"), "ten meets the inclusive large-session threshold");
 assert.ok(!tags(initial, { currentCount: 11 }).risks.includes("可能不喜欢人少的局"));
 assert.ok(!tags(initial, { currentCount: 100 }).risks.includes("可能不喜欢人少的局"));
 assert.ok(tags(initial, { currentCount: 9 }).risks.includes("可能不喜欢人少的局"), "label returns after roster shrinks");
@@ -42,8 +45,8 @@ const one = build([session("2026-10-19")]);
 assert.deepEqual(tags(one), { reasons: [], risks: [] }, "one record meets recommendation activity but not any of these evidence gates");
 const sameDay = build([session("2026-10-19"), session("2026-10-19")]);
 assert.ok(!tags(sameDay).reasons.includes("近期常打"));
-const small = session("2026-10-21"); small.players[1].slots = 9;
-assert.ok(!tags(build([...history, small])).risks.includes("可能不喜欢人少的局"), "one <=10-person attendance removes the large-only label");
+const small = session("2026-10-21"); small.players[1].slots = 8;
+assert.ok(!tags(build([...history, small])).risks.includes("可能不喜欢人少的局"), "one <10-person attendance removes the large-only label");
 assert.deepEqual(core.recommendationTags({ statistics: initial, playerId: 999, targetDate }), { reasons: [], risks: [] });
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
@@ -82,7 +85,7 @@ class Button {
 }
 let posts = 0, fetches = 0, renders = 0, cached = 0, toasts = [];
 let mode = "success", release;
-const latest = { players, sessions: history, memberStatistics: initial, groupLearningSignals: { version: "group-learning-v2", generatedAt: now } };
+const latest = { players, sessions: history, memberStatistics: initial, groupLearningSignals: { version: "group-learning-v3", generatedAt: now } };
 const state = { memberStatisticsRefreshing: false, readOnly: false, players: [], sessions: [], chainEntries: [{ clean: "正在编辑" }], shakeFilters: { gender: "女" }, shakeBottomedPlayerIds: new Set([1]) };
 const originalDraft = state.chainEntries;
 const button = new Button(), status = { hidden: true, textContent: "" };
@@ -148,4 +151,4 @@ assert.match(html, /id="refreshMemberStatisticsBtn"[^>]*type="button"[^>]*aria-l
 assert.match(html, /els.refreshMemberStatisticsBtn.addEventListener\("click", refreshShakeMemberStatistics\)/);
 assert.match(html, /id="memberStatisticsRefreshStatus"[^>]*role="status"/);
 assert.match(html, /if \(els.shakePeopleModal.classList.contains\("open"\)\) renderShakePeopleModal\(\)/);
-console.log("Shake refresh/tags passed: weekly 1->2->none, current week threshold, current weekday/holidays, roster 10/11, shared statistics, removed/stale tags, cache invalidation, duplicate refresh, readonly safety, draft preservation, retry, endpoint auth/rate-limit/order/failure and aggregate privacy.");
+console.log("Shake refresh/tags passed: weekly 1->2->none, current week threshold, current weekday/holidays, roster 9/10/11, shared statistics, removed/stale tags, cache invalidation, duplicate refresh, readonly safety, draft preservation, retry, endpoint auth/rate-limit/order/failure and aggregate privacy.");

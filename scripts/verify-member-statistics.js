@@ -36,7 +36,7 @@ const sessions = [
 const result = core.build({ players, sessions, now });
 const ids = (key, statistics = result) => statistics.lists.find((list) => list.key === key).memberIds;
 const member = (id, statistics = result) => statistics.members.find((row) => row.playerId === id);
-assert.equal(result.lists.length, 14);
+assert.equal(result.lists.length, 21);
 assert.equal(result.asOf, "2026-10-21");
 assert.deepEqual(result.windows, { start15: "2026-10-07", start30: "2026-09-22", start60: "2026-08-23", end: "2026-10-21" });
 for (const excluded of [6, 7, 19, 20]) {
@@ -50,7 +50,7 @@ assert.ok(ids("threeDayStreak").every((id) => !ids("twoDayStreak").includes(id))
 assert.ok(!ids("onlyLargeSessions").includes(5), "60-day-only activity must not enter the large-session display list");
 assert.ok(member(5).onlyLargeSessions, "the underlying model evidence is preserved");
 assert.ok(ids("onlyLargeSessions").includes(8), "two distinct sessions on one day satisfy the two-signup threshold");
-assert.ok(!ids("onlyLargeSessions").includes(3), "even one ten-person game disqualifies the member");
+assert.ok(ids("onlyLargeSessions").includes(3), "ten-person games qualify as large sessions");
 assert.equal(member(8).attendance15, 2, "count sessions, not distinct days, for the ranking");
 assert.equal(member(8).streak60, 1, "two games on one day are not consecutive days");
 assert.equal(member(9).attendance15, 1);
@@ -62,14 +62,14 @@ assert.equal(member(17).weeklyLimit, 1, "calendar weeks start Monday, not a slid
 assert.equal(member(18).weeklyLimit, 2);
 assert.ok(ids("weeklyMax1").every((id) => !ids("weeklyMax2").includes(id)));
 assert.ok(!ids("noWeekday5").includes(13), "one signup is insufficient for weekday lists");
-assert.ok(member(13).noPlayWeekdays.includes(5), "holiday weekday evidence is still excluded");
+assert.ok(!member(13).noPlayWeekdays.includes(5), "holiday-only activity is not evidence of a weekday ban");
 assert.ok(!ids("noWeekday6").includes(14));
-assert.ok(member(14).noPlayWeekdays.includes(6), "adjusted-workday evidence is still excluded");
+assert.ok(!member(14).noPlayWeekdays.includes(6), "adjusted-workday-only activity cannot establish weekday avoidance");
 assert.ok(!ids("noWeekday5").includes(15));
 assert.ok(!ids("noWeekday6").includes(16));
 assert.ok(!ids("noWeekday0").includes(12), "members with no 30-day play do not enter weekday lists");
 assert.ok(result.lists.filter((list) => list.key.startsWith("noWeekday")).every((list) => !list.memberIds.includes(12)));
-assert.ok(member(12).noPlayWeekdays.includes(0), "display eligibility does not change the existing probability-model features");
+assert.ok(!member(12).noPlayWeekdays.includes(0), "weekday inference and display share the same opportunity and activity gates");
 assert.equal(member(2).rank15, member(8).rank15, "equal counts have the same rank");
 assert.deepEqual(core.build({ players, sessions: [...sessions, ...sessions], now }).members, result.members, "repeated session IDs are deduplicated");
 assert.deepEqual(core.build({ players, sessions: [...sessions].reverse(), now }).lists, result.lists, "input ordering does not change lists");
@@ -97,7 +97,7 @@ const estimate = (overrides = {}) => globalThis.BadmintonGroupProbability.estima
 });
 const forecast = estimate();
 assert.deepEqual(forecast.memberStatistics.members, result.members);
-assert.equal(globalThis.BadmintonGroupProbability.constants.largeSessionThreshold, 11);
+assert.equal(globalThis.BadmintonGroupProbability.constants.largeSessionThreshold, 10);
 const legacyOverrides = estimate({ longTermLists: { threeDayStreak: { members: players.map((player) => player.id) }, onlyLargeSessions: { members: [3] } } });
 assert.deepEqual(legacyOverrides, forecast, "obsolete manual member lists cannot override the model or current statistics");
 const capped = forecast.candidates.find((row) => row.playerId === 18);
@@ -182,4 +182,4 @@ assert.doesNotMatch(html, /saveShakeLongTermList|getVisibleLongTermListValue/);
 assert.match(worker, /pathname === "\/api\/member-statistics"/);
 assert.match(worker, /memberStatistics: globalThis.BadmintonMemberStatistics.build/);
 assert.match(readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8"), /crons = \["5 4 \* \* \*", "5 16 \* \* \*"\]/);
-console.log("Member statistics passed: 14 groups, boundaries, rankings, ownership, holidays, weekly caps, probability integration, daily expiry, and SQLite cache refresh.");
+console.log("Member statistics passed: 21 groups, boundaries, rankings, ownership, holidays, weekly caps, probability integration, daily expiry, and SQLite cache refresh.");

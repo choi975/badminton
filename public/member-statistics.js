@@ -1,13 +1,18 @@
 (function attachMemberStatistics(root) {
   "use strict";
   const DAY_MS = 86400000;
-  const VERSION = "member-statistics-v5";
+  const VERSION = "member-statistics-v6";
+  const SUCCESS_THRESHOLD = 6;
+  const LARGE_SESSION_THRESHOLD = 10;
+  const WEEKDAY_POLICY = Object.freeze({ windowDays: 30, halfLifeDays: 30, minPreferredDays: 2,
+    minAvoidedOpportunities: 3, minOtherAttendanceDays: 2 });
   const DEFINITIONS = [
     { key: "attendance15", label: "近半个月出勤率排名" },
     { key: "threeDayStreak", label: "能够连打三天的成员" },
     { key: "twoDayStreak", label: "能够连打两天的成员" },
-    { key: "onlyLargeSessions", label: "只打10人以上球局的成员" },
+    { key: "onlyLargeSessions", label: "只打10人及以上球局的成员" },
     ...[1, 2, 3, 4, 5, 6, 0].map((day) => ({ key: `noWeekday${day}`, label: `不打周${"日一二三四五六"[day]}的成员` })),
+    ...[1, 2, 3, 4, 5, 6, 0].map((day) => ({ key: `preferredWeekday${day}`, label: `喜欢打周${"日一二三四五六"[day]}的成员` })),
     { key: "weeklyMax1", label: "每周最多打一局的成员" },
     { key: "weeklyMax2", label: "每周最多打两局的成员" },
     { key: "bestPartners", label: "最佳拍档" },
@@ -65,7 +70,7 @@
       .filter((id) => Number.isInteger(id) && id > 0 && knownIds.has(id)));
   }
   function memberStartDate(player, firstAttendance) {
-    const value = String(player.createdAt ?? player.created_at ?? "");
+    const value = String(player.createdAt ?? player.created_at ?? player.joinedAt ?? player.joined_at ?? "");
     let registered = "";
     if (validDate(value)) registered = value;
     else if (validDate(value.slice(0, 10))) {
@@ -301,16 +306,62 @@
       ...(includeDiagnostics ? { diagnostics } : {}), ...(requested.size ? { requestedEvidence } : {}) };
   }
 
+  // Weekday habits use distinct organized dates. Session counts only order the
+  // preferred lists; two games on one Monday do not establish a weekly routine.
+  function buildWeekdayEvidence(players, sessions, start, end, calendar) {
+    const knownIds = new Set(players.map((player) => Number(player.id)));
+    const knownYears = new Set(calendar.knownYears), excluded = new Set(calendar.excludedDates);
+    const days = new Map(), firstAttendance = new Map(), seen = new Set();
+    for (const session of sessions) {
+      if (!validDate(session?.date) || session.date > end) continue;
+      if (session.id != null) {
+        if (seen.has(String(session.id))) continue;
+        seen.add(String(session.id));
+      }
+      const ids = selfPlayerIds(session, knownIds);
+      for (const id of ids) if (!firstAttendance.has(id) || session.date < firstAttendance.get(id)) firstAttendance.set(id, session.date);
+      const size = (Array.isArray(session.players) ? session.players : []).reduce((sum, row) => sum + Math.max(0, Number(row.slots) || 0), 0);
+      if (session.date < start || size < SUCCESS_THRESHOLD
+        || !knownYears.has(Number(session.date.slice(0, 4))) || excluded.has(session.date)) continue;
+      const day = days.get(session.date) || { ids: new Set(), counts: new Map() };
+      for (const id of ids) {
+        day.ids.add(id);
+        day.counts.set(id, (day.counts.get(id) || 0) + 1);
+      }
+      days.set(session.date, day);
+    }
+    const reference = Date.parse(addDays(end, 1) + "T00:00:00Z");
+    return new Map(players.map((player) => {
+      const id = Number(player.id), membershipStart = memberStartDate(player, firstAttendance.get(id));
+      const evidence = Array.from({ length: 7 }, () => ({ attendanceDays: 0, opportunityDays: 0,
+        sessionCount: 0, attendedWeight: 0, opportunityWeight: 0, lastAttendance: "", otherAttendanceDays: 0 }));
+      if (membershipStart) for (const [date, day] of days) {
+        if (date < membershipStart) continue;
+        const row = evidence[weekday(date)];
+        const weight = 0.5 ** ((reference - Date.parse(date + "T00:00:00Z")) / DAY_MS / WEEKDAY_POLICY.halfLifeDays);
+        row.opportunityDays += 1;
+        row.opportunityWeight += weight;
+        if (!day.ids.has(id)) continue;
+        row.attendanceDays += 1;
+        row.attendedWeight += weight;
+        row.sessionCount += day.counts.get(id) || 0;
+        if (date > row.lastAttendance) row.lastAttendance = date;
+      }
+      const totalDays = evidence.reduce((sum, row) => sum + row.attendanceDays, 0);
+      for (const row of evidence) row.otherAttendanceDays = totalDays - row.attendanceDays;
+      return [id, { membershipStart, evidence }];
+    }));
+  }
+
   function build({ players = [], sessions = [], now = new Date(), asOf, calendar, bestPartnerOverrides } = {}) {
     const date = validDate(asOf) ? asOf : addDays(beijingDate(now), -1);
     const start60 = addDays(date, -59), start30 = addDays(date, -29), start15 = addDays(date, -14);
     const holidayCalendar = normalizeCalendar(calendar);
     const excluded = new Set(holidayCalendar.excludedDates);
+    const weekdayEvidenceById = buildWeekdayEvidence(players, sessions, start30, date, holidayCalendar);
     const missingYears = new Set();
-    const ordinaryDays = Array(7).fill(0);
     for (let day = start30; day <= date; day = addDays(day, 1)) {
       if (!holidayCalendar.knownYears.includes(Number(day.slice(0, 4)))) missingYears.add(Number(day.slice(0, 4)));
-      else if (!excluded.has(day)) ordinaryDays[weekday(day)] += 1;
     }
     const allMembers = new Map(players.map((player) => [Number(player.id), {
       playerId: Number(player.id), name: String(player.name || "").split(/[,，]/)[0].trim(),
@@ -339,7 +390,7 @@
         const member = allMembers.get(id);
         member.attendance60 += 1;
         member.dates60.add(session.date);
-        member.allLarge &&= size > 10;
+        member.allLarge &&= size >= LARGE_SESSION_THRESHOLD;
         if (session.date >= start15) member.attendance15 += 1;
         if (session.date >= start30) {
           member.attendance30 += 1;
@@ -352,11 +403,19 @@
     const members = [...allMembers.values()].filter((member) => member.attendance60 > 0).map((member) => {
       const streak60 = maxStreak(member.dates60);
       const maxWeekly30 = Math.max(0, ...Object.values(member.weeklyCounts30));
+      const { membershipStart, evidence: weekdayEvidence30 } = weekdayEvidenceById.get(member.playerId);
       return {
         ...member, dates60: [...member.dates60].sort(), weekdays30: [...member.weekdays30].sort(),
         streak60, maxWeekly30, weeklyLimit: [1, 2].includes(maxWeekly30) ? maxWeekly30 : null,
         onlyLargeSessions: member.allLarge,
-        noPlayWeekdays: missingYears.size ? [] : [0, 1, 2, 3, 4, 5, 6].filter((day) => ordinaryDays[day] > 0 && !member.weekdays30.has(day)),
+        membershipStart, weekdayEvidence30,
+        weekdayCounts30: weekdayEvidence30.map((row) => row.sessionCount),
+        preferredWeekdays: [0, 1, 2, 3, 4, 5, 6].filter((day) => weekdayEvidence30[day].attendanceDays >= WEEKDAY_POLICY.minPreferredDays),
+        noPlayWeekdays: missingYears.size ? [] : [0, 1, 2, 3, 4, 5, 6].filter((day) => {
+          const row = weekdayEvidence30[day];
+          return row.attendanceDays === 0 && row.opportunityDays >= WEEKDAY_POLICY.minAvoidedOpportunities
+            && row.otherAttendanceDays >= WEEKDAY_POLICY.minOtherAttendanceDays;
+        }),
       };
     }).sort((a, b) => b.attendance15 - a.attendance15 || a.name.localeCompare(b.name, "zh-CN") || a.playerId - b.playerId);
     let rank = 0;
@@ -374,16 +433,27 @@
       if (key === "bestPartners") return partnerIds.has(member.playerId);
       if (key === "threeDayStreak") return member.streak60 >= 3;
       if (key === "twoDayStreak") return member.streak60 === 2;
+      if (key.startsWith("preferredWeekday")) return member.preferredWeekdays.includes(Number(key.slice(16)));
       if (member.attendance30 < 2) return false;
       if (key === "onlyLargeSessions") return member.onlyLargeSessions;
       if (key.startsWith("noWeekday")) return member.noPlayWeekdays.includes(Number(key.slice(9)));
       return member.maxWeekly30 === Number(key.slice(-1));
     };
+    const listMembers = (key) => {
+      const selected = members.filter((member) => matching(key, member));
+      if (key.startsWith("preferredWeekday")) {
+        const day = Number(key.slice(16));
+        selected.sort((a, b) => b.weekdayCounts30[day] - a.weekdayCounts30[day]
+          || b.weekdayEvidence30[day].lastAttendance.localeCompare(a.weekdayEvidence30[day].lastAttendance)
+          || a.name.localeCompare(b.name, "zh-CN") || a.playerId - b.playerId);
+      }
+      return selected.map((member) => member.playerId);
+    };
     return {
       version: VERSION, asOf: date, generatedAt: new Date(now).toISOString(),
       windows: { start15, start30, start60, end: date }, activeMemberCount: members.length,
       calendar: holidayCalendar, missingCalendarYears: [...missingYears], members, bestPartners, automaticBestPartners: { ...automatic, requestedEvidence: undefined }, bestPartnerOverrides: normalizePartnerOverrides(bestPartnerOverrides),
-      lists: DEFINITIONS.map((definition) => ({ ...definition, memberIds: definition.key === "bestPartners" ? [...partnerIds] : members.filter((member) => matching(definition.key, member)).map((member) => member.playerId) })),
+      lists: DEFINITIONS.map((definition) => ({ ...definition, memberIds: definition.key === "bestPartners" ? [...partnerIds] : listMembers(definition.key) })),
     };
   }
 
@@ -401,10 +471,12 @@
       member, friendIds,
       recentFrequent: inList("attendance15") && recentDays.length >= 2,
       weekdayAvoided: valid && isOrdinaryDate(targetDate, statistics?.calendar) && inList("noWeekday" + weekday(targetDate)),
+      weekdayPreferred: valid && isOrdinaryDate(targetDate, statistics?.calendar) && inList("preferredWeekday" + weekday(targetDate)),
+      weekdayEvidence: valid && isOrdinaryDate(targetDate, statistics?.calendar) ? member?.weekdayEvidence30?.[weekday(targetDate)] || null : null,
       weeklyLimit, weeklyCount, weeklyRemaining: weeklyLimit === null ? null : weeklyLimit - weeklyCount,
       weeklyLimitReached: weeklyLimit !== null && weeklyCount >= weeklyLimit,
       onlyLargeSessions: inList("onlyLargeSessions"),
-      largeRisk: inList("onlyLargeSessions") && Number(currentCount) < 11,
+      largeRisk: inList("onlyLargeSessions") && Number(currentCount) < LARGE_SESSION_THRESHOLD,
       habitConfidence: (member?.attendance30 || 0) >= 2 ? member.attendance30 / (member.attendance30 + 6) : 0,
       capacity: inList("threeDayStreak") ? 3 : inList("twoDayStreak") ? 2 : 1,
     };
@@ -415,6 +487,7 @@
     const reasons = [], risks = [];
     if (!validDate(targetDate)) return { reasons, risks };
     if (features.recentFrequent) reasons.push("近期常打");
+    if (features.weekdayPreferred) reasons.push("周" + "日一二三四五六"[weekday(targetDate)] + "喜欢打球");
     if (features.weekdayAvoided) risks.push("周" + "日一二三四五六"[weekday(targetDate)] + "可能无法打球");
     if (features.weeklyLimitReached) risks.push("每周可能最多打" + features.weeklyLimit + "局");
     if (features.largeRisk) risks.push("可能不喜欢人少的局");
@@ -422,5 +495,5 @@
     return { reasons, risks };
   }
 
-  root.BadmintonMemberStatistics = Object.freeze({ VERSION, DEFINITIONS, PARTNER_POLICY, build, buildBestPartners, recommendationTags, predictionFeatures, partnerKey, normalizePartnerOverrides, effectivePartnerOverrides, editPartnerOverrides, partnerIdsMap, validDate, beijingDate, addDays, weekStart, normalizeCalendar, isOrdinaryDate });
+  root.BadmintonMemberStatistics = Object.freeze({ VERSION, DEFINITIONS, PARTNER_POLICY, WEEKDAY_POLICY, LARGE_SESSION_THRESHOLD, build, buildBestPartners, recommendationTags, predictionFeatures, partnerKey, normalizePartnerOverrides, effectivePartnerOverrides, editPartnerOverrides, partnerIdsMap, validDate, beijingDate, addDays, weekStart, normalizeCalendar, isOrdinaryDate });
 })(globalThis);

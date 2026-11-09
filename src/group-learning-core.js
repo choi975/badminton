@@ -1,6 +1,6 @@
 const DAY_MS = 86_400_000;
-const LARGE_SESSION_SIZE = 11;
-export const GROUP_LEARNING_VERSION = "group-learning-v2";
+const LARGE_SESSION_SIZE = 10;
+export const GROUP_LEARNING_VERSION = "group-learning-v3";
 
 const DEFAULTS = Object.freeze({
   participationRate: 0.18,

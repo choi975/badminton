@@ -68,7 +68,7 @@ function oddsScaledProbability(probability, multiplier = 0.2) {
 }
 
 const cold = build({ players: players(2) });
-assert.equal(GROUP_LEARNING_VERSION, "group-learning-v2");
+assert.equal(GROUP_LEARNING_VERSION, "group-learning-v3");
 assert.equal(cold.version, GROUP_LEARNING_VERSION);
 assert.equal(cold.generatedAt, NOW);
 assert.equal(cold.generatedDate, "2026-09-04", "generatedDate必须使用北京时间日期边界");
@@ -192,6 +192,16 @@ assert.ok(
 );
 assert.ok(largeExit.members[1].largePreferenceEvidence > 0);
 assert.ok(largeExit.priors.largeLowRetention < 0.3, "大局偏好成员的小局退出应向下校准留存率");
+
+// Exactly ten is already a large session: remaining at ten after a departure
+// must not be interpreted as dropping into a small-session preference event.
+const elevenIds = [...tenIds, 11];
+const remainsTen = build({ players: players(11), attempts: [attempt(2, "2026-09-03", [
+  snapshot(3, "2026-09-03T07:00:00Z", elevenIds),
+  snapshot(4, "2026-09-03T07:10:00Z", elevenIds.slice(1)),
+], { outcome: "success" })] });
+assert.equal(remainsTen.members[1].largePreferenceEvidence, 0, "11→10 is not a below-threshold exit");
+assert.equal(remainsTen.priors.largeLowRetentionEvidence, 0);
 
 const staminaSessions = [
   session(1, "2026-09-01", [1, 2, 3, 4, 5, 6]),

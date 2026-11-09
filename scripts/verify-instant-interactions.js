@@ -164,7 +164,7 @@ client.request("c", {}); assert.equal(jobs.length, 2);
 client.request("d", {}); fake.onerror({ message: "worker unavailable" }); assert.equal(errors.length, 1);
 assert.ok(!html.includes("engine.estimate("));
 assert.ok(!html.includes("BadmintonMemberStatistics.build({"), "statistics must not be rebuilt on the UI thread");
-assert.ok(html.includes("到场概率根据其与已接龙人员亲密度、近期出勤、人数偏好、星期、体力等综合推算，仅供参考。"));
+assert.ok(html.includes("到场概率根据近期星期习惯、历史出勤、已接龙拍档、当前人数、人数偏好和体力等综合推算；历史样本较少时采用保守估计，仅供参考。"));
 assert.ok(!html.includes("自动识别看近90天，双方近30天均有本人记录"));
 assert.ok(html.includes("new Worker(new URL(\"./forecast-worker.js\", location.href))"));
 assert.ok(html.includes("forecastPending || pendingShakeOperations().length"), "do not train on unconfirmed optimistic state or stale probabilities");

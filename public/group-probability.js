@@ -3,10 +3,17 @@
 
   const DAY_MS = 86400000;
   const SUCCESS_THRESHOLD = 6;
-  const LARGE_SESSION_THRESHOLD = 11;
+  const LARGE_SESSION_THRESHOLD = 10;
   const WEEKDAY_PRIOR_STRENGTH = 10;
   const MISSING_BOOKING_SOFT_SUCCESS = 0.05;
   const MEMBER_PRIOR_STRENGTH = 6;
+  const MEMBER_WEEKDAY_PRIOR_STRENGTH = 2;
+  const MEMBER_WEEKDAY_EFFECT_STRENGTH = 2.5;
+  const MEMBER_WEEKDAY_ODDS_MIN = 0.2;
+  const MEMBER_WEEKDAY_ODDS_MAX = 3;
+  const SPARSE_HISTORY_OPPORTUNITIES = 8;
+  const SPARSE_HISTORY_ATTENDANCE_DAYS = 3;
+  const SPARSE_HISTORY_PRIOR_RATIO = 0.5;
   const GUEST_PRIOR_STRENGTH = 5;
   const HISTORY_HALF_LIFE_DAYS = 30;
   const LEARNING_EVIDENCE_PRIOR = 5;
@@ -517,6 +524,7 @@
       membersById.set(playerId, {
         playerId,
         joinedWeight: evidenceField(member, ["joinedWeight", "joined_weight"]),
+        attemptWeight: evidenceField(member, ["attemptWeight", "attempt_weight"]),
         participationRate: probabilityField(member, ["participationRate", "participation_rate"])
           ?? probabilityField(participation, ["rate"]),
         participationReliability: reliabilityField(member, ["participationReliability", "participation_reliability"])
@@ -1100,10 +1108,11 @@
       const capacity = context.longTerm.capacityById.get(player.id) || 1;
       const statisticsEffect = memberStatisticsEffect(model, player.id, targetDate);
       const fatigueMultiplier = context.resolvedPriors.fatigueMultiplier;
-      const baseline = attendanceBaseline(context, index, context.attendanceEvidence);
+      const attendance = attendanceBaseline(context, index, context.attendanceEvidence);
+      const baseline = attendance.baseline;
       const staticSecondDayFatigueFactor = historicalFatigueFactor(context.attendanceEvidence, player.id, baseline, capacity, 2);
       const staticThirdDayFatigueFactor = historicalFatigueFactor(context.attendanceEvidence, player.id, baseline, capacity, 3);
-      const social = options.neutral ? 0 : socialEffect(context.friendNetwork, player.id, current.selfIds);
+      const social = options.neutral ? 0 : attendance.positiveEvidenceConfidence * socialEffect(context.friendNetwork, player.id, current.selfIds);
       const levelMatch = !options.neutral && context.lowLevelJoined && rank >= 0 && rank < 3 ? Math.log(1.1) : 0;
       return {
         current: current.selfIds.has(player.id),
@@ -1117,9 +1126,12 @@
         ),
         baseStreak: Math.max(historicalStreakBefore(context.history, player.id, targetDate), plannedStreak(model, player.id, targetDate)),
         attendanceBaseline: baseline,
+        weekdayEffect: attendance.weekdayEffect,
+        historyConfidence: attendance.historyConfidence,
+        positiveEvidenceConfidence: attendance.positiveEvidenceConfidence,
         baseEffect: clamp(logit(baseline) - logit(context.attendanceEvidence.prior), -2.5, 2.5),
         ...statisticsEffect,
-        stateEffect: social + levelMatch + countMomentum + (options.neutral ? 0 : statisticsEffect.effect),
+        stateEffect: social + attendance.positiveEvidenceConfidence * (levelMatch + countMomentum) + (options.neutral ? 0 : statisticsEffect.effect),
         social,
         retention: learnedRetention(
           context.regularRetention,
@@ -1276,25 +1288,53 @@
     return evidence;
   }
 
+  function recentWeekdayEffect(context, playerId, overall) {
+    const feature = root.BadmintonMemberStatistics.predictionFeatures({ statistics: context.memberStatistics, playerId, targetDate: context.targetDate });
+    const row = feature.weekdayEvidence;
+    if (!row || (!feature.weekdayPreferred && !feature.weekdayAvoided)) return 0;
+    const freshness = historyWeight(addDays(context.memberStatistics.asOf, 1), context.targetDate);
+    const weekdayRate = (row.attendedWeight * freshness + MEMBER_WEEKDAY_PRIOR_STRENGTH * overall)
+      / (row.opportunityWeight * freshness + MEMBER_WEEKDAY_PRIOR_STRENGTH);
+    const effect = MEMBER_WEEKDAY_EFFECT_STRENGTH * (logit(weekdayRate) - logit(overall));
+    if (feature.weekdayAvoided) {
+      // The third missed opportunity qualifies, but is not yet a full month of
+      // evidence. Three/four/five opportunities carry 1/3, 2/3 and full strength.
+      const opportunityConfidence = clamp((row.opportunityDays - 2) / 3, 0, 1);
+      return opportunityConfidence * clamp(effect, Math.log(MEMBER_WEEKDAY_ODDS_MIN), 0);
+    }
+    // Two/three/four distinct attended weekdays carry 1/3, 2/3 and full strength.
+    // A barely-qualified label must not receive the maximum boost immediately.
+    const repetition = clamp((row.attendanceDays - 1) / 3, 0, 1);
+    return repetition * clamp(effect, 0, Math.log(MEMBER_WEEKDAY_ODDS_MAX));
+  }
+
   function attendanceBaseline(context, index, evidence) {
     const player = context.players[index];
     const row = evidence.members.get(player.id);
-    const overall = ((row?.attended || 0) + MEMBER_PRIOR_STRENGTH * evidence.prior)
-      / ((row?.opportunities || 0) + MEMBER_PRIOR_STRENGTH);
-    const weekdayRate = ((row?.weekdayAttended || 0) + MEMBER_PRIOR_STRENGTH * overall)
-      / ((row?.weekdayOpportunities || 0) + MEMBER_PRIOR_STRENGTH);
     const signal = context.learning.membersById.get(player.id);
-    // Booking attendance and real-signup participation overlap. Blend their
-    // estimates instead of adding a second frequency lift to personal history.
-    // Reliability only gates an already-shrunk posterior; freshness fades the
-    // source blend back to history. Keep the person's weekday-specific shift.
+    // Evidence sources overlap: take their maximum rather than double-counting
+    // the same bookings and signup attempts. Lifetime comparable dates keep an
+    // established but recently inactive member from becoming a newcomer again.
+    const opportunityDays = Math.max(row?.days || 0, signal?.attemptWeight || 0);
+    const attendanceDays = Math.max(row?.attendedDays || 0, signal?.joinedWeight || 0);
+    const historyConfidence = clamp(opportunityDays / SPARSE_HISTORY_OPPORTUNITIES, 0, 1);
+    const positiveEvidenceConfidence = Math.min(historyConfidence, clamp(attendanceDays / SPARSE_HISTORY_ATTENDANCE_DAYS, 0, 1));
+    const prior = evidence.prior * (SPARSE_HISTORY_PRIOR_RATIO + (1 - SPARSE_HISTORY_PRIOR_RATIO) * historyConfidence);
+    const overall = ((row?.attended || 0) + MEMBER_PRIOR_STRENGTH * prior)
+      / ((row?.opportunities || 0) + MEMBER_PRIOR_STRENGTH);
+    // Booking and signup participation posteriors are fused, not multiplied.
     let participationRate = overall;
     if (signal?.participationRate !== null && signal?.participationReliability > 0) {
-      const learnedRate = sigmoid(logit(evidence.prior)
+      const learnedRate = sigmoid(logit(prior)
         + learnedParticipationEffect(context.resolvedPriors.participationRate, signal, 1));
       participationRate += 0.5 * context.resolvedPriors.freshness * (learnedRate - overall);
     }
-    return sigmoid(logit(participationRate) + logit(weekdayRate) - logit(overall));
+    // Replace the old all-history weekday shift. The label is not another bonus
+    // stacked on the same weekday evidence, and uncertain positive lifts fade.
+    const rawWeekdayEffect = recentWeekdayEffect(context, player.id, overall);
+    const weekdayEffect = rawWeekdayEffect > 0 ? rawWeekdayEffect * positiveEvidenceConfidence : rawWeekdayEffect;
+    return { baseline: sigmoid(logit(participationRate) + weekdayEffect), weekdayEffect,
+      historyConfidence, positiveEvidenceConfidence };
   }
 
   function historicalFatigueFactor(evidence, playerId, baseRate, capacity, length) {
@@ -1362,7 +1402,7 @@
       if (fatigued) risks.push("连打体力可能不足");
       if (!recentFrequent && learningSignal?.participationRate !== null && learningSignal?.participationReliability > 0
         && learningSignal.participationRate < todayContext.resolvedPriors.participationRate - 0.08) risks.push("近期较少参与");
-      if ((stats?.rawPlayCount || 0) < 2) risks.push((stats?.rawPlayCount || 0) === 0 ? "新成员样本少" : "历史样本较少");
+      if (member.historyConfidence < 1 || member.positiveEvidenceConfidence < 1) risks.push((stats?.rawPlayCount || 0) === 0 ? "新成员样本少" : "历史样本较少");
       rows.push({
         playerId: player.id,
         name: String(player.name || `#${player.id}`),
@@ -1374,6 +1414,8 @@
         attendanceHistoryStart: attendanceEvidence.members.get(player.id)?.start || "",
         friendPlayerIds: (model.friendNetwork.byId.get(player.id) || []).filter((edge) => currentIds.has(edge.playerId)).map((edge) => edge.playerId),
         factors: { baseline: round(member.attendanceBaseline), friendOddsMultiplier: round(Math.exp(social)),
+          weekdayOddsMultiplier: round(Math.exp(member.weekdayEffect)), historyConfidence: round(member.historyConfidence),
+          positiveEvidenceConfidence: round(member.positiveEvidenceConfidence),
           weeklyOddsMultiplier: round(Math.exp(member.effect)), fatigueOddsMultiplier: round(fatigueFactorFor(member, priorStreak)) },
         uplift: counterfactualSimulations ? round(uplift) : null,
         score: round(counterfactualSimulations ? attendanceProbability * Math.max(uplift, 0) : attendanceProbability),
@@ -1562,7 +1604,7 @@
       expectedFinalCount: round(tomorrowCountTotal / simulations, 3),
     };
     return {
-      modelVersion: "group-probability-v4",
+      modelVersion: "group-probability-v5",
       memberStatistics: model.memberStatistics,
       today,
       tomorrow,
@@ -1584,6 +1626,12 @@
       assumptions: {
         candidateAttendanceBasis: "organized-session",
         candidateAttendancePriorStrength: MEMBER_PRIOR_STRENGTH,
+        weekdayHabits: { windowDays: 30, priorStrength: MEMBER_WEEKDAY_PRIOR_STRENGTH,
+          effectStrength: MEMBER_WEEKDAY_EFFECT_STRENGTH, oddsRange: [MEMBER_WEEKDAY_ODDS_MIN, MEMBER_WEEKDAY_ODDS_MAX],
+          source: "shared preferred/avoided weekday evidence; replaces old weekday conditioning" },
+        sparseHistory: { fullOpportunityDays: SPARSE_HISTORY_OPPORTUNITIES,
+          fullAttendanceDays: SPARSE_HISTORY_ATTENDANCE_DAYS, initialPriorRatio: SPARSE_HISTORY_PRIOR_RATIO,
+          positiveLifts: "fade weekday, friendship, level and count boosts; do not force ranking positions" },
         cutoffTime: "20:00",
         activityTime: "19:00",
         successThreshold: SUCCESS_THRESHOLD,

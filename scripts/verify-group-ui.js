@@ -117,7 +117,7 @@ assert.doesNotMatch(html, /相对较高|相对中等|到场倾向|shakeAttendanc
 assert.match(html, /attendanceValue.textContent = formatShakeAttendanceProbability\(item.attendanceProbability\)/);
 assert.doesNotMatch(html, /shakeSortBtn|shakeSortLabel|shakeSortMode|shake-sort-btn|syncShakePeopleSort|toggleShakePeopleSort/);
 // Attendance is informational text, not an expandable action.
-assert.ok(html.includes("到场概率根据其与已接龙人员亲密度、近期出勤、人数偏好、星期、体力等综合推算，仅供参考。"));
+assert.ok(html.includes("到场概率根据近期星期习惯、历史出勤、已接龙拍档、当前人数、人数偏好和体力等综合推算；历史样本较少时采用保守估计，仅供参考。"));
 assert.match(html, /const attendance = document\.createElement\("span"\);/);
 assert.doesNotMatch(html, /attendance\.(?:addEventListener|setAttribute)|attendance\.(?:type|title)\s*=/);
 assert.doesNotMatch(html, /attendanceDetail|shake-attendance-detail|点击百分比|点击查看到场概率/);

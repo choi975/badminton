@@ -36,8 +36,26 @@ assert.equal(digest(probabilitySource), digest(readFileSync(new URL("../group-pr
 const statistics = JSON.parse(statisticsText).memberStatistics;
 const bootstrap = JSON.parse(bootstrapText);
 assert.equal(statistics.version, globalThis.BadmintonMemberStatistics.VERSION);
-assert.equal(statistics.lists.length, 14);
-assert.equal(bootstrap.groupLearningSignals.version, "group-learning-v2");
+assert.equal(statistics.lists.length, 21);
+assert.equal(bootstrap.groupLearningSignals.version, "group-learning-v3");
+const preferred = statistics.lists.filter(list => list.key.startsWith("preferredWeekday"));
+assert.deepEqual(preferred.map(list => list.key), [1, 2, 3, 4, 5, 6, 0].map(day => "preferredWeekday" + day));
+assert.equal(statistics.lists.indexOf(preferred[0]), statistics.lists.findIndex(list => list.key === "noWeekday0") + 1);
+assert.ok(html.includes("周[日一二三四五六](?:可能无法打球|喜欢打球)"));
+assert.ok(html.includes("名单按对应星期出勤场次降序"));
+for (const list of preferred) {
+  const day = Number(list.key.slice(16));
+  const members = list.memberIds.map(id => statistics.members.find(member => member.playerId === id));
+  assert.ok(members.every(member => member.weekdayEvidence30[day].attendanceDays >= 2));
+  assert.ok(members.every((member, i) => !i || members[i - 1].weekdayCounts30[day] >= member.weekdayCounts30[day]));
+}
+assert.ok(statistics.lists.filter(list => list.key.startsWith("noWeekday")).every(list => {
+  const day = Number(list.key.slice(9));
+  return list.memberIds.every(id => {
+    const row = statistics.members.find(member => member.playerId === id).weekdayEvidence30[day];
+    return row.attendanceDays === 0 && row.opportunityDays >= 3 && row.otherAttendanceDays >= 2;
+  });
+}));
 assert.ok(bootstrap.shortTermRules.every((rule) => rule.type !== "only_days"), "live bootstrap excludes retired allowlists");
 const expected = globalThis.BadmintonMemberStatistics.build({
   players: bootstrap.players, sessions: bootstrap.sessions,
