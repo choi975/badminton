@@ -45,7 +45,7 @@
     "test:calendar-detail": "node scripts/verify-calendar-detail.js",
     "test:fee-card": "node scripts/verify-fee-card.js",
     "test:shuttle-types": "node scripts/verify-shuttle-types.js",
-    "test:weekday-habits": "node scripts/verify-weekday-habits.js"
+    "test:weekday-habits": "node scripts/verify-weekday-habits.js && node scripts/verify-weekday-opportunities.js"
   },
   "devDependencies": {
     "wrangler": "latest"

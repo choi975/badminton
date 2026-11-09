@@ -1297,9 +1297,11 @@
       / (row.opportunityWeight * freshness + MEMBER_WEEKDAY_PRIOR_STRENGTH);
     const effect = MEMBER_WEEKDAY_EFFECT_STRENGTH * (logit(weekdayRate) - logit(overall));
     if (feature.weekdayAvoided) {
-      // The third missed opportunity qualifies, but is not yet a full month of
-      // evidence. Three/four/five opportunities carry 1/3, 2/3 and full strength.
-      const opportunityConfidence = clamp((row.opportunityDays - 2) / 3, 0, 1);
+      // One missed organized date now qualifies. Shrink one/two opportunities
+      // to 1/7 and 1/4 of the bounded effect; keep the existing three/four/five
+      // opportunity strengths (1/3, 2/3, full) unchanged.
+      const sparseConfidence = row.opportunityDays / (row.opportunityDays + MEMBER_PRIOR_STRENGTH);
+      const opportunityConfidence = clamp(Math.max(sparseConfidence, (row.opportunityDays - 2) / 3), 0, 1);
       return opportunityConfidence * clamp(effect, Math.log(MEMBER_WEEKDAY_ODDS_MIN), 0);
     }
     // Two/three/four distinct attended weekdays carry 1/3, 2/3 and full strength.
@@ -1604,7 +1606,7 @@
       expectedFinalCount: round(tomorrowCountTotal / simulations, 3),
     };
     return {
-      modelVersion: "group-probability-v5",
+      modelVersion: "group-probability-v5.1",
       memberStatistics: model.memberStatistics,
       today,
       tomorrow,
@@ -1627,6 +1629,8 @@
         candidateAttendanceBasis: "organized-session",
         candidateAttendancePriorStrength: MEMBER_PRIOR_STRENGTH,
         weekdayHabits: { windowDays: 30, priorStrength: MEMBER_WEEKDAY_PRIOR_STRENGTH,
+          minAvoidedOpportunities: root.BadmintonMemberStatistics.WEEKDAY_POLICY.minAvoidedOpportunities,
+          avoidanceEvidencePriorStrength: MEMBER_PRIOR_STRENGTH,
           effectStrength: MEMBER_WEEKDAY_EFFECT_STRENGTH, oddsRange: [MEMBER_WEEKDAY_ODDS_MIN, MEMBER_WEEKDAY_ODDS_MAX],
           source: "shared preferred/avoided weekday evidence; replaces old weekday conditioning" },
         sparseHistory: { fullOpportunityDays: SPARSE_HISTORY_OPPORTUNITIES,

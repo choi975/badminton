@@ -33,7 +33,7 @@ const ids = (key, s = statistics) => s.lists.find(list => list.key === key).memb
 const member = (id, s = statistics) => s.members.find(row => row.playerId === id);
 const tags = (id, date = targetDate, s = statistics, count = 10) => core.recommendationTags({ statistics: s, playerId: id, targetDate: date, currentCount: count });
 const keys = statistics.lists.map(list => list.key);
-assert.equal(statistics.version, "member-statistics-v6");
+assert.equal(statistics.version, "member-statistics-v6.1");
 assert.equal(keys.length, 21);
 assert.deepEqual(keys.slice(keys.indexOf("noWeekday0") + 1, keys.indexOf("weeklyMax1")), [1, 2, 3, 4, 5, 6, 0].map(day => "preferredWeekday" + day));
 assert.deepEqual(ids("preferredWeekday1"), [1, 3, 2], "sort by Monday session count, not lifetime/15-day attendance or distinct Monday count");
@@ -64,7 +64,7 @@ for (const day of ["2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12", "2026
 }
 const holiday = build(history, { calendar: { knownYears: [2026], excludedDates: ["2026-10-12", "2026-10-19", targetDate] } });
 assert.ok(!ids("preferredWeekday1", holiday).includes(2));
-assert.ok(!ids("noWeekday1", holiday).includes(4), "only two ordinary Mondays remain, below the avoidance gate");
+assert.ok(ids("noWeekday1", holiday).includes(4), "two ordinary Mondays meet the one-opportunity gate; holiday target still suppresses the label");
 assert.ok(!tags(1, targetDate, holiday).reasons.some(s => s.includes("喜欢打球")));
 assert.ok(!tags(4, targetDate, holiday).risks.some(s => s.includes("可能无法打球")));
 const noOpportunities = build(history.filter(s => new Date(s.date + "T00:00:00Z").getUTCDay() !== 1));
@@ -94,7 +94,7 @@ const prediction = estimate();
 const neutral = estimate({ memberStatistics: { calendar: { ...calendar, excludedDates: [targetDate] } } });
 const candidate = (id, p = prediction) => p.candidates.find(row => row.playerId === id);
 const odds = p => p / (1 - p);
-assert.equal(prediction.modelVersion, "group-probability-v5");
+assert.equal(prediction.modelVersion, "group-probability-v5.1");
 assert.equal(prediction.assumptions.largeSessionThreshold, 10);
 assert.deepEqual(prediction.assumptions.weekdayHabits.oddsRange, [0.2, 3]);
 assert.ok(candidate(1).factors.weekdayOddsMultiplier > 1.3, "repeated preferred weekdays materially boost attendance");

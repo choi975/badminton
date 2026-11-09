@@ -37,6 +37,8 @@ const statistics = JSON.parse(statisticsText).memberStatistics;
 const bootstrap = JSON.parse(bootstrapText);
 assert.equal(statistics.version, globalThis.BadmintonMemberStatistics.VERSION);
 assert.equal(statistics.lists.length, 21);
+assert.equal(globalThis.BadmintonMemberStatistics.WEEKDAY_POLICY.minAvoidedOpportunities, 1);
+assert.ok(html.includes("入群后至少一个周X有成局机会却均未出勤"));
 assert.equal(bootstrap.groupLearningSignals.version, "group-learning-v3");
 const preferred = statistics.lists.filter(list => list.key.startsWith("preferredWeekday"));
 assert.deepEqual(preferred.map(list => list.key), [1, 2, 3, 4, 5, 6, 0].map(day => "preferredWeekday" + day));
@@ -53,7 +55,7 @@ assert.ok(statistics.lists.filter(list => list.key.startsWith("noWeekday")).ever
   const day = Number(list.key.slice(9));
   return list.memberIds.every(id => {
     const row = statistics.members.find(member => member.playerId === id).weekdayEvidence30[day];
-    return row.attendanceDays === 0 && row.opportunityDays >= 3 && row.otherAttendanceDays >= 2;
+    return row.attendanceDays === 0 && row.opportunityDays >= 1 && row.otherAttendanceDays >= 2;
   });
 }));
 assert.ok(bootstrap.shortTermRules.every((rule) => rule.type !== "only_days"), "live bootstrap excludes retired allowlists");
@@ -71,7 +73,7 @@ const ranking = statistics.lists.find((list) => list.key === "attendance15");
 const cutoff = Math.max(1, statistics.members[9]?.attendance15 || 0);
 assert.deepEqual(ranking.memberIds, statistics.members.filter((m) => m.attendance15 >= cutoff).map((m) => m.playerId));
 console.log(JSON.stringify({ result: "Cloudflare live verification passed", asOf: statistics.asOf,
-  categories: statistics.lists.length, partnerPairs: statistics.bestPartners.pairs.length, rankingWithTies: ranking.memberIds.length, activeMembers: statistics.activeMemberCount, learningVersion: bootstrap.groupLearningSignals.version }));
+  categories: statistics.lists.length, weekdayAvoidedCounts: Object.fromEntries([2,4].map(day => [day, statistics.lists.find(list => list.key === "noWeekday" + day).memberIds.length])), partnerPairs: statistics.bestPartners.pairs.length, rankingWithTies: ranking.memberIds.length, activeMembers: statistics.activeMemberCount, learningVersion: bootstrap.groupLearningSignals.version }));
 
 const backgroundFiles = ["forecast-client.js", "forecast-worker.js", "optimistic-sync.js"];
 for (const file of backgroundFiles) {

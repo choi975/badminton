@@ -1,11 +1,11 @@
 (function attachMemberStatistics(root) {
   "use strict";
   const DAY_MS = 86400000;
-  const VERSION = "member-statistics-v6";
+  const VERSION = "member-statistics-v6.1";
   const SUCCESS_THRESHOLD = 6;
   const LARGE_SESSION_THRESHOLD = 10;
   const WEEKDAY_POLICY = Object.freeze({ windowDays: 30, halfLifeDays: 30, minPreferredDays: 2,
-    minAvoidedOpportunities: 3, minOtherAttendanceDays: 2 });
+    minAvoidedOpportunities: 1, minOtherAttendanceDays: 2 });
   const DEFINITIONS = [
     { key: "attendance15", label: "近半个月出勤率排名" },
     { key: "threeDayStreak", label: "能够连打三天的成员" },
