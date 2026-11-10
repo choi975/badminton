@@ -1,11 +1,11 @@
 (function attachMemberStatistics(root) {
   "use strict";
   const DAY_MS = 86400000;
-  const VERSION = "member-statistics-v6.1";
+  const VERSION = "member-statistics-v6.2";
   const SUCCESS_THRESHOLD = 6;
   const LARGE_SESSION_THRESHOLD = 10;
-  const WEEKDAY_POLICY = Object.freeze({ windowDays: 30, halfLifeDays: 30, minPreferredDays: 2,
-    minAvoidedOpportunities: 1, minOtherAttendanceDays: 2 });
+  const WEEKDAY_POLICY = Object.freeze({ windowDays: 30, halfLifeDays: 30, minPreferredDays: 1,
+    minAvoidedOpportunities: 1, minOtherAttendanceDays: 1 });
   const DEFINITIONS = [
     { key: "attendance15", label: "近半个月出勤率排名" },
     { key: "threeDayStreak", label: "能够连打三天的成员" },
@@ -307,7 +307,7 @@
   }
 
   // Weekday habits use distinct organized dates. Session counts only order the
-  // preferred lists; two games on one Monday do not establish a weekly routine.
+  // preferred lists; multiple games on one Monday still provide one day of evidence.
   function buildWeekdayEvidence(players, sessions, start, end, calendar) {
     const knownIds = new Set(players.map((player) => Number(player.id)));
     const knownYears = new Set(calendar.knownYears), excluded = new Set(calendar.excludedDates);
@@ -434,9 +434,10 @@
       if (key === "threeDayStreak") return member.streak60 >= 3;
       if (key === "twoDayStreak") return member.streak60 === 2;
       if (key.startsWith("preferredWeekday")) return member.preferredWeekdays.includes(Number(key.slice(16)));
+      if (key.startsWith("noWeekday")) return member.noPlayWeekdays.includes(Number(key.slice(9)));
+      // Only large-session and weekly-count habits require two recent signups.
       if (member.attendance30 < 2) return false;
       if (key === "onlyLargeSessions") return member.onlyLargeSessions;
-      if (key.startsWith("noWeekday")) return member.noPlayWeekdays.includes(Number(key.slice(9)));
       return member.maxWeekly30 === Number(key.slice(-1));
     };
     const listMembers = (key) => {

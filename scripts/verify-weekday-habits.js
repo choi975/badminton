@@ -33,20 +33,24 @@ const ids = (key, s = statistics) => s.lists.find(list => list.key === key).memb
 const member = (id, s = statistics) => s.members.find(row => row.playerId === id);
 const tags = (id, date = targetDate, s = statistics, count = 10) => core.recommendationTags({ statistics: s, playerId: id, targetDate: date, currentCount: count });
 const keys = statistics.lists.map(list => list.key);
-assert.equal(statistics.version, "member-statistics-v6.1");
+assert.equal(statistics.version, "member-statistics-v6.2");
 assert.equal(keys.length, 21);
 assert.deepEqual(keys.slice(keys.indexOf("noWeekday0") + 1, keys.indexOf("weeklyMax1")), [1, 2, 3, 4, 5, 6, 0].map(day => "preferredWeekday" + day));
-assert.deepEqual(ids("preferredWeekday1"), [1, 3, 2], "sort by Monday session count, not lifetime/15-day attendance or distinct Monday count");
+assert.deepEqual(ids("preferredWeekday1"), [1, 3, 2, 5], "sort by Monday session count, not lifetime/15-day attendance or distinct Monday count");
 assert.equal(member(3).weekdayCounts30[1], 4);
 assert.equal(member(3).weekdayEvidence30[1].attendanceDays, 2);
 assert.equal(member(5).weekdayCounts30[1], 3);
-assert.ok(!ids("preferredWeekday1").includes(5), "three sessions on a single Monday cannot establish a weekly routine");
+assert.ok(ids("preferredWeekday1").includes(5), "a single Monday is sufficient for the preferred list");
+assert.equal(member(5).weekdayEvidence30[1].attendanceDays, 1, "same-day games still provide only one day of evidence");
 assert.deepEqual(build([...history, { ...history[0] }]).lists, statistics.lists, "duplicate API rows do not affect counts or ordering");
 assert.deepEqual(build([...history].reverse(), { players: [...players].reverse() }).lists, statistics.lists, "group ordering is deterministic");
 assert.ok(ids("noWeekday1").includes(4));
 assert.equal(member(4).weekdayEvidence30[1].opportunityDays, 4, "same-day multiple games provide one comparable opportunity");
 assert.equal(member(4).weekdayEvidence30[1].otherAttendanceDays, 2);
-assert.ok(!ids("noWeekday1").includes(6), "only one other attendance day is insufficient");
+assert.ok(ids("noWeekday1").includes(6), "one other attendance day qualifies without a second signup");
+assert.ok(!ids("noWeekday1").includes(9), "zero other attendance days remain insufficient");
+assert.equal(member(2).weekdayEvidence30[1].otherAttendanceDays, 0);
+assert.ok(tags(2).reasons.includes("周一喜欢打球"), "preferred weekdays do not require other attendance");
 assert.ok(!ids("noWeekday1").includes(8), "a member registered after the Mondays has no missed opportunities");
 assert.equal(member(8).weekdayEvidence30[1].opportunityDays, 0);
 assert.equal(ids("noWeekday2").length, 0, "no organized Tuesday is not Tuesday unavailability");
@@ -63,7 +67,8 @@ for (const day of ["2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12", "2026
   }
 }
 const holiday = build(history, { calendar: { knownYears: [2026], excludedDates: ["2026-10-12", "2026-10-19", targetDate] } });
-assert.ok(!ids("preferredWeekday1", holiday).includes(2));
+assert.ok(ids("preferredWeekday1", holiday).includes(2), "one remaining ordinary Monday qualifies");
+assert.equal(member(2, holiday).weekdayEvidence30[1].attendanceDays, 1);
 assert.ok(ids("noWeekday1", holiday).includes(4), "two ordinary Mondays meet the one-opportunity gate; holiday target still suppresses the label");
 assert.ok(!tags(1, targetDate, holiday).reasons.some(s => s.includes("喜欢打球")));
 assert.ok(!tags(4, targetDate, holiday).risks.some(s => s.includes("可能无法打球")));
@@ -71,7 +76,7 @@ const noOpportunities = build(history.filter(s => new Date(s.date + "T00:00:00Z"
 assert.equal(ids("noWeekday1", noOpportunities).length, 0);
 const unsuccessful = build([...history.filter(s => new Date(s.date + "T00:00:00Z").getUTCDay() !== 1), ...["2026-10-12", "2026-10-19", "2026-10-26"].map(date => session(date, [], 5))]);
 assert.equal(ids("noWeekday1", unsuccessful).length, 0, "unformed attempts do not become weekday attendance opportunities");
-const expired = build(history, { now: "2026-12-10T09:00:00+08:00" });
+const expired = build(history, { now: "2026-12-17T09:00:00+08:00" });
 assert.equal(ids("preferredWeekday1", expired).length, 0, "weekday groups expire with the rolling window");
 const unknown = build([session("2027-01-04", [1]), session("2027-01-11", [1])], { now: "2027-01-18T09:00:00+08:00", calendar: { knownYears: [], excludedDates: [] } });
 assert.ok(unknown.lists.filter(l => /^(preferredWeekday|noWeekday)/.test(l.key)).every(l => l.memberIds.length === 0));
@@ -94,16 +99,17 @@ const prediction = estimate();
 const neutral = estimate({ memberStatistics: { calendar: { ...calendar, excludedDates: [targetDate] } } });
 const candidate = (id, p = prediction) => p.candidates.find(row => row.playerId === id);
 const odds = p => p / (1 - p);
-assert.equal(prediction.modelVersion, "group-probability-v5.1");
+assert.equal(prediction.modelVersion, "group-probability-v5.2");
 assert.equal(prediction.assumptions.largeSessionThreshold, 10);
 assert.deepEqual(prediction.assumptions.weekdayHabits.oddsRange, [0.2, 3]);
 assert.ok(candidate(1).factors.weekdayOddsMultiplier > 1.3, "repeated preferred weekdays materially boost attendance");
 assert.ok(candidate(1).factors.weekdayOddsMultiplier <= 3);
 assert.ok(candidate(4).factors.weekdayOddsMultiplier <= 0.35, "repeated missed opportunities materially suppress attendance");
 assert.ok(candidate(4).factors.weekdayOddsMultiplier >= 0.2);
-assert.equal(candidate(6).factors.weekdayOddsMultiplier, 1, "insufficient other attendance does not create a penalty");
+assert.ok(candidate(6).factors.weekdayOddsMultiplier < 1, "one other attendance day now enables the soft weekday penalty");
+assert.equal(candidate(9).factors.weekdayOddsMultiplier, 1, "zero other attendance days do not create a penalty");
 assert.equal(candidate(8).factors.weekdayOddsMultiplier, 1, "pre-membership dates never create weekday penalties");
-for (const id of [1, 4]) {
+for (const id of [1, 4, 6]) {
   assert.ok(Math.abs(odds(candidate(id).attendanceProbability) / odds(candidate(id, neutral).attendanceProbability)
     - candidate(id).factors.weekdayOddsMultiplier) < 0.0001, "the new weekday shift enters exactly once");
 }

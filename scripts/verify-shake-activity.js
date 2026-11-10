@@ -19,7 +19,7 @@ const sessions = [
 ];
 sessions.push(sessions[1]); // duplicated API row, not a second signup
 const stats = core.build({ players, sessions, now });
-const restricted = (key) => key === "onlyLargeSessions" || key.startsWith("noWeekday") || key.startsWith("weeklyMax");
+const restricted = (key) => key === "onlyLargeSessions" || key.startsWith("weeklyMax");
 const byId = new Map(stats.members.map((m) => [m.playerId, m]));
 for (const list of stats.lists.filter((l) => restricted(l.key))) {
   assert.ok(list.memberIds.every((id) => byId.get(id).attendance30 >= 2), `${list.key} must exclude zero/one signup members`);
@@ -34,6 +34,10 @@ assert.deepEqual(ids("weeklyMax1"), [12], "a member can satisfy >=2 total with o
 assert.ok(ids("weeklyMax2").includes(3));
 assert.ok(!ids("noWeekday0").includes(3), "two games on one date and no Sunday opportunities cannot imply Sunday unavailability");
 assert.ok(ids("attendance15").includes(9), "one signup still participates in the attendance ranking");
+assert.ok(ids("noWeekday1").includes(2), "one other attendance day qualifies without the two-signup gate");
+assert.ok(ids("preferredWeekday3").includes(2), "one Wednesday qualifies without other-weekday attendance");
+assert.equal(byId.get(2).weekdayEvidence30[3].otherAttendanceDays, 0);
+assert.ok(!ids("noWeekday1").includes(1), "zero other attendance days remain insufficient");
 assert.ok(byId.get(1).onlyLargeSessions && byId.get(2).onlyLargeSessions, "display gates do not erase model features");
 assert.deepEqual(core.build({ players, sessions: [...sessions].reverse(), now }).lists, stats.lists);
 const holidayStats = core.build({ players, sessions: [game("2026-10-02", [1]), game("2026-10-10", [1])], now });
@@ -129,4 +133,4 @@ assert.ok(readonlyStart > 0 && readonlyEnd > readonlyStart);
 vm.runInContext('globalThis.openReadonlyShake = () => {' + readonlyBody + '};', modalContext);
 modalContext.state.readOnly = true; block.open = false; modalContext.openReadonlyShake();
 assert.ok(block.open, "GitHub/offline shell also expands on every open without cloud writes");
-console.log("Shake activity passed: 0/1/2+ gates, ten restricted lists, dates, duplicates, companions, live/fallback eligibility, joins/rules, filter reset, midnight, edits, probability-feature isolation and accordion reopen.");
+console.log("Shake activity passed: 0/1/2+ gates, three two-signup lists and fourteen one-day weekday lists, dates, duplicates, companions, live/fallback eligibility, joins/rules, filter reset, midnight, edits, probability-feature isolation and accordion reopen.");

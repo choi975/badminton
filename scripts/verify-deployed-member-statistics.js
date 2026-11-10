@@ -38,6 +38,11 @@ const bootstrap = JSON.parse(bootstrapText);
 assert.equal(statistics.version, globalThis.BadmintonMemberStatistics.VERSION);
 assert.equal(statistics.lists.length, 21);
 assert.equal(globalThis.BadmintonMemberStatistics.WEEKDAY_POLICY.minAvoidedOpportunities, 1);
+assert.equal(globalThis.BadmintonMemberStatistics.WEEKDAY_POLICY.minOtherAttendanceDays, 1);
+assert.equal(globalThis.BadmintonMemberStatistics.WEEKDAY_POLICY.minPreferredDays, 1);
+assert.ok(html.includes("且其他星期至少一个本人出勤日"));
+assert.ok(html.includes("至少一个周X本人出勤日，不要求其他星期出勤"));
+assert.doesNotMatch(html, /其他星期至少两个|喜欢打周X：至少两个/);
 assert.ok(html.includes("入群后至少一个周X有成局机会却均未出勤"));
 assert.equal(bootstrap.groupLearningSignals.version, "group-learning-v3");
 const preferred = statistics.lists.filter(list => list.key.startsWith("preferredWeekday"));
@@ -48,14 +53,14 @@ assert.ok(html.includes("名单按对应星期出勤场次降序"));
 for (const list of preferred) {
   const day = Number(list.key.slice(16));
   const members = list.memberIds.map(id => statistics.members.find(member => member.playerId === id));
-  assert.ok(members.every(member => member.weekdayEvidence30[day].attendanceDays >= 2));
+  assert.ok(members.every(member => member.weekdayEvidence30[day].attendanceDays >= 1));
   assert.ok(members.every((member, i) => !i || members[i - 1].weekdayCounts30[day] >= member.weekdayCounts30[day]));
 }
 assert.ok(statistics.lists.filter(list => list.key.startsWith("noWeekday")).every(list => {
   const day = Number(list.key.slice(9));
   return list.memberIds.every(id => {
     const row = statistics.members.find(member => member.playerId === id).weekdayEvidence30[day];
-    return row.attendanceDays === 0 && row.opportunityDays >= 1 && row.otherAttendanceDays >= 2;
+    return row.attendanceDays === 0 && row.opportunityDays >= 1 && row.otherAttendanceDays >= 1;
   });
 }));
 assert.ok(bootstrap.shortTermRules.every((rule) => rule.type !== "only_days"), "live bootstrap excludes retired allowlists");
@@ -68,7 +73,7 @@ assert.deepEqual(bootstrap.memberStatistics.lists, expected.lists, "Worker and b
 assert.deepEqual(bootstrap.memberStatistics.bestPartners, expected.bestPartners, "Worker and browser best-partner evidence must agree");
 assert.match(html, /key: "bestPartners", label: "最佳拍档"/);
 assert.ok(html.includes('function renderBestPartnerStatistics('));
-assert.ok(statistics.lists.filter((list) => list.key === "onlyLargeSessions" || list.key.startsWith("noWeekday") || list.key.startsWith("weeklyMax")).every((list) => list.memberIds.every((id) => statistics.members.find((m) => m.playerId === id).attendance30 >= 2)));
+assert.ok(statistics.lists.filter((list) => list.key === "onlyLargeSessions" || list.key.startsWith("weeklyMax")).every((list) => list.memberIds.every((id) => statistics.members.find((m) => m.playerId === id).attendance30 >= 2)));
 const ranking = statistics.lists.find((list) => list.key === "attendance15");
 const cutoff = Math.max(1, statistics.members[9]?.attendance15 || 0);
 assert.deepEqual(ranking.memberIds, statistics.members.filter((m) => m.attendance15 >= cutoff).map((m) => m.playerId));

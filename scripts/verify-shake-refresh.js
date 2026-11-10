@@ -42,7 +42,9 @@ const oldThree = build([session("2026-10-12"), session("2026-10-13"), session("2
 assert.ok(!tags(oldThree).risks.some(t => t.startsWith("每周可能")), "any observed week exceeding two removes both caps");
 assert.ok(tags(build(threeHistory.slice(0, -1))).risks.includes("每周可能最多打2局"), "deleting/correcting a historical session recomputes membership");
 const one = build([session("2026-10-19")]);
-assert.deepEqual(tags(one), { reasons: [], risks: [] }, "one record meets recommendation activity but not any of these evidence gates");
+assert.deepEqual(tags(one), { reasons: [], risks: ["周五可能无法打球"] }, "one other attendance day qualifies for weekday absence, but not weekly/large/frequent habits");
+assert.deepEqual(tags(one, { targetDate: "2026-10-26" }), { reasons: ["周一喜欢打球"], risks: [] }, "one Monday enables preference without any other-weekday attendance");
+assert.deepEqual(tags(build([])), { reasons: [], risks: [] }, "removing the last attendance clears both weekday labels");
 const sameDay = build([session("2026-10-19"), session("2026-10-19")]);
 assert.ok(!tags(sameDay).reasons.includes("近期常打"));
 const small = session("2026-10-21"); small.players[1].slots = 8;

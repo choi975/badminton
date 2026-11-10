@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-09T16:46:25.492Z",
+  "generatedAt": "2026-11-10T00:55:11.030Z",
   "source": "Cloudflare D1: Badminton",
   "data": {
     "players": [
@@ -18650,7 +18650,7 @@
     ],
     "estimator": {
       "version": 5,
-      "generatedAt": "2026-11-09T16:46:25.011Z",
+      "generatedAt": "2026-11-10T00:55:10.515Z",
       "trainingRevision": 1267,
       "training": {
         "dateRange": {
@@ -20555,7 +20555,7 @@
     ],
     "groupLearningSignals": {
       "version": "group-learning-v3",
-      "generatedAt": "2026-11-09T16:46:25.492Z",
+      "generatedAt": "2026-11-10T00:55:11.030Z",
       "generatedDate": "2026-11-10",
       "halfLifeDays": 30,
       "training": {
@@ -23697,9 +23697,9 @@
     },
     "shakeRevision": 57,
     "memberStatistics": {
-      "version": "member-statistics-v6.1",
+      "version": "member-statistics-v6.2",
       "asOf": "2026-11-09",
-      "generatedAt": "2026-11-09T16:46:25.492Z",
+      "generatedAt": "2026-11-10T00:55:11.030Z",
       "windows": {
         "start15": "2026-10-26",
         "start30": "2026-10-11",
@@ -23920,7 +23920,9 @@
           "preferredWeekdays": [
             0,
             1,
+            2,
             3,
+            4,
             5
           ],
           "noPlayWeekdays": [
@@ -24060,8 +24062,10 @@
           ],
           "preferredWeekdays": [
             0,
+            1,
             2,
             3,
+            4,
             5,
             6
           ],
@@ -24185,8 +24189,13 @@
             1
           ],
           "preferredWeekdays": [
+            0,
             1,
-            5
+            2,
+            3,
+            4,
+            5,
+            6
           ],
           "noPlayWeekdays": [],
           "rank15": 3
@@ -24308,7 +24317,13 @@
             1
           ],
           "preferredWeekdays": [
-            5
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
           ],
           "noPlayWeekdays": [],
           "rank15": 3
@@ -24435,7 +24450,8 @@
             0,
             1,
             3,
-            5
+            5,
+            6
           ],
           "noPlayWeekdays": [
             2,
@@ -24566,6 +24582,8 @@
           "preferredWeekdays": [
             0,
             1,
+            2,
+            4,
             6
           ],
           "noPlayWeekdays": [
@@ -24694,6 +24712,7 @@
           "preferredWeekdays": [
             0,
             1,
+            2,
             6
           ],
           "noPlayWeekdays": [
@@ -24814,6 +24833,7 @@
           ],
           "preferredWeekdays": [
             1,
+            2,
             3,
             6
           ],
@@ -24939,8 +24959,11 @@
             1
           ],
           "preferredWeekdays": [
+            0,
             1,
-            3
+            3,
+            5,
+            6
           ],
           "noPlayWeekdays": [
             2,
@@ -25060,9 +25083,11 @@
             1
           ],
           "preferredWeekdays": [
+            0,
             1,
             2,
-            3
+            3,
+            6
           ],
           "noPlayWeekdays": [
             4,
@@ -25183,6 +25208,7 @@
           ],
           "preferredWeekdays": [
             1,
+            2,
             3,
             6
           ],
@@ -25300,7 +25326,11 @@
             0
           ],
           "preferredWeekdays": [
-            1
+            1,
+            2,
+            3,
+            4,
+            5
           ],
           "noPlayWeekdays": [
             0,
@@ -25542,6 +25572,8 @@
             2
           ],
           "preferredWeekdays": [
+            1,
+            2,
             3,
             6
           ],
@@ -25668,6 +25700,11 @@
             2
           ],
           "preferredWeekdays": [
+            0,
+            1,
+            3,
+            4,
+            5,
             6
           ],
           "noPlayWeekdays": [
@@ -25780,7 +25817,8 @@
             1
           ],
           "preferredWeekdays": [
-            5
+            5,
+            6
           ],
           "noPlayWeekdays": [
             0,
@@ -25907,6 +25945,9 @@
           ],
           "preferredWeekdays": [
             0,
+            1,
+            2,
+            3,
             6
           ],
           "noPlayWeekdays": [
@@ -26030,6 +26071,7 @@
           "preferredWeekdays": [
             0,
             3,
+            5,
             6
           ],
           "noPlayWeekdays": [
@@ -26144,7 +26186,12 @@
             1,
             0
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            0,
+            3,
+            4,
+            5
+          ],
           "noPlayWeekdays": [
             1,
             2,
@@ -26259,7 +26306,10 @@
             1
           ],
           "preferredWeekdays": [
-            0
+            0,
+            3,
+            5,
+            6
           ],
           "noPlayWeekdays": [
             1,
@@ -26368,7 +26418,8 @@
             1
           ],
           "preferredWeekdays": [
-            5
+            5,
+            6
           ],
           "noPlayWeekdays": [
             0,
@@ -26487,7 +26538,8 @@
           ],
           "preferredWeekdays": [
             1,
-            3
+            3,
+            4
           ],
           "noPlayWeekdays": [
             0,
@@ -26603,7 +26655,8 @@
             1
           ],
           "preferredWeekdays": [
-            5
+            5,
+            6
           ],
           "noPlayWeekdays": [
             0,
@@ -26719,6 +26772,7 @@
           ],
           "preferredWeekdays": [
             1,
+            3,
             5
           ],
           "noPlayWeekdays": [
@@ -26836,6 +26890,7 @@
             0
           ],
           "preferredWeekdays": [
+            1,
             5
           ],
           "noPlayWeekdays": [
@@ -26945,7 +27000,10 @@
             1,
             1
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            5,
+            6
+          ],
           "noPlayWeekdays": [
             0,
             1,
@@ -27066,7 +27124,8 @@
           ],
           "preferredWeekdays": [
             0,
-            3
+            3,
+            6
           ],
           "noPlayWeekdays": [
             1,
@@ -27173,7 +27232,10 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            2,
+            4
+          ],
           "noPlayWeekdays": [
             3,
             5
@@ -27283,6 +27345,7 @@
             3
           ],
           "preferredWeekdays": [
+            4,
             6
           ],
           "noPlayWeekdays": [
@@ -27401,6 +27464,8 @@
             3
           ],
           "preferredWeekdays": [
+            1,
+            4,
             6
           ],
           "noPlayWeekdays": [
@@ -27508,7 +27573,10 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            3,
+            4
+          ],
           "noPlayWeekdays": [
             5
           ],
@@ -27732,7 +27800,11 @@
             0,
             1
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            2,
+            3,
+            6
+          ],
           "noPlayWeekdays": [
             0,
             1,
@@ -27848,7 +27920,8 @@
           ],
           "preferredWeekdays": [
             3,
-            5
+            5,
+            6
           ],
           "noPlayWeekdays": [
             0,
@@ -27955,7 +28028,10 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            2,
+            4
+          ],
           "noPlayWeekdays": [
             0,
             1,
@@ -28062,7 +28138,10 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            1,
+            4
+          ],
           "noPlayWeekdays": [
             0,
             2,
@@ -28169,7 +28248,10 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            2,
+            4
+          ],
           "noPlayWeekdays": [
             3,
             5
@@ -28279,6 +28361,7 @@
             0
           ],
           "preferredWeekdays": [
+            1,
             3
           ],
           "noPlayWeekdays": [
@@ -28727,7 +28810,10 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            1,
+            3
+          ],
           "noPlayWeekdays": [
             2,
             4,
@@ -29062,8 +29148,17 @@
             1,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            5
+          ],
+          "noPlayWeekdays": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ],
           "rank15": 43
         },
         {
@@ -29161,8 +29256,12 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            4
+          ],
+          "noPlayWeekdays": [
+            5
+          ],
           "rank15": 43
         },
         {
@@ -29260,7 +29359,9 @@
             1,
             0
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            5
+          ],
           "noPlayWeekdays": [],
           "rank15": 43
         },
@@ -29359,8 +29460,12 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            4
+          ],
+          "noPlayWeekdays": [
+            5
+          ],
           "rank15": 43
         },
         {
@@ -29470,7 +29575,8 @@
             0
           ],
           "preferredWeekdays": [
-            0
+            0,
+            3
           ],
           "noPlayWeekdays": [
             1,
@@ -29587,7 +29693,8 @@
             0
           ],
           "preferredWeekdays": [
-            3
+            3,
+            4
           ],
           "noPlayWeekdays": [
             0,
@@ -29693,8 +29800,12 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            4
+          ],
+          "noPlayWeekdays": [
+            5
+          ],
           "rank15": 43
         },
         {
@@ -29792,8 +29903,16 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            0
+          ],
+          "noPlayWeekdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
           "rank15": 43
         },
         {
@@ -29891,7 +30010,9 @@
             1,
             0
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            5
+          ],
           "noPlayWeekdays": [],
           "rank15": 43
         },
@@ -29995,7 +30116,10 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            0,
+            3
+          ],
           "noPlayWeekdays": [
             1,
             2,
@@ -30100,8 +30224,12 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            4
+          ],
+          "noPlayWeekdays": [
+            5
+          ],
           "rank15": 43
         },
         {
@@ -30209,7 +30337,9 @@
             0
           ],
           "preferredWeekdays": [
-            3
+            0,
+            3,
+            5
           ],
           "noPlayWeekdays": [
             1,
@@ -30314,8 +30444,12 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            4
+          ],
+          "noPlayWeekdays": [
+            5
+          ],
           "rank15": 43
         },
         {
@@ -30413,8 +30547,14 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            2
+          ],
+          "noPlayWeekdays": [
+            3,
+            4,
+            5
+          ],
           "rank15": 43
         },
         {
@@ -30625,8 +30765,12 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            4
+          ],
+          "noPlayWeekdays": [
+            5
+          ],
           "rank15": 43
         },
         {
@@ -30844,7 +30988,9 @@
             1
           ],
           "preferredWeekdays": [
-            5
+            3,
+            5,
+            6
           ],
           "noPlayWeekdays": [
             0,
@@ -30950,8 +31096,17 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            3
+          ],
+          "noPlayWeekdays": [
+            0,
+            1,
+            2,
+            4,
+            5,
+            6
+          ],
           "rank15": 43
         },
         {
@@ -31052,7 +31207,10 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            1,
+            3
+          ],
           "noPlayWeekdays": [
             0,
             2,
@@ -31157,8 +31315,17 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            1
+          ],
+          "noPlayWeekdays": [
+            0,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
           "rank15": 43
         },
         {
@@ -31256,8 +31423,17 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            2
+          ],
+          "noPlayWeekdays": [
+            0,
+            1,
+            3,
+            4,
+            5,
+            6
+          ],
           "rank15": 43
         },
         {
@@ -31355,8 +31531,13 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            3
+          ],
+          "noPlayWeekdays": [
+            4,
+            5
+          ],
           "rank15": 43
         },
         {
@@ -31454,8 +31635,16 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            0
+          ],
+          "noPlayWeekdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
           "rank15": 43
         },
         {
@@ -31553,8 +31742,14 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            2
+          ],
+          "noPlayWeekdays": [
+            3,
+            4,
+            5
+          ],
           "rank15": 43
         },
         {
@@ -31652,8 +31847,13 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            3
+          ],
+          "noPlayWeekdays": [
+            4,
+            5
+          ],
           "rank15": 43
         },
         {
@@ -31760,6 +31960,7 @@
             0
           ],
           "preferredWeekdays": [
+            3,
             5
           ],
           "noPlayWeekdays": [
@@ -31876,7 +32077,10 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            1,
+            2
+          ],
           "noPlayWeekdays": [
             0,
             3,
@@ -32175,8 +32379,17 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            0
+          ],
+          "noPlayWeekdays": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
           "rank15": 73
         },
         {
@@ -32274,8 +32487,17 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            0
+          ],
+          "noPlayWeekdays": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
           "rank15": 73
         },
         {
@@ -32373,8 +32595,17 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            1
+          ],
+          "noPlayWeekdays": [
+            0,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
           "rank15": 73
         },
         {
@@ -32663,8 +32894,17 @@
             0,
             1
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            6
+          ],
+          "noPlayWeekdays": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
           "rank15": 73
         },
         {
@@ -32952,8 +33192,17 @@
             0,
             1
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            6
+          ],
+          "noPlayWeekdays": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
           "rank15": 73
         },
         {
@@ -33549,7 +33798,10 @@
             1,
             0
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            3,
+            5
+          ],
           "noPlayWeekdays": [
             0,
             1,
@@ -33751,8 +34003,17 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            3
+          ],
+          "noPlayWeekdays": [
+            0,
+            1,
+            2,
+            4,
+            5,
+            6
+          ],
           "rank15": 73
         },
         {
@@ -33951,8 +34212,17 @@
             0,
             0
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            3
+          ],
+          "noPlayWeekdays": [
+            0,
+            1,
+            2,
+            4,
+            5,
+            6
+          ],
           "rank15": 73
         },
         {
@@ -34339,8 +34609,17 @@
             0,
             1
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            6
+          ],
+          "noPlayWeekdays": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
           "rank15": 73
         },
         {
@@ -34728,7 +35007,10 @@
             0,
             1
           ],
-          "preferredWeekdays": [],
+          "preferredWeekdays": [
+            3,
+            6
+          ],
           "noPlayWeekdays": [
             0,
             1,
@@ -34835,8 +35117,17 @@
             0,
             1
           ],
-          "preferredWeekdays": [],
-          "noPlayWeekdays": [],
+          "preferredWeekdays": [
+            6
+          ],
+          "noPlayWeekdays": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
           "rank15": 73
         }
       ],
@@ -38868,17 +39159,30 @@
             29,
             83,
             67,
+            85,
             95,
             59,
+            148,
             69,
             113,
             5,
             18,
             112,
+            76,
+            146,
+            149,
             11,
+            137,
+            136,
+            132,
+            138,
             130,
             40,
-            129
+            89,
+            92,
+            134,
+            129,
+            48
           ]
         },
         {
@@ -38911,18 +39215,32 @@
             150,
             83,
             67,
+            85,
             95,
             59,
+            148,
             69,
             113,
             5,
             18,
             112,
+            76,
             124,
+            145,
+            149,
             11,
+            137,
+            136,
+            50,
+            132,
+            138,
             130,
             40,
-            129
+            89,
+            92,
+            134,
+            129,
+            48
           ]
         },
         {
@@ -38945,8 +39263,22 @@
             7,
             29,
             83,
+            85,
+            148,
+            154,
             5,
-            35
+            145,
+            146,
+            149,
+            153,
+            35,
+            137,
+            136,
+            50,
+            132,
+            138,
+            134,
+            48
           ]
         },
         {
@@ -38981,18 +39313,37 @@
             150,
             83,
             67,
+            85,
             95,
+            148,
             69,
             113,
+            154,
             5,
             18,
             112,
+            76,
             124,
+            145,
+            146,
+            157,
+            149,
+            153,
+            158,
             11,
             35,
+            137,
+            136,
+            50,
+            132,
+            138,
             130,
             40,
-            129
+            89,
+            92,
+            134,
+            129,
+            48
           ]
         },
         {
@@ -39022,14 +39373,38 @@
             150,
             83,
             67,
+            164,
+            159,
             95,
             59,
+            162,
+            148,
             69,
+            161,
+            160,
+            154,
+            163,
             18,
+            76,
             124,
+            145,
+            146,
+            157,
+            149,
+            153,
+            158,
             35,
+            137,
+            136,
+            50,
+            132,
+            138,
             130,
-            129
+            89,
+            92,
+            134,
+            129,
+            48
           ]
         },
         {
@@ -39051,17 +39426,26 @@
             126,
             29,
             67,
+            85,
             95,
             59,
             69,
             113,
             5,
             18,
+            76,
             124,
+            145,
+            146,
             11,
             35,
+            137,
+            136,
+            50,
             130,
-            40
+            40,
+            89,
+            92
           ]
         },
         {
@@ -39092,16 +39476,27 @@
             126,
             29,
             67,
+            85,
             59,
             5,
             18,
             112,
+            76,
             124,
+            145,
+            146,
             11,
             35,
+            50,
+            132,
+            138,
             130,
             40,
-            129
+            89,
+            92,
+            134,
+            129,
+            48
           ]
         },
         {
@@ -39120,7 +39515,21 @@
             135,
             53,
             122,
-            42
+            42,
+            82,
+            62,
+            57,
+            150,
+            73,
+            145,
+            24,
+            94,
+            8,
+            50,
+            35,
+            97,
+            124,
+            51
           ]
         },
         {
@@ -39129,7 +39538,25 @@
           "memberIds": [
             122,
             41,
-            51
+            51,
+            73,
+            152,
+            140,
+            154,
+            36,
+            142,
+            42,
+            153,
+            151,
+            24,
+            37,
+            39,
+            8,
+            74,
+            13,
+            9,
+            146,
+            35
           ]
         },
         {
@@ -39156,13 +39583,60 @@
             99,
             59,
             41,
-            130
+            130,
+            74,
+            156,
+            69,
+            140,
+            38,
+            76,
+            157,
+            120,
+            42,
+            158,
+            150,
+            82,
+            73,
+            124,
+            24,
+            95,
+            135,
+            40,
+            112,
+            89,
+            92,
+            11,
+            129
           ]
         },
         {
           "key": "preferredWeekday4",
           "label": "喜欢打周四的成员",
-          "memberIds": []
+          "memberIds": [
+            39,
+            164,
+            82,
+            74,
+            159,
+            152,
+            139,
+            59,
+            162,
+            97,
+            156,
+            161,
+            160,
+            38,
+            163,
+            36,
+            142,
+            62,
+            42,
+            43,
+            151,
+            51,
+            24
+          ]
         },
         {
           "key": "preferredWeekday5",
@@ -39184,7 +39658,19 @@
             24,
             53,
             104,
-            112
+            112,
+            116,
+            85,
+            166,
+            165,
+            120,
+            42,
+            38,
+            82,
+            10,
+            45,
+            113,
+            40
           ]
         },
         {
@@ -39202,7 +39688,26 @@
             13,
             9,
             82,
-            73
+            73,
+            116,
+            20,
+            6,
+            120,
+            147,
+            17,
+            24,
+            53,
+            74,
+            140,
+            132,
+            138,
+            10,
+            122,
+            104,
+            112,
+            134,
+            129,
+            48
           ]
         },
         {
@@ -39219,7 +39724,19 @@
             20,
             53,
             73,
-            120
+            120,
+            10,
+            148,
+            149,
+            69,
+            38,
+            137,
+            136,
+            113,
+            24,
+            82,
+            74,
+            122
           ]
         },
         {

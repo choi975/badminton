@@ -1304,9 +1304,10 @@
       const opportunityConfidence = clamp(Math.max(sparseConfidence, (row.opportunityDays - 2) / 3), 0, 1);
       return opportunityConfidence * clamp(effect, Math.log(MEMBER_WEEKDAY_ODDS_MIN), 0);
     }
-    // Two/three/four distinct attended weekdays carry 1/3, 2/3 and full strength.
-    // A barely-qualified label must not receive the maximum boost immediately.
-    const repetition = clamp((row.attendanceDays - 1) / 3, 0, 1);
+    // One attended weekday qualifies with 1/7 strength; preserve the existing
+    // two/three/four-day strengths (1/3, 2/3, full), before sparse-history fading.
+    const sparseConfidence = row.attendanceDays / (row.attendanceDays + MEMBER_PRIOR_STRENGTH);
+    const repetition = clamp(Math.max(sparseConfidence, (row.attendanceDays - 1) / 3), 0, 1);
     return repetition * clamp(effect, 0, Math.log(MEMBER_WEEKDAY_ODDS_MAX));
   }
 
@@ -1606,7 +1607,7 @@
       expectedFinalCount: round(tomorrowCountTotal / simulations, 3),
     };
     return {
-      modelVersion: "group-probability-v5.1",
+      modelVersion: "group-probability-v5.2",
       memberStatistics: model.memberStatistics,
       today,
       tomorrow,
@@ -1629,6 +1630,8 @@
         candidateAttendanceBasis: "organized-session",
         candidateAttendancePriorStrength: MEMBER_PRIOR_STRENGTH,
         weekdayHabits: { windowDays: 30, priorStrength: MEMBER_WEEKDAY_PRIOR_STRENGTH,
+          minPreferredDays: root.BadmintonMemberStatistics.WEEKDAY_POLICY.minPreferredDays,
+          minOtherAttendanceDays: root.BadmintonMemberStatistics.WEEKDAY_POLICY.minOtherAttendanceDays,
           minAvoidedOpportunities: root.BadmintonMemberStatistics.WEEKDAY_POLICY.minAvoidedOpportunities,
           avoidanceEvidencePriorStrength: MEMBER_PRIOR_STRENGTH,
           effectStrength: MEMBER_WEEKDAY_EFFECT_STRENGTH, oddsRange: [MEMBER_WEEKDAY_ODDS_MIN, MEMBER_WEEKDAY_ODDS_MAX],

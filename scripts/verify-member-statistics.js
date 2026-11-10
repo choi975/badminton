@@ -61,7 +61,7 @@ assert.equal(member(12).weeklyLimit, null, "zero recent games is not a fabricate
 assert.equal(member(17).weeklyLimit, 1, "calendar weeks start Monday, not a sliding seven-day period");
 assert.equal(member(18).weeklyLimit, 2);
 assert.ok(ids("weeklyMax1").every((id) => !ids("weeklyMax2").includes(id)));
-assert.ok(!ids("noWeekday5").includes(13), "one signup is insufficient for weekday lists");
+assert.ok(!ids("noWeekday5").includes(13), "holiday-only activity has no ordinary other-weekday attendance");
 assert.ok(!member(13).noPlayWeekdays.includes(5), "holiday-only activity is not evidence of a weekday ban");
 assert.ok(!ids("noWeekday6").includes(14));
 assert.ok(!member(14).noPlayWeekdays.includes(6), "adjusted-workday-only activity cannot establish weekday avoidance");
