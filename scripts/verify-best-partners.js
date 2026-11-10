@@ -73,7 +73,10 @@ assert.deepEqual(build([]).pairs, []);
 
 // Execute the actual calendar helper: it keeps its historical coattendance meaning.
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-const calendarCode = html.slice(html.indexOf("    function getBestPartnerIdsMap("), html.indexOf("    function subtractCalendarMonth("));
+const calendarStart = html.indexOf("    function getBestPartnerIdsMap(");
+const calendarEnd = html.indexOf("    function formatWeekdayDistribution(", calendarStart);
+assert.ok(calendarStart >= 0 && calendarEnd > calendarStart, "Calendar coattendance helper is present");
+const calendarCode = html.slice(calendarStart, calendarEnd);
 const calendarContext = vm.createContext({}); vm.runInContext(calendarCode, calendarContext);
 const counts = calendarContext.getBestPartnerIdsMap([
   booking(1, asOf, [1, 2]), booking(2, asOf, [1, 2, 3]), booking(3, asOf, [1, 3, 3]), booking(4, asOf, [4]),

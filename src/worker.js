@@ -13,6 +13,7 @@ import "../level-groups.js";
 import LEVEL_GROUPS_JS from "./level-groups.txt";
 import "../court-pricing.js";
 import COURT_PRICING_JS from "./court-pricing.txt";
+import CALENDAR_STATISTICS_JS from "./calendar-statistics.txt";
 import INDEX_HTML from "./index.html";
 import HTML2CANVAS_JS from "./html2canvas.txt";
 import BOOTSTRAP_SNAPSHOT from "./bootstrap-snapshot.txt";
@@ -219,6 +220,10 @@ export default {
           "content-type": "text/javascript; charset=utf-8",
           "cache-control": "no-cache",
         } });
+      }
+
+      if (url.pathname === "/calendar-statistics.js") {
+        return new Response(CALENDAR_STATISTICS_JS, { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache" } });
       }
 
       if (url.pathname === "/court-pricing.js") {

@@ -13,6 +13,7 @@
   <script src="./session-planner.js"></script>
   <script src="./optimistic-sync.js"></script>
   <script src="./court-pricing.js"></script>
+  <script src="./calendar-statistics.js"></script>
   <script src="./level-groups.js"></script>
   <script src="./roster-review.js"></script>
   <script src="./session-save.js"></script>
@@ -3052,7 +3053,6 @@
 
     .calendar-dialog .calendar-toolbar,
     .calendar-dialog .calendar-summary,
-    .calendar-dialog .calendar-hint,
     .calendar-dialog .calendar-weekday-row,
     .calendar-dialog .calendar-day-panel {
       flex: 0 0 auto;
@@ -3096,8 +3096,19 @@
 
     .calendar-month-label {
       min-width: 130px;
+      border-color: transparent;
+      background: transparent;
+      color: var(--text);
       font-size: 17px;
+      font-weight: 700;
       text-align: center;
+    }
+
+    .calendar-month-label:hover,
+    .calendar-weekday-row button:hover {
+      border-color: var(--line-strong);
+      background: var(--accent-soft);
+      color: var(--accent-dark);
     }
 
     .calendar-summary {
@@ -3145,16 +3156,6 @@
       font-size: 15px;
     }
 
-    .calendar-hint {
-      margin: 0 0 8px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .calendar-hint-mobile {
-      display: none;
-    }
-
     .calendar-weekday-stats {
       color: var(--muted);
     }
@@ -3166,8 +3167,12 @@
       margin-bottom: 4px;
     }
 
-    .calendar-weekday-row span {
+    .calendar-weekday-row button {
+      min-width: 0;
+      min-height: 32px;
       padding: 4px 0;
+      border-color: transparent;
+      background: transparent;
       color: var(--muted);
       font-size: 12px;
       font-weight: 600;
@@ -3421,12 +3426,8 @@
         white-space: nowrap;
       }
 
-      .calendar-hint-desktop {
-        display: none;
-      }
-
-      .calendar-hint-mobile {
-        display: inline;
+      .calendar-weekday-row button {
+        min-height: 40px;
       }
 
       .calendar-day {
@@ -3589,11 +3590,36 @@
     }
 
     .calendar-detail-summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       flex-shrink: 0;
       margin: 0 0 12px;
-      color: var(--muted);
-      font-size: 13px;
+      color: var(--text);
       line-height: 1.5;
+    }
+
+    .calendar-detail-period {
+      min-width: 64px;
+      font-size: 16px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .calendar-detail-nav {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      min-height: 34px;
+      padding: 0;
+      flex-shrink: 0;
+    }
+
+    .calendar-detail-nav[hidden] { display: none; }
+    .calendar-detail-nav svg { width: 16px; height: 16px; }
+
+    @media (max-width: 560px) {
+      .calendar-detail-nav { width: 40px; min-height: 40px; }
     }
 
     .calendar-detail-table-wrap {
@@ -4923,7 +4949,7 @@
       <div class="modal-body">
         <div class="calendar-toolbar">
           <button id="calendarPrevBtn" type="button" aria-label="上个月" title="上个月">‹</button>
-          <strong id="calendarMonthLabel" class="calendar-month-label"></strong>
+          <button id="calendarMonthLabel" class="calendar-month-label" type="button" aria-haspopup="dialog" aria-controls="calendarDetailModal"></button>
           <button id="calendarNextBtn" type="button" aria-label="下个月" title="下个月">›</button>
           <button id="calendarTodayBtn" type="button">今天</button>
           <button id="calendarExpandBtn" class="calendar-layout-toggle" type="button" aria-label="将月历展开到最大高度" title="展开月历" aria-pressed="false" aria-controls="calendarScroll"><i data-lucide="maximize-2" aria-hidden="true"></i></button>
@@ -4932,12 +4958,14 @@
           <span id="calendarSelectionText">当前月份：0 个场</span>
           <button id="calendarLedgerToggle" class="calendar-ledger-toggle" type="button" aria-pressed="false" aria-controls="calendarGrid calendarLedgerTotal" title="显示日期和汇总栏中的记账金额">显示记账</button>
         </div>
-        <div class="calendar-hint">
-          <span class="calendar-hint-desktop">上下滚动连续查看日期 · 单击日期查看当天记录 · Ctrl/Shift/拖动可多选 · 左右按钮/今天可返回月份统计</span>
-          <span class="calendar-hint-mobile">上下滑动连续查看 · 点按日期查看当天记录</span>
-        </div>
-        <div class="calendar-weekday-row" aria-hidden="true">
-          <span>周一</span><span>周二</span><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>周日</span>
+        <div id="calendarWeekdayRow" class="calendar-weekday-row" role="group" aria-label="按星期查看详细统计">
+          <button type="button" data-weekday="1" aria-haspopup="dialog" aria-controls="calendarDetailModal" title="查看今天之前最近5个周一的详细统计">周一</button>
+          <button type="button" data-weekday="2" aria-haspopup="dialog" aria-controls="calendarDetailModal" title="查看今天之前最近5个周二的详细统计">周二</button>
+          <button type="button" data-weekday="3" aria-haspopup="dialog" aria-controls="calendarDetailModal" title="查看今天之前最近5个周三的详细统计">周三</button>
+          <button type="button" data-weekday="4" aria-haspopup="dialog" aria-controls="calendarDetailModal" title="查看今天之前最近5个周四的详细统计">周四</button>
+          <button type="button" data-weekday="5" aria-haspopup="dialog" aria-controls="calendarDetailModal" title="查看今天之前最近5个周五的详细统计">周五</button>
+          <button type="button" data-weekday="6" aria-haspopup="dialog" aria-controls="calendarDetailModal" title="查看今天之前最近5个周六的详细统计">周六</button>
+          <button type="button" data-weekday="0" aria-haspopup="dialog" aria-controls="calendarDetailModal" title="查看今天之前最近5个周日的详细统计">周日</button>
         </div>
         <div id="calendarScroll" class="calendar-scroll" tabindex="0" aria-label="可上下滚动的订场日历">
           <div id="calendarGrid" class="calendar-continuous-grid"></div>
@@ -4964,7 +4992,11 @@
         <button class="modal-close-btn" data-close="calendarDetailModal" aria-label="关闭" title="关闭">×</button>
       </div>
       <div class="modal-body">
-        <div id="calendarDetailSummary" class="calendar-detail-summary"></div>
+        <div id="calendarDetailSummary" class="calendar-detail-summary">
+          <button id="calendarDetailPrevBtn" class="calendar-detail-nav" type="button" aria-label="上个月" aria-controls="calendarDetailTableWrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+          <span id="calendarDetailPeriodLabel" class="calendar-detail-period" role="status" aria-live="polite" aria-atomic="true"></span>
+          <button id="calendarDetailNextBtn" class="calendar-detail-nav" type="button" aria-label="下个月" aria-controls="calendarDetailTableWrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+        </div>
         <div id="calendarDetailTableWrap" class="calendar-detail-table-wrap" role="region" tabindex="0" aria-label="成员详细统计，可上下及左右滚动"></div>
       </div>
     </div>
@@ -5228,6 +5260,7 @@
     const LevelGroups = globalThis.BadmintonLevelGroups;
     const LEVEL_GROUPS_LOCAL_KEY = "badminton-level-groups-v1";
     const CourtPricing = globalThis.BadmintonCourtPricing;
+    const CalendarStatistics = globalThis.BadmintonCalendarStatistics;
     const STANDARD_COURT_UNIT_PRICE = 70;
     const PAYMENT_GROUPS = { friends: "球友", heineken: "Hytronik" };
     const PAYMENT_ORDER_AFFILIATIONS = Object.values(PAYMENT_GROUPS);
@@ -5388,6 +5421,7 @@
       levelGroupsSaving: false,
       selectedEstimateShuttleTypeId: "rsl3",
       calendarDetailEntries: [],
+      calendarDetailScope: null,
       calendarDetailColumnOrder: CALENDAR_DETAIL_COLUMNS.map((column) => column.key),
       calendarDetailSort: { key: "playCount", dir: "desc" },
       calendar: {
@@ -5402,6 +5436,8 @@
         rangeEnd: null,
         scrollRaf: 0,
         resizeRaf: 0,
+        scrollTargetMonth: null,
+        monthScrollTimer: 0,
         expanded: false,
         summaryCollapsed: false,
         showLedger: false,
@@ -5476,6 +5512,7 @@
       calendarLedgerTotal: document.getElementById("calendarLedgerTotal"),
       calendarExpandBtn: document.getElementById("calendarExpandBtn"),
       calendarMonthLabel: document.getElementById("calendarMonthLabel"),
+      calendarWeekdayRow: document.getElementById("calendarWeekdayRow"),
       calendarSelectionText: document.getElementById("calendarSelectionText"),
       calendarScroll: document.getElementById("calendarScroll"),
       calendarGrid: document.getElementById("calendarGrid"),
@@ -5487,6 +5524,9 @@
       calendarDetailModal: document.getElementById("calendarDetailModal"),
       calendarDetailTitle: document.getElementById("calendarDetailTitle"),
       calendarDetailSummary: document.getElementById("calendarDetailSummary"),
+      calendarDetailPeriodLabel: document.getElementById("calendarDetailPeriodLabel"),
+      calendarDetailPrevBtn: document.getElementById("calendarDetailPrevBtn"),
+      calendarDetailNextBtn: document.getElementById("calendarDetailNextBtn"),
       calendarDetailTableWrap: document.getElementById("calendarDetailTableWrap"),
       chainBtn: document.getElementById("chainBtn"),
       paymentSettingsBtn: document.getElementById("paymentSettingsBtn"),
@@ -5887,6 +5927,12 @@
       els.calendarPrevBtn.addEventListener("click", () => shiftCalendarMonth(-1));
       els.calendarNextBtn.addEventListener("click", () => shiftCalendarMonth(1));
       els.calendarTodayBtn.addEventListener("click", goToCalendarToday);
+      els.calendarMonthLabel.addEventListener("click", openCalendarMonthDetail);
+      els.calendarWeekdayRow.querySelectorAll("button[data-weekday]").forEach(button => {
+        button.addEventListener("click", () => openCalendarWeekdayDetail(Number(button.dataset.weekday)));
+      });
+      els.calendarDetailPrevBtn.addEventListener("click", () => shiftCalendarDetail(-1));
+      els.calendarDetailNextBtn.addEventListener("click", () => shiftCalendarDetail(1));
       els.calendarLedgerToggle.addEventListener("click", toggleCalendarLedger);
       els.calendarExpandBtn.addEventListener("click", toggleCalendarExpanded);
       els.calendarSummaryToggle.addEventListener("click", toggleCalendarSummary);
@@ -7804,43 +7850,6 @@
       }));
     }
 
-    function subtractCalendarMonth(year, month) {
-      const total = year * 12 + month - 2;
-      return {
-        year: Math.floor(total / 12),
-        month: (total % 12) + 1,
-      };
-    }
-
-    function getCalendarDetailComparisonRange(selectedDates, year, month) {
-      if (selectedDates.length) {
-        const earliest = parseLocalDate(selectedDates[0]);
-        const length = selectedDates.length;
-        const end = new Date(earliest);
-        end.setDate(end.getDate() - 1);
-        const start = new Date(end);
-        start.setDate(start.getDate() - (length - 1));
-        return {
-          start: getLocalDateString(start),
-          end: getLocalDateString(end),
-          label: `${formatCalendarShortDate(start)}～${formatCalendarShortDate(end)}`,
-        };
-      }
-
-      const previous = subtractCalendarMonth(year, month);
-      const start = new Date(previous.year, previous.month - 1, 1);
-      const end = new Date(previous.year, previous.month, 0);
-      return {
-        start: getLocalDateString(start),
-        end: getLocalDateString(end),
-        label: `${previous.year}年${previous.month}月`,
-      };
-    }
-
-    function getSessionsForDateRange(start, end) {
-      return state.sessions.filter((session) => session.date >= start && session.date <= end);
-    }
-
     function formatWeekdayDistribution(weekdays) {
       const weekdayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
       const weekdayOrder = [1, 2, 3, 4, 5, 6, 0];
@@ -8060,15 +8069,54 @@
       if (els.calendarDetailModal.classList.contains("open")) renderCalendarDetailTable(state.calendarDetailEntries);
     }
 
-    function openCalendarDetailModal(sessions, title) {
+    function openCalendarMonthDetail() {
+      openCalendarDetailModal(null, null, CalendarStatistics.monthScope(state.calendar.year, state.calendar.month));
+    }
+
+    function openCalendarWeekdayDetail(weekday) {
+      openCalendarDetailModal(null, null, CalendarStatistics.recentWeekdayScope(weekday));
+    }
+
+    function openCalendarDetailModal(_sessions, _title, scope = null) {
+      // Keep the aggregate-card entry point, but freeze its scope independently
+      // so detail navigation never changes calendar selections or scroll position.
+      state.calendarDetailScope = scope || CalendarStatistics.selectionScope(
+        state.calendar.selectedDates, state.calendar.year, state.calendar.month);
+      renderCalendarDetailStatistics();
+      openModal("calendarDetailModal");
+    }
+
+    function shiftCalendarDetail(direction) {
+      if (!state.calendarDetailScope) return;
+      state.calendarDetailScope = CalendarStatistics.navigate(state.calendarDetailScope, direction);
+      renderCalendarDetailStatistics();
+    }
+
+    function renderCalendarDetailPeriod(scope, comparison) {
+      const description = "统计：" + CalendarStatistics.describe(scope) + "\n对比：" + CalendarStatistics.describe(comparison);
+      els.calendarDetailPeriodLabel.textContent = CalendarStatistics.label(scope);
+      els.calendarDetailPeriodLabel.title = description;
+      els.calendarDetailPeriodLabel.setAttribute("aria-label", description);
+      for (const [button, direction] of [[els.calendarDetailPrevBtn, -1], [els.calendarDetailNextBtn, 1]]) {
+        button.hidden = scope.kind !== "month" && scope.kind !== "weekday";
+        if (button.hidden) continue;
+        const target = CalendarStatistics.navigate(scope, direction);
+        const label = scope.kind === "month"
+          ? (direction < 0 ? "上" : "下") + "个月：" + CalendarStatistics.describe(target)
+          : "查看" + CalendarStatistics.label(target) + "的详细统计";
+        button.setAttribute("aria-label", label);
+        button.title = label + "\n" + CalendarStatistics.describe(target);
+      }
+    }
+
+    function renderCalendarDetailStatistics() {
+      const scope = state.calendarDetailScope;
+      if (!scope) return;
+      const sessions = CalendarStatistics.sessionsForScope(state.sessions, scope);
       state.calendarDetailSessions = sessions;
       const currentStats = getMemberDetailStatsMap(sessions);
-      const comparison = getCalendarDetailComparisonRange(
-        state.calendar.selectedDates,
-        state.calendar.year,
-        state.calendar.month,
-      );
-      const previousSessions = getSessionsForDateRange(comparison.start, comparison.end);
+      const comparison = CalendarStatistics.comparisonScope(scope);
+      const previousSessions = CalendarStatistics.sessionsForScope(state.sessions, comparison);
       const previousStats = getMemberStatsMapForSessions(previousSessions);
       const playersById = new Map(state.players.map((player) => [Number(player.id), player]));
       const bestPartnerIds = globalThis.BadmintonMemberStatistics.partnerIdsMap(getMemberStatistics());
@@ -8104,9 +8152,9 @@
 
       state.calendarDetailEntries = entries;
       els.calendarDetailTitle.textContent = "详细统计";
-      els.calendarDetailSummary.textContent = `${title} · 对比${comparison.label} · 颜色越深，表示该成员在当天打球次数越多 · 表格可上下、左右滚动`;
+      renderCalendarDetailPeriod(scope, comparison);
       renderCalendarDetailTable(entries);
-      openModal("calendarDetailModal");
+      els.calendarDetailTableWrap.scrollTop = 0;
     }
 
     function inferCourtCounts(fee) {
@@ -8693,6 +8741,8 @@
       state.calendar.year = year;
       state.calendar.month = month;
       els.calendarMonthLabel.textContent = formatCalendarMonth(year, month);
+      els.calendarMonthLabel.title = `查看${formatCalendarMonth(year, month)}的详细统计`;
+      els.calendarMonthLabel.setAttribute("aria-label", els.calendarMonthLabel.title);
       if (changed) updateCalendarActiveMonthStyles();
       if (changed && refreshDetails && !state.calendar.selectedDates.length) {
         renderCalendarSelection();
@@ -8710,6 +8760,7 @@
     function openCalendarModal() {
       const today = new Date();
       if (state.calendar.scrollRaf) cancelAnimationFrame(state.calendar.scrollRaf);
+      if (state.calendar.monthScrollTimer) clearTimeout(state.calendar.monthScrollTimer);
       state.calendar = {
         year: today.getFullYear(),
         month: today.getMonth() + 1,
@@ -8722,6 +8773,8 @@
         rangeEnd: null,
         scrollRaf: 0,
         resizeRaf: 0,
+        scrollTargetMonth: null,
+        monthScrollTimer: 0,
         expanded: false,
         summaryCollapsed: false,
         showLedger: false,
@@ -9116,6 +9169,10 @@
       const scrollRect = els.calendarScroll.getBoundingClientRect();
       const dayRect = firstDay.getBoundingClientRect();
       const top = els.calendarScroll.scrollTop + dayRect.top - scrollRect.top;
+      if (state.calendar.monthScrollTimer) clearTimeout(state.calendar.monthScrollTimer);
+      state.calendar.monthScrollTimer = 0;
+      state.calendar.scrollTargetMonth = behavior === "smooth" ? { year, month } : null;
+      if (state.calendar.scrollTargetMonth) scheduleCalendarMonthScrollEnd();
       els.calendarScroll.scrollTo({ top, behavior });
     }
 
@@ -9138,7 +9195,19 @@
       }
     }
 
+    function scheduleCalendarMonthScrollEnd() {
+      if (state.calendar.monthScrollTimer) clearTimeout(state.calendar.monthScrollTimer);
+      state.calendar.monthScrollTimer = setTimeout(() => {
+        state.calendar.monthScrollTimer = 0;
+        state.calendar.scrollTargetMonth = null;
+        syncCalendarMonthFromViewport();
+      }, 160);
+    }
+
     function syncCalendarMonthFromViewport() {
+      // Keep the requested month stable while navigation passes through other
+      // months, so clicking its new statistics shortcut never opens an interim month.
+      if (state.calendar.scrollTargetMonth) return;
       const viewport = els.calendarScroll.getBoundingClientRect();
       const viewportCenter = viewport.top + viewport.height / 2;
       const monthScores = new Map();
@@ -9171,7 +9240,8 @@
       state.calendar.scrollRaf = requestAnimationFrame(() => {
         state.calendar.scrollRaf = 0;
         extendCalendarRangeIfNeeded();
-        syncCalendarMonthFromViewport();
+        if (state.calendar.scrollTargetMonth) scheduleCalendarMonthScrollEnd();
+        else syncCalendarMonthFromViewport();
       });
     }
 
@@ -15216,7 +15286,7 @@
     (() => {
       const pageMeta = {
         chain: ["接龙助手", "整理名单、计算费用并准备群收款"],
-        calendar: ["订场日历", "查看订场记录与成员出勤"],
+        calendar: ["订场日历", ""],
         database: ["数据库", "管理成员资料、等级和历史统计"],
         "payment-settings": ["群收款设置", "入群序号与特殊成员"],
         guide: ["等级介绍", "查看并维护中羽等级说明"],
@@ -15258,6 +15328,7 @@
         const [title, subtitle] = pageMeta[page] || pageMeta.chain;
         navTitle.textContent = title;
         navSubtitle.textContent = subtitle;
+        navSubtitle.hidden = !subtitle;
         currentPage = page;
         setActive(page);
       }

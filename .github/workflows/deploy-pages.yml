@@ -36,6 +36,9 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Verify deployed Cloudflare calendar statistics
+        run: node scripts/verify-deployed-calendar-statistics.js
+
       - name: Verify deployed Cloudflare member statistics
         run: node scripts/verify-deployed-member-statistics.js
 
