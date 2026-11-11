@@ -21,6 +21,8 @@ function declaration(name) {
 }
 const config = new Function("RosterReview", `${["LEVELS", "GENDERS", "AFFILIATIONS", "COLUMNS", "DEFAULT_NEW_MEMBER"].map(declaration).join("\n")}\nreturn { LEVELS, GENDERS, AFFILIATIONS, COLUMNS, DEFAULT_NEW_MEMBER };`)(globalThis.BadmintonRosterReview);
 const hiddenColumns = new Set(JSON.parse(html.match(/hiddenColumns: new Set\((\[[^\n]*\])\)/)[1]));
+assert.ok(!config.COLUMNS.some((column) => column.key === "guestCount" || column.label === "带人数"), "Guest counts are removed from the database and its column menu");
+assert.ok([...hiddenColumns].every((key) => config.COLUMNS.some((column) => column.key === key)), "Default hidden columns must not include removed keys, so visibility counts remain correct");
 assert.deepEqual(config.COLUMNS.filter((column) => !hiddenColumns.has(column.key)).map((column) => column.label), [
   "名称", "性别", "中羽等级", "备注", "所属", "球友群序号", "Hytronik群序号",
 ]);

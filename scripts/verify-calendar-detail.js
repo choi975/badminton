@@ -21,6 +21,8 @@ assert.match(css(".calendar-detail-table-wrap"), /scrollbar-gutter: stable/);
 assert.match(css(".calendar-detail-table"), /min-width: 0/, "Do not inherit the main database table minimum width");
 assert.match(css(".calendar-detail-table th"), /position: sticky/);
 assert.match(css(".calendar-detail-table th"), /top: 0/);
+assert.match(css('.calendar-detail-table [data-column-key="playCount"]'), /text-align: center/, "Center both the play-count header and its values by semantic column key, even after reordering");
+assert.match(css('.calendar-detail-table [data-column-key="playCount"]'), /font-variant-numeric: tabular-nums/);
 assert.match(css(".calendar-detail-table td[data-column-key=\"name\"]:first-child"), /left: 0/);
 assert.match(paymentHtml, /\.calendar-detail-name,\s*\.calendar-detail-partners \{[^}]*white-space: normal;[^}]*overflow-wrap: anywhere;/);
 assert.match(paymentHtml, /\.calendar-detail-name \{ width: clamp\(100px, 12vw, 160px\); \}/, "Names must not shrink to a one-character column on mobile");
@@ -49,6 +51,8 @@ function node(tagName = "div") {
 }
 const declaration = paymentHtml.match(/    const CALENDAR_DETAIL_COLUMNS = \[[\s\S]*?\n    \];/)[0];
 const columns = new Function(declaration + "\nreturn CALENDAR_DETAIL_COLUMNS;")();
+assert.deepEqual(columns.map((column) => column.key), ["name", "playCount", "bestPartners", "weekdays", "change"], "Detailed statistics contain exactly the five remaining columns");
+assert.ok(!columns.some((column) => column.key === "guestCount" || column.label === "带人数"), "Guest counts are not available in detailed statistics");
 const state = {
   calendarDetailColumnOrder: columns.map((column) => column.key),
   calendarDetailSort: { key: "playCount", dir: "desc" }, calendarDetailEntries: [],
@@ -89,13 +93,17 @@ assert.deepEqual(table.children[0].children[0].children.map((th) => th.dataset.c
 const firstRow = table.children[1].children[0];
 assert.equal(firstRow.children[0].children[0].className, "calendar-detail-name");
 assert.equal(firstRow.children[0].textContent, entries[0].name, "Wrap names without truncating or injecting HTML");
-assert.equal(firstRow.children[3].children[0].className, "calendar-detail-partners");
-assert.equal(firstRow.children[3].textContent, entries[0].bestPartners.join("，"), "Every partner remains present and in the original order");
-assert.equal(firstRow.children[4].children[0].children.length, 7, "Keep all seven weekday cells");
-assert.match(firstRow.children[5].textContent, /上期 2 次/);
+const firstCells = new Map(firstRow.children.map((td) => [td.dataset.columnKey, td]));
+assert.equal(firstCells.get("playCount").textContent, String(entries[0].playCount), "Keep attendance values unchanged");
+assert.ok(!firstCells.has("guestCount"), "No guest-count cells are rendered");
+assert.equal(firstCells.get("bestPartners").children[0].className, "calendar-detail-partners");
+assert.equal(firstCells.get("bestPartners").textContent, entries[0].bestPartners.join("，"), "Every partner remains present and in the original order");
+assert.equal(firstCells.get("weekdays").children[0].children.length, 7, "Keep all seven weekday cells");
+assert.match(firstCells.get("change").textContent, /上期 2 次/);
 assert.deepEqual(firstRow.children.map((td) => td.dataset.columnKey), columns.map((column) => column.key));
 assert.deepEqual(entries, original, "Rendering must not modify attendance, partners, or saved totals");
-ui.toggleCalendarDetailSort("playCount");
+const playCountHeader = table.children[0].children[0].children.find((th) => th.dataset.columnKey === "playCount");
+playCountHeader.children[0].events.click();
 assert.equal(wrap.children[0].children[1].children[0].children[0].textContent, entries.at(-1).name, "Sorting still toggles to ascending");
 state.calendarDetailColumnOrder = [...state.calendarDetailColumnOrder].reverse();
 ui.renderCalendarDetailTable(entries);
@@ -120,4 +128,4 @@ for (const blockingId of ["calendarDetailModal", "memberCreateModal", "rosterRev
   modalStack.length = 0;
   modals.calendarModal.classList.remove("open");
 }
-console.log("Calendar details passed: bounded modal, single two-axis table scroller, sticky labels, full long-text content, 80 members, sorting/reordering, empty state, and navigation focus restoration.");
+console.log("Calendar details passed: guest-count column removed, centered attendance headers/values, bounded modal, single two-axis table scroller, sticky labels, full long-text content, 80 members, sorting/reordering, empty state, and navigation focus restoration.");

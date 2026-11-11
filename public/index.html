@@ -3658,6 +3658,11 @@
       white-space: nowrap;
     }
 
+    .calendar-detail-table [data-column-key="playCount"] {
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
     .calendar-detail-table th {
       position: sticky;
       top: 0;
@@ -5311,7 +5316,6 @@
       { key: "friendsJoinNumber", label: "球友群序号", width: "8%", sortable: true },
       { key: "hytronikJoinNumber", label: "Hytronik群序号", width: "8%", sortable: true },
       { key: "playCount", label: "打球次数", width: "8%", sortable: true },
-      { key: "guestCount", label: "带人数", width: "8%", sortable: true },
       { key: "amountTotal", label: "A钱总额", width: "10%", sortable: true },
       { key: "description", label: "该等级的介绍", width: "28%", sortable: false },
     ];
@@ -5319,7 +5323,6 @@
     const CALENDAR_DETAIL_COLUMNS = [
       { key: "name", label: "成员", numeric: false },
       { key: "playCount", label: "打球次数", numeric: true, sortKey: "playCount" },
-      { key: "guestCount", label: "带人数", numeric: true, sortKey: "guestCount" },
       { key: "bestPartners", label: "最佳拍档", numeric: false },
       { key: "weekdays", label: "打球日分布", numeric: false },
       { key: "change", label: "较上期变化", numeric: true, sortKey: "change" },
@@ -5347,7 +5350,7 @@
       dataSource: "loading",
       dataTimestamp: null,
       filters: {},
-      hiddenColumns: new Set(["photo", "description", "playCount", "guestCount", "amountTotal"]),
+      hiddenColumns: new Set(["photo", "description", "playCount", "amountTotal"]),
       mainColumnOrder: COLUMNS.map((column) => column.key),
       sort: { key: "friendsJoinNumber", dir: "asc" },
       selected: { rowKey: "", col: 0 },
@@ -6730,10 +6733,9 @@
       if (key === "photo") return player.photoKey ? getPhotoUrl(player) : "";
       if (key === "friendsJoinNumber") return getJoinNumber(player.id, "球友") ?? "";
       if (key === "hytronikJoinNumber") return getJoinNumber(player.id, "Hytronik") ?? "";
-      if (key === "playCount" || key === "guestCount" || key === "amountTotal") {
+      if (key === "playCount" || key === "amountTotal") {
         const stats = getMemberStats(player.id);
         if (key === "playCount") return stats.playCount;
-        if (key === "guestCount") return stats.guestCount;
         return formatMoney(stats.amountTotal);
       }
       return player[key] || "";
@@ -6813,7 +6815,7 @@
       let result;
       if (key === "level") result = levelRank(a.level) - levelRank(b.level);
       else if (key === "name") result = collator.compare(firstName(a.name), firstName(b.name));
-      else if (["playCount", "guestCount", "amountTotal"].includes(key)) {
+      else if (["playCount", "amountTotal"].includes(key)) {
         result = Number(getCellValue(a, key)) - Number(getCellValue(b, key));
       }
       else if (["friendsJoinNumber", "hytronikJoinNumber"].includes(key)) {
@@ -8032,8 +8034,6 @@
         td.append(name);
       } else if (column.key === "playCount") {
         td.textContent = String(entry.playCount);
-      } else if (column.key === "guestCount") {
-        td.textContent = String(entry.guestCount);
       } else if (column.key === "bestPartners") {
         const partners = document.createElement("span");
         partners.className = "calendar-detail-partners";
@@ -8137,7 +8137,6 @@
           playerId: Number(playerId),
           name: player?.name ? firstName(player.name) : `#${playerId}`,
           playCount: stats.playCount,
-          guestCount: stats.guestCount,
           amountTotal: stats.amountTotal,
           weekdays: stats.weekdays,
           bestPartners,
