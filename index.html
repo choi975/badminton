@@ -4401,8 +4401,10 @@
 
 
     .chain-panel--input { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+    .chain-panel--input:has(.chain-date-bar[hidden]) { grid-template-rows: auto minmax(0, 1fr) auto; }
     .chain-panel--input .chain-textarea { min-height: 0; height: 100%; }
     .chain-date-bar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 9px; border-bottom: 1px solid var(--line); }
+    .chain-date-bar[hidden] { display: none; }
     .chain-date-bar label { font-size: 12px; font-weight: 600; white-space: nowrap; }
     .chain-date-bar input { width: 100%; min-width: 0; min-height: 32px; padding: 3px 5px; font-size: 16px; font-variant-numeric: tabular-nums; }
     .chain-date-bar small { color: var(--muted); font-size: 12px; white-space: nowrap; }
@@ -4730,7 +4732,7 @@
                 <button id="shakePeopleBtn" class="chain-icon-btn" type="button" aria-label="摇人" title="摇人"><i data-lucide="dices"></i></button>
               </div>
             </div>
-            <div class="chain-date-bar">
+            <div id="chainActivityDateBar" class="chain-date-bar" hidden>
               <label for="chainActivityDateInput">活动日期</label>
               <input id="chainActivityDateInput" type="date" autocomplete="off" aria-describedby="chainActivityDateHint">
               <small id="chainActivityDateHint" aria-live="polite"></small>
@@ -5570,6 +5572,7 @@
       todayProbabilityText: document.getElementById("todayProbabilityText"),
       tomorrowProbabilityText: document.getElementById("tomorrowProbabilityText"),
       extractRosterBtn: document.getElementById("extractRosterBtn"),
+      chainActivityDateBar: document.getElementById("chainActivityDateBar"),
       chainActivityDateInput: document.getElementById("chainActivityDateInput"),
       chainActivityDateHint: document.getElementById("chainActivityDateHint"),
       shakePeopleBtn: document.getElementById("shakePeopleBtn"),
@@ -7817,6 +7820,7 @@
     function renderChainActivityDate() {
       if (!els.chainActivityDateInput) return;
       const date = getChainActivityDate(), pending = isChainActivityDatePending();
+      els.chainActivityDateBar.hidden = date === getBeijingDateString();
       els.chainActivityDateInput.value = date;
       els.chainActivityDateInput.disabled = state.chainDateChanging;
       els.chainActivityDateHint.textContent = state.chainDateChanging ? "选择中…" : pending || state.chainDateWarning ? "待确认"

@@ -53,4 +53,42 @@ assert.match(html, /recordDateInput\.value = session\?\.date \|\| getChainActivi
 assert.match(html, /const reportDate = getChainActivityDate\(\)/);
 assert.match(html, /id="chainActivityDateInput" type="date"/);
 assert.match(html, /getChainActivityDate\(\) !== getBeijingDateString\(\) \|\| isChainActivityDatePending\(\)/);
+assert.match(html, /id="chainActivityDateBar" class="chain-date-bar" hidden/, "Hide the date row before initialization to avoid a flash");
+assert.match(html, /\.chain-date-bar\[hidden\]\s*\{\s*display:\s*none;/, "Author grid styles must not override the hidden attribute");
+assert.ok(html.includes(".chain-panel--input:has(.chain-date-bar[hidden]) { grid-template-rows: auto minmax(0, 1fr) auto; }"), "Hiding the date removes its grid track without shrinking the roster");
+const visibilityState = {};
+const visibilityEls = { chainActivityDateBar: {}, chainActivityDateInput: {}, chainActivityDateHint: {} };
+let beijingToday = "2026-11-11";
+const visibilityContext = vm.createContext({ state: visibilityState, els: visibilityEls, ChainActivityDate: dates,
+  getBeijingDateString: () => beijingToday, isChainActivityDatePending: () => false, updateShakePeopleButtonVisibility() {},
+});
+vm.runInContext(source("getChainActivityDate") + "\n" + source("renderChainActivityDate"), visibilityContext);
+function checkDateVisibility(date, hidden, message) {
+  visibilityState.chainActivityDate = date;
+  visibilityContext.renderChainActivityDate();
+  assert.equal(visibilityEls.chainActivityDateBar.hidden, hidden, message);
+  assert.equal(visibilityEls.chainActivityDateInput.value, visibilityContext.getChainActivityDate(), "Visibility must not clear or change the actual activity date");
+}
+checkDateVisibility("", true, "Default today's date is hidden");
+checkDateVisibility("2026-11-11", true, "Explicit today's date is hidden");
+checkDateVisibility("2026-11-09", false, "Past activity date is visible");
+checkDateVisibility("2026-11-12", false, "Future activity date is visible");
+visibilityState.chainDateChanging = true;
+checkDateVisibility("2026-11-09", false, "Pending selection preserves a non-today date row");
+assert.equal(visibilityEls.chainActivityDateInput.disabled, true);
+visibilityState.chainDateChanging = false;
+checkDateVisibility("2026-11-11", true, "Selecting today again hides the full row");
+visibilityState.pendingSessionEdit = { id: 10, date: "2026-11-09" };
+checkDateVisibility("2026-11-11", false, "Editing a historical booking uses the booking date for visibility");
+visibilityState.pendingSessionEdit.date = "2026-11-11";
+checkDateVisibility("2026-11-09", true, "Editing a today booking hides the row even when the draft date differs");
+visibilityState.pendingSessionEdit = null;
+visibilityState.readOnly = true;
+checkDateVisibility("2026-11-09", false, "Read-only backup keeps historical dates visible");
+checkDateVisibility("2026-11-11", true, "Read-only backup also hides today's date");
+beijingToday = globalThis.BadmintonSessionPlannerCore.date("2026-11-11T16:00:00Z");
+assert.equal(beijingToday, "2026-11-12");
+checkDateVisibility("2026-11-12", true, "A future date becomes hidden at Beijing midnight, not UTC midnight");
+checkDateVisibility("2026-11-11", false, "A pinned former-today date is visible after Beijing midnight");
+console.log("Date visibility passed: hidden default/today, visible past/future, unchanged date values, edit precedence, read-only backup, no empty grid track and Beijing midnight.");
 console.log("Activity dates passed: labeled formats, Beijing defaults, explicit/old years, cross-year confirmation, invalid/ambiguous dates, weekday checks, selected-date saves and historical training isolation.");

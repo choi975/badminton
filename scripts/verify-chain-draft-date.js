@@ -46,7 +46,7 @@ function harness() {
   const timers = new Map(), calls = [], confirmations = [], messages = [];
   const state = { players: [], sessions: [], plusOverrides: {}, chainInputUserOwned: false };
   const input = Object.assign(new Element(), { value: "" });
-  const els = { chainInput: input, chainActivityDateInput: new Element(), chainActivityDateHint: new Element(), extractRosterBtn: new Element(), paymentBtn: new Element() };
+  const els = { chainInput: input, chainActivityDateBar: new Element(), chainActivityDateInput: new Element(), chainActivityDateHint: new Element(), extractRosterBtn: new Element(), paymentBtn: new Element() };
   const navigator = { get onLine() { return online; } };
   const names = () => input.value.split("\n").filter(line => /^\d+\./.test(line)).map(line => line.replace(/^\d+\.\s*/, ""));
   const dispatch = (url, options = {}) => handleSessionPlans(new Request("https://badminton.choi975.workers.dev" + url, {

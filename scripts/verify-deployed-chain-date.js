@@ -25,6 +25,8 @@ const context = vm.createContext({});
 vm.runInContext(texts[1] + "\n" + texts[2], context);
 assert.equal(context.BadmintonChainActivityDate.parse("活动时间：11-09 (周一) 19:00 ~ 22:00", { today: "2026-11-11" }).date, "2026-11-09");
 assert.match(texts[0], /id="chainActivityDateInput" type="date"/);
+assert.match(texts[0], /id="chainActivityDateBar" class="chain-date-bar" hidden/);
+assert.ok(texts[0].includes("els.chainActivityDateBar.hidden = date === getBeijingDateString();"), "Today’s activity date is hidden using Beijing time");
 assert.match(texts[3], /async function selectDate/);
 const historical = JSON.parse(await get("/api/session-plans?date=2026-09-09"));
 assert.ok(Array.isArray(historical.days), "Historical date lookup must be available");
