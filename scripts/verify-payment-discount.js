@@ -256,13 +256,14 @@ assert.match(paymentHtml, /paymentRuleAmountInput\.addEventListener\("input"/);
 // Advanced fee previews and collection must agree without replacing manually entered fees.
 const shuttleType = { id: "rsl3", name: "亚3", prices: [11.3] };
 const feeEstimate = { courts: 1, shuttleCounts: { rsl3: 4 } };
-const feeState = { chainEntries: entries, estimator: { shuttleTypes: [shuttleType] }, feeMode: "basic" };
+const feeState = { chainEntries: entries, estimator: { shuttleTypes: [shuttleType] }, feeMode: "basic", feeHoursUserOwned: true };
 const feeEls = {
-  courtFeeInput: { value: "115" }, shuttlePriceInput: { value: "11.3" }, shuttleCountInput: { value: "0" },
-  feeBasicGrid: {}, feeAdvancedArea: {}, feeAdvancedBtn: {},
+  courtHoursInput: { value: "5", dataset: {}, setAttribute() {} }, courtHoursDecreaseBtn: {}, feeHoursError: {},
+  courtFeeInput: { value: "115", dataset: {} }, shuttlePriceInput: { value: "11.3", dataset: {} }, shuttleCountInput: { value: "0", dataset: {} },
+  feeBasicGrid: {}, feeAdvancedArea: {}, feeAdvancedBtn: { setAttribute() {} },
 };
 const feeApi = loadPaymentFunctions([
-  "enterAdvancedFeeMode", "getAdvancedTotals", "getFeeDisplayEstimate", "updateFeeDefaults",
+  "enterAdvancedFeeMode", "ensureFeeRows", "syncFeeInputs", "deriveCourtRows", "formatCompactNumber", "getAdvancedTotals", "getFeeDisplayEstimate", "updateFeeDefaults",
 ], {
   state: feeState, els: feeEls,
   estimateBooking: () => feeEstimate, courtPriceBreakdown: () => [],
@@ -277,13 +278,14 @@ assert.equal(feeState.advancedRows.shuttle[0].count, 0);
 assert.equal(feeState.advancedAutoDefaults.shuttleCount, 4);
 feeApi.updateFeeDefaults(entries, feeEstimate);
 assert.equal(feeState.advancedRows.shuttle[0].count, 0, "Manual zero shuttle count survives recalculation after opening advanced settings");
-assert.equal(feeState.advancedRows.court[0].price, 115);
+assert.equal(feeState.advancedRows.court[0].price, 70);
+assert.equal(feeApi.getAdvancedTotals().courtFee, 117, "The readonly output is never treated as a custom court unit price");
 state.paymentRule = { mode: "cap", amount: 25 };
-feeState.advancedRows.court[0].price = 130;
+feeState.advancedRows.court[0] = { price: 70, count: 2 };
 const preview = feeApi.getFeeDisplayEstimate(entries, feeEstimate);
-assert.equal(preview.courts, 1);
+assert.equal(preview.courts, 2);
 assert.equal(preview.shuttle, 0);
-assert.equal(preview.payment.malePerPerson, 40, "Preview uses advanced fees, not the stale basic 115 yuan input");
+assert.equal(preview.payment.malePerPerson, 45, "Preview uses shared hourly rows, not the stale 115-yuan output");
 assert.equal(preview.payment.femalePerPerson, 25);
 assert.match(paymentHtml, /renderPriceRows\(container, state\.advancedRows\[kind\], \(\) => \{[\s\S]*?renderChainStats/);
 api.renderPaymentCostSummary(94, [{ price: 70, count: 1.333 }], [], 0, calculateRates(94, 4, 0, { mode: "equal", amount: 0 }));

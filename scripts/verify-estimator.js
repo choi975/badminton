@@ -392,7 +392,8 @@ await check("record confirmation and edit round-trips protect training labels", 
   assert.match(html, /preservedProfileSnapshotReliable/);
   assert.match(html, /trainCourt: session\.trainCourt !== false/);
   assert.match(html, /trainShuttle: session\.trainShuttle !== false/);
-  assert.match(html, /courtRows\.length > 1 \|\| shuttleRows\.length > 0/);
+  assert.match(html, /courtRows\.length > 1 \|\| shuttleRows\.length > 1/);
+  assert.match(html, /court: editableCourtRows\.map\(\(row\) => \({ \.\.\.row }\)\)/);
   assert.match(html, /unknownOption\.textContent = "待确认型号"/);
   assert.doesNotMatch(html, /findShuttleTypeByPrice\(Number\(row\.price\)\)\s*\|\|\s*types\[0\]/);
 });

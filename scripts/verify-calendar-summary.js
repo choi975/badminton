@@ -26,6 +26,18 @@ assert.match(summary([{courtCount:0.666,courtFee:47,players:[]}]), /^场地 70�
 assert.match(summary([{courtCount:1,courtFee:55,players:[]}]), /^场地 55元×1个；/, "Unrecognized historical prices are not fabricated");
 assert.match(summary([{courtCount:1,courtFee:0,players:[]}]), /^场地 0元×1个；/);
 
+const legacyRates = [
+  { courtCount: 2, courtFee: 160, venue: "EDC", players: [] },
+  { courtCount: 1.5, courtFee: 150, venue: "文体", players: [] },
+  { courtCount: 1, courtFee: 0, venue: "文体", players: [] },
+];
+const legacyBefore = structuredClone(legacyRates);
+assert.match(summary(legacyRates), /^场地 0元×1个、80元×2个、100元×1\.5个；/);
+assert.deepEqual(legacyRates, legacyBefore, "80 / 100 / free historical bookings retain their saved amounts and three-hour equivalents");
+assert.match(summary([short(0.166)]), /^场地 70元×0\.166个；/, "A half-hour still displays a three-hour equivalent in the total");
+assert.match(summary([short(1.833)]), /^场地 70元×1\.833个；/);
+assert.match(summary([short(0.166), short(0.166)]), /^场地 70元×0\.333个；/, "Aggregate exact half-hours before formatting the equivalent count");
+
 const samplePlayers = [
   ...Array.from({length:35}, () => person("男",24.42)),
   ...Array.from({length:17}, () => person("女",20.9)), person("女",20.93),

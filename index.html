@@ -13,7 +13,7 @@
   <script src="./chain-activity-date.js"></script>
   <script src="./session-planner.js"></script>
   <script src="./optimistic-sync.js"></script>
-  <script src="./court-pricing.js"></script>
+  <script src="./court-pricing.js?v=hourly-20261111"></script>
   <script src="./calendar-statistics.js"></script>
   <script src="./level-groups.js"></script>
   <script src="./roster-review.js"></script>
@@ -1679,15 +1679,18 @@
     .registered-shuttle-type dt > span { min-width: 0; flex: 1; }
     .registered-shuttle-edit { min-height: 28px; padding: 0 6px; flex: 0 0 auto; font-size: 12px; }
     .registered-shuttle-history { display: block; color: var(--muted); font-size: 11px; line-height: 1.5; }
-    .shuttle-type-actions { display: flex; gap: 6px; grid-column: 1 / -1; }
+    .shuttle-type-actions { display: flex; gap: 4px; align-self: end; }
     .shuttle-type-actions button { flex: 1; }
     .shuttle-type-actions button[hidden] { display: none; }
     .shuttle-type-form-error { grid-column: 1 / -1; margin: 0; color: var(--danger); font-size: 12px; line-height: 1.5; }
     .registered-shuttle-type dd { min-width: 0; margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-    .shuttle-type-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 6px; margin-top: 8px; }
+    .shuttle-type-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) auto; align-items: end; gap: 6px; margin-top: 8px; }
+    .shuttle-type-editor label { font-size: 12px; }
+    .shuttle-type-editor:has(#cancelShuttleTypeEditBtn:not([hidden])) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .shuttle-type-editor[hidden] { display: none; }
     .shuttle-type-editor input { min-height: 32px; }
-    .shuttle-type-editor button { grid-column: 1 / -1; min-height: 32px; }
+    .shuttle-type-editor button { min-height: 32px; padding: 0 7px; font-size: 12px; white-space: nowrap; }
+    .shuttle-type-editor:has(#cancelShuttleTypeEditBtn:not([hidden])) .shuttle-type-actions { grid-column: 1 / -1; }
 
     .summary-panel:has(.estimator-advanced-panel:not([hidden])) { overflow-y: auto; overscroll-behavior-y: contain; }
     .summary-panel:has(.estimator-advanced-panel:not([hidden])) > .summary-head { position: sticky; top: 0; z-index: 2; }
@@ -1805,7 +1808,7 @@
 
     .fee-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
     }
 
@@ -1846,7 +1849,18 @@
       border-top: 1px solid var(--line);
     }
 
+    .payment-rule-settings { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: end; gap: 8px; }
     .payment-rule-settings select { width: 100%; min-width: 0; }
+    .payment-rule-settings:has(.payment-rule-amount[hidden]) { grid-template-columns: 1fr; }
+    .fee-shuttle-group { display: grid; gap: 5px; margin: 10px 0; }
+    .fee-shuttle-labels { display: grid; grid-template-columns: minmax(60px, 0.95fr) minmax(46px, 0.8fr) auto minmax(58px, 1fr) 28px 28px; gap: 4px; color: var(--muted); font-size: 12px; font-weight: 600; }
+    .fee-shuttle-labels span:nth-child(3) { min-width: 7px; }
+    .fee-grid input[readonly] { background: var(--panel-soft, #f7fbfa); color: var(--text); font-variant-numeric: tabular-nums; cursor: default; }
+    .fee-advanced-row.shuttle-price-row .fee-advanced-add, .fee-advanced-row.shuttle-price-row .fee-advanced-remove { min-width: 28px; }
+    .fee-advanced-row.shuttle-price-row .fee-advanced-remove { grid-column: 6; }
+    .fee-advanced-add:disabled, .fee-advanced-remove:disabled, .court-count-steps button:disabled { color: var(--muted); background: var(--panel-soft, #f7fbfa); opacity: 0.45; cursor: not-allowed; }
+    #courtHoursInput[aria-invalid="true"] { border-color: var(--danger); }
+    #feeHoursError { margin: 5px 0 0; color: var(--danger); }
     .payment-rule-amount[hidden] { display: none; }
     .payment-rule-hint {
       margin: 0;
@@ -1870,7 +1884,8 @@
     }
 
     .fee-advanced-row.shuttle-price-row {
-      grid-template-columns: minmax(72px, 0.9fr) minmax(0, 1fr) auto minmax(0, 0.8fr) auto auto;
+      grid-template-columns: minmax(60px, 0.95fr) minmax(46px, 0.8fr) auto minmax(58px, 1fr) 28px 28px;
+      gap: 4px;
     }
 
     .shuttle-type-select {
@@ -2848,7 +2863,7 @@
       .chain-dialog .modal-body { overflow: auto; }
       .chain-grid { height: auto; min-height: auto; }
       .chain-panel { min-height: 330px; }
-      .fee-grid { grid-template-columns: 1fr; }
+      .fee-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .app-shell { height: auto; min-height: 100vh; }
       .table-wrap { min-height: 58vh; }
       .table-tools { justify-content: flex-end; }
@@ -4443,6 +4458,21 @@
     .plan-member.is-dim { background: var(--panel-soft); border-color: var(--line); color: var(--muted); font-weight: 400; }
     .session-plan-dialog :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     @media(max-width:600px) { .session-plan-dialog { width: calc(100vw - 16px); max-height: 94dvh; } .plan-dialog-inner { padding: 16px; } .plan-header p { max-width: 230px; } .plan-members-section h3 small { display: block; margin: 5px 0 0; } .plan-member { min-height: 42px; } .plan-member-name { max-width: 150px; } }
+    @media (max-width: 360px) {
+      .nav-preview .modal-backdrop.nav-page .side-stack { grid-template-columns: minmax(0, 1fr); }
+      .fee-box { min-width: 0; }
+      .fee-advanced-row.shuttle-price-row, .fee-shuttle-labels {
+        grid-template-columns: minmax(50px, 0.95fr) minmax(40px, 0.8fr) auto minmax(48px, 1fr) 22px 22px;
+        gap: 1px;
+      }
+      .fee-advanced-row.shuttle-price-row .fee-advanced-add, .fee-advanced-row.shuttle-price-row .fee-advanced-remove { min-width: 22px; }
+      .shuttle-type-select { padding-inline: 3px; }
+      #shuttlePriceRows input { font-size: 12px; padding: 4px; }
+      #shuttlePriceRows .fee-advanced-times { font-size: 12px; }
+      #shuttlePriceRows .court-count-control input { padding-right: 22px; }
+      #shuttlePriceRows .court-count-steps { width: 20px; }
+      .shuttle-type-editor input { font-size: 12px; line-height: 1.4; padding-block: 4px; }
+    }
   </style>
 <script>
 /* Project Index shortcuts v2: 0..3 fixed; 4..9 resolved live with offline fallback. */
@@ -4765,38 +4795,41 @@
             <div class="fee-box">
               <div class="fee-title-row">
                 <div class="fee-title">费用计算</div>
-                <button id="feeAdvancedBtn" class="fee-advanced-toggle" type="button">高级</button>
+                <button id="feeAdvancedBtn" class="fee-advanced-toggle" type="button" aria-expanded="false" aria-controls="feeAdvancedArea">高级</button>
               </div>
               <div id="feeBasicGrid" class="fee-grid">
                 <div class="field">
+                  <label for="courtHoursInput">小时</label>
+                  <div class="court-count-control fee-hours-control">
+                    <input id="courtHoursInput" type="number" min="0" step="any" inputmode="decimal" value="3" data-default-value="3" autocomplete="off" aria-describedby="feeHoursError">
+                    <div class="court-count-steps">
+                      <button id="courtHoursIncreaseBtn" type="button" title="增加1小时" aria-label="增加1小时"><svg viewBox="0 0 12 10" aria-hidden="true"><path d="M3 6 L6 3 L9 6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+                      <button id="courtHoursDecreaseBtn" type="button" title="减少1小时" aria-label="减少1小时"><svg viewBox="0 0 12 10" aria-hidden="true"><path d="M3 3 L6 6 L9 3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+                    </div>
+                  </div>
+                </div>
+                <div class="field">
                   <label for="courtFeeInput">场地费</label>
-                  <input id="courtFeeInput" inputmode="decimal" value="70" data-default-value="70" autocomplete="off">
-                </div>
-                <div class="field">
-                  <label for="shuttlePriceInput">球单价</label>
-                  <input id="shuttlePriceInput" inputmode="decimal" value="11.3" data-default-value="11.3" autocomplete="off">
-                </div>
-                <div class="field">
-                  <label for="shuttleCountInput">球个数</label>
-                  <input id="shuttleCountInput" inputmode="decimal" value="4" data-default-value="4" autocomplete="off">
+                  <input id="courtFeeInput" inputmode="numeric" value="70" data-default-value="70" autocomplete="off" readonly aria-label="场地费（元，自动向上取整）">
                 </div>
               </div>
+              <p id="feeHoursError" class="fee-notice" role="alert" hidden></p>
+              <div class="fee-shuttle-group">
+                <div class="fee-shuttle-labels" aria-hidden="true"><span>球型</span><span>球单价</span><span></span><span>球个数</span></div>
+                <div id="shuttlePriceRows" class="fee-advanced-rows"></div>
+              </div>
+              <input id="shuttlePriceInput" type="hidden" value="11.3" data-default-value="11.3">
+              <input id="shuttleCountInput" type="hidden" value="4" data-default-value="4">
               <div id="feeAdvancedArea" class="fee-advanced-area" hidden>
-                <div class="fee-advanced-group">
-                  <div class="fee-advanced-label">场地</div>
-                  <div id="courtPriceRows" class="fee-advanced-rows"></div>
-                </div>
-                <div class="fee-advanced-group">
-                  <div class="fee-advanced-label">球</div>
-                  <div id="shuttlePriceRows" class="fee-advanced-rows"></div>
-                </div>
                 <div class="fee-advanced-group payment-rule-settings">
-                  <label class="fee-advanced-label" for="paymentRuleSelect">群收款规则</label>
-                  <select id="paymentRuleSelect" class="filter-select" aria-describedby="paymentRuleHint">
-                    <option value="equal">男女平 A</option>
-                    <option value="discount" selected>女生比男生少 A</option>
-                    <option value="cap">女生金额封顶</option>
-                  </select>
+                  <div class="field">
+                    <label for="paymentRuleSelect">群收款规则</label>
+                    <select id="paymentRuleSelect" class="filter-select" aria-describedby="paymentRuleHint">
+                      <option value="equal">男女平 A</option>
+                      <option value="discount" selected>女生比男生少 A</option>
+                      <option value="cap">女生金额封顶</option>
+                    </select>
+                  </div>
                   <div id="paymentRuleAmountField" class="field payment-rule-amount">
                     <label id="paymentRuleAmountLabel" for="paymentRuleAmountInput">每位女生少 A（元）</label>
                     <input id="paymentRuleAmountInput" inputmode="decimal" autocomplete="off" aria-describedby="paymentRuleHint" value="3.5" required>
@@ -4812,7 +4845,7 @@
                     </div>
                     <div class="field">
                       <label id="newShuttleTypePricesLabel" for="newShuttleTypePrices">单价（元/颗）</label>
-                      <input id="newShuttleTypePrices" inputmode="decimal" autocomplete="off" placeholder="多个用逗号隔开" required>
+                      <input id="newShuttleTypePrices" inputmode="decimal" autocomplete="off" placeholder="逗号分隔" title="多个价格用逗号分隔" required>
                     </div>
                     <div class="shuttle-type-actions">
                       <button id="registerShuttleTypeBtn" type="submit">登记球型号</button>
@@ -5386,6 +5419,7 @@
       sessionSaveClient: null, sessionSaving: false,
       autoFeeDefaults: { fee: 70, shuttle: 4, courts: 1 },
       feeMode: "basic",
+      feeHoursUserOwned: false,
       paymentRule: { mode: "discount", amount: 3.5 },
       advancedRows: { court: [], shuttle: [] },
       advancedAutoDefaults: null,
@@ -5594,6 +5628,10 @@
       shortRuleInput: document.getElementById("shortRuleInput"),
       saveShortRuleBtn: document.getElementById("saveShortRuleBtn"),
       levelDisplayModeBtn: document.getElementById("levelDisplayModeBtn"),
+      courtHoursInput: document.getElementById("courtHoursInput"),
+      courtHoursIncreaseBtn: document.getElementById("courtHoursIncreaseBtn"),
+      courtHoursDecreaseBtn: document.getElementById("courtHoursDecreaseBtn"),
+      feeHoursError: document.getElementById("feeHoursError"),
       courtFeeInput: document.getElementById("courtFeeInput"),
       shuttlePriceInput: document.getElementById("shuttlePriceInput"),
       shuttleCountInput: document.getElementById("shuttleCountInput"),
@@ -5615,7 +5653,6 @@
       newShuttleTypePricesLabel: document.getElementById("newShuttleTypePricesLabel"),
       cancelShuttleTypeEditBtn: document.getElementById("cancelShuttleTypeEditBtn"),
       shuttleTypeFormError: document.getElementById("shuttleTypeFormError"),
-      courtPriceRows: document.getElementById("courtPriceRows"),
       shuttlePriceRows: document.getElementById("shuttlePriceRows"),
       paymentBtn: document.getElementById("paymentBtn"),
       rosterReviewSummary: document.getElementById("rosterReviewSummary"),
@@ -5982,24 +6019,13 @@
         processChain();
         scheduleGroupAttemptSnapshot("input");
       });
-      [els.courtFeeInput, els.shuttlePriceInput, els.shuttleCountInput].forEach((input) => {
-        input.addEventListener("focus", () => {
-          if (input.value === input.dataset.defaultValue) {
-            input.value = "";
-            updatePaymentButton();
-          }
-        });
-        input.addEventListener("input", () => {
-          if (input === els.shuttlePriceInput) { state.shuttlePriceUserOwned = true; applyShuttlePriceSelection(); }
-          processChain();
-        });
+      els.courtHoursInput.addEventListener("input", onFeeHoursInput);
+      els.courtHoursInput.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+        event.preventDefault(); stepFeeHours(event.key === "ArrowUp" ? 1 : -1);
       });
-      els.shuttlePriceInput.addEventListener("change", () => {
-        const price = Number(els.shuttlePriceInput.value);
-        if (Number.isFinite(price) && !getCurrentShuttleTypeForPrice(price)) {
-          toast("未登记球型号，请先记录");
-        }
-      });
+      els.courtHoursIncreaseBtn.addEventListener("click", () => stepFeeHours(1));
+      els.courtHoursDecreaseBtn.addEventListener("click", () => stepFeeHours(-1));
       els.feeAdvancedBtn.addEventListener("click", toggleFeeMode);
       els.paymentRuleSelect.addEventListener("change", () => {
         const mode = els.paymentRuleSelect.value;
@@ -7508,7 +7534,7 @@
         if (oldType && type && !row.priceUserOwned && Number(row.price) === getShuttleDefaultPrice(oldType)) row.price = getShuttleDefaultPrice(type);
       }
       const signature = rows => JSON.stringify(rows.map(type => [type.id, type.name, getShuttleDefaultPrice(type)]));
-      if (state.feeMode === "advanced" && signature(oldTypes) !== signature(types)) renderAllFeeAdvancedRows();
+      if ((state.feeMode === "advanced" || Boolean(state.advancedRows?.court?.length)) && signature(oldTypes) !== signature(types)) renderAllFeeAdvancedRows();
     }
 
     function normalizeEstimator(raw) {
@@ -7870,6 +7896,22 @@
     }
 
     function syncAutoCourtFeeForActivityDate({ force = false, courts = null } = {}) {
+      if (els.courtHoursInput && !state.advancedRows?.court?.length) ensureFeeRows();
+      if (state.advancedRows?.court?.length) {
+        if (state.feeHoursUserOwned && !force) return;
+        const activityDate = getChainActivityDate();
+        const courtCount = courts || estimateBooking(state.chainEntries).courts || 1;
+        const courtUnit = getCourtUnitPriceForDate(activityDate);
+        state.advancedRows.court = [{ price: courtUnit, count: courtCount }];
+        state.feeHoursUserOwned = false;
+        state.feeHoursValid = true;
+        els.courtHoursInput.setAttribute("aria-invalid", "false");
+        els.feeHoursError.hidden = true;
+        state.autoFeeDefaults = { fee: courtCount * courtUnit, shuttle: Number(els.shuttleCountInput.value) || 0, courts: courtCount, courtUnit, date: activityDate };
+        state.advancedAutoDefaults = { courts: courtCount, courtUnit, shuttleCount: state.autoFeeDefaults.shuttle };
+        syncFeeInputs();
+        return;
+      }
       if (state.feeMode !== "basic") return;
       const activityDate = getChainActivityDate();
       const courtCount = courts || estimateBooking(state.chainEntries).courts || 1;
@@ -8319,7 +8361,7 @@
         openRecordDialogForChainEdit();
         return;
       }
-      if (state.feeMode === "advanced") {
+      if ((state.feeMode === "advanced" || Boolean(state.advancedRows?.court?.length))) {
         void savePaymentRecordDirect(record.courtCount);
         return;
       }
@@ -8347,7 +8389,7 @@
     function openRecordDialogForChainEdit() {
       const record = state.currentPaymentRecord;
       const pending = state.pendingSessionEdit;
-      const advanced = state.feeMode === "advanced";
+      const advanced = (state.feeMode === "advanced" || Boolean(state.advancedRows?.court?.length));
       const candidates = inferCourtCounts(record.courtFee);
       openRecordDialog({
         session: {
@@ -8432,8 +8474,8 @@
       const editing = Number.isInteger(Number(session?.id)) && Number(session?.id) > 0;
       const source = session || state.currentPaymentRecord;
       const advanced = editing
-        ? Boolean(session.courtPriceRows?.length || session.shuttlePriceRows?.length || state.feeMode === "advanced")
-        : state.feeMode === "advanced";
+        ? Boolean(session.courtPriceRows?.length || session.shuttlePriceRows?.length || (state.feeMode === "advanced" || Boolean(state.advancedRows?.court?.length)))
+        : (state.feeMode === "advanced" || Boolean(state.advancedRows?.court?.length));
       const courtFee = editing ? session.courtFee : (source?.courtFee ?? 0);
       const candidates = inferCourtCounts(courtFee);
       els.recordTitle.textContent = editing ? "编辑订场记录" : "记录本次订场";
@@ -9013,7 +9055,7 @@
       const todayString = getLocalDateString();
       const dateString = getLocalDateString(date);
       const daySessions = getSessionsOnDate(dateString);
-      const courts = CourtPricing.sumCounts(daySessions.map((session) => ({ count: session.courtCount })));
+      const hours = CourtPricing.totalHours(daySessions.map((session) => ({ count: session.courtCount })));
       const button = document.createElement("button");
       button.type = "button";
       button.className = "calendar-day";
@@ -9023,7 +9065,7 @@
       button.classList.toggle("selected", state.calendar.selectedDates.includes(dateString));
       button.classList.toggle("has-bookings", daySessions.length > 0);
       button.classList.toggle("has-multiple-sessions", daySessions.length > 1);
-      button.setAttribute("aria-label", `${dateString}${daySessions.length ? `，${daySessions.length}场球局，${courts}个场地，${[...new Set(daySessions.map((session) => session.venue))].join("、")}` : ""}`);
+      button.setAttribute("aria-label", `${dateString}${daySessions.length ? `，${daySessions.length}场球局，${hours}小时，${[...new Set(daySessions.map((session) => session.venue))].join("、")}` : ""}`);
       const number = document.createElement("span");
       number.className = "calendar-day-number";
       number.textContent = String(date.getDate());
@@ -9041,10 +9083,10 @@
         badge.className = "calendar-day-badge";
         const count = document.createElement("span");
         count.className = "calendar-day-count";
-        count.textContent = String(courts);
+        count.textContent = String(hours);
         const unit = document.createElement("span");
         unit.className = "calendar-day-unit";
-        unit.textContent = "场";
+        unit.textContent = "小时";
         badge.append(count, unit);
         const session = daySessions[0];
         const venue = document.createElement("span");
@@ -9414,6 +9456,7 @@
       const average = fee / count;
       if (Math.abs(average - 70) < 1e-9) return [{ price: 70, count }];
       if (Math.abs(average - 80) < 1e-9) return [{ price: 80, count }];
+      if (Math.abs(average - 100) < 1e-9) return [{ price: 100, count }];
       const count80 = (fee - 70 * count) / 10;
       if (Number.isInteger(count80) && count80 >= 0 && count80 <= count) {
         const parts = [];
@@ -9457,10 +9500,8 @@
           ? session.courtPriceRows
           : courtPriceBreakdown(session);
         for (const part of courtRows.flatMap(CourtPricing.parts)) {
-          const standardHourly = !part.fallback && (
-            (Number(part.price) === 24 && Number(part.hours) === 1)
-            || (Number(part.price) === 47 && Number(part.hours) === 2)
-          );
+          const standardHourly = !part.fallback && Number(part.hours) > 0 && Number(part.hours) < 3
+            && Number(part.price) === CourtPricing.feeForHours(Number(part.hours));
           const price = standardHourly ? 70 : Number(part.price);
           const hours = standardHourly ? 3 : Number(part.hours) || 3;
           const count = Number(part.count) * (standardHourly ? Number(part.hours) / 3 : 1);
@@ -9684,34 +9725,28 @@
       state.plusOverrides = chainInput.plusOverrides;
       const courtRows = Array.isArray(session.courtPriceRows) ? session.courtPriceRows : [];
       const shuttleRows = Array.isArray(session.shuttlePriceRows) ? session.shuttlePriceRows : [];
-      const needsAdvanced = courtRows.length > 1 || shuttleRows.length > 0;
-      if (needsAdvanced) {
-        const editableCourtRows = courtRows.length
-          ? courtRows
-          : (deriveCourtRows(session.courtFee, session.courtCount).length
-            ? deriveCourtRows(session.courtFee, session.courtCount)
-            : [{ price: session.courtCount > 0 ? session.courtFee / session.courtCount : 0, count: session.courtCount }]);
-        state.feeMode = "advanced";
-        state.advancedRows = {
-          court: editableCourtRows.map((row) => ({ ...row })),
-          shuttle: shuttleRows.map((row) => ({ ...row })),
-        };
-        state.advancedAutoDefaults = null;
-        els.feeBasicGrid.hidden = true;
-        els.feeAdvancedArea.hidden = false;
-        els.feeAdvancedBtn.textContent = "基础";
-        renderAllFeeAdvancedRows();
-      } else {
-        state.feeMode = "basic";
-        state.advancedRows = { court: [], shuttle: [] };
-        els.feeAdvancedArea.hidden = true;
-        els.feeBasicGrid.hidden = false;
-        els.feeAdvancedBtn.textContent = "高级";
-        els.courtFeeInput.value = formatCompactNumber(session.courtFee);
-        els.shuttlePriceInput.value = formatCompactNumber(session.shuttlePrice);
-        els.shuttleCountInput.value = String(session.shuttleCount);
-        state.autoFeeDefaults = null;
-      }
+      const editableCourtRows = courtRows.length ? courtRows : (deriveCourtRows(session.courtFee, session.courtCount).length
+        ? deriveCourtRows(session.courtFee, session.courtCount)
+        : [{ price: session.courtCount > 0 ? session.courtFee / session.courtCount : 0, count: session.courtCount }]);
+      const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
+      const type = findShuttleTypeByPrice(Number(session.shuttlePrice)) || (Number(session.shuttleCount) > 0 ? null : types[0]);
+      state.advancedRows = {
+        court: editableCourtRows.map((row) => ({ ...row })),
+        shuttle: (shuttleRows.length ? shuttleRows : [{ price: Number.isFinite(Number(session.shuttlePrice)) ? Number(session.shuttlePrice) : getShuttleDefaultPrice(type), count: Number(session.shuttleCount) || 0, type: type?.id || "unknown" }]).map((row) => ({ ...row, priceUserOwned: true, countUserOwned: true })),
+      };
+      state.feeMode = courtRows.length > 1 || shuttleRows.length > 1 ? "advanced" : "basic";
+      state.feeHoursUserOwned = true;
+      state.feeHoursValid = true;
+      state.advancedAutoDefaults = null;
+      state.autoFeeDefaults = null;
+      els.courtHoursInput.value = formatCompactNumber(CourtPricing.totalHours([{ count: session.courtCount }]));
+      els.courtHoursInput.setAttribute("aria-invalid", "false");
+      els.feeHoursError.hidden = true;
+      els.feeBasicGrid.hidden = false;
+      els.feeAdvancedArea.hidden = state.feeMode !== "advanced";
+      els.feeAdvancedBtn.textContent = state.feeMode === "advanced" ? "基础" : "高级";
+      els.feeAdvancedBtn.setAttribute("aria-expanded", String(state.feeMode === "advanced"));
+      renderAllFeeAdvancedRows();
       processChain();
       closeModal("calendarModal");
       openModal("chainModal");
@@ -9733,11 +9768,17 @@
       els.chainInput.value = "";
       state.plusOverrides = {};
       state.feeMode = "basic";
+      state.feeHoursUserOwned = false;
+      state.feeHoursValid = true;
+      els.courtHoursInput.value = "3";
+      els.courtHoursInput.setAttribute("aria-invalid", "false");
+      els.feeHoursError.hidden = true;
       state.advancedRows = { court: [], shuttle: [] };
       state.advancedAutoDefaults = null;
       els.feeAdvancedArea.hidden = true;
       els.feeBasicGrid.hidden = false;
       els.feeAdvancedBtn.textContent = "高级";
+      els.feeAdvancedBtn.setAttribute("aria-expanded", "false");
       const courtUnit = getCourtUnitPriceForDate(dateString);
       els.courtFeeInput.value = String(courtUnit);
       const firstType = state.estimator.shuttleTypes[0];
@@ -10109,7 +10150,9 @@
     function updateShuttleTypeNotice() {
       const raw = els.shuttlePriceInput.value.trim();
       const price = raw === "" ? null : Number(raw);
-      const unknown = price !== null && Number.isFinite(price) && !getCurrentShuttleTypeForPrice(price);
+      const unknown = state.advancedRows?.shuttle?.length
+        ? hasUnknownShuttleType(state.advancedRows.shuttle.filter((row) => row.count > 0))
+        : price !== null && Number.isFinite(price) && !getCurrentShuttleTypeForPrice(price);
       els.shuttleTypeNotice.hidden = !unknown;
       els.shuttleTypeNotice.textContent = unknown ? "未登记球型号，请先记录" : "";
     }
@@ -10126,13 +10169,66 @@
       return [];
     }
 
-    function createPriceRowElement(row, { kind = "court", isLast, onlyRow, onAdd, onRemove, onChanged }) {
+    function ensureFeeRows() {
+      state.advancedRows ||= { court: [], shuttle: [] };
+      if (!state.advancedRows.court.length) {
+        const raw = els.courtHoursInput.value.trim();
+        const value = Number(raw);
+        const hours = raw !== "" && CourtPricing.isValidHours(value) ? value : 3;
+        state.advancedRows.court = [{ price: 70, count: CourtPricing.fromHours(hours) }];
+      }
+      if (!state.advancedRows.shuttle.length) {
+        const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
+        const type = types.find((item) => item.id === state.selectedEstimateShuttleTypeId) || types[0];
+        state.advancedRows.shuttle = [{
+          price: Number(els.shuttlePriceInput.value) || getShuttleDefaultPrice(type),
+          count: Math.max(0, Math.floor(Number(els.shuttleCountInput.value) || 0)),
+          type: type?.id || "unknown", priceUserOwned: Boolean(state.shuttlePriceUserOwned),
+        }];
+      }
+    }
+
+    function syncFeeInputs({ syncHours = true } = {}) {
+      const totals = getAdvancedTotals();
+      const first = state.advancedRows.shuttle[0];
+      state.shuttlePriceUserOwned = state.advancedRows.shuttle.length !== 1 || Boolean(first?.priceUserOwned);
+      els.courtFeeInput.value = state.feeHoursValid === false ? "" : formatCompactNumber(totals.courtFee);
+      els.shuttlePriceInput.value = formatCompactNumber(totals.shuttleCount ? totals.shuttlePrice : Number(first?.price) || 0);
+      els.shuttleCountInput.value = String(totals.shuttleCount);
+      if (syncHours) els.courtHoursInput.value = formatCompactNumber(CourtPricing.totalHours(state.advancedRows.court));
+      const hours = Number(els.courtHoursInput.value);
+      els.courtHoursDecreaseBtn.disabled = !Number.isFinite(hours) || hours <= 0;
+      if (state.advancedRows.shuttle.length === 1 && first?.type) state.selectedEstimateShuttleTypeId = first.type;
+    }
+
+    function onFeeHoursInput() {
+      const raw = els.courtHoursInput.value.trim();
+      const hours = Number(raw);
+      const valid = raw !== "" && CourtPricing.isValidHours(hours);
+      state.feeHoursUserOwned = true;
+      state.feeHoursValid = valid;
+      els.courtHoursInput.setAttribute("aria-invalid", String(!valid));
+      els.feeHoursError.hidden = valid;
+      els.feeHoursError.textContent = valid ? "" : "请输入不小于0的整数或半小时，例如5或5.5。";
+      if (valid) state.advancedRows.court = [{ price: 70, count: CourtPricing.fromHours(hours) }];
+      syncFeeInputs({ syncHours: false });
+      processChain();
+    }
+
+    function stepFeeHours(direction) {
+      const current = Number(els.courtHoursInput.value) || 0;
+      els.courtHoursInput.value = String(Math.max(0, (CourtPricing.isValidHours(current) ? current : 0) + direction));
+      onFeeHoursInput();
+    }
+
+    function createPriceRowElement(row, { kind = "court", isLast, onlyRow, canAdd = true, usedTypes = [], onAdd, onRemove, onChanged }) {
       const div = document.createElement("div");
       div.className = `fee-advanced-row${kind === "shuttle" ? " shuttle-price-row" : ""}`;
 
       if (kind === "shuttle") {
         const typeSelect = document.createElement("select");
         typeSelect.className = "shuttle-type-select";
+        typeSelect.setAttribute("aria-label", "球型号");
         const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
         const selectedType = types.find((type) => type.id === row.type)
           || findShuttleTypeByPrice(Number(row.price));
@@ -10150,17 +10246,20 @@
           option.value = type.id;
           option.textContent = type.name;
           option.selected = type.id === selectedType?.id;
+          option.disabled = usedTypes.includes(type.id) && type.id !== row.type;
           typeSelect.append(option);
         });
         typeSelect.addEventListener("change", () => {
+          if (usedTypes.includes(typeSelect.value) && typeSelect.value !== row.type) { typeSelect.value = row.type; return; }
           row.type = typeSelect.value;
           const type = types.find((item) => item.id === row.type);
           if (type) {
             row.price = getShuttleDefaultPrice(type);
             row.priceUserOwned = false;
+            row.invalidPrice = false;
             priceInput.value = formatCompactNumber(row.price);
           }
-          onChanged?.();
+          onChanged?.({ typeChanged: true });
         });
         div.append(typeSelect);
       }
@@ -10185,25 +10284,32 @@
       priceInput.setAttribute("aria-label", kind === "court" ? "场地单价（元/3小时）" : "球单价");
       countInput.setAttribute("aria-label", kind === "court" ? "场地数量（每场3小时）" : "球个数");
       let countControl = countInput;
-      if (kind === "court") {
+      {
         countControl = document.createElement("div");
         countControl.className = "court-count-control";
         const steps = document.createElement("div");
         steps.className = "court-count-steps";
         const stepCount = (direction) => {
           const current = Number(countInput.value) || 0;
-          const hours = CourtPricing.toHours(current);
-          const nextHours = hours === null
-            ? (direction > 0 ? Math.floor(current * 3) + 1 : Math.ceil(current * 3) - 1)
-            : hours + direction;
-          row.count = CourtPricing.fromHours(Math.max(0, nextHours));
+          if (kind === "court") {
+            const hours = CourtPricing.toHours(current);
+            const nextHours = hours === null
+              ? (direction > 0 ? Math.floor(current * 3) + 1 : Math.ceil(current * 3) - 1)
+              : hours + direction;
+            row.count = CourtPricing.fromHours(Math.max(0, nextHours));
+          } else {
+            row.count = Math.max(0, Math.floor(current) + direction);
+            row.countUserOwned = true;
+          }
+          row.invalidCount = false;
+          countInput.setAttribute("aria-invalid", "false");
           countInput.value = String(row.count);
           onChanged?.();
         };
         for (const direction of [1, -1]) {
           const button = document.createElement("button");
           button.type = "button";
-          button.title = direction > 0 ? "增加1小时" : "减少1小时";
+          button.title = kind === "court" ? (direction > 0 ? "增加1小时" : "减少1小时") : (direction > 0 ? "增加1颗球" : "减少1颗球");
           button.setAttribute("aria-label", button.title);
           button.innerHTML = '<svg viewBox="0 0 12 10" aria-hidden="true"><path d="' + (direction > 0 ? 'M3 6 L6 3 L9 6' : 'M3 3 L6 6 L9 3') + '" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
           button.addEventListener("click", () => stepCount(direction));
@@ -10215,7 +10321,10 @@
           stepCount(event.key === "ArrowUp" ? 1 : -1);
         });
         countInput.addEventListener("change", () => {
-          row.count = CourtPricing.fromHours(Math.round(Math.max(0, Number(countInput.value) || 0) * 3));
+          const count = Math.max(0, Number(countInput.value) || 0);
+          row.count = kind === "court" ? CourtPricing.fromHours(Math.round(count * 6) / 2) : Math.floor(count);
+          row.invalidCount = false;
+          countInput.setAttribute("aria-invalid", "false");
           countInput.value = String(row.count);
           onChanged?.();
         });
@@ -10226,25 +10335,35 @@
       addButton.type = "button";
       addButton.className = "fee-advanced-add";
       addButton.textContent = "+";
-      addButton.title = "添加一行";
+      addButton.disabled = !canAdd;
+      addButton.title = canAdd ? (kind === "shuttle" ? "添加另一款球" : "添加一行") : "已添加全部球型号";
+      addButton.setAttribute("aria-label", addButton.title);
 
       const removeButton = document.createElement("button");
       removeButton.type = "button";
       removeButton.className = "fee-advanced-remove";
       removeButton.textContent = "×";
       removeButton.title = "删除这一行";
+      removeButton.setAttribute("aria-label", removeButton.title);
 
       priceInput.addEventListener("input", () => {
-        row.price = Number(priceInput.value) || 0;
+        const price = Number(priceInput.value);
+        row.price = Number.isFinite(price) ? price : 0;
+        row.invalidPrice = priceInput.value.trim() === "" || !Number.isFinite(price) || price < 0;
+        priceInput.setAttribute("aria-invalid", String(row.invalidPrice));
         if (kind === "shuttle") row.priceUserOwned = true;
         onChanged?.();
       });
       countInput.addEventListener("input", () => {
-        const count = Math.max(0, Number(countInput.value) || 0);
-        row.count = kind === "court" ? CourtPricing.fromHours(Math.round(count * 3)) : Math.floor(count);
+        const raw = Number(countInput.value);
+        const count = Math.max(0, raw || 0);
+        row.count = kind === "court" ? CourtPricing.fromHours(Math.round(count * 6) / 2) : Math.floor(count);
+        row.invalidCount = countInput.value.trim() === "" || !Number.isFinite(raw) || raw < 0 || (kind === "shuttle" && !Number.isInteger(raw));
+        countInput.setAttribute("aria-invalid", String(row.invalidCount));
+        if (kind === "shuttle") row.countUserOwned = true;
         onChanged?.();
       });
-      addButton.addEventListener("click", onAdd);
+      addButton.addEventListener("click", () => { if (canAdd) onAdd?.(); });
       removeButton.addEventListener("click", onRemove);
 
       if (!isLast) addButton.hidden = true;
@@ -10255,13 +10374,19 @@
     }
 
     function renderPriceRows(container, rows, onChanged, kind = "court") {
+      const types = kind === "shuttle" ? (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes) : [];
+      const nextType = types.find((type) => !rows.some((row) => row.type === type.id));
       container.replaceChildren(...rows.map((row, index) => createPriceRowElement(row, {
         kind,
         isLast: index === rows.length - 1,
         onlyRow: rows.length === 1,
+        canAdd: kind !== "shuttle" || Boolean(nextType),
+        usedTypes: rows.filter((_, otherIndex) => otherIndex !== index).map((other) => other.type),
         onAdd: () => {
-          const firstType = kind === "shuttle" ? (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes)[0] : null;
-          rows.push({ price: firstType ? getShuttleDefaultPrice(firstType) : 0, count: 1, ...(firstType ? { type: firstType.id } : {}) });
+          const type = types.find((item) => !rows.some((existing) => existing.type === item.id));
+          if (kind === "shuttle" && !type) return;
+          if (kind === "shuttle") rows.forEach((existing) => { existing.countUserOwned = true; });
+          rows.push({ price: type ? getShuttleDefaultPrice(type) : 0, count: 1, ...(type ? { type: type.id, countUserOwned: true } : {}) });
           renderPriceRows(container, rows, onChanged, kind);
           onChanged?.();
         },
@@ -10271,13 +10396,19 @@
           renderPriceRows(container, rows, onChanged, kind);
           onChanged?.();
         },
-        onChanged,
+        onChanged: (change) => {
+          if (change?.typeChanged) renderPriceRows(container, rows, onChanged, kind);
+          onChanged?.();
+        },
       })));
     }
 
     function renderFeeAdvancedRows(kind) {
-      const container = kind === "court" ? els.courtPriceRows : els.shuttlePriceRows;
+      if (kind === "court") { syncFeeInputs({ syncHours: !state.feeHoursUserOwned }); return; }
+      const container = els.shuttlePriceRows;
       renderPriceRows(container, state.advancedRows[kind], () => {
+        syncFeeInputs({ syncHours: false });
+        updateShuttleTypeNotice();
         updatePaymentButton();
         renderChainStats(state.chainEntries, estimateBooking(state.chainEntries));
       }, kind);
@@ -10285,6 +10416,7 @@
 
     function renderAllFeeAdvancedRows() {
       renderRegisteredShuttleTypes();
+      ensureFeeRows();
       renderFeeAdvancedRows("court");
       renderFeeAdvancedRows("shuttle");
     }
@@ -10310,6 +10442,7 @@
       return {
         courtFee,
         courtCount,
+        courtHours: CourtPricing.totalHours(courtRows),
         shuttleCount,
         shuttleCost,
         shuttlePrice: shuttleCount ? shuttleCost / shuttleCount : 0,
@@ -10346,121 +10479,67 @@
     }
 
     function enterAdvancedFeeMode() {
+      ensureFeeRows();
       const estimate = estimateBooking(state.chainEntries);
-      const currentFee = Number(els.courtFeeInput.value) || 0;
-      const courts = inferPreferredCourtCount(currentFee) || estimate.courts || 1;
-      const breakdown = courtPriceBreakdown({ courtCount: courts, courtFee: currentFee });
-      const courtRows = breakdown.length && !breakdown[0].fallback
-        ? breakdown
-        : [{ price: courts ? currentFee / courts : 0, count: courts || 1 }];
-      const shuttleCount = Math.max(0, Math.floor(Number(els.shuttleCountInput.value) || 0));
-      const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
-      const firstShuttleType = types.find(type => type.id === state.selectedEstimateShuttleTypeId) || types[0];
-      const shuttleRows = [{
-        price: Number(els.shuttlePriceInput.value) || getShuttleDefaultPrice(firstShuttleType),
-        priceUserOwned: Boolean(state.shuttlePriceUserOwned),
-        count: shuttleCount,
-        type: firstShuttleType?.id || "rsl3",
-      }];
-
-      state.advancedRows = { court: courtRows, shuttle: shuttleRows };
-      state.feeMode = "advanced";
-      // Track the estimate, not the edited count, so changing payment rules cannot overwrite it.
-      state.advancedAutoDefaults = {
+      state.advancedAutoDefaults ||= {
         courts: estimate.courts || 1, courtUnit: getCourtUnitPriceForDate(getChainActivityDate()),
         shuttleCount: predictedShuttleCountForPrice(estimate, Number(els.shuttlePriceInput.value)),
       };
-      els.feeBasicGrid.hidden = true;
+      state.feeMode = "advanced";
+      els.feeBasicGrid.hidden = false;
       els.feeAdvancedArea.hidden = false;
       els.feeAdvancedBtn.textContent = "基础";
+      els.feeAdvancedBtn.setAttribute("aria-expanded", "true");
       renderAllFeeAdvancedRows();
       updatePaymentButton();
     }
 
     function exitAdvancedFeeMode() {
-      const totals = getAdvancedTotals();
-      state.shuttlePriceUserOwned = totals.shuttleRows.length !== 1 || Boolean(totals.shuttleRows[0]?.priceUserOwned);
-      if (totals.shuttleRows.length === 1) state.selectedEstimateShuttleTypeId = totals.shuttleRows[0].type;
-      els.courtFeeInput.value = formatCompactNumber(totals.courtFee);
-      els.shuttlePriceInput.value = formatCompactNumber(totals.shuttlePrice);
-      els.shuttleCountInput.value = String(totals.shuttleCount);
-      const estimate = estimateBooking(state.chainEntries);
-      const courts = estimate.courts || 1;
-      const predictedShuttle = predictedShuttleCountForPrice(estimate, totals.shuttlePrice);
-      const courtUnit = getCourtUnitPriceForDate(getChainActivityDate());
-      const matchesDefault = Math.abs(totals.courtFee - courts * courtUnit) < 1e-9
-        && predictedShuttle !== null
-        && totals.shuttleCount === predictedShuttle;
-      state.autoFeeDefaults = matchesDefault
-        ? { fee: courts * courtUnit, shuttle: predictedShuttle, courts, courtUnit, date: getChainActivityDate() }
-        : null;
       state.feeMode = "basic";
-      state.advancedRows = { court: [], shuttle: [] };
       els.feeAdvancedArea.hidden = true;
       els.feeBasicGrid.hidden = false;
       els.feeAdvancedBtn.textContent = "高级";
+      els.feeAdvancedBtn.setAttribute("aria-expanded", "false");
+      syncFeeInputs({ syncHours: false });
       updatePaymentButton();
     }
 
     function updateFeeDefaults(entries, estimate) {
+      const needsRender = !state.advancedRows?.court?.length || !state.advancedRows?.shuttle?.length;
+      ensureFeeRows();
       updateShuttleTypeNotice();
-      if (!entries.length || !estimate?.courts) return;
-      const currentShuttlePrice = Number(els.shuttlePriceInput.value);
-      const defaultShuttleCount = predictedShuttleCountForPrice(estimate, currentShuttlePrice);
-      if (state.feeMode === "advanced") {
-        const courts = estimate.courts;
-        const courtUnit = getCourtUnitPriceForDate(getChainActivityDate());
-        const previous = state.advancedAutoDefaults;
-        const courtRows = state.advancedRows.court;
-        const shuttleRows = state.advancedRows.shuttle;
-        if (previous && courtRows.length) {
-          const first = courtRows[0];
-          if (first.price === previous.courtUnit && first.count === previous.courts) {
-            first.price = courtUnit;
-            first.count = courts;
-          }
-        }
-        if (previous && shuttleRows.length && defaultShuttleCount !== null) {
-          const first = shuttleRows[0];
-          if (first.count === previous.shuttleCount) {
-            first.count = defaultShuttleCount;
-          }
-        }
-        state.advancedAutoDefaults = { courts, courtUnit, shuttleCount: defaultShuttleCount };
-        renderAllFeeAdvancedRows();
-        updatePaymentButton();
+      if (!entries.length || !estimate?.courts) {
+        if (needsRender) renderAllFeeAdvancedRows();
+        else syncFeeInputs({ syncHours: false });
         return;
       }
       const courts = estimate.courts;
-      const previous = state.autoFeeDefaults;
-
-      const currentFeeRaw = els.courtFeeInput.value.trim();
-      const currentShuttleRaw = els.shuttleCountInput.value.trim();
-      const currentFee = currentFeeRaw === "" ? null : Number(currentFeeRaw);
-      const currentShuttle = currentShuttleRaw === "" ? null : Number(currentShuttleRaw);
-
       const courtUnit = getCourtUnitPriceForDate(getChainActivityDate());
-      const newFee = courts * courtUnit;
-
-      const feeIsAuto = currentFee === null || (previous !== null && currentFee === previous.fee);
-      const shuttleIsAuto = currentShuttle === null || (previous !== null && currentShuttle === previous.shuttle);
-
-      if (feeIsAuto) {
-        els.courtFeeInput.value = String(newFee);
-        els.courtFeeInput.dataset.defaultValue = String(newFee);
+      const previous = state.advancedAutoDefaults || state.autoFeeDefaults;
+      const courtRows = state.advancedRows.court;
+      const shuttleRows = state.advancedRows.shuttle;
+      const firstShuttle = shuttleRows[0];
+      const defaultShuttleCount = Number.isInteger(estimate.shuttleCounts?.[firstShuttle?.type])
+        ? estimate.shuttleCounts[firstShuttle.type] : predictedShuttleCountForPrice(estimate, Number(firstShuttle?.price));
+      let changed = needsRender;
+      if (!state.feeHoursUserOwned && previous && courtRows.length === 1) {
+        const first = courtRows[0];
+        if (first.price === (previous.courtUnit || 70) && first.count === previous.courts && (first.price !== courtUnit || first.count !== courts)) {
+          first.price = courtUnit; first.count = courts; changed = true;
+        }
       }
-      if (shuttleIsAuto && defaultShuttleCount !== null) {
-        els.shuttleCountInput.value = String(defaultShuttleCount);
-        els.shuttleCountInput.dataset.defaultValue = String(defaultShuttleCount);
+      if (previous && shuttleRows.length === 1 && defaultShuttleCount !== null) {
+        if (!firstShuttle.countUserOwned && firstShuttle.count === (previous.shuttleCount ?? previous.shuttle) && firstShuttle.count !== defaultShuttleCount) {
+          firstShuttle.count = defaultShuttleCount; changed = true;
+        }
       }
-
-      state.autoFeeDefaults = {
-        fee: newFee,
-        shuttle: defaultShuttleCount ?? previous?.shuttle ?? currentShuttle,
-        courts,
-        courtUnit,
-        date: getChainActivityDate(),
-      };
+      state.advancedAutoDefaults = { courts, courtUnit, shuttleCount: defaultShuttleCount };
+      state.autoFeeDefaults = { fee: courts * courtUnit, shuttle: defaultShuttleCount, courts, courtUnit, date: getChainActivityDate() };
+      els.courtHoursInput.dataset.defaultValue = String(courts * 3);
+      els.courtFeeInput.dataset.defaultValue = String(courts * courtUnit);
+      if (changed) renderAllFeeAdvancedRows();
+      else syncFeeInputs({ syncHours: false });
+      updatePaymentButton();
     }
 
     function probabilityPercent(value) {
@@ -11346,13 +11425,14 @@
       const courtFeeRaw = els.courtFeeInput.value.trim();
       const shuttlePriceRaw = els.shuttlePriceInput.value.trim();
       const shuttleCountRaw = els.shuttleCountInput.value.trim();
-      const advanced = state.feeMode === "advanced" ? getAdvancedTotals() : null;
+      const advanced = (state.feeMode === "advanced" || Boolean(state.advancedRows?.court?.length)) ? getAdvancedTotals() : null;
       const courtFee = advanced ? advanced.courtFee : courtFeeRaw === "" ? null : Number(courtFeeRaw);
       const shuttlePrice = advanced ? advanced.shuttlePrice : shuttlePriceRaw === "" ? null : Number(shuttlePriceRaw);
       const shuttleCount = advanced ? advanced.shuttleCount : shuttleCountRaw === "" ? null : Number(shuttleCountRaw);
       const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
-      const typeByPrice = advanced ? findShuttleTypeByPrice(shuttlePrice) : getCurrentShuttleTypeForPrice(shuttlePrice);
-      const type = typeByPrice
+      const explicitType = advanced ? types.find((item) => item.id === (advanced.shuttleRows[0]?.type || state.advancedRows.shuttle[0]?.type)) : null;
+      const typeByPrice = explicitType || (advanced ? findShuttleTypeByPrice(shuttlePrice) : getCurrentShuttleTypeForPrice(shuttlePrice));
+      const type = advanced?.shuttleRows.length > 1 ? { id: "mixed", name: "混用球" } : typeByPrice
         || types.find((item) => item.id === state.selectedEstimateShuttleTypeId)
         || types[0]
         || { id: "rsl3", name: "亚3" };
@@ -11471,7 +11551,8 @@
 
       const shuttlePicker = document.createElement("select");
       shuttlePicker.className = "estimate-shuttle-overlay";
-      shuttlePicker.title = "选择预估球型号";
+      shuttlePicker.disabled = state.advancedRows?.shuttle?.length > 1;
+      shuttlePicker.title = shuttlePicker.disabled ? "混用球型号请在费用计算中修改" : "选择预估球型号";
       (state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes).forEach((type) => {
         const option = document.createElement("option");
         option.value = type.id;
@@ -11483,6 +11564,7 @@
         shuttlePicker.append(option);
       });
       shuttlePicker.addEventListener("change", () => {
+        if (state.advancedRows?.shuttle?.length > 1) return;
         const type = state.estimator?.shuttleTypes?.find((item) => item.id === shuttlePicker.value);
         state.selectedEstimateShuttleTypeId = shuttlePicker.value;
         if (type?.prices?.length) {
@@ -11493,6 +11575,10 @@
         const predicted = estimate.shuttleCounts?.[shuttlePicker.value] || 0;
         els.shuttleCountInput.value = String(predicted);
         els.shuttleCountInput.dataset.defaultValue = String(predicted);
+        if (state.advancedRows?.shuttle?.length === 1 && type) {
+          Object.assign(state.advancedRows.shuttle[0], { type: type.id, price: getShuttleDefaultPrice(type), count: predicted, priceUserOwned: false, countUserOwned: false, invalidPrice: false, invalidCount: false });
+          renderAllFeeAdvancedRows();
+        }
         processChain();
       });
       shuttleTrigger.append(shuttlePicker);
@@ -11734,7 +11820,8 @@
       els.registerShuttleTypeBtn.disabled = disabled; els.cancelShuttleTypeEditBtn.disabled = disabled;
       els.newShuttleTypeNameLabel.textContent = editing ? "球型名称" : "新增球型";
       els.newShuttleTypePricesLabel.textContent = editing ? "默认单价（元/颗）" : "单价（元/颗）";
-      els.newShuttleTypePrices.placeholder = editing ? "默认单价" : "多个用逗号隔开";
+      els.newShuttleTypePrices.placeholder = editing ? "默认单价" : "逗号分隔";
+      els.newShuttleTypePrices.title = editing ? "填写该球型默认单价" : "多个价格用逗号分隔";
       els.registerShuttleTypeBtn.textContent = editing ? "保存修改" : "登记球型号";
       els.cancelShuttleTypeEditBtn.hidden = !editing;
       els.shuttleTypeFormError.hidden = !state.shuttleTypeFormError;
@@ -11903,11 +11990,11 @@
     }
 
     function updatePaymentButton() {
-      if (state.chainDateChanging || !isPaymentRuleValid(state.paymentRule)) {
+      if (state.chainDateChanging || !isPaymentRuleValid(state.paymentRule) || state.feeHoursValid === false || state.advancedRows?.shuttle?.some((row) => row.invalidCount || row.invalidPrice)) {
         els.paymentBtn.disabled = true;
         return;
       }
-      if (state.feeMode === "advanced") {
+      if ((state.feeMode === "advanced" || Boolean(state.advancedRows?.court?.length))) {
         const totals = getAdvancedTotals();
         const hasShuttleRow = state.advancedRows.shuttle.length > 0;
         els.paymentBtn.disabled = !(els.chainInput.value.trim() && totals.courtCount > 0 && hasShuttleRow);
@@ -12443,7 +12530,11 @@
         }
         return;
       }
-      const advanced = state.feeMode === "advanced";
+      const advanced = (state.feeMode === "advanced" || Boolean(state.advancedRows?.court?.length));
+      if (state.feeHoursValid === false || state.advancedRows?.shuttle?.some((row) => row.invalidCount || row.invalidPrice)) {
+        toast("请填写有效的小时数、球单价和整数球数");
+        return;
+      }
       let courtFee;
       let shuttlePrice;
       let shuttleCount;
@@ -12455,7 +12546,7 @@
       if (advanced) {
         const totals = getAdvancedTotals();
         if (totals.courtCount <= 0) {
-          toast("请至少填写一行有效的场地个数");
+          toast("请填写有效的累计小时数（大于0）");
           return;
         }
         courtFee = totals.courtFee;

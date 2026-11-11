@@ -29,6 +29,7 @@ const els = Object.fromEntries([
   "recordAdvancedArea", "recordTitle", "recordDateInput", "recordCourtFeeInput", "recordCourtCountInput", "recordShuttlePriceInput",
   "recordShuttleCountInput", "recordCourtCountHint", "recordModal", "saveRecordBtn", "calendarModal", "chainModal",
   "chainInput", "feeAdvancedArea", "feeBasicGrid", "feeAdvancedBtn", "courtFeeInput", "shuttlePriceInput", "shuttleCountInput",
+  "courtHoursInput", "courtHoursDecreaseBtn", "feeHoursError",
 ].map((key) => [key, node()]));
 els.calendarDayTitle.parentElement = node();
 const calls = [], opened = [], messages = [];
@@ -75,12 +76,23 @@ secondButtons.forEach((button) => button.events.click());
 assert.deepEqual(calls, [["venue", 11], ["edit", 11], ["delete", 11]], "Every action targets the actual record ID");
 let day = ui.createCalendarDayButton(new Date(2026, 9, 8));
 assert.equal(byClass(day, "calendar-day-session-count").textContent, "2局");
-assert.equal(byClass(day, "calendar-day-count").textContent, "3");
+assert.equal(byClass(day, "calendar-day-count").textContent, "9");
+assert.equal(byClass(day, "calendar-day-unit").textContent, "小时");
 assert.equal(byClass(day, "calendar-day-venue").textContent, "多球馆");
 assert.equal(byClass(day, "calendar-day-venue").attrs.role, undefined, "Daily aggregate must not silently change the first session");
-assert.match(day.attrs["aria-label"], /2场球局，3个场地，广羽、文体/);
+assert.match(day.attrs["aria-label"], /2场球局，9小时，广羽、文体/);
 ui.renderCalendarSelection();
 assert.match(els.calendarSelectionText.textContent, /2 场球局 · 3 个场地/);
+for (const [venue, price, count, hours] of [["EDC", 80, 2, "6"], ["文体", 100, 1.5, "4.5"], ["文体", 0, 1, "3"], ["广羽", 70, 1.666, "5"], ["广羽", 70, 1.833, "5.5"]]) {
+  const legacy = { ...first, venue, courtCount: count, courtFee: price * count, courtPriceRows: [{ price, count }] };
+  state.sessions = [legacy];
+  const before = structuredClone(legacy);
+  const cell = ui.createCalendarDayButton(new Date(2026, 9, 8));
+  assert.equal(byClass(cell, "calendar-day-count").textContent, hours, "Hours come from the saved court count, never fee / 70");
+  assert.equal(byClass(cell, "calendar-day-unit").textContent, "小时");
+  assert.deepEqual(legacy, before, "Rendering never rewrites historical prices");
+}
+state.sessions = [first, second];
 second.venue = "广羽";
 ui.renderCalendarDayPanel();
 assert.equal(byClass(els.calendarDayRecords.children[1], "calendar-record-meta").textContent, "第2场 · 广羽：费用140", "Same-venue sessions must retain separate numbered prefixes");

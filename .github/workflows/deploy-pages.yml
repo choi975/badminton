@@ -51,6 +51,9 @@ jobs:
       - name: Verify deployed Cloudflare shuttle-price editing
         run: node scripts/verify-deployed-shuttle-types.js
 
+      - name: Verify deployed Cloudflare hourly fees
+        run: node scripts/verify-deployed-hourly-fees.js
+
       - name: Build static site
         run: npm run build
 

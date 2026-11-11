@@ -124,6 +124,26 @@ for (const [count, fee] of [[0.333, 24], [0.666, 47], [1, 70], [1.333, 94], [1.6
   assert.equal(normalizeSessionInput(saved).courtFee, fee, "Save/load/edit round trip preserves the fee");
   assert.ok(normalizeSessionInput({ ...baseSession, courtCount: count, courtFee: fee }));
 }
+for (let hours = 0.5; hours <= 120; hours += 0.5) {
+  const count = CourtPricing.fromHours(hours);
+  const expected = Math.ceil(70 * hours / 3);
+  assert.equal(CourtPricing.toHours(count), hours);
+  assert.equal(CourtPricing.feeForHours(hours), expected);
+  assert.equal(CourtPricing.rowFee({ price: 70, count }), expected);
+  assert.equal(CourtPricing.countForFee(expected), count);
+  const saved = normalizeSessionInput({ ...baseSession, courtPriceRows: [{ price: 70, count }] });
+  assert.ok(saved, "Half-hour input is accepted by the production API validator");
+  assert.equal(saved.courtFee, expected);
+  assert.equal(normalizeSessionInput(saved).courtFee, expected, "Half-hour save/load/edit preserves the same rounded fee");
+}
+for (const price of [0, 80, 100]) {
+  assert.equal(CourtPricing.rowFee({ price, count: 1.5 }), price * 1.5);
+  assert.equal(CourtPricing.totalHours([{ price, count: 1.5 }]), 4.5);
+}
+assert.equal(CourtPricing.totalHours([{ price: 47, count: 1, hours: 2 }, { price: 0, count: 1 }]), 5);
+assert.equal(CourtPricing.feeForHours(0), 0);
+for (const invalid of [-1, 0.25, 5.2, NaN, Infinity]) assert.equal(CourtPricing.feeForHours(invalid), null);
+
 assert.equal(normalizeSessionInput({ ...baseSession, courtPriceRows: twoShortRows }).courtFee, 48);
 assert.equal(normalizeSessionInput({ ...baseSession, courtCount: 1.25, courtFee: 70 }), null);
 assert.equal(normalizeSessionInput({ ...baseSession, courtPriceRows: [{ price: 70, count: 1.332 }] }), null);
