@@ -1,3 +1,5 @@
+import "../session-planner-core.js";
+import "../chain-activity-date.js";
 import "../roster-review.js";
 import "../level-groups.js";
 import assert from "node:assert/strict";
@@ -7,7 +9,7 @@ const html = readFileSync(new URL("../index.html", import.meta.url), "utf8").rep
 const fixture = readFileSync(new URL("./fixtures/mini-program-roster.txt", import.meta.url), "utf8").replaceAll("\r\n", "\n");
 const names = [
   "parseMiniProgramChain", "parseSharedChainLevelPrefix", "cleanChainLine", "getChainInputLines", "hasUnparenthesizedLockMarker",
-  "processChain", "extractMiniProgramRoster", "parseChainLine", "parsePlusEntryMetadata", "getMemberLineSuffix",
+  "processChain", "extractMiniProgramRoster", "selectChainActivityDate", "getChainActivityDate", "renderChainActivityDate", "parseChainLine", "parsePlusEntryMetadata", "getMemberLineSuffix",
   "getChainEntryBaseName", "getChainEntryDisplayName", "getChainLevelDisplay", "canEditChainEntryLevel", "formatChainOutputLine",
   "buildAliasIndex", "findPlayerMatchForLine", "removeChainAnnotations", "normalizeAlias", "splitAliases", "firstName", "paymentDisplayName",
   "getPlayerById", "normalizePlayerId", "extractCompanionOwnerName", "normalizeRepeatedMemberEntries", "resolveChainEntryOwnership",
@@ -17,7 +19,7 @@ const names = [
 ];
 function load(dependencies) {
   const sources = names.map(name => {
-    const start=html.indexOf(`    function ${name}(`);
+    const start=html.search(new RegExp(`    (?:async )?function ${name}\\(`));
     const end=html.indexOf("\n    }",start);
     assert.ok(start >= 0 && end > start, `Production function ${name} exists`);
     return html.slice(start,end+6);
@@ -49,6 +51,7 @@ const els={ chainInput:node(), extractRosterBtn:node(), chainOutput:node(), chai
 const scheduled=[];
 const deps={
   LevelGroups: globalThis.BadmintonLevelGroups, RosterReview: globalThis.BadmintonRosterReview,
+  ChainActivityDate: globalThis.BadmintonChainActivityDate, getBeijingDateString: () => "2026-11-11", confirm: () => true,
   state, els, document:{createElement:node}, IS_GITHUB_PAGES:true,
   CHAIN_NUMBER_PREFIX:/^\s*\d+\s*[\.、\):：-]\s*/,
   SHARED_CHAIN_METADATA_PREFIXES:["组织者","活动时间","活动地点","收费类型","AA预收费用","已报名"],
@@ -75,10 +78,11 @@ assert.ok(els.chainSpecialOutput.value.includes("报名链接"));
 const exactRoster=state.specialChain.participantLines.join("\n");
 assert.equal(state.chainEntries.filter(e=>e.gender==="女").length,10);
 assert.equal(state.chainEntries.filter(e=>e.gender==="男").length,23);
-api.extractMiniProgramRoster();
+await api.extractMiniProgramRoster();
 assert.equal(els.chainInput.value,exactRoster,"Keep every name, bracket, marker, annotation, duplicate and original order");
 assert.equal(state.chainEntries.length,33);
 assert.equal(state.specialChain,null);
+assert.equal(state.chainActivityDate,"2026-09-22","Activity date survives removing the metadata");
 assert.equal(els.chainOutput.hidden,false);
 assert.equal(els.chainSpecialOutput.hidden,true);
 assert.equal(els.extractRosterBtn.disabled,true);
@@ -114,7 +118,7 @@ assert.equal(els.chainInput.value,exactRoster,"Editing the middle-card level nev
 assert.match(rowFor("S（").children[0].textContent,/S（5级）/,"Manual level immediately affects output");
 api.processChain();
 assert.equal(find("S").levelText,"5级","Manual level survives rerenders");
-api.extractMiniProgramRoster();
+await api.extractMiniProgramRoster();
 assert.equal(els.chainInput.value,exactRoster,"Repeated extraction does not delete a roster");
 assert.equal(find("四叶草🍀+1🌸").gender,"女");
 assert.equal(find("四叶草🍀+1").gender,"男","Repeated companions keep their own flower marker");
@@ -149,7 +153,7 @@ assert.equal(preserved.gender,"女");
 const before=els.chainInput.value;
 els.chainInput.value="普通名单\n陌生人";
 api.processChain();
-api.extractMiniProgramRoster();
+await api.extractMiniProgramRoster();
 assert.equal(els.chainInput.value,"普通名单\n陌生人","Unrecognized input must never be deleted");
 assert.equal(els.extractRosterBtn.disabled,true);
 els.chainInput.value="";

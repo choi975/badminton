@@ -6,6 +6,7 @@ import ROSTER_REVIEW_JS from "./roster-review.txt";
 import { handleRosterReview } from "./roster-review-api.js";
 import SESSION_PLANNER_CORE_JS from "./session-planner-core.txt";
 import SESSION_PLANNER_JS from "./session-planner.txt";
+import CHAIN_ACTIVITY_DATE_JS from "./chain-activity-date.txt";
 import { isPlannerWrite, handleSessionPlans } from "./session-plans.js";
 import "../member-statistics.js";
 import MEMBER_STATISTICS_JS from "./member-statistics.txt";
@@ -188,6 +189,7 @@ export default {
         return await handleApi(request, env, url, context);
       }
 
+      if (url.pathname === "/chain-activity-date.js") return new Response(CHAIN_ACTIVITY_DATE_JS, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" } });
       if (["/session-planner-core.js", "/session-planner.js"].includes(url.pathname)) {
         return new Response(url.pathname === "/session-planner-core.js" ? SESSION_PLANNER_CORE_JS : SESSION_PLANNER_JS,
           { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" } });

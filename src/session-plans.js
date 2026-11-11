@@ -16,7 +16,11 @@ function decode(row) {
 export async function handleSessionPlans(request, env, { json, rateLimit, now = new Date() }) {
   const today = core.date(now), start = core.addDays(today, -7), end = core.addDays(today, 6);
   if (request.method === "GET") {
-    const rows = await env.DB.prepare("SELECT * FROM session_plans WHERE activity_date BETWEEN ? AND ? ORDER BY activity_date").bind(start, end).all();
+    const requestedDate = new URL(request.url).searchParams.get("date");
+    if (requestedDate !== null && !core.validDate(requestedDate)) return json({ error: "活动日期无效" }, 400);
+    const rows = requestedDate === null
+      ? await env.DB.prepare("SELECT * FROM session_plans WHERE activity_date BETWEEN ? AND ? ORDER BY activity_date").bind(start, end).all()
+      : await env.DB.prepare("SELECT * FROM session_plans WHERE activity_date BETWEEN ? AND ? OR activity_date = ? ORDER BY activity_date").bind(start, end, requestedDate).all();
     return json({ today, days: (rows.results || []).map(decode) });
   }
   if (request.method !== "POST") return json({ error: "不支持的请求方式" }, 405);
@@ -28,7 +32,7 @@ export async function handleSessionPlans(request, env, { json, rateLimit, now = 
     if (new TextEncoder().encode(text).length > 60000) return json({ error: "名单过长" }, 413);
     body = JSON.parse(text);
   } catch { return json({ error: "名单格式错误" }, 400); }
-  if (!core.validDate(body?.date) || body.date < start || body.date > end || !Number.isSafeInteger(body.revision) || body.revision < 0
+  if (!core.validDate(body?.date) || !Number.isSafeInteger(body.revision) || body.revision < 0
     || !/^[a-zA-Z0-9-]{16,80}$/.test(body.mutationId || "") || !body.day || typeof body.day.text !== "string"
     || body.day.text.length > 20000 || !Array.isArray(body.day.slots) || body.day.slots.length !== 10
     || body.day.slots.some((s) => typeof s !== "string" || s.length > 100)) return json({ error: "名单内容或日期无效" }, 400);

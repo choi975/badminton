@@ -35,7 +35,9 @@ assert.match(html, /chainInputUserOwned/);
 assert.match(html, /attemptTrackingObservation\.trainingState = state\.attemptTrialRequested/);
 assert.match(html, /includeCandidates: true/);
 assert.match(html, /location\.pathname\.includes\("\/badminton-navigation-homepage\/"\)/);
-assert.match(html, /activeGroupDate !== date[\s\S]*els\.chainInput\.value = ""[\s\S]*processChain\(\)/);
+const rolloverSource = html.slice(html.indexOf("    function refreshTimeSensitiveGroupForecast()"), html.indexOf("    function setAttemptTrialMode("));
+assert.match(rolloverSource, /activeGroupDate !== date[\s\S]*sessionPlannerController\?\.rollover\(\)[\s\S]*processChain\(\)/);
+assert.doesNotMatch(rolloverSource, /els\.chainInput\.value = ""/, "The planner, not forecast refresh, owns draft rollover");
 assert.match(html, /\.nav-preview \.modal-backdrop\.nav-page \.chain-dialog[\s\S]*grid-template-rows: minmax\(0, 1fr\)/);
 assert.match(html, /function hasUnparenthesizedLockMarker\(value\)[\s\S]*outsideParentheses[\s\S]*includes\("锁车"\)/);
 

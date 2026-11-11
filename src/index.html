@@ -10,6 +10,7 @@
   <script src="./group-probability.js"></script>
   <script src="./forecast-client.js"></script>
   <script src="./session-planner-core.js"></script>
+  <script src="./chain-activity-date.js"></script>
   <script src="./session-planner.js"></script>
   <script src="./optimistic-sync.js"></script>
   <script src="./court-pricing.js"></script>
@@ -4399,7 +4400,16 @@
     }
 
 
-    .chain-plan-save { display: block; margin-top: 7px; color: var(--muted); font-size: 11px; }
+    .chain-panel--input { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+    .chain-panel--input .chain-textarea { min-height: 0; height: 100%; }
+    .chain-date-bar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 9px; border-bottom: 1px solid var(--line); }
+    .chain-date-bar label { font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .chain-date-bar input { width: 100%; min-width: 0; min-height: 32px; padding: 3px 5px; font-size: 16px; font-variant-numeric: tabular-nums; }
+    .chain-date-bar small { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .chain-plan-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 5px 9px; }
+    .chain-plan-save { display: block; flex: 1 1 150px; margin: 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+    .chain-plan-retry { min-height: 32px; padding: 4px 8px; font-size: 12px; }
+    @media (pointer: coarse) { .chain-date-bar input, .chain-plan-retry { min-height: 44px; } }
     button.group-probability { min-height: 32px; padding: 0 9px; border: 0; background: transparent; }
     .session-plan-dialog { width: min(1120px, calc(100vw - 32px)); max-height: min(92dvh, 900px); padding: 0; border: 1px solid var(--line); border-radius: 12px; color: var(--text); background: var(--panel); }
     .session-plan-dialog::backdrop { background: rgba(18,38,33,.42); }
@@ -4705,11 +4715,11 @@
       </div>
       <div class="modal-body">
         <div class="chain-grid">
-          <section class="chain-panel">
+          <section class="chain-panel chain-panel--input">
             <div class="chain-head chain-head--input">
               <span>接龙人员</span>
               <div class="chain-head-actions">
-                <button id="extractRosterBtn" class="chain-icon-btn" type="button" aria-label="只保留报名名单" title="移除活动说明，只保留报名名单并按数据库等级排序" disabled><i data-lucide="list-filter"></i></button>
+                <button id="extractRosterBtn" class="chain-icon-btn" type="button" aria-label="整理名单并识别活动日期" title="移除活动说明，按数据库等级整理报名名单，并识别活动日期" disabled><i data-lucide="list-filter"></i></button>
                 <div id="groupProbabilityWrap" class="group-probability-wrap">
                   <button type="button" id="groupProbability" class="group-probability" tabindex="0" data-tone="loading" aria-label="正在计算组局成功概率" aria-describedby="groupProbabilityTooltip" aria-haspopup="dialog">--%</button>
                   <div id="groupProbabilityTooltip" class="group-probability-tooltip" role="tooltip">
@@ -4720,8 +4730,16 @@
                 <button id="shakePeopleBtn" class="chain-icon-btn" type="button" aria-label="摇人" title="摇人"><i data-lucide="dices"></i></button>
               </div>
             </div>
+            <div class="chain-date-bar">
+              <label for="chainActivityDateInput">活动日期</label>
+              <input id="chainActivityDateInput" type="date" autocomplete="off" aria-describedby="chainActivityDateHint">
+              <small id="chainActivityDateHint" aria-live="polite"></small>
+            </div>
             <textarea id="chainInput" class="chain-textarea" placeholder=""></textarea>
-            <small id="chainPlanSaveStatus" class="chain-plan-save" role="status" aria-live="polite"></small>
+            <div class="chain-plan-footer">
+              <small id="chainPlanSaveStatus" class="chain-plan-save" role="status" aria-live="polite"></small>
+              <button id="chainPlanRetryBtn" class="chain-plan-retry" type="button" hidden>处理同步问题</button>
+            </div>
           </section>
           <section class="chain-panel">
             <div class="chain-head chain-head--output">
@@ -5257,6 +5275,7 @@
   <script src="./html2canvas.min.js"></script>
   <script>
     const RosterReview = globalThis.BadmintonRosterReview;
+    const ChainActivityDate = globalThis.BadmintonChainActivityDate;
     const LEVELS = [...RosterReview.levels];
     const GENDERS = ["男", "女"];
     const AFFILIATIONS = ["球友", "Hytronik", "球友+Hytronik", "特殊"];
@@ -5413,6 +5432,11 @@
       shakeFilters: { gender: "", levelGroup: "" },
       shakeRecommendations: [],
       chainInputUserOwned: false,
+      chainActivityDate: "",
+      chainDateSource: "",
+      chainDateAccepted: null,
+      chainDateChanging: false,
+      chainDateWarning: false,
       trainingAnomaly: null,
       estimatorAdvancedOpen: false,
       shuttleTypeSaving: false,
@@ -5546,6 +5570,8 @@
       todayProbabilityText: document.getElementById("todayProbabilityText"),
       tomorrowProbabilityText: document.getElementById("tomorrowProbabilityText"),
       extractRosterBtn: document.getElementById("extractRosterBtn"),
+      chainActivityDateInput: document.getElementById("chainActivityDateInput"),
+      chainActivityDateHint: document.getElementById("chainActivityDateHint"),
       shakePeopleBtn: document.getElementById("shakePeopleBtn"),
       shakePeopleModal: document.getElementById("shakePeopleModal"),
       shakePeopleSummary: document.getElementById("shakePeopleSummary"),
@@ -5889,8 +5915,9 @@
 
     function updateShakePeopleButtonVisibility() {
       if (!els.shakePeopleBtn) return;
-      els.shakePeopleBtn.hidden = state.readOnly || Boolean(state.pendingSessionEdit);
-      els.groupProbabilityWrap.hidden = Boolean(state.pendingSessionEdit);
+      const historical = getChainActivityDate() !== getBeijingDateString() || isChainActivityDatePending();
+      els.shakePeopleBtn.hidden = state.readOnly || Boolean(state.pendingSessionEdit) || historical;
+      els.groupProbabilityWrap.hidden = Boolean(state.pendingSessionEdit) || historical;
       syncAttemptTrialToggle();
     }
 
@@ -6054,6 +6081,7 @@
       });
       els.shakeFiltersToggle.addEventListener("click", () => setShakeFiltersExpanded(els.shakePeopleFilters.hidden));
       els.extractRosterBtn.addEventListener("click", extractMiniProgramRoster);
+      els.chainActivityDateInput.addEventListener("change", handleChainActivityDateChange);
       els.groupProbability.addEventListener("click", (event) => {
         event.stopPropagation();
         globalThis.sessionPlannerController?.open();
@@ -7762,7 +7790,75 @@
     }
 
     function getChainActivityDate() {
-      return state.pendingSessionEdit?.date || getLocalDateString();
+      return state.pendingSessionEdit?.date || state.chainActivityDate || getBeijingDateString();
+    }
+
+    function isChainActivityDatePending() {
+      const accepted = state.chainDateAccepted;
+      if (accepted?.date === getChainActivityDate() && accepted.metadata === ChainActivityDate.metadata(els.chainInput.value)) return false;
+      const parsed = ChainActivityDate.parse(els.chainInput.value, {
+        today: getBeijingDateString(), referenceDate: state.pendingSessionEdit?.date || getBeijingDateString(),
+      });
+      return parsed.status !== "missing" && (parsed.status !== "found" || parsed.needsConfirmation || parsed.date !== getChainActivityDate());
+    }
+
+    function onChainDraftDateChanged(date, { confirmed = false } = {}) {
+      const metadata = ChainActivityDate.metadata(els.chainInput.value);
+      if (state.chainDateAccepted?.date !== date || state.chainDateAccepted?.metadata !== metadata) state.chainDateSource = "";
+      state.chainDateAccepted = confirmed ? { date, metadata } : null;
+      state.chainDateWarning = false;
+      renderChainActivityDate();
+    }
+
+    function renderChainActivityDate() {
+      if (!els.chainActivityDateInput) return;
+      const date = getChainActivityDate(), pending = isChainActivityDatePending();
+      els.chainActivityDateInput.value = date;
+      els.chainActivityDateInput.disabled = state.chainDateChanging;
+      els.chainActivityDateHint.textContent = state.chainDateChanging ? "选择中…" : pending || state.chainDateWarning ? "待确认"
+        : ChainActivityDate.weekday(date) + (state.chainDateSource === "recognized" ? " · 识别" : "");
+      els.chainActivityDateHint.title = pending || state.chainDateWarning ? "请点击整理名单按钮识别日期，或手动选择活动日期；原文已暂存本机"
+        : state.chainDateSource === "recognized" ? "已从活动时间识别，可手动修改" : "草稿和订场记录将使用此日期";
+      updateShakePeopleButtonVisibility();
+    }
+
+    async function selectChainActivityDate(date, { day, source = "manual", expectedInput = els.chainInput.value } = {}) {
+      if (!globalThis.BadmintonSessionPlannerCore.validDate(date)) return false;
+      const previous = getChainActivityDate(), editContext = state.pendingSessionEdit;
+      if (editContext?.id) {
+        if (date !== previous && !confirm("正在编辑 " + previous + " 的订场记录。是否改为 " + date + "？确认保存时修改原记录，不会新增记录。")) return false;
+        editContext.date = date;
+      } else {
+        const canApply = () => state.pendingSessionEdit === editContext && getChainActivityDate() === previous;
+        const accepted = await globalThis.sessionPlannerController?.selectDate(date, { day, expectedInput, canApply });
+        if (accepted === false || state.pendingSessionEdit !== editContext || els.chainInput.value !== expectedInput) return false;
+        state.chainActivityDate = date;
+        if (editContext) editContext.date = date;
+      }
+      state.chainDateAccepted = { date, metadata: ChainActivityDate.metadata(els.chainInput.value) };
+      state.chainDateSource = source;
+      state.chainDateWarning = false;
+      state.currentPaymentRecord = null;
+      state.trainingAnomaly = null;
+      renderChainActivityDate();
+      return true;
+    }
+
+    async function handleChainActivityDateChange() {
+      if (state.chainDateChanging) return;
+      const date = els.chainActivityDateInput.value;
+      if (!globalThis.BadmintonSessionPlannerCore.validDate(date)) { renderChainActivityDate(); toast("请选择有效的活动日期"); return; }
+      state.chainDateChanging = true;
+      renderChainActivityDate();
+      updatePaymentButton();
+      try {
+        if (!await selectChainActivityDate(date)) return;
+        if (!state.pendingSessionEdit?.id && els.chainInput.value.trim()) state.chainInputUserOwned = true;
+        processChain();
+        scheduleGroupAttemptSnapshot("input");
+        toast("活动日期已选择 " + date + "，草稿和订场记录将使用此日期");
+      } catch (error) { toast("选择日期失败：" + error.message); }
+      finally { state.chainDateChanging = false; renderChainActivityDate(); processChain(); }
     }
 
     function syncAutoCourtFeeForActivityDate({ force = false, courts = null } = {}) {
@@ -8282,7 +8378,7 @@
       setSync("正在记录订场");
       try {
         const body = {
-          date: getLocalDateString(),
+          date: getChainActivityDate(),
           venue: "广羽",
           courtCount,
           courtFee: record.courtFee,
@@ -8333,7 +8429,7 @@
       const courtFee = editing ? session.courtFee : (source?.courtFee ?? 0);
       const candidates = inferCourtCounts(courtFee);
       els.recordTitle.textContent = editing ? "编辑订场记录" : "记录本次订场";
-      els.recordDateInput.value = session?.date || getLocalDateString();
+      els.recordDateInput.value = session?.date || getChainActivityDate();
       els.recordCourtFeeInput.value = formatCompactNumber(courtFee);
       els.recordCourtCountInput.value = editing
         ? String(session.courtCount)
@@ -10391,6 +10487,8 @@
       renderWeekProbability(null);
       globalThis.sessionPlannerController = globalThis.BadmintonSessionPlanner.create({
         state, input: els.chainInput, process: processChain, apiUrl: getApiUrl, toast,
+        deferActivityDate: isChainActivityDatePending,
+        dateChanged: onChainDraftDateChanged,
         names: () => state.chainEntries.map((entry) => entry.isCompanion && entry.ownerPlayerId
           && getPlayerIdByListedName(getChainEntryBaseName(entry)) !== entry.ownerPlayerId
           ? paymentDisplayName(getPlayerById(entry.ownerPlayerId)) || getChainEntryBaseName(entry)
@@ -10434,7 +10532,7 @@
     }
 
     function getProbabilityTargetDate() {
-      return state.pendingSessionEdit?.date || getBeijingDateString();
+      return getChainActivityDate();
     }
 
     function groupForecastKey(targetDate, includeCandidates) {
@@ -10527,7 +10625,7 @@
     }
 
     function renderGroupForecast({ force = false, includeCandidates = false } = {}) {
-      if (!state.players.length || state.pendingSessionEdit) {
+      if (!state.players.length || state.pendingSessionEdit || getChainActivityDate() !== getBeijingDateString() || isChainActivityDatePending()) {
         state.groupForecast = null; state.forecastPending = false;
         forecastClient?.cancel(); forecastRequestedKey = ""; groupForecastCacheKey = "";
         setProbabilityDisplay(null, null); updateForecastPendingUi(); return null;
@@ -10679,9 +10777,7 @@
         state.groupAttempt = null;
         state.attemptTrialRequested = false;
         state.shakeBottomedPlayerIds.clear();
-        state.chainInputUserOwned = false;
-        state.plusOverrides = {};
-        els.chainInput.value = "";
+        // The planner owns date rollover. Never clear an explicitly selected historical draft or a pending import.
         globalThis.sessionPlannerController?.rollover();
         attemptLoadedDate = "";
         lastAttemptSnapshotKey = "";
@@ -10727,7 +10823,7 @@
     }
 
     async function saveGroupAttemptSnapshot(observation) {
-      if (state.readOnly || state.pendingSessionEdit || !state.chainInputUserOwned) return;
+      if (state.readOnly || state.pendingSessionEdit || !state.chainInputUserOwned || getChainActivityDate() !== getBeijingDateString() || isChainActivityDatePending()) return;
       const payload = buildAttemptSnapshotPayload(observation);
       if (!payload) { attemptSnapshotWaiting = observation; scheduleGroupForecastRender(); return; }
       if (!payload.participantCount && !state.groupAttempt) return;
@@ -10756,7 +10852,7 @@
     }
 
     function scheduleGroupAttemptSnapshot(trigger = "input") {
-      if (state.readOnly || state.pendingSessionEdit || !state.chainInputUserOwned) return;
+      if (state.readOnly || state.pendingSessionEdit || !state.chainInputUserOwned || getChainActivityDate() !== getBeijingDateString() || isChainActivityDatePending()) return;
       attemptSnapshotWaiting = null;
       attemptTrackingTrigger = trigger;
       attemptTrackingObservation = {
@@ -10780,22 +10876,60 @@
       }, 1500);
     }
 
-    function extractMiniProgramRoster() {
-      const specialChain = parseMiniProgramChain(els.chainInput.value);
+    async function extractMiniProgramRoster() {
+      if (state.chainDateChanging) return;
+      const rawInput = els.chainInput.value;
+      const specialChain = parseMiniProgramChain(rawInput);
       if (!specialChain) return;
-      els.chainInput.value = specialChain.participantLines.join("\n");
-      state.chainInputUserOwned = true;
-      state.chainLevelMode = "exact";
-      processChain();
-      scheduleGroupAttemptSnapshot("input");
-      els.chainInput.focus();
-      toast("已只保留报名名单，等级已标准化；收款前会统一核对成员资料");
+      const parsed = ChainActivityDate.parse(rawInput, {
+        today: getBeijingDateString(), referenceDate: state.pendingSessionEdit?.date || getBeijingDateString(),
+      });
+      const accepted = state.chainDateAccepted;
+      const keepSelectedDate = accepted?.date === getChainActivityDate() && accepted.metadata === ChainActivityDate.metadata(rawInput);
+      const uncertain = !keepSelectedDate && (parsed.status === "invalid" || parsed.status === "ambiguous");
+      const date = !keepSelectedDate && parsed.status === "found" ? parsed.date : getChainActivityDate();
+      const question = uncertain ? parsed.warnings.join("；") + "。是否确认使用当前日期 " + date + " 并整理名单？取消后可手动选择日期，原文会保留。"
+        : !keepSelectedDate && parsed.needsConfirmation ? parsed.warnings.join("；") + "。是否选择 " + date + "？" : "";
+      if (question && !confirm(question)) { state.chainDateWarning = true; renderChainActivityDate(); return; }
+      state.chainDateChanging = true;
+      els.extractRosterBtn.disabled = true;
+      els.extractRosterBtn.setAttribute("aria-busy", "true");
+      renderChainActivityDate();
+      updatePaymentButton();
+      try {
+        const rosterText = specialChain.participantLines.join("\n");
+        if (!await selectChainActivityDate(date, {
+          source: keepSelectedDate ? state.chainDateSource || "manual" : parsed.status === "found" ? "recognized" : uncertain ? "manual" : state.chainDateSource,
+          expectedInput: rawInput,
+          day: { text: rosterText, plusOverrides: state.plusOverrides, slots: state.chainEntries.map(getChainEntryBaseName).slice(0, 10) },
+        })) return;
+        if (els.chainInput.value !== rawInput) { toast("名单已发生变化，请重新整理"); return; }
+        els.chainInput.value = rosterText;
+        state.chainDateAccepted = { date, metadata: ChainActivityDate.metadata(rosterText) };
+        state.chainInputUserOwned = true;
+        state.chainLevelMode = "exact";
+        state.chainDateWarning = false;
+        processChain();
+        scheduleGroupAttemptSnapshot("input");
+        els.chainInput.focus();
+        const dateMessage = keepSelectedDate ? "保留已确认的活动日期 " + date : parsed.status === "found" ? "活动日期已选择 " + date
+          : parsed.status === "missing" ? "未找到活动日期，保留 " + date : "活动日期已确认 " + date;
+        toast("已整理报名名单；" + dateMessage);
+      } catch (error) { toast("整理失败，请核对当前名单：" + error.message); }
+      finally {
+        state.chainDateChanging = false;
+        els.extractRosterBtn.removeAttribute("aria-busy");
+        els.extractRosterBtn.disabled = !parseMiniProgramChain(els.chainInput.value);
+        renderChainActivityDate();
+        updatePaymentButton();
+      }
     }
 
     function processChain() {
       const rawInput = els.chainInput.value;
       const specialChain = parseMiniProgramChain(rawInput);
-      els.extractRosterBtn.disabled = !specialChain;
+      els.extractRosterBtn.disabled = state.chainDateChanging || !specialChain;
+      if (els.chainActivityDateInput) renderChainActivityDate();
       const aliasIndex = buildAliasIndex();
       const identityCounts = new Map();
       const entries = getChainInputLines(rawInput)
@@ -11760,7 +11894,7 @@
     }
 
     function updatePaymentButton() {
-      if (!isPaymentRuleValid(state.paymentRule)) {
+      if (state.chainDateChanging || !isPaymentRuleValid(state.paymentRule)) {
         els.paymentBtn.disabled = true;
         return;
       }
@@ -12392,7 +12526,7 @@
         result
       );
       els.paymentLedgerAmount.textContent = formatMoney(calculateLedgerAmount(result.groups, courtFee));
-      const reportDate = state.pendingSessionEdit ? state.pendingSessionEdit.date : getLocalDateString();
+      const reportDate = getChainActivityDate();
       els.paymentReportDate.textContent = formatPaymentDate(reportDate);
       state.currentPaymentRecord = {
         courtFee,

@@ -7,8 +7,12 @@
     let store;
     try { store = JSON.parse(localStorage.getItem(KEY) || "null"); } catch {}
     if (!store || store.version !== 1) store = { version: 1, days: {}, pending: {} };
-    let activeDate = core.date(), applying = false, syncing = false, ready = false, timer, selectedSlot = null, selectedMember = null, activeTooltip = null;
+    let calendarToday = core.date();
+    let activeDate = core.validDate(store.selectedDate) ? store.selectedDate : calendarToday;
+    state.chainActivityDate = activeDate;
+    let applying = false, syncing = false, ready = false, timer, selectedSlot = null, selectedMember = null, activeTooltip = null;
     let sendingDate, focusBefore, conflict = null, saveError = "", localError = false;
+    let selectionVersion = 0, selecting = 0;
     const status = document.getElementById("planSaveStatus"), dialog = document.getElementById("sessionPlanDialog");
     const grid = document.getElementById("planGrid"), cards = document.getElementById("planMembers");
     const closeBtn = document.getElementById("closeSessionPlan"), retry = document.getElementById("retryPlanSave"), remote = document.getElementById("useCloudPlan");
@@ -21,11 +25,19 @@
     }
     function renderStatus() {
       const n = Object.keys(store.pending).length;
-      status.textContent = localError ? "本机备份失败，请勿关闭页面" : conflict ? "云端有更新，本机草稿已保留" : saveError ? "已存本机，云端待重试" : n ? "已存本机，正在同步…" : ready ? "已自动保存到云端" : "正在读取云端名单…";
+      status.textContent = localError ? "本机备份失败，请勿关闭页面" : conflict ? conflict.date + " 的云端有更新，本机草稿已保留" : saveError ? "已存本机，云端待重试" : n ? "已存本机，正在同步…" : ready ? "已自动保存到云端" : "正在读取云端名单…";
       status.dataset.error = String(Boolean(localError || conflict || saveError));
       retry.hidden = !(conflict || saveError); retry.textContent = conflict ? "保留本机修改" : "重试同步";
       remote.hidden = !conflict;
-      document.getElementById("chainPlanSaveStatus").textContent = status.textContent;
+      const chainStatus = document.getElementById("chainPlanSaveStatus");
+      const chainDate = state.pendingSessionEdit?.date || activeDate;
+      chainStatus.textContent = state.pendingSessionEdit?.id ? "正在编辑订场记录，确认后保存"
+        : localError ? "本机备份失败，请勿关闭页面"
+        : store.unassigned?.date === chainDate ? "已存本机，整理名单后确认活动日期"
+        : status.textContent;
+      chainStatus.dataset.error = status.dataset.error;
+      const chainRetry = document.getElementById("chainPlanRetryBtn");
+      if (chainRetry) chainRetry.hidden = Boolean(state.pendingSessionEdit?.id) || !(conflict || saveError);
     }
     function queue(date, day) {
       day = core.normalizeDay(day);
@@ -35,25 +47,44 @@
       persist(); clearTimeout(timer); timer = setTimeout(sync, 550);
     }
     function capture() {
-      if (applying || state.pendingSessionEdit || !state.chainInputUserOwned) return;
-      queue(activeDate, { text: input.value, plusOverrides: state.plusOverrides, slots: adapter.names().slice(0, 10) });
+      if (applying || state.pendingSessionEdit?.id || !state.chainInputUserOwned) return;
+      const date = state.pendingSessionEdit?.date || activeDate;
+      const day = core.normalizeDay({ text: input.value, plusOverrides: state.plusOverrides, slots: adapter.names().slice(0, 10) });
+      if (adapter.deferActivityDate?.()) {
+        // Keep a pasted historical activity locally until its date is explicitly accepted.
+        // The previous day's cloud draft and revision are deliberately left untouched.
+        store.unassigned = { date, day };
+        persist();
+        return;
+      }
+      if (store.unassigned?.date === date) delete store.unassigned;
+      queue(date, day);
       if (dialog.open) render();
     }
     function applyToday() {
       if (state.pendingSessionEdit) return;
-      const row = getRow(activeDate);
-      if (input.value === (row ? getDay(activeDate).text : "") && JSON.stringify(state.plusOverrides) === JSON.stringify(row ? getDay(activeDate).plusOverrides : {})) return;
+      const staged = store.unassigned?.date === activeDate;
+      const day = staged ? core.normalizeDay(store.unassigned.day) : getDay(activeDate);
+      const confirmed = !staged && Boolean(getRow(activeDate));
+      if (input.value === day.text && JSON.stringify(state.plusOverrides) === JSON.stringify(day.plusOverrides)) {
+        adapter.dateChanged?.(activeDate, { confirmed });
+        return;
+      }
       applying = true;
-      input.value = row ? getDay(activeDate).text : "";
-      state.plusOverrides = row ? clone(getDay(activeDate).plusOverrides) : {};
-      // Loading a plan is not a real sign-up observation for model training.
-      state.chainInputUserOwned = false;
-      process(); applying = false;
+      try {
+        input.value = day.text;
+        state.plusOverrides = clone(day.plusOverrides);
+        adapter.dateChanged?.(activeDate, { confirmed });
+        // Loading a plan is not a real sign-up observation for model training.
+        state.chainInputUserOwned = false;
+        process();
+      } finally { applying = false; }
     }
-    async function request(options) {
+    async function request(options, date = null) {
       const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 12000);
       try {
-        const response = await fetch(apiUrl("/api/session-plans"), { cache: "no-store", ...options, signal: controller.signal });
+        const path = "/api/session-plans" + (date ? "?date=" + encodeURIComponent(date) : "");
+        const response = await fetch(apiUrl(path), { cache: "no-store", ...options, signal: controller.signal });
         const data = await response.json();
         if (!response.ok) throw Object.assign(new Error(data.error || "同步失败"), { status: response.status, data });
         return data;
@@ -64,7 +95,7 @@
       syncing = true; saveError = ""; renderStatus();
       try {
         for (const date of Object.keys(store.pending).sort()) {
-          if (date < core.addDays(core.date(), -7) || date > core.addDays(core.date(), 6)) continue;
+          if (!core.validDate(date)) continue;
           sendingDate = date;
           const pending = clone(store.pending[date]);
           const data = await request({ method: "POST", headers: { "content-type": "text/plain;charset=UTF-8" }, body: JSON.stringify({ date, ...pending }) });
@@ -84,26 +115,71 @@
     async function refresh() {
       if (syncing) return;
       try {
-        const data = await request({ method: "GET" });
+        const requestedDate = state.pendingSessionEdit?.date || activeDate;
+        const data = await request({ method: "GET" }, requestedDate);
         for (const row of data.days || []) if (!store.days[row.date] || row.revision >= store.days[row.date].revision) store.days[row.date] = row;
         ready = true; saveError = ""; persist();
-        if (!state.pendingSessionEdit && !store.pending[activeDate]) applyToday();
+        if (!selecting && requestedDate === activeDate && !state.pendingSessionEdit && !store.pending[activeDate] && !store.unassigned) applyToday();
         adapter.forecastChanged(); if (dialog.open) render(); void sync();
       } catch (error) {
         saveError = error.message; renderStatus();
         // A failed initial read must never allow an offline draft to overwrite an unknown remote revision.
       }
     }
+    async function selectDate(date, { day, expectedInput = input.value, canApply = () => true } = {}) {
+      if (!core.validDate(date)) return false;
+      const version = ++selectionVersion, previous = activeDate;
+      selecting++;
+      try {
+        if (date !== activeDate) {
+          try {
+            const data = await request({ method: "GET" }, date);
+            for (const row of data.days || []) if (!store.days[row.date] || row.revision >= store.days[row.date].revision) store.days[row.date] = row;
+            ready = true; saveError = "";
+          } catch (error) {
+            // Offline selection is safe: unknown remote rows still use revision zero and cannot be overwritten.
+            saveError = error.message;
+          }
+        }
+        if (version !== selectionVersion || previous !== activeDate || !canApply()) { persist(); return false; }
+        if (input.value !== expectedInput) { persist(); toast("名单已发生变化，请重新选择活动日期"); return false; }
+        if (date !== activeDate) {
+          const current = getDay(date);
+          const replacement = day || core.normalizeDay({ text: input.value, plusOverrides: state.plusOverrides, slots: adapter.names().slice(0, 10) });
+          if ((current.text.trim() || current.slots.some(Boolean)) && !core.equal(current, replacement)
+            && !confirm(date + " 已有报名草稿。是否用当前名单替换这一天的草稿？已有订场记录不会改动。")) {
+            persist(); return false;
+          }
+        }
+        activeDate = date;
+        store.selectedDate = date === core.date() ? null : date;
+        state.chainActivityDate = date;
+        delete store.unassigned;
+        persist(); adapter.dateChanged?.(date, { confirmed: true }); adapter.forecastChanged();
+        return true;
+      } finally { selecting--; }
+    }
+    function restoreToday() {
+      selectionVersion++;
+      activeDate = core.date(); store.selectedDate = null; state.chainActivityDate = activeDate;
+      applyToday(); persist(); adapter.forecastChanged();
+    }
     function rollover() {
-      const next = core.date(); if (next === activeDate) return;
-      activeDate = next; selectedSlot = selectedMember = null; applyToday(); if (dialog.open) render();
+      const next = core.date(); if (next === calendarToday) return;
+      calendarToday = next;
+      if (store.unassigned && !store.selectedDate) { store.selectedDate = activeDate; persist(); }
+      if (!store.selectedDate && !store.unassigned && !state.pendingSessionEdit) {
+        selectionVersion++; activeDate = next; state.chainActivityDate = next; applyToday();
+      }
+      selectedSlot = selectedMember = null; if (dialog.open) render();
       void refresh();
     }
     function plannedEntries() {
       const days = {};
-      for (const d of [...new Set([...core.dates(activeDate), ...Object.keys(store.days), ...Object.keys(store.pending)])].filter((d) => d >= core.addDays(activeDate, -7) && d <= core.addDays(activeDate, 6))) days[d] = core.entries(getDay(d).slots, state.players);
-      // Today's full roster, not merely its first ten slots, participates in the model.
-      days[activeDate] = adapter.forecastEntries();
+      const start = core.addDays(calendarToday, -7), end = core.addDays(calendarToday, 6);
+      for (const d of [...new Set([...core.dates(calendarToday), ...Object.keys(store.days), ...Object.keys(store.pending)])].filter((d) => d >= start && d <= end)) days[d] = core.entries(getDay(d).slots, state.players);
+      // Only the selected day's full roster belongs to that date; historical imports never become today's sign-ups.
+      if (!state.pendingSessionEdit && !adapter.deferActivityDate?.() && activeDate >= start && activeDate <= end) days[activeDate] = adapter.forecastEntries();
       return days;
     }
     function edit(date, index, name) {
@@ -151,7 +227,7 @@
     function renderCards() {
       activeTooltip = null;
       cards.replaceChildren();
-      const members = core.recentMembers(state.players, state.sessions, activeDate), target = selectedSlot?.date;
+      const members = core.recentMembers(state.players, state.sessions, calendarToday), target = selectedSlot?.date;
       const planned = target ? plannedEntries() : {}, slots = target ? getDay(target).slots : [];
       // Use the full roster for today, including members beyond its ten visible slots.
       const joinedIds = new Set((planned[target] || []).filter((entry) => !entry.isCompanion)
@@ -194,10 +270,10 @@
     }
     function render() {
       grid.replaceChildren();
-      for (const date of core.dates(activeDate)) {
+      for (const date of core.dates(calendarToday)) {
         const row = document.createElement("div"); row.className = "plan-day";
         const dateBtn = document.createElement("button"); dateBtn.type = "button"; dateBtn.className = "plan-date"; dateBtn.dataset.planDate = date;
-        const dayName = document.createElement("strong"); dayName.textContent = core.label(date, activeDate);
+        const dayName = document.createElement("strong"); dayName.textContent = core.label(date, calendarToday);
         const dateText = document.createElement("small"); dateText.textContent = date.slice(5).replace("-", "/"); dateBtn.append(dayName, dateText);
         dateBtn.setAttribute("aria-label", `${date} ${core.label(date)}${selectedMember ? "添加" + selectedMember : "选择日期"}`);
         dateBtn.addEventListener("click", () => { if (selectedMember) add(date, selectedMember); else { selectedSlot = { date, index: getDay(date).slots.findIndex((s) => !s) }; if (selectedSlot.index < 0) selectedSlot.index = 0; render(); } });
@@ -220,6 +296,7 @@
     }
     function open() { rollover(); selectedSlot = selectedMember = null; focusBefore = document.activeElement; render(); if (!dialog.open) dialog.showModal(); void refresh(); }
     closeBtn.addEventListener("click", () => dialog.close());
+    document.getElementById("chainPlanRetryBtn")?.addEventListener("click", open);
     document.getElementById("clearPlanSlot").addEventListener("click", () => { if (selectedSlot) edit(selectedSlot.date, selectedSlot.index, ""); else toast("请先选择要清空的格子"); });
     document.getElementById("editPlanSlot").addEventListener("click", () => { if (selectedSlot) startEditor(selectedSlot.date, selectedSlot.index); else toast("请先选择要自定义的格子"); });
     dialog.addEventListener("close", () => { selectedMember = selectedSlot = null; focusBefore?.focus(); });
@@ -240,7 +317,7 @@
     window.addEventListener("scroll", () => { if (activeTooltip) positionMemberTooltip(activeTooltip.button, activeTooltip.tooltip); }, true);
     setInterval(() => { rollover(); if (document.visibilityState === "visible") void refresh(); }, 30000);
     applyToday(); void refresh();
-    return { capture, open, rollover, plannedEntries, refresh, restoreToday: applyToday, key: () => JSON.stringify(plannedEntries()), renderIfOpen: () => { if (dialog.open) renderCards(); } };
+    return { capture, open, rollover, plannedEntries, refresh, selectDate, restoreToday, key: () => JSON.stringify(plannedEntries()), renderIfOpen: () => { if (dialog.open) renderCards(); } };
   }
   root.BadmintonSessionPlanner = Object.freeze({ create });
 })(globalThis);

@@ -34,7 +34,12 @@ res = await call({...body,mutationId:randomUUID()}); assert.equal(res.status,409
 res = await call({...body,revision:1,day:core.normalizeDay(),mutationId:randomUUID()}); assert.equal(res.status,200); assert.equal((await res.json()).saved.day.text, "");
 res = await handleSessionPlans(new Request(url),{DB:db},helpers); assert.equal((await res.json()).days[0].day.text,"","explicitly cleared roster remains cleared");
 assert.equal((await call(body,"https://evil.example")).status,403);
-assert.equal((await call({...body,date:"2026-11-04"})).status,400);
+assert.equal((await call({...body,date:"2026-11-04"})).status,200,"Activities outside the weekly planner can save dated drafts");
+assert.equal((await call({...body,date:"2026-02-30"})).status,400);
+assert.equal((await call({...body,date:"2026-09-09"})).status,200,"Older backfills must not be silently skipped");
+res = await handleSessionPlans(new Request(url + "?date=2026-09-09"),{DB:db},helpers);
+assert.equal((await res.json()).days.some(row => row.date === "2026-09-09"),true,"Exact-date reads recover historical drafts");
+res = await handleSessionPlans(new Request(url + "?date=2026-02-30"),{DB:db},helpers); assert.equal(res.status,400);
 assert.equal((await call({...body,day:{...day,slots:[]}})).status,400);
 assert.equal((await call(body,"https://choi975.github.io",{...helpers,rateLimit:async()=>false})).status,429);
 const textBefore=JSON.stringify(sessions);
