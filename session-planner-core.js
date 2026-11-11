@@ -9,7 +9,8 @@
   function normalizeDay(raw = {}) {
     return { text: String(raw.text || "").slice(0, 20000),
       plusOverrides: raw.plusOverrides && typeof raw.plusOverrides === "object" && !Array.isArray(raw.plusOverrides) ? raw.plusOverrides : {},
-      slots: Array.from({ length: 10 }, (_, i) => String(raw.slots?.[i] || "").trim().slice(0, 100)) };
+      slots: Array.from({ length: 10 }, (_, i) => String(raw.slots?.[i] || "").trim().slice(0, 100)),
+      ...(raw.activityDateConfirmed === true ? { activityDateConfirmed: true } : {}) };
   }
   const equal = (a, b) => JSON.stringify(normalizeDay(a)) === JSON.stringify(normalizeDay(b));
   function entries(slots, players = []) {

@@ -10,7 +10,7 @@ const core = globalThis.BadmintonSessionPlannerCore;
 const activityDates = globalThis.BadmintonChainActivityDate;
 const source = readFileSync(new URL("../session-planner.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8").replaceAll("\r\n", "\n");
-const uiSources = ["getChainActivityDate", "isChainActivityDatePending", "onChainDraftDateChanged", "renderChainActivityDate", "selectChainActivityDate", "handleChainActivityDateChange", "extractMiniProgramRoster"].map(name => {
+const uiSources = ["getChainActivityDate", "hasConfirmedChainActivityDate", "isChainActivityDatePending", "onChainDraftDateChanged", "renderChainActivityDate", "selectChainActivityDate", "handleChainActivityDateChange", "extractMiniProgramRoster"].map(name => {
   const start = html.search(new RegExp("    (?:async )?function " + name + "\\("));
   assert.ok(start >= 0, name);
   return html.slice(start, html.indexOf("\n    }", start) + 6);
@@ -74,7 +74,7 @@ function harness() {
   context.processChain = () => { state.chainEntries = names().map(clean => ({ clean })); controller?.capture(); };
   controller = context.BadmintonSessionPlanner.create({ state, input, process: context.processChain, apiUrl: path => path,
     names, toast: message => messages.push(message), forecastChanged() {}, dateChanged: context.onChainDraftDateChanged, forecastEntries: () => core.entries(names()),
-    deferActivityDate: context.isChainActivityDatePending,
+    deferActivityDate: context.isChainActivityDatePending, activityDateConfirmed: context.hasConfirmedChainActivityDate,
   });
   context.sessionPlannerController = controller;
   const settle = async () => { for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve)); };
@@ -172,6 +172,7 @@ assert.equal(await manual.api.selectChainActivityDate("2026-09-10"), true);
 manual.api.processChain(); await manual.flush();
 assert.equal(manual.store().unassigned, undefined, "A manual date overrides conflicting text metadata");
 assert.equal(row("2026-09-10").day.text, manual.input.value);
+assert.equal(row("2026-09-10").day.activityDateConfirmed, true, "Explicit manual confirmation must survive cloud persistence");
 manual.input.value += "\n2. Roster-only change"; manual.api.processChain(); await manual.flush();
 assert.equal(row("2026-09-10").day.text, manual.input.value, "Editing members must not invalidate the manual date");
 const reloadManual = harness(); await reloadManual.settle();
@@ -233,4 +234,16 @@ rollover.setToday("2026-11-14"); rollover.controller.rollover(); await rollover.
 assert.equal(rollover.state.chainActivityDate, "2026-11-13");
 assert.equal(rollover.input.value, unconfirmed, "An unconfirmed historical import is preserved across midnight");
 assert.equal(rollover.store().unassigned.day.text, unconfirmed);
+// Older clients auto-saved historical activity text under today without any date decision.
+// Merely loading such a legacy cloud row must never count as explicit confirmation.
+sql.prepare("UPDATE session_plans SET content_json = ? WHERE activity_date = ?")
+  .run(JSON.stringify(makeDay("活动时间：11-09 (周一) 19:00 ~ 22:00\n1. Legacy cloud import")), "2026-11-11");
+const legacy = freshToday(); await legacy.settle();
+assert.equal(legacy.state.chainActivityDate, "2026-11-11");
+assert.equal(legacy.api.isChainActivityDatePending(), true);
+assert.equal(legacy.api.hasConfirmedChainActivityDate(), false, "Legacy auto-save is not date confirmation");
+await legacy.api.extractMiniProgramRoster(); await legacy.flush();
+assert.equal(legacy.state.chainActivityDate, "2026-11-09", "The original requested case must work even if the old app already auto-saved it under today");
+assert.equal(row("2026-11-09").day.text, "1. Legacy cloud import");
+assert.equal(row("2026-11-09").day.activityDateConfirmed, true);
 console.log("Dated drafts passed: real November 9 button flow, manual-date precedence/reload, uncertain-date cancellation, historical reads/writes, rollover, overwrite confirmation, reachable offline conflicts, latest-only selection, refresh races and edit-context guards. No production writes.");

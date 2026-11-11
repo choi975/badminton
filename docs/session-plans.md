@@ -28,7 +28,7 @@ Cloudflare 与 GitHub Pages 共用 D1 `session_plans` 表。GitHub 仅此计划 
 
 - `GET /api/session-plans`：读取北京时间过去七天至未来六天的已保存行。
 - `GET /api/session-plans?date=YYYY-MM-DD`：同时返回指定日期，支持补记七天窗口之外的历史草稿，无效日期返回400。
-- `POST /api/session-plans`：保存任意有效活动日（不再限制七天窗口），字段为 `date / revision / mutationId / day`。`day` 含 `text / plusOverrides / slots`（固定十格）。允许两个正式站点及本地8787来源，沿用每分钟写入限流。
+- `POST /api/session-plans`：保存任意有效活动日（不再限制七天窗口），字段为 `date / revision / mutationId / day`。`day` 含 `text / plusOverrides / slots`（固定十格），以及可选的 `activityDateConfirmed: true` 明确日期确认标记。旧草稿无标记，不会把旧版本按操作日自动保存误认为用户已确认日期。允许两个正式站点及本地8787来源，沿用每分钟写入限流。
 - 每天独立修订号，SQL条件写入保护跨设备并发；相同请求重试幂等。不同日期不会相互覆盖。
 - 浏览器 `badminton.session-plans.v1` 保存云端快照和待同步草稿。输入先本地落盘，再防抖云端保存；断网、超时、丢响应和刷新保留待同步内容并重试。
 - 修订冲突暂停同步，保留本机草稿，提供“保留本机修改”（需确认覆盖）或“采用云端名单”。不会自动静默覆盖其他设备。

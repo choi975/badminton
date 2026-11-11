@@ -49,7 +49,8 @@
     function capture() {
       if (applying || state.pendingSessionEdit?.id || !state.chainInputUserOwned) return;
       const date = state.pendingSessionEdit?.date || activeDate;
-      const day = core.normalizeDay({ text: input.value, plusOverrides: state.plusOverrides, slots: adapter.names().slice(0, 10) });
+      const day = core.normalizeDay({ text: input.value, plusOverrides: state.plusOverrides, slots: adapter.names().slice(0, 10),
+        activityDateConfirmed: adapter.activityDateConfirmed?.() });
       if (adapter.deferActivityDate?.()) {
         // Keep a pasted historical activity locally until its date is explicitly accepted.
         // The previous day's cloud draft and revision are deliberately left untouched.
@@ -65,7 +66,7 @@
       if (state.pendingSessionEdit) return;
       const staged = store.unassigned?.date === activeDate;
       const day = staged ? core.normalizeDay(store.unassigned.day) : getDay(activeDate);
-      const confirmed = !staged && Boolean(getRow(activeDate));
+      const confirmed = !staged && day.activityDateConfirmed === true;
       if (input.value === day.text && JSON.stringify(state.plusOverrides) === JSON.stringify(day.plusOverrides)) {
         adapter.dateChanged?.(activeDate, { confirmed });
         return;
@@ -146,7 +147,7 @@
         if (date !== activeDate) {
           const current = getDay(date);
           const replacement = day || core.normalizeDay({ text: input.value, plusOverrides: state.plusOverrides, slots: adapter.names().slice(0, 10) });
-          if ((current.text.trim() || current.slots.some(Boolean)) && !core.equal(current, replacement)
+          if ((current.text.trim() || current.slots.some(Boolean)) && !core.equal({ ...current, activityDateConfirmed: false }, { ...replacement, activityDateConfirmed: false })
             && !confirm(date + " 已有报名草稿。是否用当前名单替换这一天的草稿？已有订场记录不会改动。")) {
             persist(); return false;
           }

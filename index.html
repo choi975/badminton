@@ -7793,9 +7793,13 @@
       return state.pendingSessionEdit?.date || state.chainActivityDate || getBeijingDateString();
     }
 
-    function isChainActivityDatePending() {
+    function hasConfirmedChainActivityDate() {
       const accepted = state.chainDateAccepted;
-      if (accepted?.date === getChainActivityDate() && accepted.metadata === ChainActivityDate.metadata(els.chainInput.value)) return false;
+      return Boolean(accepted?.date === getChainActivityDate() && accepted.metadata === ChainActivityDate.metadata(els.chainInput.value));
+    }
+
+    function isChainActivityDatePending() {
+      if (hasConfirmedChainActivityDate()) return false;
       const parsed = ChainActivityDate.parse(els.chainInput.value, {
         today: getBeijingDateString(), referenceDate: state.pendingSessionEdit?.date || getBeijingDateString(),
       });
@@ -10488,6 +10492,7 @@
       globalThis.sessionPlannerController = globalThis.BadmintonSessionPlanner.create({
         state, input: els.chainInput, process: processChain, apiUrl: getApiUrl, toast,
         deferActivityDate: isChainActivityDatePending,
+        activityDateConfirmed: hasConfirmedChainActivityDate,
         dateChanged: onChainDraftDateChanged,
         names: () => state.chainEntries.map((entry) => entry.isCompanion && entry.ownerPlayerId
           && getPlayerIdByListedName(getChainEntryBaseName(entry)) !== entry.ownerPlayerId
