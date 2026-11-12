@@ -9471,19 +9471,15 @@
       const stats = {
         male: { totalAmount: 0, totalSlots: 0 },
         female: { totalAmount: 0, totalSlots: 0 },
-        unknownSlots: 0,
       };
       for (const row of sessions.flatMap((session) => session.players || [])) {
         const slots = Math.max(0, Math.floor(Number(row.slots) || 0));
         if (!slots) continue; // Non-participant payment rows must not inflate either average.
-        const gender = row.gender || (row.isFemale ? "女" : "不详");
-        // Legacy payer rows can combine people of different genders without itemized amounts.
-        // Do not guess the guests' gender or invent the owner's share of that combined bill.
-        if (slots !== 1 || Number(row.plusCount) > 0 || !["男", "女"].includes(gender)) {
-          stats.unknownSlots += slots;
-          continue;
-        }
-        const group = gender === "女" ? stats.female : stats.male;
+        const gender = row.gender || (row.isFemale ? "女" : "男");
+        // Calendar-only fallback: unknown genders and unitemized legacy bills count as male.
+        // Itemized female records retain their own gender and fee; saved bills are never changed.
+        const isItemizedFemale = gender === "女" && slots === 1 && !(Number(row.plusCount) > 0);
+        const group = isItemizedFemale ? stats.female : stats.male;
         group.totalAmount += Number(row.amount) || 0;
         group.totalSlots += slots;
       }
@@ -9546,7 +9542,6 @@
       let line = `场地 ${courtParts.join("、") || "0元×0个"}`;
       if (shuttleParts.length) line += `${separator}球 ${shuttleParts.join("、")}`;
       line += `${separator}共${formatMoney(totalAmount)}元，${averageText("男性", genderStats.male)}，${averageText("女性", genderStats.female)}`;
-      if (genderStats.unknownSlots) line += `（另有${genderStats.unknownSlots}人次因性别或费用拆分不详，未纳入性别均值）`;
       line += "。";
       return line;
     }

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { loadPaymentFunctions } from "./payment-test-helpers.js";
 
@@ -69,13 +70,55 @@ const incomplete = session([], [
   person("男",30), person("女",26.5), person("不详",40),
   person("男",90,{slots:3,plusCount:2}), person("女",20,{slots:0}),
 ]);
-assert.equal(api.getCalendarGenderStats([incomplete]).unknownSlots,4);
-assert.match(summary([incomplete]), /共206\.50元，男性平均30\.00元\/人次，女性平均26\.50元\/人次（另有4人次因性别或费用拆分不详，未纳入性别均值）/, "Unknown/combined amounts stay in the total but are not attributed to an invented gender");
+const incompleteBefore = structuredClone(incomplete);
+assert.deepEqual(api.getCalendarGenderStats([incomplete]), {
+  male: { totalAmount: 160, totalSlots: 5 },
+  female: { totalAmount: 26.5, totalSlots: 1 },
+}, "Unknown and unitemized attendances and their fees are included in the male average");
+assert.match(summary([incomplete]), /共206\.50元，男性平均32\.00元\/人次，女性平均26\.50元\/人次。/);
+assert.doesNotMatch(summary([incomplete]), /另有|未纳入性别均值|性别或费用拆分不详/);
+assert.deepEqual(incomplete, incompleteBefore, "The calendar fallback must not rewrite saved genders, slots or bills");
+
+const unknownGenders = session([], [
+  person("不详",40), person(undefined,25), person("",10), person("未登记",20,{isFemale:true}),
+]);
+assert.deepEqual(api.getCalendarGenderStats([unknownGenders]), {
+  male: { totalAmount: 95, totalSlots: 4 },
+  female: { totalAmount: 0, totalSlots: 0 },
+}, "Unknown, missing, blank and invalid genders default to male; an explicit unknown overrides legacy flags");
+assert.match(summary([unknownGenders]), /男性平均23\.75元\/人次，女性平均暂无数据。/);
+
+const combinedLegacy = session([], [
+  person("女",70,{slots:3,plusCount:2}), person("女",26.5), person("男",30),
+]);
+assert.deepEqual(api.getCalendarGenderStats([combinedLegacy]), {
+  male: { totalAmount: 100, totalSlots: 4 },
+  female: { totalAmount: 26.5, totalSlots: 1 },
+}, "Previously unitemized bills use the male fallback without changing itemized female records");
+assert.match(summary([combinedLegacy]), /男性平均25\.00元\/人次，女性平均26\.50元\/人次。/);
+assert.match(summary([session([], [person("不详",0)])]), /男性平均0\.00元\/人次，女性平均暂无数据。/);
 assert.match(summary([session([], [person("女",0)])]), /男性平均暂无数据，女性平均0\.00元\/人次/);
 assert.match(summary([session([], [person("男",20)])]), /男性平均20\.00元\/人次，女性平均暂无数据/);
 assert.match(summary([]), /共0\.00元，男性平均暂无数据，女性平均暂无数据/);
 assert.doesNotMatch(summary([]), /NaN|Infinity/);
 assert.match(summary([session([], [{slots:1,amount:25,isFemale:true}])]), /女性平均25\.00元\/人次/, "Legacy explicit female flag can still be used if a gender field was never saved");
+const historicalSessions = JSON.parse(readFileSync(new URL("../data/bootstrap-snapshot.json", import.meta.url), "utf8")).data.sessions;
+for (const month of ["2026-07", "2026-08", "2026-09"]) {
+  const monthSessions = historicalSessions.filter((row) => row.date.startsWith(month));
+  const monthBefore = structuredClone(monthSessions);
+  const participants = monthSessions.flatMap((row) => row.players || [])
+    .filter((row) => Math.max(0, Math.floor(Number(row.slots) || 0)) > 0);
+  const stats = api.getCalendarGenderStats(monthSessions);
+  assert.equal(stats.male.totalSlots + stats.female.totalSlots,
+    participants.reduce((sum, row) => sum + Math.max(0, Math.floor(Number(row.slots) || 0)), 0),
+    month + " must include every attendance in a gender average");
+  assert.ok(Math.abs(stats.male.totalAmount + stats.female.totalAmount
+    - participants.reduce((sum, row) => sum + (Number(row.amount) || 0), 0)) < 1e-8,
+    month + " must retain every participant fee without duplication");
+  assert.doesNotMatch(summary(monthSessions), /另有|未纳入性别均值|NaN|Infinity/);
+  assert.deepEqual(monthSessions, monthBefore, month + " calendar totals must not mutate history");
+}
+
 function element() {
   let text = "";
   return {
@@ -121,4 +164,4 @@ cards.setCalendarRecordMetaText(dailyMeta, "第1场 · 广羽", summary(cardSess
 assert.equal(dailyMeta.textContent, "第1场 · 广羽：" + summary(cardSessions), "Individual session labels must remain intact");
 assert.ok(byClass(dailyMeta, "calendar-record-meta-title"));
 
-console.log("Calendar summary passed: exact three-hour equivalents, actual-price preservation, sample total, gender-weighted averages, companions, legacy/unknown/zero/empty cases.");
+console.log("Calendar summary passed: exact three-hour equivalents, actual-price preservation, sample total, gender-weighted averages, companions, male fallback for unknown/unitemized rows, July-September history, zero/empty cases.");
