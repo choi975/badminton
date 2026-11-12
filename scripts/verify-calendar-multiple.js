@@ -133,11 +133,9 @@ assert.equal(els.calendarDayTitle.textContent, ui.formatCalendarDate("2026-10-09
 assert.equal(byClass(els.calendarDayRecords, "empty-hint").textContent, "当天没有订场记录");
 assert.equal(els.calendarAddSessionBtn.textContent, "新增记录");
 assert.equal(els.calendarAddSessionBtn.hidden, false);
-state.trainingAnomaly = { trainCourt: false };
 state.currentPaymentRecord = first;
 els.calendarAddSessionBtn.onclick();
 assert.deepEqual(state.pendingSessionEdit, { id: null, date: "2026-10-09" });
-assert.equal(state.trainingAnomaly, null, "A new session must not inherit the previous training decision");
 assert.equal(state.currentPaymentRecord, null);
 assert.equal(els.chainInput.value, "", "A new session starts with its own roster");
 state.currentPaymentRecord = { ...first, players: [] };
@@ -183,6 +181,7 @@ const getStored = (_db, id) => {
   const row = db.prepare("SELECT * FROM booking_sessions WHERE id = ?").get(id);
   return { id: row.id, date: row.date, venue: row.venue, courtCount: row.court_count, courtFee: row.court_fee,
     shuttlePrice: row.shuttle_price, shuttleCount: row.shuttle_count,
+    trainCourt: Boolean(row.train_court), trainShuttle: Boolean(row.train_shuttle), actualShuttleConfirmed: Boolean(row.actual_shuttle_confirmed),
     players: db.prepare("SELECT * FROM booking_session_players WHERE session_id = ? ORDER BY id").all(id).map((row) => ({ ...row })),
   };
 };
@@ -206,6 +205,7 @@ const requests = [];
 const dependencies = { ...ui, state, els, CourtPricing: globalThis.BadmintonCourtPricing,
   buildRecordParticipantsFromEditor: () => [participant], normalizePlayerId: (id) => id,
   deriveCourtRows: (fee, count) => [{ price: fee / count, count }], hasUnknownShuttleType: () => false,
+  findShuttleTypeByPrice: () => state.estimator.shuttleTypes[0],
   setSync: noop, closeModal: noop, openModal: (name) => opened.push(name), renderTable: noop, renderCalendar: noop,
   applyEdcBalanceResponse: () => "", applyGroupAttemptResponse: noop, appendTodoCounterMessage: noop,
   toast: (text) => messages.push(text), window: { confirm: (text) => { messages.push(text); return true; } },
@@ -229,9 +229,8 @@ dependencies.recoverPreviousSessionSave = () => false;
 const saves = new Function(...Object.keys(dependencies), ["saveRecordDialog", "deleteSessionRecord"]
   .map((name) => extract(paymentHtml, name, "    ")).join("\n") + "\nreturn { saveRecordDialog, deleteSessionRecord };")(...Object.values(dependencies));
 state.sessions = [saved1, getStored(adapter, saved2.id)];
-state.currentPaymentRecord = input;
+state.currentPaymentRecord = { ...input, shuttlePrice: 11.3, shuttleCount: 34 };
 state.pendingSessionEdit = { id: null, date: first.date };
-state.trainingAnomaly = { trainCourt: false, trainShuttle: false };
 ui.openRecordDialogForChainEdit();
 await saves.saveRecordDialog();
 assert.deepEqual(requests.at(-1), ["/api/sessions", "POST"]);
@@ -239,10 +238,14 @@ assert.equal(state.sessions.length, 3, "Submitting a new same-date session appen
 assert.equal(state.pendingSessionEdit, null);
 assert.ok(opened.includes("calendarModal"));
 const third = state.sessions.at(-1);
-ui.openRecordDialog({ session: third });
+assert.equal(third.shuttleCount, 34);
+for (const flag of ["trainCourt", "trainShuttle", "actualShuttleConfirmed"]) assert.equal(third[flag], true, "New dialog saves use the default training and confirmation flags");
+assert.equal(opened.includes("trainingAnomalyModal"), false, "Anomalous usage must save without a second dialog");
+ui.openRecordDialog({ session: { ...third, trainCourt: false, trainShuttle: false, actualShuttleConfirmed: false } });
 els.recordCourtFeeInput.value = "210";
 await saves.saveRecordDialog();
 assert.deepEqual(requests.at(-1), [`/api/sessions/${third.id}`, "PATCH"]);
+for (const flag of ["trainCourt", "trainShuttle", "actualShuttleConfirmed"]) assert.equal(getStored(adapter, third.id)[flag], false, "Editing must preserve historical opt-out and unconfirmed flags");
 assert.equal(state.sessions.length, 3);
 assert.deepEqual(getStored(adapter, saved1.id), original);
 await saves.deleteSessionRecord(third);
@@ -256,4 +259,4 @@ await saves.saveRecordDialog();
 await saves.deleteSessionRecord(saved1);
 assert.equal(requests.length, requestCount);
 db.close();
-console.log("Multiple calendar sessions passed: empty/populated/read-only UI, counts, venues, independent actions, draft date, cancellation, real migrated SQLite INSERT/UPDATE, POST/PATCH/DELETE isolation and return flow.");
+console.log("Multiple calendar sessions passed: empty/populated/read-only UI, counts, venues, independent actions, draft date, cancellation, real migrated SQLite INSERT/UPDATE, POST/PATCH/DELETE isolation, automatic training defaults, historical training flag preservation and return flow.");

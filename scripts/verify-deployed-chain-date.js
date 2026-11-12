@@ -28,6 +28,8 @@ assert.match(texts[0], /id="chainActivityDateInput" type="date"/);
 assert.match(texts[0], /id="chainActivityDateBar" class="chain-date-bar" hidden/);
 assert.ok(texts[0].includes("els.chainActivityDateBar.hidden = date === getBeijingDateString();"), "Today’s activity date is hidden using Beijing time");
 assert.match(texts[3], /async function selectDate/);
+assert.doesNotMatch(texts[3], /已有报名草稿|是否用当前名单替换/, "Known dated drafts replace without a redundant confirmation");
+assert.doesNotMatch(texts[0], /trainingAnomalyModal|openTrainingDecision|finishAnomalyTraining/, "Training defaults save without the retired confirmation dialog");
 const historical = JSON.parse(await get("/api/session-plans?date=2026-09-09"));
 assert.ok(Array.isArray(historical.days), "Historical date lookup must be available");
 await get("/api/session-plans?date=2026-02-30", 400);

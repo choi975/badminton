@@ -2976,10 +2976,6 @@
       width: min(760px, 100%);
     }
 
-    #trainingAnomalyModal {
-      z-index: 80;
-    }
-
     #recordModal {
       z-index: 60;
     }
@@ -4865,22 +4861,6 @@
     </div>
   </div>
 
-  <div id="trainingAnomalyModal" class="modal-backdrop">
-    <div class="modal medium" role="dialog" aria-modal="true" aria-labelledby="trainingAnomalyTitle">
-      <div class="modal-header">
-        <h2 id="trainingAnomalyTitle" class="modal-title">数据异常</h2>
-        <button class="modal-close-btn" data-close="trainingAnomalyModal" aria-label="关闭" title="关闭">×</button>
-      </div>
-      <div class="modal-body">
-        <p id="trainingAnomalyMessage" class="calendar-detail-summary"></p>
-      </div>
-      <div class="modal-footer">
-        <button id="trainingSkipBtn" type="button">仅记录数据，不用于训练预估公式</button>
-        <button id="trainingAcceptBtn" class="primary-btn" type="button">记录并训练预估公式</button>
-      </div>
-    </div>
-  </div>
-
   <div id="rosterReviewModal" class="modal-backdrop">
     <div class="modal roster-review-dialog" role="dialog" aria-modal="true" aria-labelledby="rosterReviewTitle" aria-describedby="rosterReviewSummary">
       <div class="modal-header">
@@ -5473,7 +5453,6 @@
       chainDateAccepted: null,
       chainDateChanging: false,
       chainDateWarning: false,
-      trainingAnomaly: null,
       estimatorAdvancedOpen: false,
       shuttleTypeSaving: false,
       shuttleTypeEdit: null,
@@ -5675,11 +5654,6 @@
       paymentCostSummary: document.getElementById("paymentCostSummary"),
       paymentLedgerAmount: document.getElementById("paymentLedgerAmount"),
       paymentReportDate: document.getElementById("paymentReportDate"),
-      trainingAnomalyModal: document.getElementById("trainingAnomalyModal"),
-      trainingAnomalyTitle: document.getElementById("trainingAnomalyTitle"),
-      trainingAnomalyMessage: document.getElementById("trainingAnomalyMessage"),
-      trainingSkipBtn: document.getElementById("trainingSkipBtn"),
-      trainingAcceptBtn: document.getElementById("trainingAcceptBtn"),
       paymentSettingsModal: document.getElementById("paymentSettingsModal"),
       paymentSettingsFriendsCount: document.getElementById("paymentSettingsFriendsCount"),
       paymentSettingsHytronikCount: document.getElementById("paymentSettingsHytronikCount"),
@@ -6048,8 +6022,6 @@
       els.estimatorAdvancedBtn.addEventListener("click", toggleEstimatorAdvancedPanel);
       els.shuttleTypeRegistrationForm.addEventListener("submit", registerShuttleType);
       els.cancelShuttleTypeEditBtn.addEventListener("click", cancelShuttleTypeEdit);
-      els.trainingSkipBtn.addEventListener("click", () => finishAnomalyTraining(false));
-      els.trainingAcceptBtn.addEventListener("click", () => finishAnomalyTraining(true));
       els.recordCourtFeeInput.addEventListener("input", onRecordCourtFeeChange);
       els.saveRecordBtn.addEventListener("click", saveRecordDialog);
       els.savePaymentSettingsBtn.addEventListener("click", () => savePaymentSettings());
@@ -7856,7 +7828,7 @@
       updateShakePeopleButtonVisibility();
     }
 
-    async function selectChainActivityDate(date, { day, source = "manual", expectedInput = els.chainInput.value } = {}) {
+    async function selectChainActivityDate(date, { source = "manual", expectedInput = els.chainInput.value } = {}) {
       if (!globalThis.BadmintonSessionPlannerCore.validDate(date)) return false;
       const previous = getChainActivityDate(), editContext = state.pendingSessionEdit;
       if (editContext?.id) {
@@ -7864,7 +7836,7 @@
         editContext.date = date;
       } else {
         const canApply = () => state.pendingSessionEdit === editContext && getChainActivityDate() === previous;
-        const accepted = await globalThis.sessionPlannerController?.selectDate(date, { day, expectedInput, canApply });
+        const accepted = await globalThis.sessionPlannerController?.selectDate(date, { expectedInput, canApply });
         if (accepted === false || state.pendingSessionEdit !== editContext || els.chainInput.value !== expectedInput) return false;
         state.chainActivityDate = date;
         if (editContext) editContext.date = date;
@@ -7873,7 +7845,6 @@
       state.chainDateSource = source;
       state.chainDateWarning = false;
       state.currentPaymentRecord = null;
-      state.trainingAnomaly = null;
       renderChainActivityDate();
       return true;
     }
@@ -8414,15 +8385,6 @@
       if (state.sessionSaving || state.readOnly) return;
       const record = state.currentPaymentRecord;
       if (!record) return;
-      const anomaly = assessCurrentRecordAnomaly(record, courtCount);
-      if (!state.trainingAnomaly && anomaly.anomalous) {
-        openTrainingDecision({ mode: "direct", record, courtCount, anomaly });
-        return;
-      }
-      if (!state.trainingAnomaly && Number(record.shuttleCount) > 0) {
-        openTrainingDecision({ mode: "direct", record, courtCount });
-        return;
-      }
       state.sessionSaving = true;
       els.paymentRecordBtn.disabled = true;
       setSync("正在记录订场");
@@ -8435,9 +8397,10 @@
           shuttlePrice: record.shuttlePrice,
           shuttleCount: record.shuttleCount,
           players: record.players,
-          trainCourt: state.trainingAnomaly?.trainCourt ?? true,
-          trainShuttle: state.trainingAnomaly?.trainShuttle ?? true,
-          actualShuttleConfirmed: state.trainingAnomaly?.actualShuttleConfirmed ?? Number(record.shuttleCount) <= 0,
+          // Saving a new record accepts the default training choice without a second dialog.
+          trainCourt: true,
+          trainShuttle: true,
+          actualShuttleConfirmed: true,
         };
         if (record.courtPriceRows?.length) body.courtPriceRows = record.courtPriceRows;
         if (record.shuttlePriceRows?.length) body.shuttlePriceRows = record.shuttlePriceRows;
@@ -8447,7 +8410,6 @@
         if (data.estimator) applyShuttleEstimator(data.estimator);
         finishSessionSaveFollowups(data);
         applyGroupAttemptResponse(data.groupAttempt);
-        state.trainingAnomaly = null;
         state.sessionSaving = false;
         setSync("已保存");
         closeModal("paymentModal");
@@ -8769,25 +8731,6 @@
 
       const sessionId = Number(els.recordModal.dataset.sessionId || 0);
       const editing = els.recordModal.dataset.editing === "1" && Number.isInteger(sessionId) && sessionId > 0;
-      if (!editing && state.currentPaymentRecord && !state.trainingAnomaly) {
-        const submittedRecord = {
-          ...state.currentPaymentRecord,
-          courtFee,
-          shuttlePrice,
-          shuttleCount,
-          courtPriceRows,
-          shuttlePriceRows,
-        };
-        const anomaly = assessCurrentRecordAnomaly(submittedRecord, courtCount);
-        if (anomaly.anomalous) {
-          openTrainingDecision({ mode: "dialog", record: submittedRecord, courtCount, anomaly });
-          return;
-        }
-        if (shuttleCount > 0) {
-          openTrainingDecision({ mode: "dialog", record: submittedRecord, courtCount });
-          return;
-        }
-      }
       state.sessionSaving = true;
       els.saveRecordBtn.disabled = true;
       setSync(editing ? "正在保存订场记录" : "正在记录订场");
@@ -8800,10 +8743,10 @@
           shuttlePrice,
           shuttleCount,
           players,
-          trainCourt: state.trainingAnomaly?.trainCourt ?? (editing ? els.recordModal.dataset.trainCourt !== "0" : true),
-          trainShuttle: state.trainingAnomaly?.trainShuttle ?? (editing ? els.recordModal.dataset.trainShuttle !== "0" : true),
-          actualShuttleConfirmed: state.trainingAnomaly?.actualShuttleConfirmed
-            ?? (editing ? els.recordModal.dataset.actualShuttleConfirmed !== "0" : shuttleCount <= 0),
+          // New records use the default choice; edits preserve the saved training flags.
+          trainCourt: editing ? els.recordModal.dataset.trainCourt !== "0" : true,
+          trainShuttle: editing ? els.recordModal.dataset.trainShuttle !== "0" : true,
+          actualShuttleConfirmed: editing ? els.recordModal.dataset.actualShuttleConfirmed !== "0" : true,
         };
         if (courtPriceRows.length) body.courtPriceRows = courtPriceRows;
         if (shuttlePriceRows.length) body.shuttlePriceRows = shuttlePriceRows;
@@ -8813,7 +8756,6 @@
         if (data.estimator) applyShuttleEstimator(data.estimator);
         finishSessionSaveFollowups(data);
         applyGroupAttemptResponse(data.groupAttempt);
-        state.trainingAnomaly = null;
         state.sessionSaving = false;
         setSync("已保存");
         closeModal("recordModal");
@@ -9755,7 +9697,6 @@
       }
       resetPaymentRule();
       state.pendingSessionEdit = { id: null, date: dateString };
-      state.trainingAnomaly = null;
       state.currentPaymentRecord = null;
       state.returnToCalendar = true;
       updateShakePeopleButtonVisibility();
@@ -10984,7 +10925,6 @@
         if (!await selectChainActivityDate(date, {
           source: keepSelectedDate ? state.chainDateSource || "manual" : parsed.status === "found" ? "recognized" : uncertain ? "manual" : state.chainDateSource,
           expectedInput: rawInput,
-          day: { text: rosterText, plusOverrides: state.plusOverrides, slots: state.chainEntries.map(getChainEntryBaseName).slice(0, 10) },
         })) return;
         if (els.chainInput.value !== rawInput) { toast("名单已发生变化，请重新整理"); return; }
         els.chainInput.value = rosterText;
@@ -11879,91 +11819,6 @@
         state.shuttleTypeSaving = false;
         renderRegisteredShuttleTypes();
       }
-    }
-
-    function assessCurrentRecordAnomaly(record, courtCount) {
-      const estimate = estimateBooking(state.chainEntries);
-      const actualCourt = Number(courtCount) || 0;
-      const shuttleRows = record.shuttlePriceRows || [];
-      const types = state.estimator?.shuttleTypes || DEFAULT_ESTIMATOR.shuttleTypes;
-      const typeIds = new Set(types.map((type) => type.id));
-      const counts = new Map();
-      let hasUnrecognizedPositiveRow = false;
-      shuttleRows.forEach((row) => {
-        if (!(Number(row.count) > 0)) return;
-        const explicitType = typeIds.has(row.type) ? row.type : null;
-        const typeId = explicitType || findShuttleTypeByPrice(Number(row.price))?.id;
-        if (!typeId) {
-          hasUnrecognizedPositiveRow = true;
-          return;
-        }
-        counts.set(typeId, (counts.get(typeId) || 0) + Number(row.count));
-      });
-      const comparable = !hasUnrecognizedPositiveRow && counts.size === 1;
-      const [typeId, actualShuttle] = comparable ? [...counts.entries()][0] : [null, null];
-      const predictedShuttle = comparable ? estimate.shuttleCounts?.[typeId] || 0 : null;
-      return {
-        anomalous: Math.abs(actualCourt - estimate.courts) > 1
-          || (comparable && Math.abs(actualShuttle - predictedShuttle) >= 2),
-        court: { predicted: estimate.courts, actual: actualCourt },
-        shuttle: { comparable, typeId, predicted: predictedShuttle, actual: actualShuttle },
-      };
-    }
-
-    function anomalyMessage(anomaly) {
-      const court = `场地预计${anomaly.court.predicted}个、实际${anomaly.court.actual}个`;
-      const shuttle = anomaly.shuttle.comparable
-        ? `用球预计${anomaly.shuttle.predicted}颗、实际${anomaly.shuttle.actual}颗`
-        : "混用球不作单型号耗球比较";
-      return `此次数据与当前预估差异较大：${court}；${shuttle}。请选择是否用于训练。`;
-    }
-
-    function hasMixedShuttleTypes(record) {
-      const typeIds = new Set();
-      (record?.shuttlePriceRows || []).forEach((row) => {
-        if (!(Number(row.count) > 0)) return;
-        const type = (state.estimator?.shuttleTypes || []).find((item) => item.id === row.type)
-          || findShuttleTypeByPrice(Number(row.price));
-        if (type?.id) typeIds.add(type.id);
-      });
-      return typeIds.size > 1;
-    }
-
-    function openTrainingDecision({ mode, record = null, courtCount, anomaly = null }) {
-      const decisionKind = anomaly ? "anomaly" : "actual-confirmation";
-      const hasShuttles = Number(record?.shuttleCount) > 0;
-      const mixedShuttle = hasMixedShuttleTypes(record);
-      state.trainingAnomaly = { mode, record, courtCount, decisionKind, mixedShuttle };
-      els.trainingAnomalyTitle.textContent = anomaly ? "数据异常" : "确认实际用球";
-      const confirmationText = mixedShuttle
-        ? "请确认球数是本场结束后的实际用量。本场为混用球，数据会保存，但不会作为任一单型号模型的完整训练样本。"
-        : "请确认球数是本场结束后的实际用量，而不是系统预估值。未确认的记录仍会保存，但不会用于训练用球模型。";
-      els.trainingAnomalyMessage.textContent = anomaly
-        ? `${anomalyMessage(anomaly)}${hasShuttles ? ` ${confirmationText}` : ""}`
-        : confirmationText;
-      els.trainingSkipBtn.textContent = anomaly ? "仅记录数据，不用于训练预估公式" : "仅保存，不训练用球";
-      els.trainingAcceptBtn.textContent = !hasShuttles
-        ? "记录并训练场地公式"
-        : mixedShuttle
-          ? (anomaly ? "确认实际用量并训练场地" : "已确认实际用量")
-          : anomaly ? "已确认实际用量并训练" : "已确认，加入训练";
-      openModal("trainingAnomalyModal");
-    }
-
-    function finishAnomalyTraining(shouldTrain) {
-      const pending = state.trainingAnomaly;
-      if (!pending) return;
-      const confirmation = pending.decisionKind === "actual-confirmation";
-      state.trainingAnomaly = {
-        ...pending,
-        confirmed: true,
-        trainCourt: confirmation ? true : shouldTrain,
-        trainShuttle: shouldTrain,
-        actualShuttleConfirmed: Number(pending.record?.shuttleCount) > 0 ? shouldTrain : true,
-      };
-      closeModal("trainingAnomalyModal");
-      if (pending.mode === "dialog") void saveRecordDialog();
-      else void savePaymentRecordDirect(pending.courtCount);
     }
 
     function createEstimateValue(value) {
@@ -15275,7 +15130,6 @@
       if (id === "rosterReviewModal" && state.rosterReviewSaving) return;
       if (id === "rosterReviewModal") state.rosterReview = null;
       if (id === "memberCreateModal" && state.creatingPlayer) return;
-      if (id === "trainingAnomalyModal" && !state.trainingAnomaly?.confirmed) state.trainingAnomaly = null;
       const modal = document.getElementById(id);
       if (!modal?.classList.contains("open")) return;
       modal.classList.remove("open");

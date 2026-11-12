@@ -5,7 +5,7 @@ import vm from "node:vm";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8").replaceAll("\r\n", "\n");
 const defaultModel = JSON.parse(readFileSync(new URL("../data/booking-estimator.json", import.meta.url), "utf8"));
 const feeStart = html.indexOf('<div class="fee-box">');
-const feeCard = html.slice(feeStart, html.indexOf('<div id="trainingAnomalyModal"', feeStart));
+const feeCard = html.slice(feeStart, html.indexOf('<div id="rosterReviewModal"', feeStart));
 const peopleCard = html.slice(html.indexOf('<section class="summary-panel">'), feeStart);
 assert.match(feeCard, /id="feeAdvancedArea"[\s\S]*id="registeredShuttleTypes"[\s\S]*id="shuttleTypeRegistrationForm"/);
 assert.match(feeCard, /label[^>]*for="newShuttleTypeName"/);

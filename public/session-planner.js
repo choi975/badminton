@@ -127,7 +127,7 @@
         // A failed initial read must never allow an offline draft to overwrite an unknown remote revision.
       }
     }
-    async function selectDate(date, { day, expectedInput = input.value, canApply = () => true } = {}) {
+    async function selectDate(date, { expectedInput = input.value, canApply = () => true } = {}) {
       if (!core.validDate(date)) return false;
       const version = ++selectionVersion, previous = activeDate;
       selecting++;
@@ -144,14 +144,6 @@
         }
         if (version !== selectionVersion || previous !== activeDate || !canApply()) { persist(); return false; }
         if (input.value !== expectedInput) { persist(); toast("名单已发生变化，请重新选择活动日期"); return false; }
-        if (date !== activeDate) {
-          const current = getDay(date);
-          const replacement = day || core.normalizeDay({ text: input.value, plusOverrides: state.plusOverrides, slots: adapter.names().slice(0, 10) });
-          if ((current.text.trim() || current.slots.some(Boolean)) && !core.equal({ ...current, activityDateConfirmed: false }, { ...replacement, activityDateConfirmed: false })
-            && !confirm(date + " 已有报名草稿。是否用当前名单替换这一天的草稿？已有订场记录不会改动。")) {
-            persist(); return false;
-          }
-        }
         activeDate = date;
         store.selectedDate = date === core.date() ? null : date;
         state.chainActivityDate = date;

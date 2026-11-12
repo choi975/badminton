@@ -33,12 +33,11 @@ function source(name) {
   assert.ok(start >= 0, name);
   return html.slice(start, html.indexOf("\n    }", start) + 6);
 }
-const state = { chainActivityDate: "2026-11-09", currentPaymentRecord: { courtFee: 70, shuttlePrice: 10, shuttleCount: 0, players: [] },
-  trainingAnomaly: { trainCourt: true, trainShuttle: true, actualShuttleConfirmed: true } };
+const state = { chainActivityDate: "2026-11-09", currentPaymentRecord: { courtFee: 70, shuttlePrice: 10, shuttleCount: 0, players: [] } };
 const submitted = [];
 const noop = () => {};
 const context = vm.createContext({ state, getBeijingDateString: () => "2026-11-11", els: { paymentRecordBtn: {} },
-  setSync: noop, assessCurrentRecordAnomaly: () => ({}), saveSessionRequest: async (path, body) => { submitted.push({ path, body }); return { session: { id: 1 } }; },
+  setSync: noop, saveSessionRequest: async (path, body) => { submitted.push({ path, body }); return { session: { id: 1 } }; },
   upsertSession: noop, applyEdcBalanceResponse: () => "", finishSessionSaveFollowups: noop, applyGroupAttemptResponse: noop,
   closeModal: noop, renderTable: noop, appendTodoCounterMessage: noop, toast: noop,
 });
@@ -47,6 +46,22 @@ assert.equal(context.getChainActivityDate(), "2026-11-09");
 await context.savePaymentRecordDirect(1);
 assert.equal(submitted[0].body.date, "2026-11-09", "The direct-save path must use the selected activity date, not today's date");
 assert.equal(submitted[0].path, "/api/sessions");
+assert.doesNotMatch(html, /trainingAnomalyModal|openTrainingDecision|finishAnomalyTraining/, "The retired training dialog must not remain in the UI or save flow");
+for (const shuttlePriceRows of [[], [{ type: "rsl3", price: 11.3, count: 34 }], [{ type: "rsl3", price: 11.3, count: 17 }, { type: "as05", price: 13.5, count: 17 }]]) {
+  state.currentPaymentRecord = { courtFee: 210, shuttlePrice: 11.3, shuttleCount: shuttlePriceRows.reduce((sum, row) => sum + row.count, 0), players: [], shuttlePriceRows };
+  const before = submitted.length;
+  await context.savePaymentRecordDirect(3);
+  assert.equal(submitted.length, before + 1, "Zero, anomalous and mixed usage each save once without a confirmation step");
+  const { body } = submitted.at(-1);
+  assert.equal(body.trainCourt, true);
+  assert.equal(body.trainShuttle, true);
+  assert.equal(body.actualShuttleConfirmed, true, "New records accept the primary actual-usage confirmation by default");
+  assert.equal(body.shuttleCount, state.currentPaymentRecord.shuttleCount, "Defaults must not alter the submitted actual usage");
+}
+const savedCount = submitted.length;
+state.readOnly = true; await context.savePaymentRecordDirect(3); state.readOnly = false;
+state.sessionSaving = true; await context.savePaymentRecordDirect(3); state.sessionSaving = false;
+assert.equal(submitted.length, savedCount, "Read-only and duplicate-submit protections remain in place");
 state.pendingSessionEdit = { id: 2, date: "2025-11-09" };
 assert.equal(context.getChainActivityDate(), "2025-11-09", "An existing record's selected date remains authoritative");
 assert.match(html, /recordDateInput\.value = session\?\.date \|\| getChainActivityDate\(\)/);
@@ -91,4 +106,4 @@ assert.equal(beijingToday, "2026-11-12");
 checkDateVisibility("2026-11-12", true, "A future date becomes hidden at Beijing midnight, not UTC midnight");
 checkDateVisibility("2026-11-11", false, "A pinned former-today date is visible after Beijing midnight");
 console.log("Date visibility passed: hidden default/today, visible past/future, unchanged date values, edit precedence, read-only backup, no empty grid track and Beijing midnight.");
-console.log("Activity dates passed: labeled formats, Beijing defaults, explicit/old years, cross-year confirmation, invalid/ambiguous dates, weekday checks, selected-date saves and historical training isolation.");
+console.log("Activity dates passed: labeled formats, Beijing defaults, explicit/old years, cross-year confirmation, invalid/ambiguous dates, weekday checks, selected-date saves, automatic training defaults for zero/anomalous/mixed usage, read-only/duplicate guards and historical training isolation.");

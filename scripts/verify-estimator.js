@@ -383,10 +383,10 @@ await check("browser estimator mirrors the positive-rate and dynamic-risk formul
   assert.doesNotMatch(html, /rsl3Equivalent\s*=/);
 });
 
-await check("record confirmation and edit round-trips protect training labels", () => {
-  assert.match(html, /openTrainingDecision\(\{ mode: "direct", record, courtCount \}\)/);
-  assert.match(html, /不是系统预估值/);
-  assert.match(html, /trainCourt: confirmation \? true : shouldTrain/);
+await check("default record training and edit round-trips preserve training labels", () => {
+  assert.doesNotMatch(html, /trainingAnomalyModal|openTrainingDecision|finishAnomalyTraining/);
+  assert.match(html, /trainCourt: true,/);
+  assert.match(html, /trainCourt: editing \? els\.recordModal\.dataset\.trainCourt !== "0" : true/);
   assert.match(html, /preserveSnapshot: true/);
   assert.match(html, /preservedPlayerId/);
   assert.match(html, /preservedProfileSnapshotReliable/);
@@ -412,8 +412,8 @@ await check("actual shuttle confirmation is persisted separately from training i
   assert.match(confirmationMigration, /SET actual_shuttle_confirmed = 1/);
   assert.match(workerSource, /actual_shuttle_confirmed/);
   assert.match(html, /actualShuttleConfirmed/);
-  assert.match(html, /trainShuttle: shouldTrain,/);
-  assert.match(html, /actualShuttleConfirmed: Number\(pending\.record\?\.shuttleCount\) > 0 \? shouldTrain : true/);
+  assert.match(html, /trainShuttle: editing \? els\.recordModal\.dataset\.trainShuttle !== "0" : true/);
+  assert.match(html, /actualShuttleConfirmed: editing \? els\.recordModal\.dataset\.actualShuttleConfirmed !== "0" : true/);
   assert.ok(sessions.every((session) => typeof session.actualShuttleConfirmed === "boolean"));
 });
 
