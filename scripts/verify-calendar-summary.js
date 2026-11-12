@@ -122,7 +122,8 @@ for (const month of ["2026-07", "2026-08", "2026-09"]) {
 function element() {
   let text = "";
   return {
-    children: [], className: "", events: {},
+    children: [], className: "", events: {}, dataset: {}, attrs: {},
+    setAttribute(key, value) { this.attrs[key] = value; },
     get textContent() { return text + this.children.map((child) => child.textContent).join(""); },
     set textContent(value) { text = value; this.children = []; },
     append(...children) { this.children.push(...children); },
@@ -134,7 +135,7 @@ const descendants = (el) => [el, ...el.children.flatMap(descendants)];
 const byClass = (el, className) => descendants(el).find((child) => child.className === className);
 const detailCalls = [];
 const cards = loadPaymentFunctions([
-  "createAggregateCalendarCard", "setCalendarRecordMetaText",
+  "createAggregateCalendarCard", "createCalendarMemberLabel", "setCalendarRecordMetaText",
   "buildCalendarSummaryLine", "getCalendarGenderStats", "courtPriceBreakdown", "formatCompactNumber", "formatMoney",
 ], {
   document: {
@@ -142,6 +143,7 @@ const cards = loadPaymentFunctions([
     createTextNode: (text) => { const node = element(); node.textContent = text; return node; },
   },
   projectSessionParticipants: (rows) => rows.map((row) => ({ key: row.playerId, ownerName: row.playerName, amount: row.amount })),
+  state: { calendar: { highlightedMember: null } },
   collator: new Intl.Collator("zh-CN"),
   openCalendarDetailModal: (...args) => detailCalls.push(args),
 });

@@ -3518,6 +3518,26 @@
       }
     }
 
+    .calendar-day.member-highlighted {
+      background: var(--amber-soft);
+    }
+
+    .calendar-day.member-highlighted:not(.selected):not(.today) {
+      border-color: var(--amber);
+    }
+
+    .calendar-day.member-highlighted.today {
+      border-color: var(--accent);
+    }
+
+    .calendar-day.member-highlighted.selected {
+      border-color: var(--accent-dark);
+    }
+
+    .calendar-day.member-highlighted .calendar-day-meta {
+      opacity: 1;
+    }
+
     .calendar-day-panel {
       padding-top: 12px;
       border-top: 1px dashed var(--line-strong);
@@ -3837,6 +3857,43 @@
       flex-wrap: wrap;
       gap: 5px 14px;
       font-size: 13px;
+    }
+
+    .calendar-record-player .calendar-member-name {
+      appearance: none;
+      display: inline;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      color: inherit;
+      font: inherit;
+      letter-spacing: inherit;
+      text-align: inherit;
+      vertical-align: baseline;
+    }
+
+    .calendar-record-player .calendar-member-name:active {
+      transform: none;
+    }
+
+    .calendar-member-name:hover,
+    .calendar-member-name[aria-pressed="true"] {
+      color: var(--accent-dark);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .calendar-member-name:hover:not([aria-pressed="true"]) {
+      text-decoration-style: dotted;
+    }
+
+    .calendar-member-name:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
 
     .calendar-record-player .plus {
@@ -5483,6 +5540,8 @@
         expanded: false,
         summaryCollapsed: false,
         showLedger: false,
+        highlightedMember: null,
+        highlightPointerStartedOnControl: false,
       },
       pendingSessionEdit: null,
       returnToCalendar: false,
@@ -5980,6 +6039,8 @@
       els.calendarLedgerToggle.addEventListener("click", toggleCalendarLedger);
       els.calendarExpandBtn.addEventListener("click", toggleCalendarExpanded);
       els.calendarSummaryToggle.addEventListener("click", toggleCalendarSummary);
+      els.calendarModal.addEventListener("pointerdown", handleCalendarHighlightPointerDown, { capture: true });
+      els.calendarModal.addEventListener("click", clearCalendarMemberHighlightOnBlank);
       els.chainBtn.addEventListener("click", () => {
         syncAutoCourtFeeForActivityDate();
         updateShakePeopleButtonVisibility();
@@ -8865,6 +8926,8 @@
         expanded: false,
         summaryCollapsed: false,
         showLedger: false,
+        highlightedMember: null,
+        highlightPointerStartedOnControl: false,
       };
       updateCalendarLayoutControls();
       openModal("calendarModal");
@@ -8894,6 +8957,73 @@
       ensureCalendarMonthRendered(state.calendar.year, state.calendar.month);
       resizeCalendarToActiveMonth();
       scrollCalendarToMonth(state.calendar.year, state.calendar.month, "smooth");
+    }
+
+    function calendarHighlightTargetIsControl(target) {
+      return Boolean(target?.closest?.('button, a, input, select, textarea, [role="button"], [contenteditable="true"]'));
+    }
+
+    function handleCalendarHighlightPointerDown(event) {
+      // A date drag may dispatch its click on the grid, not on the original cell.
+      state.calendar.highlightPointerStartedOnControl = calendarHighlightTargetIsControl(event.target);
+    }
+
+    function clearCalendarMemberHighlightOnBlank(event) {
+      if (!state.calendar.highlightedMember || state.calendar.highlightPointerStartedOnControl
+        || calendarHighlightTargetIsControl(event.target)) return;
+      state.calendar.highlightedMember = null;
+      refreshCalendarMemberHighlights();
+    }
+
+    function getCalendarMemberAttendanceDates(memberKey) {
+      const dates = new Set();
+      if (!memberKey) return dates;
+      for (const session of state.sessions) {
+        if (projectSessionParticipants(session.players).some((group) => group.key === memberKey && group.ownerPresent)) {
+          dates.add(session.date);
+        }
+      }
+      return dates;
+    }
+
+    function refreshCalendarMemberHighlights() {
+      const member = state.calendar.highlightedMember;
+      const dates = getCalendarMemberAttendanceDates(member?.key);
+      els.calendarGrid.querySelectorAll(".calendar-day[data-date]").forEach((button) => {
+        const attended = dates.has(button.dataset.date);
+        button.classList.toggle("member-highlighted", attended);
+        button.title = attended ? `${member.name}本人参加` : "";
+      });
+      els.calendarDayRecords.querySelectorAll(".calendar-member-name[data-member-key]").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.memberKey === member?.key));
+      });
+    }
+
+    function toggleCalendarMemberHighlight(member) {
+      state.calendar.highlightedMember = state.calendar.highlightedMember?.key === member.key
+        ? null : { key: member.key, name: member.name };
+      refreshCalendarMemberHighlights();
+    }
+
+    function createCalendarMemberLabel(member) {
+      const span = document.createElement("span");
+      span.className = "calendar-record-player";
+      const memberKey = String(member.key || "");
+      if (!memberKey || memberKey.startsWith("unresolved:")) {
+        span.textContent = `${member.name}（${formatMoney(member.amount)}元）`;
+        return span;
+      }
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "calendar-member-name";
+      button.dataset.memberKey = memberKey;
+      button.textContent = member.name;
+      button.title = `点击高亮${member.name}本人参加的日期；再次点击或点击空白区域取消`;
+      button.setAttribute("aria-pressed", String(state.calendar.highlightedMember?.key === memberKey));
+      button.setAttribute("aria-controls", "calendarGrid");
+      button.addEventListener("click", () => toggleCalendarMemberHighlight({ key: memberKey, name: member.name }));
+      span.append(button, document.createTextNode(`（${formatMoney(member.amount)}元）`));
+      return span;
     }
 
     function getSessionsOnDate(dateString) {
@@ -9240,6 +9370,7 @@
       updateCalendarActiveMonthStyles();
       renderCalendarSelection();
       renderCalendarDayPanel();
+      refreshCalendarMemberHighlights();
     }
 
     function ensureCalendarMonthRendered(year, month) {
@@ -9508,7 +9639,7 @@
       const titleWrap = document.createElement("div");
       const memberMap = new Map();
       for (const group of projectSessionParticipants(sessions.flatMap((session) => session.players || []))) {
-        const current = memberMap.get(group.key) || { name: group.ownerName || "未知成员", amount: 0 };
+        const current = memberMap.get(group.key) || { key: group.key, name: group.ownerName || "未知成员", amount: 0 };
         current.amount += group.amount;
         memberMap.set(group.key, current);
       }
@@ -9536,12 +9667,7 @@
       const members = [...memberMap.values()].sort((a, b) => (
         (b.amount - a.amount) || collator.compare(a.name, b.name)
       ));
-      players.append(...members.map((member) => {
-        const span = document.createElement("span");
-        span.className = "calendar-record-player";
-        span.textContent = `${member.name}（${formatMoney(member.amount)}元）`;
-        return span;
-      }));
+      players.append(...members.map(createCalendarMemberLabel));
       card.append(players);
       return card;
     }
@@ -9791,12 +9917,9 @@
         const members = projectSessionParticipants(session.players).sort((a, b) => (
           (b.amount - a.amount) || collator.compare(a.ownerName || "", b.ownerName || "")
         ));
-        players.append(...members.map((group) => {
-          const span = document.createElement("span");
-          span.className = "calendar-record-player";
-          span.textContent = `${group.ownerName || "未知成员"}（${formatMoney(group.amount)}元）`;
-          return span;
-        }));
+        players.append(...members.map((group) => createCalendarMemberLabel({
+          key: group.key, name: group.ownerName || "未知成员", amount: group.amount,
+        })));
       }
       card.append(players);
       return card;
