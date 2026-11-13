@@ -171,4 +171,9 @@ assert.match(paymentHtml, /\.calendar-day\.member-highlighted\s*\{\s*background:
 assert.match(paymentHtml, /\.calendar-day\.member-highlighted:not\(\.selected\):not\(\.today\)/, "Preserve selected-date and today borders");
 assert.match(paymentHtml, /\.calendar-record-player \.calendar-member-name\s*\{[^}]*min-height: 0;[^}]*padding: 0;[^}]*border: 0;[^}]*font: inherit;/);
 assert.ok(paymentHtml.indexOf("    .calendar-day.member-highlighted {") > paymentHtml.indexOf("      .calendar-day.has-bookings {"), "Member highlight backgrounds must win over the mobile booking background");
+const selectedNameStyle = paymentHtml.match(/\.calendar-record-player \.calendar-member-name\[aria-pressed="true"\]\s*\{([^}]+)\}/)?.[1];
+assert.ok(selectedNameStyle, "Selected member names need a dedicated style that overrides the plain-text button reset");
+assert.match(selectedNameStyle, /background: var\(--amber\)/, "Selected names get a strong amber fill, not just an underline");
+assert.match(selectedNameStyle, /color: var\(--panel\)/, "Selected names use contrasting light text");
+assert.doesNotMatch(selectedNameStyle, /(?:padding|margin|font(?:-size|-weight)?|line-height|display|width|height)\s*:/, "Name emphasis must not change layout, typography or wrapping");
 console.log("Calendar member highlights verified: actual attendance, identity, unchanged details, switching/toggling, whitespace cancellation, date-drag coexistence, month continuity and read-only use.");
