@@ -3136,21 +3136,37 @@
       font-size: 13px;
     }
 
-    .calendar-summary .calendar-ledger-toggle {
-      min-height: 28px;
+    .calendar-summary-actions {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 6px;
       margin-left: auto;
-      padding: 3px 9px;
-      font-size: 12px;
-      white-space: nowrap;
     }
 
-    .calendar-ledger-toggle[aria-pressed="true"] {
+    .calendar-summary .calendar-icon-toggle {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      min-width: 32px;
+      min-height: 32px;
+      padding: 0;
+      color: var(--muted);
+    }
+
+    .calendar-icon-toggle svg {
+      width: 17px;
+      height: 17px;
+      stroke-width: 2;
+    }
+
+    .calendar-icon-toggle[aria-pressed="true"] {
       border-color: var(--accent);
       background: var(--accent-soft);
       color: var(--accent-dark);
     }
 
-    .calendar-ledger-toggle:focus-visible {
+    .calendar-icon-toggle:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
     }
@@ -3447,8 +3463,10 @@
         padding-inline: 3px;
       }
 
-      .calendar-summary .calendar-ledger-toggle {
-        min-height: 36px;
+      .calendar-summary .calendar-icon-toggle {
+        width: 40px;
+        min-width: 40px;
+        min-height: 40px;
       }
 
       .calendar-continuous-grid.show-ledger .calendar-day {
@@ -3505,6 +3523,13 @@
         overflow: visible;
         font-size: 17px;
         line-height: 1;
+      }
+
+      .calendar-continuous-grid.show-court-count .calendar-day-badge {
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        font-size: clamp(9px, calc(5vw - 7px), 12px);
       }
 
       .calendar-day-unit {
@@ -5057,7 +5082,10 @@
         </div>
         <div class="calendar-summary">
           <span id="calendarSelectionText">当前月份：0 个场</span>
-          <button id="calendarLedgerToggle" class="calendar-ledger-toggle" type="button" aria-pressed="false" aria-controls="calendarGrid calendarLedgerTotal" title="显示日期和汇总栏中的记账金额">显示记账</button>
+          <div class="calendar-summary-actions">
+            <button id="calendarUnitToggle" class="calendar-icon-toggle" type="button" aria-pressed="false" aria-controls="calendarGrid" aria-label="切换为场数（3小时=1个场）" title="当前显示小时，点击切换为场数（3小时=1个场）"><i data-lucide="arrow-left-right" aria-hidden="true"></i></button>
+            <button id="calendarLedgerToggle" class="calendar-icon-toggle calendar-ledger-toggle" type="button" aria-pressed="false" aria-controls="calendarGrid calendarLedgerTotal" aria-label="显示记账" title="显示日期和汇总栏中的记账金额"><i data-lucide="notebook-pen" aria-hidden="true"></i></button>
+          </div>
         </div>
         <div id="calendarWeekdayRow" class="calendar-weekday-row" role="group" aria-label="按星期查看详细统计">
           <button type="button" data-weekday="1" aria-haspopup="dialog" aria-controls="calendarDetailModal" title="查看今天之前最近5个周一的详细统计">周一</button>
@@ -5546,6 +5574,7 @@
         expanded: false,
         summaryCollapsed: false,
         showLedger: false,
+        showCourtCount: false,
         highlightedMember: null,
         highlightPointerStartedOnControl: false,
       },
@@ -5616,6 +5645,7 @@
       calendarNextBtn: document.getElementById("calendarNextBtn"),
       calendarTodayBtn: document.getElementById("calendarTodayBtn"),
       calendarLedgerToggle: document.getElementById("calendarLedgerToggle"),
+      calendarUnitToggle: document.getElementById("calendarUnitToggle"),
       calendarLedgerTotal: document.getElementById("calendarLedgerTotal"),
       calendarExpandBtn: document.getElementById("calendarExpandBtn"),
       calendarMonthLabel: document.getElementById("calendarMonthLabel"),
@@ -6043,6 +6073,7 @@
       els.calendarDetailPrevBtn.addEventListener("click", () => shiftCalendarDetail(-1));
       els.calendarDetailNextBtn.addEventListener("click", () => shiftCalendarDetail(1));
       els.calendarLedgerToggle.addEventListener("click", toggleCalendarLedger);
+      els.calendarUnitToggle.addEventListener("click", toggleCalendarUnit);
       els.calendarExpandBtn.addEventListener("click", toggleCalendarExpanded);
       els.calendarSummaryToggle.addEventListener("click", toggleCalendarSummary);
       els.calendarModal.addEventListener("pointerdown", handleCalendarHighlightPointerDown, { capture: true });
@@ -8932,6 +8963,7 @@
         expanded: false,
         summaryCollapsed: false,
         showLedger: false,
+        showCourtCount: Boolean(state.calendar.showCourtCount),
         highlightedMember: null,
         highlightPointerStartedOnControl: false,
       };
@@ -9133,7 +9165,9 @@
       const todayString = getLocalDateString();
       const dateString = getLocalDateString(date);
       const daySessions = getSessionsOnDate(dateString);
-      const hours = CourtPricing.totalHours(daySessions.map((session) => ({ count: session.courtCount })));
+      const courtRows = daySessions.map((session) => ({ count: session.courtCount }));
+      const quantity = state.calendar.showCourtCount ? CourtPricing.sumCounts(courtRows) : CourtPricing.totalHours(courtRows);
+      const quantityUnit = state.calendar.showCourtCount ? "个场" : "小时";
       const button = document.createElement("button");
       button.type = "button";
       button.className = "calendar-day";
@@ -9143,7 +9177,7 @@
       button.classList.toggle("selected", state.calendar.selectedDates.includes(dateString));
       button.classList.toggle("has-bookings", daySessions.length > 0);
       button.classList.toggle("has-multiple-sessions", daySessions.length > 1);
-      button.setAttribute("aria-label", `${dateString}${daySessions.length ? `，${daySessions.length}场球局，${hours}小时，${[...new Set(daySessions.map((session) => session.venue))].join("、")}` : ""}`);
+      button.setAttribute("aria-label", `${dateString}${daySessions.length ? `，${daySessions.length}场球局，${quantity}${quantityUnit}，${[...new Set(daySessions.map((session) => session.venue))].join("、")}` : ""}`);
       const number = document.createElement("span");
       number.className = "calendar-day-number";
       number.textContent = String(date.getDate());
@@ -9161,10 +9195,10 @@
         badge.className = "calendar-day-badge";
         const count = document.createElement("span");
         count.className = "calendar-day-count";
-        count.textContent = String(hours);
+        count.textContent = String(quantity);
         const unit = document.createElement("span");
         unit.className = "calendar-day-unit";
-        unit.textContent = "小时";
+        unit.textContent = quantityUnit;
         badge.append(count, unit);
         const session = daySessions[0];
         const venue = document.createElement("span");
@@ -9323,10 +9357,23 @@
 
     function updateCalendarLedgerControls() {
       const visible = Boolean(state.calendar.showLedger);
-      els.calendarLedgerToggle.textContent = visible ? "隐藏记账" : "显示记账";
+      els.calendarLedgerToggle.setAttribute("aria-label", visible ? "隐藏记账" : "显示记账");
       els.calendarLedgerToggle.setAttribute("aria-pressed", String(visible));
       els.calendarLedgerToggle.title = visible ? "隐藏日期和汇总栏中的记账金额" : "显示日期和汇总栏中的记账金额";
       els.calendarGrid.classList.toggle("show-ledger", visible);
+    }
+
+    function updateCalendarUnitControls() {
+      const showCourtCount = Boolean(state.calendar.showCourtCount);
+      els.calendarUnitToggle.setAttribute("aria-pressed", String(showCourtCount));
+      els.calendarUnitToggle.setAttribute("aria-label", showCourtCount ? "切换为小时" : "切换为场数（3小时=1个场）");
+      els.calendarUnitToggle.title = showCourtCount ? "当前显示场数，点击切换为小时" : "当前显示小时，点击切换为场数（3小时=1个场）";
+      els.calendarGrid.classList.toggle("show-court-count", showCourtCount);
+    }
+
+    function toggleCalendarUnit() {
+      state.calendar.showCourtCount = !state.calendar.showCourtCount;
+      renderCalendar();
     }
 
     function toggleCalendarLedger() {
@@ -9364,6 +9411,7 @@
 
     function renderCalendar({ resetRange = false, preserveScroll = true } = {}) {
       updateCalendarLedgerControls();
+      updateCalendarUnitControls();
       const activeIndex = calendarMonthIndex(state.calendar.year, state.calendar.month);
       const previousScrollTop = els.calendarScroll.scrollTop;
       if (resetRange || state.calendar.rangeStart === null || state.calendar.rangeEnd === null) {
