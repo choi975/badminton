@@ -113,6 +113,8 @@ assert.equal((await call({ ...body, content: { ...config, groups: [{ id: "not-kn
 const ui = readFileSync(new URL("../court-arrangement.js", import.meta.url), "utf8");
 assert.match(ui, /adapter\.date\(\) === date && dialog\.classList\.contains\("open"\)/);
 assert.match(ui, /if \(revision < row\.revision\)/);
+assert.match(ui, /function saveActivity\(\) \{ if \(!activityAllowed\(\)\) return;/);
+assert.match(ui, /if \(activityAllowed\(\) && !doc\(documentKey\(\)\)\.pending/);
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8"), worker = readFileSync(new URL("../src/worker.js", import.meta.url), "utf8");
 assert.match(html, /id="courtArrangementBtn"[^>]*aria-label="场地安排"/); assert.match(html, /court-arrangement\.css/);
 assert.match(html, /canOpen: \(\) => !isChainActivityDatePending\(\)/); assert.match(worker, /!isCourtArrangementWrite\(request\)/);

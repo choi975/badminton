@@ -19,6 +19,7 @@
     let activeDate = "", config = core.settings(), current = null, selection = null, selectedGroup = "", selectedManagerId = "", tab = "board", zoom = 1;
     let timer, localError = false, openVersion = 0, drag = null, lineFrame = 0, groupDraft = null;
     const documentKey = () => "activity:" + activeDate;
+    const activityAllowed = () => adapter.date() === activeDate && (!adapter.canOpen || adapter.canOpen());
     const doc = (key) => store.documents[key] || (store.documents[key] = { revision: 0, content: null });
     const value = (key) => doc(key).pending?.content || doc(key).content;
     const people = () => [...adapter.players()].sort((a, b) => String(a.name).localeCompare(String(b.name), "zh-CN"));
@@ -34,7 +35,7 @@
       const pending = Object.entries(store.documents).filter(([, row]) => row.pending), conflict = [...conflicts.keys()][0], error = [...errors.values()][0];
       const state = $("caSave"), text = $("caSaveText");
       text.textContent = localError ? "本机备份失败，请勿关闭；可复制安排保留" : conflict ? "云端有更新，本机草稿已保留，请选择处理方式"
-        : error ? "已存本机，云端待重试：" + error : pending.length ? "已存本机，正在同步…" : ready.has(documentKey()) ? "已自动保存到云端 · 偏好长期保留，安排按活动日期保存" : "正在读取云端；可以先调整，本机草稿会保留";
+        : error ? "已存本机，云端待重试：" + error : pending.length ? "已存本机，正在同步…" : ready.has(documentKey()) ? (activityAllowed() ? "已自动保存到云端 · 偏好长期保留，安排按活动日期保存" : "长期设置已同步 · 活动日期待确认，未保存本次排场") : "正在读取云端；可以先调整，本机草稿会保留";
       state.dataset.tone = localError || conflict || error ? "error" : pending.length || !ready.has(documentKey()) ? "pending" : "saved";
       $("caRetry").hidden = !error && !localError; $("caUseCloud").hidden = !conflict; $("caKeepLocal").hidden = !conflict;
     }
@@ -43,7 +44,7 @@
       row.pending = { revision: row.pending?.revision ?? row.revision, mutationId: uuid(), content: core.clone(content) };
       errors.delete(key); persist(); clearTimeout(timer); timer = setTimeout(() => void flushAll(), 650);
     }
-    function saveActivity() { queue(documentKey(), core.validatePlan(current)); }
+    function saveActivity() { if (!activityAllowed()) return; queue(documentKey(), core.validatePlan(current)); }
     function saveSettings() { config = core.validateSettings(config); queue("preferences", config); }
     async function request(options, date = activeDate) {
       const response = await fetch(adapter.apiUrl("/api/court-arrangements" + (options.method === "GET" ? "?date=" + date : "")), {
@@ -101,7 +102,7 @@
           const previous = value(documentKey());
           current = previous ? core.reconcile(previous, adapter.roster(), recommendationConfig()) : core.recommend(adapter.roster(), recommendationConfig(), current);
           render();
-          if (!doc(documentKey()).pending && current.roster.length && JSON.stringify(current) !== JSON.stringify(doc(documentKey()).content)) saveActivity();
+          if (activityAllowed() && !doc(documentKey()).pending && current.roster.length && JSON.stringify(current) !== JSON.stringify(doc(documentKey()).content)) saveActivity();
         }
         await flushAll();
       } catch (error) { errors.set("read:" + date, error.name === "TimeoutError" ? "读取超时" : error.message); renderStatus(); }
@@ -119,6 +120,7 @@
       render(); if (!useRemote) await flush(key);
     }
     function showTab(next) {
+      if (next === "board" && !activityAllowed()) { adapter.toast("请先确认活动日期，再打开本次排场；长期偏好仍可编辑"); return; }
       tab = next; $("caBoardPanel").hidden = next !== "board"; $("caSettingsPanel").hidden = next !== "settings";
       for (const [id, selected] of [["caBoardTab", next === "board"], ["caSettingsTab", next === "settings"]]) { $(id).setAttribute("aria-selected", String(selected)); $(id).tabIndex = selected ? 0 : -1; }
       if (next === "settings") renderManager(); else { sizeBoard(); scheduleLines(); }
@@ -238,9 +240,10 @@
     }
     function render() {
       const fixed = current.roster.filter((p) => current.assignments[p.key]?.courtId).length;
-      $("caMeta").textContent = `${activeDate} · 全员${current.roster.length}人 · 固定${fixed}人／流动${current.roster.length - fixed}人 · ${current.courts.length}片场地`;
+      $("caMeta").textContent = `${activityAllowed() ? activeDate : "活动日期待确认"} · 全员${current.roster.length}人 · 固定${fixed}人／流动${current.roster.length - fixed}人 · ${current.courts.length}片场地`;
       $("caCourtCount").value = current.courts.length; $("caRemoveCourt").disabled = current.courts.length === 1; $("caAddCourt").disabled = current.courts.length >= 32;
-      $("caRecommend").disabled = !current.roster.length; $("caLineMode").value = current.lineMode;
+      $("caBoardTab").disabled = !activityAllowed(); $("caCopy").disabled = !activityAllowed();
+      $("caRecommend").disabled = !current.roster.length || !activityAllowed(); $("caLineMode").value = current.lineMode;
       updateGroupOptions(); renderBoard(); renderInspector(); if (tab === "settings") renderManager(); renderStatus();
     }
     function renderInspector() {

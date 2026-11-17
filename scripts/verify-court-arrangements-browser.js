@@ -101,5 +101,19 @@ async (page) => {
   await page.evaluate(()=>courtArrangementController.refresh());
   assert(await page.locator('.ca-court-title input').first().inputValue()===latest.activity.content.courts[0].label,'Stale lower revisions cannot revert layout');
   await page.unroute(pattern);
-  await page.evaluate(()=>{window.__courtQaPassed=['23-person layout','custom 2/3/7/8 numbering','six-person exclusivity','per-person lines','four-person groups','long-term preferences','cross-court highlight','person drag','court drag','free floating positions','lost-response idempotency','cross-device conflict','copy','Escape and focus','reopen','initial-read failure safety','unknown-revision conflict','different-date pending recovery','closed late read','date switch isolation','stale lower revision'];});
+  const beforePending=await read();
+  await page.keyboard.press('Escape'); await page.locator('#shakePeopleBtn').click();
+  const imported='活动时间：'+nextDate+' 19:00\n'+f.text.split('\n').slice(0,3).join('\n');
+  // Simulate a late shared-draft update while the shake dialog is already open.
+  await page.evaluate(text=>{const input=document.querySelector('#chainInput');input.value=text;input.dispatchEvent(new Event('input',{bubbles:true}));},imported);
+  assert(await page.evaluate(()=>isChainActivityDatePending()),'Imported date must remain unconfirmed');
+  await page.locator('#shakeCourtGroupsBtn').click(); await saved();
+  assert(await page.locator('#caBoardTab').isDisabled()&&await page.locator('#caCopy').isDisabled(),'Pending dates only allow long-term settings');
+  await page.getByLabel('选择长期偏好成员').selectOption(String(f.roster[0].id));
+  await page.locator('#caSettingsPanel').getByLabel('打球偏好',{exact:true}).selectOption('fixed');
+  await page.getByRole('button',{name:'保存长期偏好',exact:true}).click(); await saved();
+  assert(JSON.stringify((await read()).activity)===JSON.stringify(beforePending.activity),'Pending-date settings must not change the old activity');
+  assert((await read()).settings.content.preferences[f.roster[0].id].mode==='fixed','Long-term preferences still sync without a confirmed activity');
+  await page.keyboard.press('Alt+n'); assert(!await page.locator('#shortRuleModal').isVisible(),'Underlying dialog shortcuts stay isolated');
+  await page.evaluate(()=>{window.__courtQaPassed=['23-person layout','custom 2/3/7/8 numbering','six-person exclusivity','per-person lines','four-person groups','long-term preferences','cross-court highlight','person drag','court drag','free floating positions','lost-response idempotency','cross-device conflict','copy','Escape and focus','reopen','initial-read failure safety','unknown-revision conflict','different-date pending recovery','closed late read','date switch isolation','stale lower revision','pending-date preferences isolation'];});
 }
