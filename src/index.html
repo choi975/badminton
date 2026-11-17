@@ -3529,7 +3529,6 @@
         flex-direction: column;
         align-items: center;
         gap: 2px;
-        font-size: clamp(9px, calc(5vw - 7px), 12px);
       }
 
       .calendar-day-unit {
@@ -9166,7 +9165,8 @@
       const dateString = getLocalDateString(date);
       const daySessions = getSessionsOnDate(dateString);
       const courtRows = daySessions.map((session) => ({ count: session.courtCount }));
-      const quantity = state.calendar.showCourtCount ? CourtPricing.sumCounts(courtRows) : CourtPricing.totalHours(courtRows);
+      const hours = CourtPricing.totalHours(courtRows);
+      const quantity = state.calendar.showCourtCount ? Math.ceil(hours / 3) : hours;
       const quantityUnit = state.calendar.showCourtCount ? "个场" : "小时";
       const button = document.createElement("button");
       button.type = "button";
@@ -9193,6 +9193,7 @@
         meta.className = "calendar-day-meta";
         const badge = document.createElement("span");
         badge.className = "calendar-day-badge";
+        if (state.calendar.showCourtCount) badge.title = `实际${hours}小时，日期格场数向上取整显示`;
         const count = document.createElement("span");
         count.className = "calendar-day-count";
         count.textContent = String(quantity);
