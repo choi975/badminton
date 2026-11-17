@@ -61,3 +61,10 @@ copyFileSync(resolve("roster-review.js"), resolve("src/roster-review.txt"));
 
 copyFileSync(resolve("session-save.js"), resolve("public/session-save.js"));
 copyFileSync(resolve("session-save.js"), resolve("src/session-save.txt"));
+
+for (const name of ["court-arrangement-core", "court-arrangement"]) {
+  copyFileSync(resolve(name + ".js"), resolve("public/" + name + ".js"));
+  copyFileSync(resolve(name + ".js"), resolve("src/" + name + ".txt"));
+}
+copyFileSync(resolve("court-arrangement.css"), resolve("public/court-arrangement.css"));
+copyFileSync(resolve("court-arrangement.css"), resolve("src/court-arrangement-style.txt"));

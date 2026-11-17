@@ -54,6 +54,9 @@ jobs:
       - name: Verify deployed Cloudflare hourly fees
         run: node scripts/verify-deployed-hourly-fees.js
 
+      - name: Verify deployed Cloudflare court arrangements
+        run: node scripts/verify-deployed-court-arrangements.js
+
       - name: Build static site
         run: npm run build
 

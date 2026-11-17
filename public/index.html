@@ -18,6 +18,8 @@
   <script src="./level-groups.js"></script>
   <script src="./roster-review.js"></script>
   <script src="./session-save.js"></script>
+  <script src="./court-arrangement-core.js?v=20261117"></script>
+  <script src="./court-arrangement.js?v=20261117"></script>
   <style>
     :root {
       --bg: #f2f6f5;
@@ -4674,6 +4676,7 @@
   }, true);
 })();
 </script>
+  <link rel="stylesheet" href="./court-arrangement.css?v=20261117">
 </head>
 <body class="nav-preview">
   <aside class="nav-preview-sidebar" aria-label="主要导航">
@@ -4860,6 +4863,7 @@
             <div class="chain-head chain-head--output">
               <span>接龙人员</span>
               <div class="chain-head-actions">
+                <button id="courtArrangementBtn" class="chain-icon-btn" type="button" aria-label="场地安排" title="场地安排" aria-haspopup="dialog" aria-controls="courtArrangementModal"><i data-lucide="layout-dashboard"></i></button>
                 <button id="levelDisplayModeBtn" class="chain-icon-btn" type="button" aria-label="精确等级显示，切换为分组" title="精确等级显示，点击切换为分组" aria-pressed="false"><i data-lucide="arrow-left-right"></i></button>
               </div>
             </div>
@@ -5267,6 +5271,7 @@
     <div class="modal medium shake-people-dialog" role="dialog" aria-modal="true" aria-labelledby="shakePeopleTitle">
       <div class="modal-header">
         <h2 id="shakePeopleTitle" class="modal-title">摇人</h2>
+        <button id="shakeCourtGroupsBtn" type="button" title="管理2～8人小团体与带人偏好">小团体与偏好</button>
         <div class="modal-header-actions">
           <button id="newShortRuleBtn" class="modal-add-btn" type="button" aria-label="新建规则" title="新建规则">+</button>
           <button class="modal-close-btn" data-close="shakePeopleModal" aria-label="关闭" title="关闭">×</button>
@@ -5363,6 +5368,39 @@
         <a id="photoDownloadBtn" class="primary-btn" href="#">下载原图</a>
       </div>
     </div>
+  </div>
+
+  <div id="courtArrangementModal" class="modal-backdrop">
+    <section class="modal wide ca-dialog" role="dialog" aria-modal="true" aria-labelledby="courtArrangementTitle">
+      <header class="ca-header">
+        <div><h2 id="courtArrangementTitle">场地安排</h2><p id="caMeta" class="ca-meta"></p></div>
+        <div class="ca-header-actions"><button id="caCopy" type="button">复制安排</button><button type="button" data-close="courtArrangementModal" aria-label="关闭场地安排">关闭</button></div>
+      </header>
+      <div class="ca-tabs" role="tablist" aria-label="场地安排与关系设置">
+        <button id="caBoardTab" type="button" role="tab" aria-selected="true" aria-controls="caBoardPanel">场地安排</button>
+        <button id="caSettingsTab" type="button" role="tab" aria-selected="false" aria-controls="caSettingsPanel" tabindex="-1">偏好与小团体</button>
+      </div>
+      <div id="caBoardPanel" class="ca-panel" role="tabpanel" aria-labelledby="caBoardTab">
+        <div class="ca-toolbar">
+          <div class="ca-count"><span>场地</span><button id="caRemoveCourt" type="button" aria-label="减少一个场地">−</button><output id="caCourtCount" aria-live="polite">1</output><button id="caAddCourt" type="button" aria-label="增加一个场地">+</button></div>
+          <button id="caRecommend" class="primary-btn" type="button">重新建议</button>
+          <label>布局<select id="caLayout" aria-label="整理场地布局"><option value="">手动布局</option><option value="auto">自动排列</option><option value="horizontal">横向排列</option><option value="vertical">纵向排列</option></select></label>
+          <label><select id="caLineMode" aria-label="连线显示方式"><option value="bundled">合并连线</option><option value="selected">仅显示选中连线</option></select></label>
+          <button id="caFit" type="button">适应窗口</button>
+          <select id="caZoom" aria-label="画布缩放"><option value="fit">适应</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1" selected>100%</option><option value="1.25">125%</option></select>
+          <span class="ca-spacer"></span><select id="caGroupFilter" aria-label="高亮小团体"><option value="">查看小团体</option></select>
+        </div>
+        <div class="ca-workspace">
+          <div id="caScroll" class="ca-scroll" role="region" aria-label="可拖动的场地与人员画布" tabindex="0"><div id="caStage" class="ca-stage"><div id="caBoard" class="ca-board"></div></div></div>
+          <aside id="caInspector" class="ca-inspector" aria-label="安排详情与人员偏好"></aside>
+        </div>
+      </div>
+      <div id="caSettingsPanel" class="ca-manager" role="tabpanel" aria-labelledby="caSettingsTab" hidden></div>
+      <footer class="ca-footer">
+        <div id="caSave" class="ca-save" role="status" aria-live="polite"><span id="caSaveText">正在读取安排…</span><button id="caRetry" type="button" hidden>重试同步</button><button id="caUseCloud" type="button" hidden>采用云端</button><button id="caKeepLocal" type="button" hidden>保留本机并重试</button></div>
+        <div class="ca-legend"><span><i></i>框内固定</span><span><i class="ca-legend-flow"></i>框外流动</span><span>拖放仅修改本次安排</span></div>
+      </footer>
+    </section>
   </div>
 
   <dialog id="sessionPlanDialog" class="session-plan-dialog" aria-labelledby="sessionPlanTitle">
@@ -5700,6 +5738,7 @@
       shortRuleModal: document.getElementById("shortRuleModal"),
       shortRuleInput: document.getElementById("shortRuleInput"),
       saveShortRuleBtn: document.getElementById("saveShortRuleBtn"),
+      courtArrangementBtn: document.getElementById("courtArrangementBtn"),
       levelDisplayModeBtn: document.getElementById("levelDisplayModeBtn"),
       courtHoursInput: document.getElementById("courtHoursInput"),
       courtHoursIncreaseBtn: document.getElementById("courtHoursIncreaseBtn"),
@@ -5828,6 +5867,7 @@
       wireEvents();
       initShakeOutbox();
       initSessionPlanner();
+      initCourtArrangement();
       void loadBootstrap();
       setInterval(() => {
         if (document.visibilityState === "visible") refreshTimeSensitiveGroupForecast();
@@ -6986,7 +7026,7 @@
 
     function handleGlobalKeydown(event) {
       if (document.getElementById?.("sessionPlanDialog")?.open) return;
-      if (event.altKey && event.key.toLowerCase() === "n" && els.shakePeopleModal?.classList.contains("open")) {
+      if (event.altKey && event.key.toLowerCase() === "n" && els.shakePeopleModal?.classList.contains("open") && !document.getElementById?.("courtArrangementModal")?.classList.contains("open")) {
         event.preventDefault();
         openShortRuleModal();
         return;
@@ -10682,6 +10722,25 @@
           ? `今天组局成功的概率：${todayText}；明天组局成功的概率：${tomorrowText}`
           : "正在计算组局成功概率",
       );
+    }
+
+    function initCourtArrangement() {
+      globalThis.courtArrangementController = globalThis.BadmintonCourtArrangement.create({
+        openModal, toast, apiUrl: getApiUrl,
+        date: () => getChainActivityDate(),
+        canOpen: () => !isChainActivityDatePending(),
+        roster: () => state.chainEntries.map((entry) => ({
+          key: !entry.isCompanion && !entry.plusEntry && (entry.player?.id || entry.playerId)
+            ? "p-" + (entry.player?.id || entry.playerId) : globalThis.BadmintonCourtArrangementCore.guestKey(entry.overrideKey),
+          playerId: entry.isCompanion || entry.plusEntry ? null : entry.player?.id || entry.playerId || null,
+          ownerPlayerId: entry.ownerPlayerId || null,
+          name: getChainEntryBaseName(entry), levelText: entry.levelText,
+        })),
+        players: () => state.players,
+        partners: () => getMemberStatistics().bestPartners?.pairs || [],
+      });
+      els.courtArrangementBtn.addEventListener("click", () => globalThis.courtArrangementController.open());
+      document.getElementById("shakeCourtGroupsBtn").addEventListener("click", () => globalThis.courtArrangementController.open("settings"));
     }
 
     function initSessionPlanner() {
@@ -15354,7 +15413,7 @@
         if (topId) appShell.setAttribute("aria-hidden", "true");
         else appShell.removeAttribute("aria-hidden");
       }
-      const navigationBlocked = openIds.includes("memberCreateModal") || openIds.includes("rosterReviewModal") || openIds.includes("calendarDetailModal");
+      const navigationBlocked = openIds.includes("memberCreateModal") || openIds.includes("rosterReviewModal") || openIds.includes("calendarDetailModal") || openIds.includes("courtArrangementModal");
       document.querySelectorAll(".nav-preview-sidebar, .nav-preview-header").forEach((element) => {
         element.inert = navigationBlocked;
         if (navigationBlocked) element.setAttribute("aria-hidden", "true");

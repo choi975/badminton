@@ -1,3 +1,7 @@
+import { isCourtArrangementWrite, handleCourtArrangements } from "./court-arrangements.js";
+import COURT_ARRANGEMENT_CORE_JS from "./court-arrangement-core.txt";
+import COURT_ARRANGEMENT_JS from "./court-arrangement.txt";
+import COURT_ARRANGEMENT_CSS from "./court-arrangement-style.txt";
 import { defaultPriceForShuttleType, normalizeShuttleTypeRow, editRegisteredShuttleType } from "./shuttle-types.js";
 import "../roster-review.js";
 import SESSION_SAVE_JS from "./session-save.txt";
@@ -182,11 +186,16 @@ export default {
           return await handleMemberExitOcr(request, env);
         }
         if (request.method.toUpperCase() === "OPTIONS") return preflight();
-        if (isBlockedGitHubWrite(request) && !isPlannerWrite(request)) {
+        if (isBlockedGitHubWrite(request) && !isPlannerWrite(request) && !isCourtArrangementWrite(request)) {
           return json({ error: "GitHub 备用版为只读，请使用 Cloudflare 管理版修改数据" }, 403);
         }
         await ensureSeeded(env.DB);
         return await handleApi(request, env, url, context);
+      }
+
+      if (["/court-arrangement-core.js", "/court-arrangement.js", "/court-arrangement.css"].includes(url.pathname)) {
+        const asset = url.pathname.endsWith(".css") ? COURT_ARRANGEMENT_CSS : url.pathname === "/court-arrangement-core.js" ? COURT_ARRANGEMENT_CORE_JS : COURT_ARRANGEMENT_JS;
+        return new Response(asset, { headers: { "content-type": url.pathname.endsWith(".css") ? "text/css; charset=utf-8" : "text/javascript; charset=utf-8", "cache-control": "no-cache" } });
       }
 
       if (url.pathname === "/chain-activity-date.js") return new Response(CHAIN_ACTIVITY_DATE_JS, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" } });
@@ -649,6 +658,8 @@ async function handleApi(request, env, url, context) {
   const method = request.method.toUpperCase();
 
   if (pathname === "/api/roster-review") return handleRosterReview(request, env, { json, listPlayers, getPaymentOrderState, isAdminRequest });
+
+  if (pathname === "/api/court-arrangements") return handleCourtArrangements(request, env, { json, rateLimit: consumeGroupAttemptRateLimit, listPlayers });
 
   if (pathname === "/api/session-plans") return handleSessionPlans(request, env, { json, rateLimit: consumeGroupAttemptRateLimit });
 
