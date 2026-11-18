@@ -22,6 +22,9 @@ const page = await fetch(new URL("?verify=" + deployment, origin), { cache: "no-
 assert.equal(page.status, 200); const html = await page.text();
 assert.match(html, /id="courtArrangementBtn"[^>]*aria-label="场地安排"/);
 assert.match(html, /id="courtArrangementModal"/); assert.match(html, /id="shakeCourtGroupsBtn"/);
+assert.doesNotMatch(html, /id="(?:caMeta|caBoardTab|caSettingsTab)"/);
+assert.match(html, /id="caSettingsToggle"[^>]*aria-label="偏好与小团体"/);
+assert.match(html, /id="caClose"[^>]*aria-label="关闭场地安排"/);
 if (!new URL(origin).hostname.endsWith("github.io")) {
   const date = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const api = new URL("api/court-arrangements", origin); api.searchParams.set("date", date);

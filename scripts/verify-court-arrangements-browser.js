@@ -19,6 +19,7 @@ async (page) => {
   assert(await page.locator('.ca-court').count() === 4, '23 people defaults to four courts');
   assert(await page.locator('.nav-preview-sidebar').evaluate(n=>n.inert), 'Sidebar must be inert behind the dialog');
   await page.locator('#caLayout').selectOption('horizontal');
+  for (let i=0;i<4;i++){const input=page.locator('.ca-court-title input').nth(i);await input.fill('临时'+i);await input.press('Tab');}
   for (const [index,label] of [[3,'8'],[2,'7'],[1,'3'],[0,'2']]) { const input=page.locator('.ca-court-title input').nth(index); await input.fill(label); await input.press('Tab'); }
   await saved(); let state = await read(); assert(state.activity.content.courts.map(c=>c.label).join(',')==='2,3,7,8','Arbitrary labels survive saving');
   let config = state.settings?.content || {version:1,preferences:{},groups:[],excludedCandidates:[]};
@@ -31,10 +32,10 @@ async (page) => {
   assert(await page.locator('.ca-protected .ca-person').count()===6,'Protected court contains six fixed players');
   assert((await page.locator('.ca-protected .ca-court-stat').innerText()).includes('可串入0人'),'No automatic ordinary roamers in protected court');
   const roamer = page.locator('.ca-person[data-person="p-'+f.roster[8].id+'"]');
-  await roamer.click(); assert(await page.locator('#caInspector .ca-checks label').count()===4,'Destinations can be explicitly edited');
+  await roamer.click(); await page.locator('#caEditPerson').click(); assert(await page.locator('#caInspector .ca-checks label').count()===4,'Destinations can be explicitly edited');
   await page.waitForFunction(()=>document.querySelectorAll('.ca-lines path').length===3);
   assert(await page.locator('.ca-lines path').count()===3,'Selection expands only that person\'s three open-court lines');
-  await page.locator('#caSettingsTab').click(); await page.getByRole('button',{name:'新建小团体',exact:true}).click();
+  await page.locator('#caSettingsToggle').click(); await page.getByRole('button',{name:'新建小团体',exact:true}).click();
   await page.getByLabel('小团体名称',{exact:true}).fill('晨练朋友');
   for(const i of [0,1,16,22]) await page.locator('.ca-group-members label').filter({hasText:f.roster[i].name+' ·'}).first().getByRole('checkbox').check();
   await page.getByRole('button',{name:'保存小团体',exact:true}).click(); await saved();
@@ -42,7 +43,7 @@ async (page) => {
   await page.getByLabel('选择长期偏好成员').selectOption(String(f.roster[22].id));
   await page.locator('#caSettingsPanel').getByLabel('打球偏好',{exact:true}).selectOption('roam');
   await page.getByRole('button',{name:'保存长期偏好',exact:true}).click(); await saved();
-  await page.locator('#caBoardTab').click(); await page.locator('#caGroupFilter').selectOption(group.id);
+  await page.locator('#caSettingsToggle').click(); await page.locator('#caGroupFilter').selectOption(group.id);
   assert(await page.locator('.ca-person.ca-related').count()===4,'Group highlighting crosses fixed and floating placements');
   await page.locator('#caGroupFilter').selectOption('');
   await page.locator('.ca-person[data-person="p-'+f.roster[8].id+'"]').dragTo(page.locator('.ca-court').nth(1)); await saved();
@@ -68,6 +69,7 @@ async (page) => {
   await page.context().grantPermissions(['clipboard-read','clipboard-write']); await page.locator('#caCopy').click();
   const copied=await page.evaluate(()=>navigator.clipboard.readText()); assert(copied.includes('23人')&&copied.includes('流动人员'),'Copy produces an actionable roster');
   await page.keyboard.press('Escape'); assert(!await page.locator('#courtArrangementModal').isVisible(),'Escape closes the top dialog');
+  await page.waitForFunction(()=>document.activeElement?.id==='courtArrangementBtn');
   assert(await page.locator('#courtArrangementBtn').evaluate(n=>n===document.activeElement),'Closing restores trigger focus');
   await page.locator('#courtArrangementBtn').click(); await saved(); assert(await page.locator('.ca-person').count()===23,'Reopening restores all people');
   state=await read(); const unchangedRevision=state.activity.revision;
@@ -108,7 +110,7 @@ async (page) => {
   await page.evaluate(text=>{const input=document.querySelector('#chainInput');input.value=text;input.dispatchEvent(new Event('input',{bubbles:true}));},imported);
   assert(await page.evaluate(()=>isChainActivityDatePending()),'Imported date must remain unconfirmed');
   await page.locator('#shakeCourtGroupsBtn').click(); await saved();
-  assert(await page.locator('#caBoardTab').isDisabled()&&await page.locator('#caCopy').isDisabled(),'Pending dates only allow long-term settings');
+  assert(await page.locator('#caBoardPanel').isHidden()&&await page.locator('#caCopy').isDisabled(),'Pending dates only allow long-term settings');
   await page.getByLabel('选择长期偏好成员').selectOption(String(f.roster[0].id));
   await page.locator('#caSettingsPanel').getByLabel('打球偏好',{exact:true}).selectOption('fixed');
   await page.getByRole('button',{name:'保存长期偏好',exact:true}).click(); await saved();
