@@ -18,8 +18,8 @@
   <script src="./level-groups.js"></script>
   <script src="./roster-review.js"></script>
   <script src="./session-save.js"></script>
-  <script src="./court-arrangement-core.js?v=20261118-groups"></script>
-  <script src="./court-arrangement.js?v=20261118-groups"></script>
+  <script src="./court-arrangement-core.js?v=20261118-independent-groups"></script>
+  <script src="./court-arrangement.js?v=20261118-independent-groups"></script>
   <style>
     :root {
       --bg: #f2f6f5;
@@ -4676,7 +4676,7 @@
   }, true);
 })();
 </script>
-  <link rel="stylesheet" href="./court-arrangement.css?v=20261118-groups">
+  <link rel="stylesheet" href="./court-arrangement.css?v=20261118-independent-groups">
 </head>
 <body class="nav-preview">
   <aside class="nav-preview-sidebar" aria-label="主要导航">
@@ -5384,9 +5384,7 @@
         <div class="ca-toolbar">
           <div class="ca-count"><span>场地</span><button id="caRemoveCourt" type="button" aria-label="减少一个场地">−</button><output id="caCourtCount" aria-live="polite">1</output><button id="caAddCourt" type="button" aria-label="增加一个场地">+</button></div>
           <button id="caRecommend" class="primary-btn" type="button">重新建议</button>
-          <label>布局<select id="caLayout" aria-label="整理场地布局"><option value="">手动布局</option><option value="auto">自动排列</option><option value="horizontal">横向排列</option><option value="vertical">纵向排列</option></select></label>
-          <label><select id="caLineMode" aria-label="连线显示方式"><option value="bundled">合并连线</option><option value="selected">仅显示选中连线</option></select></label>
-          <button id="caFit" type="button">适应窗口</button>
+          <label>布局<select id="caLayout" aria-label="整理场地布局"><option value="">手动布局</option><option value="auto">自动排列</option><option value="horizontal">横向排列</option></select></label>
           <select id="caZoom" aria-label="画布缩放"><option value="fit">适应</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1" selected>100%</option><option value="1.25">125%</option></select>
           <button id="caEditPerson" class="ca-icon-btn" type="button" aria-label="编辑选中人员" title="编辑选中人员（也可双击人名）" aria-controls="caInspector" hidden><i data-lucide="user-round-cog" aria-hidden="true"></i></button>
           <span class="ca-spacer"></span><select id="caGroupFilter" aria-label="高亮小团体"><option value="">查看小团体</option></select>

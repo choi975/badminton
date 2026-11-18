@@ -13,10 +13,10 @@ async (page) => {
   const before=await read();
   const plan=await page.evaluate(({fixture})=>{const core=BadmintonCourtArrangementCore, plan=core.recommend(fixture,core.settings(),{courts:core.makeCourts(4)});plan.courts.forEach((c,i)=>c.label=['8','2','3','1'][i]);
     fixture.forEach((p,i)=>{if(i<17){const index=i<4?0:i<8?1:i<13?2:3;plan.assignments[p.key]={courtId:plan.courts[index].id,allowed:[plan.courts[index].id],locked:true};plan.overrides[p.key]={mode:'fixed',coach:'none',targets:[]};}
-      else {plan.assignments[p.key]={courtId:null,allowed:plan.courts.slice(i===19?1:0).map(c=>c.id),locked:true};plan.overrides[p.key]={mode:'roam',coach:'none',targets:[]};}});
+      else {plan.assignments[p.key]={courtId:null,allowed:plan.courts.slice(i===19?1:0).map(c=>c.id),locked:true,roamingGroupId:i===19?'flow-single':'flow-pair'};plan.overrides[p.key]={mode:'roam',coach:'none',targets:[]};}});
     plan.assignments[fixture[19].key].position={x:920,y:430};return core.validatePlan(plan);},{fixture});
   const posted=await page.request.post(base+'/api/court-arrangements',{headers:{origin:base},data:{kind:'activity',date,revision:before.activity?.revision||0,mutationId:crypto.randomUUID(),content:plan}});assert(posted.ok(),'Save isolated 20-player fixture');
-  await page.evaluate(()=>courtArrangementController.refresh());await page.keyboard.press('Escape');await page.locator('#courtArrangementBtn').click();await saved();await page.locator('#caFit').click();
+  await page.evaluate(()=>courtArrangementController.refresh());await page.keyboard.press('Escape');await page.locator('#courtArrangementBtn').click();await saved();await page.locator('#caZoom').selectOption('fit');
   assert(await page.locator('#caMeta, #caBoardTab, #caSettingsTab, .ca-tabs').count()===0,'Summary row and redundant tabs are actually removed');
   assert(await page.locator('#caInspector').isHidden(),'No permanent advice rail');
   assert(!(await page.locator('#courtArrangementModal').innerText()).includes('安排建议'),'Removed default advice copy');
@@ -31,7 +31,7 @@ async (page) => {
   assert(await page.locator('.ca-lines path').evaluateAll(paths=>paths.every(n=>/^M [-\d.]+ [-\d.]+ L [-\d.]+ [-\d.]+$/.test(n.getAttribute('d')))),'All default group links are simple straight segments');
   const pointDrag=async(from,to,checkHover=false)=>{const a=await from.boundingBox(),b=await to.boundingBox();assert(a&&b,'Drag nodes are visible');await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:10});if(checkHover)assert(await to.evaluate(n=>n.classList.contains('ca-drop-target')),'Flow group highlights during a valid drop');await page.mouse.up();await saved();};
   const floated=fixture[19], person=()=>page.locator('.ca-person[data-person="'+floated.key+'"]');
-  await person().focus();await page.keyboard.press('F2');await page.getByRole('button',{name:'放回流动分组',exact:true}).click();await saved();await page.getByRole('button',{name:'关闭个人编辑',exact:true}).click();
+  await person().focus();await page.keyboard.press('F2');await page.getByRole('button',{name:'恢复自动位置',exact:true}).click();await saved();await page.getByRole('button',{name:'关闭个人编辑',exact:true}).click();
   let state=await read(), a=state.activity.content.assignments[floated.key];
   assert(!a.position&&a.courtId===null&&a.allowed.length===3,'Returning to its group clears independent position without changing permissions');
   assert(await page.locator('.ca-flow-single[data-person="'+floated.key+'"]').count()===1,'A lone returned card remains unframed');
@@ -48,7 +48,7 @@ async (page) => {
   state=await read();assert(!!state.activity.content.assignments[floated.key].position,'A blank-canvas drop remains a freely placed card');
   await person().focus();await page.keyboard.press('F2');assert(await page.locator('#caInspector').isVisible(),'F2 opens the contextual personal editor');
   assert(await page.locator('#caScroll').evaluate(n=>n.clientWidth)===widths.canvas,'Context editing does not take permanent canvas columns');
-  await page.getByRole('button',{name:'放回流动分组',exact:true}).click();await saved();
+  await page.getByRole('button',{name:'恢复自动位置',exact:true}).click();await saved();
   state=await read();assert(!state.activity.content.assignments[floated.key].position,'Accessible button also returns independent cards');
   await page.keyboard.press('Escape');assert(await page.locator('#caInspector').isHidden()&&await page.locator('#courtArrangementModal').isVisible(),'Escape closes only the personal editor first');
   await page.locator('#caEditPerson').click();assert(await page.locator('#caInspector').isVisible(),'Selected-person icon opens the same editor');await page.getByRole('button',{name:'关闭个人编辑',exact:true}).click();
@@ -60,9 +60,9 @@ async (page) => {
   // Mouse hit testing uses rendered rectangles at non-100% zoom and after scrolling.
   await page.setViewportSize({width:390,height:844});await page.locator('#caZoom').selectOption('0.5');
   await page.locator('#caScroll').evaluate(n=>{n.scrollTop=0;n.scrollLeft=0;});
-  const flow=page.locator('.ca-person[data-person="'+fixture[17].key+'"]');await flow.scrollIntoViewIfNeeded();
+  const flow=page.locator('.ca-person[data-person="'+fixture[17].key+'"]'), flowPartner=page.locator('.ca-person[data-person="'+fixture[18].key+'"]');await flow.scrollIntoViewIfNeeded();
   await pointDrag(flow,page.locator('.ca-court').first());state=await read();assert(state.activity.content.assignments[fixture[17].key].courtId===state.activity.content.courts[0].id,'Scaled mobile flow-to-court drop uses actual geometry');
-  await pointDrag(flow,page.locator('.ca-bundle').first(),true);state=await read();assert(state.activity.content.assignments[fixture[17].key].courtId===null&&!state.activity.content.assignments[fixture[17].key].position,'Scaled mobile return to a flow group works');
+  await pointDrag(flow,flowPartner,true);state=await read();assert(state.activity.content.assignments[fixture[17].key].courtId===null&&!state.activity.content.assignments[fixture[17].key].position,'Scaled mobile return to a flow group works');
   assert(await page.locator('.ca-header-actions button').evaluateAll(nodes=>nodes.every(n=>n.getBoundingClientRect().width>=44&&n.getBoundingClientRect().height>=44)),'Mobile icon targets remain 44px');
   assert(await page.locator('.ca-header-actions button').evaluateAll(nodes=>nodes.every(n=>n.getBoundingClientRect().right<=innerWidth&&n.getBoundingClientRect().left>=0)), 'Mobile header icons stay inside the viewport');
   assert(await page.locator('#caScroll').evaluate(n=>n.getBoundingClientRect().width)<=390,'Canvas scrolls internally instead of widening the modal grid');
@@ -75,7 +75,7 @@ async (page) => {
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await saved();
   assert((await read()).activity.content.assignments[fixture[17].key].courtId!==null,'Finger-style dragging also fixes a flow player into a court');
   await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:false});await cdp.detach();
-  await pointDrag(flow,page.locator('.ca-bundle').first(),true);
+  await pointDrag(flow,flowPartner,true);
 
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Mobile page has no accidental horizontal overflow');
   await page.locator('#caClose').click();assert(await page.locator('#courtArrangementModal').isHidden(),'Close icon closes the window');

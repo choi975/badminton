@@ -14,7 +14,7 @@ let roster = Array.from({ length: 20 }, (_, i) => player(i + 1, i < 7 ? 1 : i < 
 let config = core.settings(), plan = core.recommend(roster, config);
 assert.equal(plan.courts.length, 3); assert.equal(Object.keys(plan.assignments).length, 20);
 for (const p of plan.roster) assert.equal(Boolean(plan.assignments[p.key].courtId), p.level !== 2.5);
-assert.equal(core.bundles(plan).length, 1, "common destinations must share one bundle");
+assert.equal(core.bundles(plan).length, 1, "The first recommendation may group matching unassigned roamers");
 assert.equal(core.bundles(plan)[0].people.length, 6);
 assert.equal(core.validatePlan(plan).roster.length, 20);
 plan.courts.forEach((c, i) => c.label = ["2", "3", "7"][i]);
@@ -116,7 +116,7 @@ assert.equal((await call({ ...body, content: { ...config, groups: [{ id: "not-kn
 const ui = readFileSync(new URL("../court-arrangement.js", import.meta.url), "utf8");
 assert.match(ui, /adapter\.date\(\) === date && dialog\.classList\.contains\("open"\)/);
 assert.match(ui, /if \(revision < row\.revision\)/);
-assert.match(ui, /function saveActivity\(\) \{ if \(!activityAllowed\(\)\) return;/);
+assert.match(ui, /function saveActivity\(\) \{\s*if \(!activityAllowed\(\)\) return;/);
 assert.match(ui, /if \(activityAllowed\(\) && !doc\(documentKey\(\)\)\.pending/);
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8"), worker = readFileSync(new URL("../src/worker.js", import.meta.url), "utf8");
 assert.match(html, /id="courtArrangementBtn"[^>]*aria-label="场地安排"/); assert.match(html, /court-arrangement\.css/);

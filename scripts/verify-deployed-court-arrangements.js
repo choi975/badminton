@@ -28,11 +28,21 @@ const roamPlan = core.recommend(sample, { preferences: { 1: { mode: "roam", coac
 const key = core.bundles(roamPlan)[0].key; roamPlan.bundlePositions = { [key]: { x: 320, y: 480 } };
 assert.equal(core.validatePlan(roamPlan).bundlePositions[key].y, 480);
 
+const independent = core.recommend(sample, { preferences: Object.fromEntries(sample.slice(0, 4).map((p) => [p.playerId, { mode: "roam", coach: "none", targets: [] }])), groups: [] }, { courts: core.makeCourts(2) });
+for (let i = 0; i < 4; i++) independent.assignments[sample[i].key].roamingGroupId = i < 2 ? "flow-ab" : "flow-cd";
+independent.bundlePositions = { "flow-ab": { x: 32, y: 320 }, "flow-cd": { x: 400, y: 400 } };
+independent.lineMode = "selected";
+const checked = core.validatePlan(independent);
+assert.equal(core.bundles(checked).length, 2, "Equal-destination groups remain independent in the live core");
+assert.equal(checked.lineMode, "bundled");
+assert.equal(core.reconcile(checked, sample, {}).bundlePositions["flow-cd"].x, 400);
+
 const page = await fetch(new URL("?verify=" + deployment, origin), { cache: "no-store", signal: AbortSignal.timeout(30000) });
 assert.equal(page.status, 200); const html = await page.text();
 assert.match(html, /id="courtArrangementBtn"[^>]*aria-label="场地安排"/);
 assert.match(html, /id="courtArrangementModal"/); assert.match(html, /id="shakeCourtGroupsBtn"/);
-assert.doesNotMatch(html, /id="(?:caMeta|caBoardTab|caSettingsTab)"/);
+assert.doesNotMatch(html, /id="(?:caMeta|caBoardTab|caSettingsTab|caFit|caLineMode)"|<option value="vertical">/);
+assert.match(html, /id="caZoom"/);
 assert.match(html, /id="caSettingsToggle"[^>]*aria-label="偏好与小团体"/);
 assert.match(html, /id="caClose"[^>]*aria-label="关闭场地安排"/);
 if (!new URL(origin).hostname.endsWith("github.io")) {

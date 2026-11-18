@@ -50,7 +50,7 @@
     "test:weekday-habits": "node scripts/verify-weekday-habits.js && node scripts/verify-weekday-opportunities.js",
     "test:chain-date": "node scripts/verify-chain-activity-date.js && node scripts/verify-chain-draft-date.js",
     "test:hourly-fees": "node scripts/verify-hourly-fees.js",
-    "test:court-arrangements": "node scripts/verify-court-arrangements.js && node scripts/verify-court-arrangements-compact.js && node scripts/verify-court-arrangements-groups.js"
+    "test:court-arrangements": "node scripts/verify-court-arrangements.js && node scripts/verify-court-arrangements-compact.js && node scripts/verify-court-arrangements-groups.js && node scripts/verify-court-arrangements-independent.js"
   },
   "devDependencies": {
     "wrangler": "latest"

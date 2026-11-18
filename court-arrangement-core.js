@@ -3,6 +3,8 @@
   const MODES = ["auto", "fixed", "roam", "competitive"];
   const COACHES = ["none", "friends", "selected", "any"];
   const GRADE_ORDER = "numbered-desc-v1";
+  const GROUPING = "independent-v1";
+  const validRoamingGroupId = (id) => typeof id === "string" && /^flow-[\w-]{1,75}$/.test(id);
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const positiveId = (value) => Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : null;
   const uniqueIds = (values) => [...new Set((Array.isArray(values) ? values : []).map(positiveId).filter(Boolean))];
@@ -56,6 +58,36 @@
     return Array.from({ length: clamp(count, 1, 32) }, (_, i) => ({ id: "court-" + (i + 1), label: String(i + 1), x: 24 + (count <= 4 ? i : i % 3) * 278, y: count <= 4 ? 24 : 24 + Math.floor(i / 3) * 290 }));
   }
   function bundleKey(allowed = []) { return [...new Set(allowed)].sort().join("|"); }
+  function newRoamingGroupId(seed, taken) {
+    const base = "flow-" + guestKey(seed).slice(2); let id = base, suffix = 1;
+    while (taken.has(id)) id = base + "-" + suffix++;
+    taken.add(id); return id;
+  }
+  // Membership has its own identity. Destinations may split a group, but never merge separate groups.
+  function normalizeRoamingGroups(value) {
+    const groups = new Map(), taken = new Set(Object.values(value.assignments).map((a) => a.roamingGroupId).filter(validRoamingGroupId));
+    for (const person of value.roster) {
+      const a = value.assignments[person.key]; if (a.courtId) { delete a.roamingGroupId; continue; }
+      if (!validRoamingGroupId(a.roamingGroupId)) a.roamingGroupId = newRoamingGroupId("person:" + person.key, taken);
+      if (!groups.has(a.roamingGroupId)) groups.set(a.roamingGroupId, new Map());
+      // A freely positioned card is independent, even if imported from an older shared bundle.
+      const scope = a.position ? "person:" + person.key : "courts:" + bundleKey(a.allowed), scopes = groups.get(a.roamingGroupId);
+      if (!scopes.has(scope)) scopes.set(scope, []);
+      scopes.get(scope).push(person);
+    }
+    for (const [id, scopes] of groups) {
+      const parts = [...scopes.values()].sort((a, b) => Number(Boolean(value.assignments[a[0].key].position)) - Number(Boolean(value.assignments[b[0].key].position)) || b.length - a.length || a[0].key.localeCompare(b[0].key));
+      for (const members of parts.slice(1)) {
+        const next = newRoamingGroupId("split:" + id + ":" + members.map((p) => p.key).sort().join("|"), taken);
+        for (const person of members) value.assignments[person.key].roamingGroupId = next;
+      }
+    }
+    if (value.bundlePositions) {
+      const active = new Set(value.roster.filter((p) => !value.assignments[p.key].courtId).map((p) => value.assignments[p.key].roamingGroupId));
+      for (const id of Object.keys(value.bundlePositions)) if (!active.has(id)) delete value.bundlePositions[id];
+    }
+    value.grouping = GROUPING; value.lineMode = "bundled"; return value;
+  }
   function numberedCourts(courts, descending = false) {
     const number = (label) => { const match = String(label).match(/\d+(?:\.\d+)?/); return match ? Number(match[0]) : null; };
     return [...courts].sort((a, b) => {
@@ -67,25 +99,34 @@
   function plan(value = {}) {
     const courts = Array.isArray(value.courts) && value.courts.length ? value.courts.map((c, i) => ({ id: String(c.id), label: String(c.label || i + 1), x: clamp(c.x, 0, 20000), y: clamp(c.y, 0, 20000) })) : makeCourts(1);
     const ids = new Set(courts.map((c) => c.id)), people = roster(value.roster || []), assignments = {}, overrides = {};
+    const legacy = value.grouping !== GROUPING, generated = new Map(), legacyGroups = new Map();
+    const taken = new Set(people.map((p) => value.assignments?.[p.key]?.roamingGroupId).filter(validRoamingGroupId));
+    const generatedId = (seed) => { if (!generated.has(seed)) generated.set(seed, newRoamingGroupId(seed, taken)); return generated.get(seed); };
     for (const person of people) {
       const raw = value.assignments?.[person.key] || {};
       const courtId = ids.has(raw.courtId) ? raw.courtId : null;
-      const allowed = courtId ? [courtId] : [...new Set((raw.allowed || []).filter((id) => ids.has(id)))];
+      const allowed = courtId ? [courtId] : [...new Set((Array.isArray(raw.allowed) ? raw.allowed : []).filter((id) => ids.has(id)))];
       assignments[person.key] = { courtId, allowed, locked: raw.locked === true };
-      if (!courtId && raw.position) assignments[person.key].position = { x: clamp(raw.position.x, 0, 20000), y: clamp(raw.position.y, 0, 20000) };
+      if (!courtId) {
+        const signature = bundleKey(allowed);
+        assignments[person.key].roamingGroupId = validRoamingGroupId(raw.roamingGroupId) ? raw.roamingGroupId
+          : generatedId(legacy && !raw.position ? "legacy:" + signature : "person:" + person.key);
+        if (legacy && !raw.position && !legacyGroups.has(signature)) legacyGroups.set(signature, assignments[person.key].roamingGroupId);
+        if (raw.position) assignments[person.key].position = { x: clamp(raw.position.x, 0, 20000), y: clamp(raw.position.y, 0, 20000) };
+      }
       if (value.overrides?.[person.key]) {
         overrides[person.key] = preference(value.overrides[person.key]);
         if (value.overrides[person.key].level !== undefined) overrides[person.key].level = level(value.overrides[person.key].level);
       }
     }
-    const activeBundles = new Set(people.filter((p) => !assignments[p.key].courtId).map((p) => bundleKey(assignments[p.key].allowed)));
     const bundlePositions = {};
     for (const [key, position] of Object.entries(value.bundlePositions || {}).slice(0, 200)) {
-      if (!activeBundles.has(key) || !position || !Number.isFinite(Number(position.x)) || !Number.isFinite(Number(position.y))) continue;
-      bundlePositions[key] = { x: clamp(position.x, 0, 20000), y: clamp(position.y, 0, 20000) };
+      const id = validRoamingGroupId(key) ? key : legacyGroups.get(key);
+      if (!id || !position || !Number.isFinite(Number(position.x)) || !Number.isFinite(Number(position.y))) continue;
+      bundlePositions[id] = { x: clamp(position.x, 0, 20000), y: clamp(position.y, 0, 20000) };
     }
-    return { version: 1, courts, roster: people, assignments, overrides, lineMode: value.lineMode === "selected" ? "selected" : "bundled",
-      ...(value.bundlePositions !== undefined ? { bundlePositions } : {}), ...(value.gradeOrder === GRADE_ORDER ? { gradeOrder: GRADE_ORDER } : {}) };
+    return normalizeRoamingGroups({ version: 1, courts, roster: people, assignments, overrides, lineMode: "bundled",
+      ...(value.bundlePositions !== undefined ? { bundlePositions } : {}), ...(value.gradeOrder === GRADE_ORDER ? { gradeOrder: GRADE_ORDER } : {}) });
 
   }
   // Contiguous grade partitions favor similar levels without imposing a minimum court population.
@@ -143,7 +184,7 @@
         const old = result.assignments[person.key];
         if (old?.locked && (old.courtId || old.allowed.length)) continue;
         const moving = prefs.get(person.key).mode === "roam";
-        result.assignments[person.key] = moving ? { courtId: null, allowed: openCourts.length ? [...targetCourts(prefs.get(person.key), person)] : [court.id], locked: false }
+        result.assignments[person.key] = moving ? { courtId: null, allowed: openCourts.length ? [...targetCourts(prefs.get(person.key), person)] : [court.id], locked: false, roamingGroupId: old.roamingGroupId }
           : { courtId: court.id, allowed: [court.id], locked: false };
       }
     });
@@ -157,13 +198,14 @@
       }
     }
     result.gradeOrder = GRADE_ORDER;
-    return result;
+    return normalizeRoamingGroups(result);
   }
   function reconcile(value, entries, config) {
     const previous = plan(value), people = roster(entries), oldKeys = new Set(previous.roster.map((p) => p.key));
     const result = recommend(people, config, previous);
     for (const person of people) if (previous.gradeOrder === GRADE_ORDER && oldKeys.has(person.key)) result.assignments[person.key] = previous.assignments[person.key];
-    return result;
+    if (previous.bundlePositions) result.bundlePositions = clone(previous.bundlePositions);
+    return normalizeRoamingGroups(result);
   }
   function courtInfo(value, config = {}) {
     return value.courts.map((court) => {
@@ -177,10 +219,11 @@
     });
   }
   function bundles(value) {
+    if (value.grouping !== GROUPING) value = plan(value);
     const groups = new Map(), order = value.courts.map((c) => c.id);
     for (const person of value.roster) {
       const a = value.assignments[person.key]; if (a?.courtId) continue;
-      const allowed = order.filter((id) => a?.allowed.includes(id)), key = bundleKey(allowed);
+      const allowed = order.filter((id) => a?.allowed.includes(id)), key = a.roamingGroupId;
       if (!groups.has(key)) groups.set(key, { key, allowed, people: [] });
       groups.get(key).people.push(person);
     }
@@ -244,7 +287,7 @@
   }
   function validatePlan(raw) {
     if (!raw || !Array.isArray(raw.courts) || raw.courts.length < 1 || raw.courts.length > 32 || !Array.isArray(raw.roster) || raw.roster.length > 200) throw new Error("场地或人员数量无效");
-    const ids = new Set(), labels = new Set(), keys = new Set(), players = new Set();
+    const ids = new Set(), labels = new Set(), keys = new Set(), players = new Set(), roamingGroupIds = new Set();
     const point = (p) => p && Number.isFinite(p.x) && p.x >= 0 && p.x <= 20000 && Number.isFinite(p.y) && p.y >= 0 && p.y <= 20000;
     for (const c of raw.courts) {
       if (typeof c.id !== "string" || !/^[\w-]{1,80}$/.test(c.id) || ids.has(c.id) || typeof c.label !== "string" || !c.label.trim() || c.label.length > 16 || labels.has(c.label.trim()) || !point(c)) throw new Error("场地编号须唯一且非空，位置须在画布内");
@@ -257,15 +300,21 @@
       const a = raw.assignments?.[p.key];
       if (!a || (a.courtId !== null && !ids.has(a.courtId)) || !Array.isArray(a.allowed) || a.allowed.some((id) => !ids.has(id)) || new Set(a.allowed).size !== a.allowed.length
         || (a.courtId && (a.allowed.length !== 1 || a.allowed[0] !== a.courtId)) || (!a.courtId && !a.allowed.length) || (a.position && !point(a.position))) throw new Error("每个人须有固定场地或至少一个可串场地");
+      if (a.roamingGroupId !== undefined) {
+        if (a.courtId || !validRoamingGroupId(a.roamingGroupId)) throw new Error("流动分组标识无效");
+        roamingGroupIds.add(a.roamingGroupId);
+      }
       const o = raw.overrides?.[p.key];
       if (o && (!MODES.includes(o.mode) || !COACHES.includes(o.coach) || !Array.isArray(o.targets) || o.targets.length > 200 || o.targets.some((id) => !positiveId(id)) || (o.level !== undefined && o.level !== null && level(o.level) === null))) throw new Error("本次个人偏好无效");
     }
     if (raw.gradeOrder !== undefined && raw.gradeOrder !== GRADE_ORDER) throw new Error("排场等级顺序标记无效");
+    if (raw.grouping !== undefined && raw.grouping !== GROUPING) throw new Error("流动分组版本无效");
     if (raw.bundlePositions !== undefined) {
       if (!raw.bundlePositions || typeof raw.bundlePositions !== "object" || Array.isArray(raw.bundlePositions) || Object.keys(raw.bundlePositions).length > 200) throw new Error("流动分组布局格式无效");
       for (const [key, position] of Object.entries(raw.bundlePositions)) {
         const allowed = key.split("|");
-        if (!key || key !== bundleKey(allowed) || allowed.length > raw.courts.length || allowed.some((id) => !ids.has(id)) || !point(position)) throw new Error("流动分组位置或可去场地无效");
+        const legacyKey = raw.grouping !== GROUPING && key && key === bundleKey(allowed) && allowed.length <= raw.courts.length && allowed.every((id) => ids.has(id));
+        if ((!roamingGroupIds.has(key) && !legacyKey) || !point(position)) throw new Error("流动分组位置或标识无效");
       }
     }
     if (Object.keys(raw.assignments || {}).some((key) => !keys.has(key)) || Object.keys(raw.overrides || {}).some((key) => !keys.has(key))) throw new Error("安排包含不在本次名单中的人员");

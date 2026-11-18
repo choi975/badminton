@@ -23,8 +23,8 @@ async (page) => {
   assert(JSON.stringify(positions)===JSON.stringify(await page.evaluate(()=>courtArrangementController.getPlan().courts.map(c=>({id:c.id,x:c.x,y:c.y})))),'Renumbering does not move the rectangle layout');
   state=await read();const groupPlan=JSON.parse(JSON.stringify(state.activity.content));groupPlan.courts[0].label='8';
   const movers=fixture.slice(-3),all=groupPlan.courts.map(c=>c.id),subset=groupPlan.courts.slice(1).map(c=>c.id);
-  movers.forEach((p,i)=>{groupPlan.assignments[p.key]={courtId:null,allowed:i===2?subset:all,locked:true};groupPlan.overrides[p.key]={mode:'roam',coach:'none',targets:[]};});
-  await post('activity',groupPlan,state.activity.revision);await page.evaluate(()=>courtArrangementController.refresh());await page.locator('#caFit').click();await saved();
+  movers.forEach((p,i)=>{groupPlan.assignments[p.key]={courtId:null,allowed:i===2?subset:all,locked:true,roamingGroupId:i===2?'flow-single':'flow-pair'};groupPlan.overrides[p.key]={mode:'roam',coach:'none',targets:[]};});
+  await post('activity',groupPlan,state.activity.revision);await page.evaluate(()=>courtArrangementController.refresh());await page.locator('#caZoom').selectOption('fit');await saved();
   assert(await page.locator('.ca-bundle').count()===1,'Only the pair has a flow frame');assert(await page.locator('.ca-flow-single').count()===1,'The single different-destination player has no frame');
   const noBlank=async()=>assert(await page.locator('.ca-bundle').evaluateAll(nodes=>nodes.every(n=>n.querySelectorAll('.ca-person').length>=2)),'Every visible group contains at least two people');await noBlank();
   let bundle=page.locator('.ca-bundle').first(),key=await bundle.getAttribute('data-bundle'),previous=await bundle.boundingBox(),a=await page.locator('.ca-bundle-grip').first().boundingBox();

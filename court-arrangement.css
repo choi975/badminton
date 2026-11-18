@@ -61,6 +61,10 @@
 .ca-editor-head h3 { margin: 0; }
 .ca-inspector h3 { margin: 0 0 8px; font-size: 15px; }
 .ca-inspector h4, .ca-preference-form h4 { margin: 20px 0 9px; font-size: 13px; }
+.ca-bundle-members { margin: 0 0 14px; color: var(--muted); font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.ca-group-courts { margin: 0 0 16px; padding: 0; border: 0; display: grid; gap: 5px; }
+.ca-group-courts legend { margin-bottom: 8px; padding: 0; font-size: 12px; font-weight: 600; }
+.ca-bundle-form .ca-actions { margin-top: 14px; }
 .ca-hint { color: var(--muted); font-size: 12px; line-height: 1.75; margin: 5px 0 12px; }
 .ca-field { display: grid; gap: 6px; margin: 11px 0; font-size: 12px; }
 .ca-check { display: flex; align-items: center; gap: 7px; font-size: 12px; min-height: 28px; }
@@ -111,7 +115,7 @@
   .ca-header { padding: 11px 12px 7px; }
   .ca-header h2 { font-size: 18px; }
   .ca-header-actions { gap: 6px; }
-  .ca-header-actions .ca-icon-btn { width: 44px; min-height: 44px; padding: 0; }
+  .ca-dialog .ca-icon-btn { width: 44px; min-width: 44px; min-height: 44px; padding: 0; }
   .ca-toolbar { padding: 8px 10px; gap: 7px; }
   .ca-toolbar button, .ca-toolbar select, .ca-toolbar label { font-size: 11px; }
   .ca-workspace { min-height: 230px; }

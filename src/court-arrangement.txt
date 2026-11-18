@@ -9,7 +9,13 @@
   const button = (text, action, className = "") => { const n = el("button", className, text); n.type = "button"; n.addEventListener("click", action); return n; };
   const field = (label, control) => { const n = el("label", "ca-field"); n.append(el("span", "", label), control); return n; };
   const check = (text, checked, action) => { const n = el("label", "ca-check"), input = el("input"); input.type = "checkbox"; input.checked = checked; input.addEventListener("change", () => action(input.checked)); n.append(input, el("span", "", text)); return n; };
-  const icon = (name) => { const n = el("i"); n.dataset.lucide = name; n.setAttribute("aria-hidden", "true"); return n; };
+  const icon = (name) => {
+    const glyph = root.lucide?.icons?.[name.split("-").map((part) => part[0].toUpperCase() + part.slice(1)).join("")];
+    // Render directly: createIcons scans the whole document and can replace a grip during pointerdown.
+    const n = glyph && root.lucide?.createElement ? root.lucide.createElement(glyph) : el("i");
+    if (n.tagName.toLowerCase() === "svg") n.classList.add("lucide", "lucide-" + name); else n.dataset.lucide = name;
+    n.setAttribute("aria-hidden", "true"); return n;
+  };
   const uuid = () => crypto.randomUUID();
   function create(adapter) {
     const $ = (id) => document.getElementById(id), dialog = $("courtArrangementModal"), board = $("caBoard"), inspector = $("caInspector"), scroll = $("caScroll");
@@ -17,7 +23,7 @@
     if (!store || store.version !== 1 || !store.documents || (typeof store.documents !== "object" || Array.isArray(store.documents))) store = { version: 1, documents: {} };
     const ready = new Set(), busy = new Set(), errors = new Map(), conflicts = new Map(), preferenceDrafts = new Map();
     let activeDate = "", config = core.settings(), current = null, selection = null, selectedGroup = "", selectedManagerId = "", tab = "board", zoom = 1;
-    let timer, localError = false, openVersion = 0, drag = null, lineFrame = 0, groupDraft = null, editorKey = null, suppressClickUntil = 0;
+    let timer, localError = false, openVersion = 0, drag = null, lineFrame = 0, groupDraft = null, editorKey = null, bundleDraft = null, suppressClickUntil = 0;
     const documentKey = () => "activity:" + activeDate;
     const activityAllowed = () => adapter.date() === activeDate && (!adapter.canOpen || adapter.canOpen());
     const doc = (key) => store.documents[key] || (store.documents[key] = { revision: 0, content: null });
@@ -44,7 +50,12 @@
       row.pending = { revision: row.pending?.revision ?? row.revision, mutationId: uuid(), content: core.clone(content) };
       errors.delete(key); persist(); clearTimeout(timer); timer = setTimeout(() => void flushAll(), 650);
     }
-    function saveActivity() { if (!activityAllowed()) return; queue(documentKey(), core.validatePlan(current)); }
+    function saveActivity() {
+      if (!activityAllowed()) return;
+      const active = new Set(core.bundles(current).map((g) => g.key));
+      for (const key of Object.keys(current.bundlePositions || {})) if (!active.has(key)) delete current.bundlePositions[key];
+      queue(documentKey(), core.validatePlan(current));
+    }
     function saveSettings() { config = core.validateSettings(config); queue("preferences", config); }
     async function request(options, date = activeDate) {
       const response = await fetch(adapter.apiUrl("/api/court-arrangements" + (options.method === "GET" ? "?date=" + date : "")), {
@@ -122,7 +133,7 @@
     function showView(next) {
       if (next === "board" && !activityAllowed()) { adapter.toast("请先确认活动日期，再打开本次排场；长期偏好仍可编辑"); return; }
       tab = next; $("caBoardPanel").hidden = next !== "board"; $("caSettingsPanel").hidden = next !== "settings";
-      editorKey = null; renderInspector(); updateViewButton();
+      editorKey = null; bundleDraft = null; renderInspector(); updateViewButton();
       if (next === "settings") renderManager(); else { sizeBoard(); scheduleLines(); }
     }
     function updateViewButton() {
@@ -136,7 +147,7 @@
     function open(next = "board") {
       if (next !== "settings" && adapter.canOpen && !adapter.canOpen()) { adapter.toast("请先整理名单并确认活动日期，再安排场地"); return; }
       const date = adapter.date(); if (!core.validDate(date)) { adapter.toast("活动日期无效，请先确认日期"); return; }
-      activeDate = date; openVersion++; selection = null; selectedGroup = ""; groupDraft = null; editorKey = null; tab = next;
+      activeDate = date; openVersion++; selection = null; selectedGroup = ""; groupDraft = null; editorKey = null; bundleDraft = null; tab = next;
       config = core.settings(value("preferences"));
       const previous = value(documentKey());
       current = previous ? core.reconcile(previous, adapter.roster(), recommendationConfig()) : core.recommend(adapter.roster(), recommendationConfig());
@@ -193,15 +204,17 @@
         }
         const n = el("section", "ca-bundle"); n.dataset.bundle = bundle.key; n.tabIndex = 0;
         n.style.left = position.x + "px"; n.style.top = position.y + "px"; n.style.width = width + "px";
-        const label = "流动分组，可去" + bundle.allowed.map(courtLabel).join("、") + "号场";
-        n.setAttribute("aria-label", label); n.title = "拖动边框或把手移动整组；可去" + bundle.allowed.map(courtLabel).join("、") + "号场；拖入人名采用本组可去场地"; n.setAttribute("aria-keyshortcuts", "ArrowUp ArrowDown ArrowLeft ArrowRight");
-        const grip = el("button", "ca-bundle-grip"); grip.type = "button"; grip.append(icon("grip")); grip.setAttribute("aria-label", "拖动" + label); grip.title = "拖动整组；方向键调整位置"; n.append(grip);
+        const label = grouped.map((p) => p.name).join("、") + "的流动分组，可去" + bundle.allowed.map(courtLabel).join("、") + "号场";
+        n.setAttribute("aria-label", label); n.title = "双击边框或按F2编辑整组可去场地；拖动边框或把手移动整组；可去" + bundle.allowed.map(courtLabel).join("、") + "号场"; n.setAttribute("aria-keyshortcuts", "F2 ArrowUp ArrowDown ArrowLeft ArrowRight");
+        const grip = el("button", "ca-bundle-grip"); grip.type = "button"; grip.append(icon("grip")); grip.setAttribute("aria-label", "拖动" + label); grip.title = "拖动整组；方向键调整位置；双击或按F2编辑流动场地"; n.append(grip);
         const cards = el("div", "ca-bundle-people"); cards.style.gridTemplateColumns = `repeat(${display.columns}, minmax(0, 1fr))`;
         grouped.forEach((person) => cards.append(personButton(person))); n.append(cards);
         n.addEventListener("pointerdown", (e) => { if (!e.target.closest(".ca-person")) beginDrag(e, "bundle", bundle.key); });
         n.addEventListener("click", (e) => { if (!e.target.closest(".ca-person")) select({ type: "bundle", key: bundle.key }); });
+        n.addEventListener("dblclick", (e) => { if (!e.target.closest(".ca-person")) openBundleEditor(bundle.key); });
         n.addEventListener("keydown", (e) => {
           if (e.target !== n && !e.target.closest(".ca-bundle-grip")) return;
+          if (e.key === "F2") { e.preventDefault(); openBundleEditor(bundle.key); return; }
           const delta = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
           if (delta) {
             e.preventDefault(); const point = current.bundlePositions?.[bundle.key] || position;
@@ -281,17 +294,27 @@
         for (const bundle of core.bundles(current)) if (bundle.allowed.includes(selection.key)) bundleLines(bundle, selection.key, true);
       } else if (selection?.type === "bundle") {
         const bundle = core.bundles(current).find((g) => g.key === selection.key); if (bundle) for (const id of bundle.allowed) line(bundleSource(bundle.key), id, true);
-      } else if (current.lineMode === "bundled") {
+      } else {
         for (const bundle of core.bundles(current)) bundleLines(bundle);
       }
     }
-    function select(next) { selection = selection?.type === next.type && selection?.key === next.key ? null : next; editorKey = null; highlight(); renderInspector(); scheduleLines(); }
+    function select(next) { selection = selection?.type === next.type && selection?.key === next.key ? null : next; editorKey = null; bundleDraft = null; highlight(); renderInspector(); scheduleLines(); }
     function openEditor(key) {
       if (!activityAllowed() || !current.roster.some((p) => p.key === key)) return;
-      selection = { type: "person", key }; editorKey = key; highlight(); renderInspector(); inspector.scrollTop = 0; scheduleLines();
+      selection = { type: "person", key }; editorKey = key; bundleDraft = null; highlight(); renderInspector(); inspector.scrollTop = 0; scheduleLines();
       requestAnimationFrame(() => inspector.querySelector("select, input")?.focus({ preventScroll: true }));
     }
-    function closeEditor() { const key = editorKey; editorKey = null; renderInspector(); findData(".ca-person", "person", key)?.focus({ preventScroll: true }); }
+    function openBundleEditor(key) {
+      const bundle = core.bundles(current).find((g) => g.key === key);
+      if (!activityAllowed() || !bundle || bundle.people.length < 2) return;
+      selection = { type: "bundle", key }; editorKey = key; bundleDraft = { key, allowed: new Set(bundle.allowed) };
+      highlight(); renderInspector(); inspector.scrollTop = 0; scheduleLines();
+      requestAnimationFrame(() => inspector.querySelector("input")?.focus({ preventScroll: true }));
+    }
+    function closeEditor() {
+      const key = editorKey, type = selection?.type; editorKey = null; bundleDraft = null; renderInspector();
+      (type === "bundle" ? bundleSource(key) : findData(".ca-person", "person", key))?.focus({ preventScroll: true });
+    }
     function highlight() {
       const relation = groups().find((g) => g.id === selectedGroup), related = new Set(relation?.members || []);
       for (const n of board.querySelectorAll(".ca-person")) {
@@ -306,14 +329,20 @@
     function render() {
       $("caCourtCount").value = current.courts.length; $("caRemoveCourt").disabled = current.courts.length === 1; $("caAddCourt").disabled = current.courts.length >= 32;
       $("caCopy").disabled = !activityAllowed(); updateViewButton();
-      $("caRecommend").disabled = !current.roster.length || !activityAllowed(); $("caLineMode").value = current.lineMode;
+      $("caRecommend").disabled = !current.roster.length || !activityAllowed();
       updateGroupOptions(); renderBoard(); renderInspector(); if (tab === "settings") renderManager(); renderStatus();
     }
     function renderInspector() {
-      $("caEditPerson").hidden = tab !== "board" || selection?.type !== "person" || !activityAllowed();
+      const edit = $("caEditPerson"), editingGroup = selection?.type === "bundle";
+      edit.hidden = tab !== "board" || !["person", "bundle"].includes(selection?.type) || !activityAllowed();
+      edit.title = editingGroup ? "编辑选中分组（也可双击边框或按F2）" : "编辑选中人员（也可双击人名）";
+      edit.setAttribute("aria-label", editingGroup ? "编辑选中分组" : "编辑选中人员"); edit.setAttribute("aria-expanded", String(Boolean(editorKey)));
+      edit.replaceChildren(icon(editingGroup ? "route" : "user-round-cog")); root.lucide?.createIcons({ root: edit });
+      inspector.setAttribute("aria-label", editingGroup ? "流动分组安排" : "个人安排与偏好");
       inspector.hidden = tab !== "board" || !editorKey || editorKey !== selection?.key || !activityAllowed(); inspector.replaceChildren();
       if (inspector.hidden) return;
-      const person = current.roster.find((p) => p.key === editorKey); if (!person) { editorKey = null; renderInspector(); return; }
+      if (selection.type === "bundle") { renderBundleInspector(); return; }
+      const person = current.roster.find((p) => p.key === editorKey); if (!person) { editorKey = null; bundleDraft = null; renderInspector(); return; }
       const head = el("header", "ca-editor-head"), close = button("", closeEditor, "ca-icon-btn"); close.append(icon("x")); close.title = "关闭个人编辑"; close.setAttribute("aria-label", close.title);
       head.append(el("h3", "", person.name + " · " + grade(person)), close); inspector.append(head);
       const assignment = current.assignments[person.key], place = el("select"); place.append(option("", "框外流动")); current.courts.forEach((c) => place.append(option(c.id, "固定在 " + c.label + "号场"))); place.value = assignment.courtId || "";
@@ -322,14 +351,43 @@
         inspector.append(el("h4", "", "可去场地")); const checks = el("div", "ca-checks");
         for (const court of core.courtInfo(current, config)) checks.append(check(court.label + "号场" + (court.protected ? " · 高手专场" : ""), assignment.allowed.includes(court.id), (checked) => {
           if (!checked && assignment.allowed.length === 1) { adapter.toast("请至少保留一个可去场地"); renderInspector(); return; }
-          assignment.allowed = checked ? [...assignment.allowed, court.id] : assignment.allowed.filter((id) => id !== court.id); assignment.locked = true; saveActivity(); render();
+          setPersonAllowed(person.key, checked ? [...assignment.allowed, court.id] : assignment.allowed.filter((id) => id !== court.id));
         })); inspector.append(checks);
-        if (assignment.position) inspector.append(button("放回流动分组", () => { delete assignment.position; saveActivity(); render(); }));
+        if (assignment.position) inspector.append(button("恢复自动位置", () => { delete assignment.position; saveActivity(); render(); }));
       }
       inspector.append(check("锁定本次安排，重新建议时保留", assignment.locked, (locked) => { assignment.locked = locked; saveActivity(); }));
       const personGroups = groups().filter((g) => g.members.includes(person.playerId));
       if (personGroups.length) { inspector.append(el("h4", "", "小团体／最佳拍档")); const list = el("div", "ca-related-list"); personGroups.forEach((g) => list.append(button(g.source === "partner" ? g.members.map(name).join("／") : g.name, () => { selectedGroup = g.id; $("caGroupFilter").value = g.id; highlight(); }))); inspector.append(list); }
       renderPreferenceForm(person, inspector, false); root.lucide?.createIcons({ root: inspector });
+    }
+    function renderBundleInspector() {
+      const bundle = core.bundles(current).find((g) => g.key === editorKey);
+      if (!bundle || bundle.people.length < 2) { editorKey = null; bundleDraft = null; renderInspector(); return; }
+      if (bundleDraft?.key !== bundle.key) bundleDraft = { key: bundle.key, allowed: new Set(bundle.allowed) };
+      const head = el("header", "ca-editor-head"), close = button("", closeEditor, "ca-icon-btn");
+      close.append(icon("x")); close.title = "取消分组编辑"; close.setAttribute("aria-label", close.title);
+      head.append(el("h3", "", "流动场地"), close); inspector.append(head, el("p", "ca-bundle-members", bundle.people.map((p) => p.name).join("、")));
+      const form = el("form", "ca-bundle-form"), courts = el("fieldset", "ca-group-courts"), error = el("p", "ca-error");
+      courts.append(el("legend", "", "可去场地")); error.hidden = true; error.setAttribute("role", "alert");
+      for (const court of core.courtInfo(current, config)) courts.append(check(court.label + "号场" + (court.protected ? " · 高手专场" : ""), bundleDraft.allowed.has(court.id), (on) => {
+        if (on) bundleDraft.allowed.add(court.id); else bundleDraft.allowed.delete(court.id); error.hidden = true;
+      }));
+      const actions = el("div", "ca-actions"), save = el("button", "primary-btn", "保存"); save.type = "submit";
+      actions.append(save, button("取消", closeEditor)); form.append(courts, error, actions);
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const group = core.bundles(current).find((g) => g.key === bundleDraft?.key), allowed = current.courts.filter((c) => bundleDraft?.allowed.has(c.id)).map((c) => c.id);
+        if (!allowed.length) { error.textContent = "请至少选择一个可去场地。"; error.hidden = false; return; }
+        if (!group) { closeEditor(); return; }
+        for (const person of group.people) { current.assignments[person.key].allowed = [...allowed]; current.assignments[person.key].locked = true; }
+        const key = group.key; editorKey = null; bundleDraft = null; saveActivity(); render(); bundleSource(key)?.focus({ preventScroll: true });
+        adapter.toast("已更新这组" + group.people.length + "人的流动场地");
+      }); inspector.append(form); root.lucide?.createIcons({ root: inspector });
+    }
+    function setPersonAllowed(key, allowed) {
+      const assignment = current.assignments[key], group = core.bundles(current).find((g) => g.key === assignment.roamingGroupId);
+      if (core.bundleKey(allowed) !== core.bundleKey(assignment.allowed) && group?.people.length > 1) assignment.roamingGroupId = "flow-" + uuid();
+      assignment.allowed = allowed; assignment.locked = true; saveActivity(); render();
     }
     function renderPreferenceForm(person, host, manager) {
       const present = current.roster.find((p) => p.playerId && p.playerId === person.playerId) || current.roster.find((p) => p.key === person.key);
@@ -369,23 +427,25 @@
         adapter.toast(manager ? "长期偏好已保存" : "偏好已应用，手动锁定的其他人员保持不变"); render();
       }); host.append(form);
     }
-    function setPlacement(key, courtId, position, bundleAllowed) {
+    function setPlacement(key, courtId, position, bundleAllowed, bundleId) {
       const person = current.roster.find((p) => p.key === key), old = current.assignments[key], pref = core.preference(current.overrides[key] || config.preferences[person.playerId]);
       if (courtId) { current.assignments[key] = { courtId, allowed: [courtId], locked: true }; pref.mode = pref.mode === "competitive" ? "competitive" : "fixed"; }
       else {
         const allowed = bundleAllowed ? [...bundleAllowed] : !old.courtId && old.allowed.length ? [...old.allowed] : core.courtInfo(current, config).filter((c) => !c.protected).map((c) => c.id);
-        current.assignments[key] = { courtId: null, allowed: allowed.length ? allowed : current.courts.map((c) => c.id), locked: true };
+        const group = core.bundles(current).find((g) => g.key === old.roamingGroupId);
+        const roamingGroupId = bundleId || (!old.courtId && (!position || group?.people.length === 1) ? old.roamingGroupId : "flow-" + uuid());
+        current.assignments[key] = { courtId: null, allowed: allowed.length ? allowed : current.courts.map((c) => c.id), locked: true, roamingGroupId };
         if (position) current.assignments[key].position = position; pref.mode = "roam";
       }
       const rank = current.overrides[key]?.level; current.overrides[key] = pref; if (rank !== undefined) current.overrides[key].level = rank;
       saveActivity(); render();
     }
     function arrangeLayout(kind) {
+      if (!["auto", "horizontal"].includes(kind)) return;
       let x = 24, y = 24, rowHeight = 0;
       const info = core.courtInfo(current, config);
       current.courts.forEach((c, index) => {
-        if (kind === "vertical") { c.x = 24; c.y = y; y += info[index].height + 58; }
-        else if (kind === "horizontal") { c.x = 24 + index * 278; c.y = 24; }
+        if (kind === "horizontal") { c.x = 24 + index * 278; c.y = 24; }
         else { if (index && index % 3 === 0) { x = 24; y += rowHeight + 58; rowHeight = 0; } c.x = x; c.y = y; x += 278; rowHeight = Math.max(rowHeight, info[index].height); }
       });
       for (const a of Object.values(current.assignments)) delete a.position;
@@ -463,9 +523,10 @@
     }
     function beginDrag(event, type, key) {
       if (event.button !== 0 || drag) return;
-      editorKey = null; renderInspector();
-      const target = event.currentTarget; target.setPointerCapture(event.pointerId);
-      drag = { type, key, target, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false };
+      editorKey = null; bundleDraft = null; renderInspector();
+      const target = event.currentTarget, captureTarget = type === "bundle" ? event.target.closest(".ca-bundle-grip") || target : target;
+      captureTarget.setPointerCapture(event.pointerId);
+      drag = { type, key, target, captureTarget, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false };
       if (type === "court") { const c = current.courts.find((r) => r.id === key); drag.startCourt = { x: c.x, y: c.y }; }
       if (type === "bundle") { drag.startBundle = { x: parseFloat(target.style.left), y: parseFloat(target.style.top) }; drag.previousBundle = current.bundlePositions?.[key] ? { ...current.bundlePositions[key] } : null; }
       target.addEventListener("pointermove", moveDrag); target.addEventListener("pointerup", endDrag); target.addEventListener("pointercancel", cancelDrag);
@@ -507,14 +568,14 @@
         const assignment = current.assignments[person.key];
         if (person.key === excludedPerson || assignment.courtId || !assignment.position) continue;
         const node = findData(".ca-person", "person", person.key); if (!containsPoint(node, point)) continue;
-        const key = core.bundleKey(assignment.allowed), existing = bundleSource(key);
+        const key = assignment.roamingGroupId, existing = bundleSource(key);
         return { key, allowed: [...assignment.allowed], partnerKey: person.key, position: existing ? nodePosition(existing) : nodePosition(node) };
       }
       return null;
     }
     function cleanDrag() {
       if (!drag) return; const d = drag; d.ghost?.remove(); d.target.classList.remove("ca-dragging"); d.target.removeEventListener("pointermove", moveDrag); d.target.removeEventListener("pointerup", endDrag); d.target.removeEventListener("pointercancel", cancelDrag);
-      try { d.target.releasePointerCapture(d.pointerId); } catch {} drag = null; board.querySelectorAll(".ca-drop-target").forEach((n) => n.classList.remove("ca-drop-target")); return d;
+      try { d.captureTarget.releasePointerCapture(d.pointerId); } catch {} drag = null; board.querySelectorAll(".ca-drop-target").forEach((n) => n.classList.remove("ca-drop-target")); return d;
     }
     function endDrag(event) {
       if (!drag) return; const d = cleanDrag(); if (!d.moved) return;
@@ -523,7 +584,7 @@
       else { const bounds = scroll.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) return;
         const point = boardPoint(event), target = hitCourt(point), bundle = target ? null : hitBundle(point, d.key); selection = { type: "person", key: d.key };
         if (bundle) { if (bundle.partnerKey) delete current.assignments[bundle.partnerKey].position; setBundlePosition(bundle.key, bundle.position); }
-        setPlacement(d.key, target?.id || null, target || bundle ? undefined : { x: Math.max(0, Math.min(20000, point.x - 50)), y: Math.max(0, Math.min(20000, point.y - 20)) }, bundle?.allowed); }
+        setPlacement(d.key, target?.id || null, target || bundle ? undefined : { x: Math.max(0, Math.min(20000, point.x - 50)), y: Math.max(0, Math.min(20000, point.y - 20)) }, bundle?.allowed, bundle?.key); }
     }
     function cancelDrag() {
       if (drag?.type === "court") Object.assign(current.courts.find((c) => c.id === drag.key), drag.startCourt);
@@ -543,16 +604,15 @@
     $("caAddCourt").addEventListener("click", addCourt); $("caRemoveCourt").addEventListener("click", () => removeCourt());
     $("caRecommend").addEventListener("click", () => { if (!confirm("重新建议会更新未锁定的人员安排，场地编号、布局和手动锁定的安排保留。继续？")) return; current = core.recommend(adapter.roster(), recommendationConfig(), current); saveActivity(); render(); });
     $("caLayout").addEventListener("change", () => { const kind = $("caLayout").value; if (kind) arrangeLayout(kind); $("caLayout").value = ""; });
-    $("caLineMode").addEventListener("change", () => { current.lineMode = $("caLineMode").value; saveActivity(); scheduleLines(); });
-    $("caFit").addEventListener("click", fit); $("caZoom").addEventListener("change", () => { if ($("caZoom").value === "fit") fit(); else { zoom = Number($("caZoom").value); sizeBoard(); scheduleLines(); } });
+    $("caZoom").addEventListener("change", () => { if ($("caZoom").value === "fit") fit(); else { zoom = Number($("caZoom").value); sizeBoard(); scheduleLines(); } });
     $("caGroupFilter").addEventListener("change", () => { selectedGroup = $("caGroupFilter").value; highlight(); renderInspector(); });
     $("caSettingsToggle").addEventListener("click", () => showView(tab === "board" ? "settings" : "board"));
-    $("caEditPerson").addEventListener("click", () => { if (selection?.type === "person") openEditor(selection.key); });
+    $("caEditPerson").addEventListener("click", () => { if (selection?.type === "person") openEditor(selection.key); else if (selection?.type === "bundle") openBundleEditor(selection.key); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && dialog.classList.contains("open") && !dialog.inert && !inspector.hidden) { e.preventDefault(); e.stopPropagation(); closeEditor(); } }, true);
     board.addEventListener("click", (e) => { if (performance.now() < suppressClickUntil) { e.preventDefault(); e.stopPropagation(); } }, true);
     $("caRetry").addEventListener("click", async () => { errors.clear(); persist(); await refresh(); }); $("caUseCloud").addEventListener("click", () => void resolveConflict(true)); $("caKeepLocal").addEventListener("click", () => void resolveConflict(false));
     $("caCopy").addEventListener("click", () => void copy());
-    board.addEventListener("click", (e) => { if (!e.target.closest(".ca-person, .ca-court, .ca-bundle")) { selection = null; editorKey = null; highlight(); renderInspector(); scheduleLines(); } });
+    board.addEventListener("click", (e) => { if (!e.target.closest(".ca-person, .ca-court, .ca-bundle")) { selection = null; editorKey = null; bundleDraft = null; highlight(); renderInspector(); scheduleLines(); } });
     const resize = new ResizeObserver(() => { if (dialog.classList.contains("open") && tab === "board") { sizeBoard(); scheduleLines(); } }); resize.observe(scroll);
     new MutationObserver(() => { if (!dialog.classList.contains("open") && drag) cancelDrag(); }).observe(dialog, { attributes: true, attributeFilter: ["class"] });
     window.addEventListener("online", () => { if (activeDate) void refresh(); });

@@ -30,7 +30,9 @@ const competitiveConfig = core.settings({preferences:Object.fromEntries(lowCompe
 const protectedPlan=core.recommend([...lowCompetitive,...strong],competitiveConfig,{courts:core.makeCourts(2)});
 const protectedInfo=core.numberedCourts(core.courtInfo(protectedPlan,competitiveConfig));assert.equal(protectedInfo[0].min,5);assert.equal(protectedInfo[1].protected,true,"Competitive groups use their grade position instead of always claiming the smallest court");
 const roaming=core.recommend(people,core.settings(),{courts});const bundle=core.bundles(roaming)[0];
-assert.equal(bundle.key, core.bundleKey([...bundle.allowed].reverse()), "Flow layout keys are independent of numbering/array order");
+assert.equal(bundle.key, roaming.assignments[bundle.people[0].key].roamingGroupId, "Layout keys are independent group IDs, not destination sets");
+const reordered = core.clone(roaming); reordered.courts.reverse();
+assert.equal(core.bundles(core.plan(reordered))[0].key, bundle.key, "Court order does not alter group IDs");
 roaming.bundlePositions={ [bundle.key]:{x:640,y:880} };
 const normalized=core.validatePlan(roaming);assert.deepEqual(normalized.bundlePositions[bundle.key],{x:640,y:880});
 assert.deepEqual(core.reconcile(normalized,people,core.settings()).bundlePositions,normalized.bundlePositions);
