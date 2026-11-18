@@ -18,6 +18,16 @@ for (const file of ["court-arrangement-core.js", "court-arrangement.js", "court-
 }
 const context = vm.createContext({}); vm.runInContext(deployedCore, context, { timeout: 1000 });
 assert.deepEqual([7, 20, 23].map((n) => context.BadmintonCourtArrangementCore.defaultCourtCount(n)), [1, 3, 4]);
+const core = context.BadmintonCourtArrangementCore;
+const sample = Array.from({ length: 12 }, (_, i) => ({ key: "p-" + (i + 1), playerId: i + 1, name: "校验" + i, level: i < 6 ? 1 : 4 }));
+const fixed = { preferences: Object.fromEntries(sample.map((p) => [p.playerId, { mode: "fixed", coach: "none", targets: [] }])), groups: [] };
+const samplePlan = core.recommend(sample, fixed, { courts: core.makeCourts(2).map((c, i) => ({ ...c, label: i ? "2" : "8" })) });
+const ordered = core.numberedCourts(core.courtInfo(samplePlan, fixed));
+assert.equal(ordered[0].label, "2"); assert.equal(ordered[0].min, 4); assert.equal(ordered[1].min, 1);
+const roamPlan = core.recommend(sample, { preferences: { 1: { mode: "roam", coach: "none", targets: [] }, 2: { mode: "roam", coach: "none", targets: [] } }, groups: [] });
+const key = core.bundles(roamPlan)[0].key; roamPlan.bundlePositions = { [key]: { x: 320, y: 480 } };
+assert.equal(core.validatePlan(roamPlan).bundlePositions[key].y, 480);
+
 const page = await fetch(new URL("?verify=" + deployment, origin), { cache: "no-store", signal: AbortSignal.timeout(30000) });
 assert.equal(page.status, 200); const html = await page.text();
 assert.match(html, /id="courtArrangementBtn"[^>]*aria-label="场地安排"/);

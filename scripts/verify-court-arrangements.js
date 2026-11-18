@@ -93,6 +93,8 @@ const helpers = { json: (data, status = 200) => Response.json(data, { status }),
 const url = "https://badminton.choi975.workers.dev/api/court-arrangements";
 const call = (body, origin = "https://choi975.github.io", opts = helpers) => handleCourtArrangements(new Request(url, { method: "POST", headers: { origin }, body: JSON.stringify(body) }), { DB }, opts);
 let body = { kind: "activity", date: "2026-11-17", revision: 0, mutationId: randomUUID(), content: plan };
+plan.bundlePositions = Object.fromEntries(core.bundles(plan).map((bundle) => [bundle.key, { x: 480, y: 640 }]));
+body.content = plan;
 assert.equal(isCourtArrangementWrite(new Request(url, { method: "POST", headers: { origin: "https://choi975.github.io" } })), true);
 assert.equal(isCourtArrangementWrite(new Request(url.replace("court-arrangements", "players"), { method: "POST", headers: { origin: "https://choi975.github.io" } })), false);
 let response = await call(body); assert.equal(response.status, 200); assert.equal((await response.json()).saved.revision, 1);
@@ -102,6 +104,7 @@ assert.equal((await call({ ...body, revision: 1, mutationId: randomUUID() })).st
 assert.equal((await call({ ...body, date: "2026-11-18" })).status, 200);
 response = await handleCourtArrangements(new Request(url + "?date=2026-11-17"), { DB }, helpers);
 let saved = await response.json(); assert.equal(saved.activity.revision, 2); assert.equal(saved.settings, null);
+assert.deepEqual(saved.activity.content.bundlePositions, plan.bundlePositions, "D1 round trips group drag positions");
 assert.equal((await call(body, "https://evil.example")).status, 403);
 assert.equal((await call(body, "https://choi975.github.io", { ...helpers, rateLimit: async () => false })).status, 429);
 assert.equal((await call({ ...body, date: "2026-02-30" })).status, 400);

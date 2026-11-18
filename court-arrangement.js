@@ -154,14 +154,14 @@
       if (![...select.options].some((o) => o.value === selectedGroup)) selectedGroup = "";
       select.value = selectedGroup;
     }
-    function personButton(person, floating = false) {
+    function personButton(person, floating = false, position = null) {
       const assignment = current.assignments[person.key], n = el("button", "ca-person" + (floating ? " ca-floating" : "")); n.type = "button"; n.dataset.person = person.key;
       n.title = `${person.name} · ${grade(person)}；${assignment.courtId ? "固定在" + courtLabel(assignment.courtId) + "号场" : "可去" + assignment.allowed.map(courtLabel).join("、") + "号场"}；拖动修改本次安排，双击或按F2编辑`;
       n.setAttribute("aria-label", n.title); n.append(el("strong", "", person.name), el("small", "", grade(person) + (floating ? " · " + assignment.allowed.map(courtLabel).join("/") + "号场" : "")));
       n.addEventListener("click", () => select({ type: "person", key: person.key })); n.addEventListener("pointerdown", (e) => beginDrag(e, "person", person.key));
       n.addEventListener("dblclick", () => openEditor(person.key)); n.setAttribute("aria-keyshortcuts", "F2");
       n.addEventListener("keydown", (e) => { if (e.key === "F2") { e.preventDefault(); openEditor(person.key); } });
-      if (floating) { n.style.left = assignment.position.x + "px"; n.style.top = assignment.position.y + "px"; }
+      if (floating) { const point = position || assignment.position; n.style.left = point.x + "px"; n.style.top = point.y + "px"; }
       return n;
     }
     function renderBoard() {
@@ -175,41 +175,68 @@
         grip.addEventListener("pointerdown", (e) => beginDrag(e, "court", court.id));
         grip.addEventListener("keydown", (e) => { const delta = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key]; if (!delta) return; e.preventDefault(); const c = current.courts.find((r) => r.id === court.id); c.x = Math.max(0, Math.min(20000, c.x + delta[0] * (e.shiftKey ? 64 : 16))); c.y = Math.max(0, Math.min(20000, c.y + delta[1] * (e.shiftKey ? 64 : 16))); n.style.left = c.x + "px"; n.style.top = c.y + "px"; saveActivity(); sizeBoard(); scheduleLines(); });
         const input = el("input"); input.value = court.label; input.maxLength = 16; input.setAttribute("aria-label", "场地编号：" + court.label);
-        input.addEventListener("change", () => { const label = input.value.trim(); if (!label || current.courts.some((c) => c.id !== court.id && c.label === label)) { input.value = court.label; adapter.toast("场地编号不能为空或重复"); return; } current.courts.find((c) => c.id === court.id).label = label; saveActivity(); render(); });
+        input.addEventListener("change", () => { const label = input.value.trim(); if (!label || current.courts.some((c) => c.id !== court.id && c.label === label)) { input.value = court.label; adapter.toast("场地编号不能为空或重复"); return; } current.courts.find((c) => c.id === court.id).label = label; current = core.recommend(adapter.roster(), recommendationConfig(), current); saveActivity(); render(); });
         const remove = button("", () => removeCourt(court.id), "ca-court-remove"); remove.append(icon("x")); remove.setAttribute("aria-label", "删除" + court.label + "号场"); remove.disabled = current.courts.length === 1;
-        title.append(grip, el("span", "", "场地"), input, remove); head.append(title);
-        const stats = el("div", "ca-court-stat"); stats.append(el("span", "", `固定${court.fixed.length}人 · 可串入${court.moving.length}人`));
-        stats.append(el("span", court.protected ? "ca-protection-label" : "", court.protected ? "高手专场" : court.min !== null ? (court.min === court.max ? court.min : court.min + "～" + court.max) + "级" : "流动场"));
-        head.append(stats); head.addEventListener("click", (e) => { if (!e.target.closest("input, button")) select({ type: "court", key: court.id }); }); n.append(head);
+        const range = court.min !== null ? (court.min === court.max ? court.min : court.min + "～" + court.max) + "级" : "流动场";
+        const level = el("span", "ca-court-level", range); level.title = range + (court.protected ? " · 高手专场" : "");
+        if (court.protected) level.classList.add("ca-protection-label");
+        title.append(grip, el("span", "ca-court-label", "场地"), input, level, remove); head.append(title);
+        head.addEventListener("click", (e) => { if (!e.target.closest("input, button")) select({ type: "court", key: court.id }); }); n.append(head);
         if (court.fixed.length) { const list = el("div", "ca-court-people"); court.fixed.forEach((p) => list.append(personButton(p))); n.append(list); }
         else n.append(el("div", "ca-court-empty", "流动场\n由流动人员现场补位\n点击场地查看可来人员"));
         n.addEventListener("click", (e) => { if (e.target === n || e.target.classList.contains("ca-court-empty")) select({ type: "court", key: court.id }); }); board.append(n);
       }
-      const moving = current.roster.filter((p) => !current.assignments[p.key].courtId), top = Math.max(24, ...info.map((c) => c.y + c.height)) + 64;
-      if (moving.length) {
-        const zone = el("section", "ca-roaming"); zone.style.left = "24px"; zone.style.top = top + "px"; zone.style.width = Math.max(300, Math.max(...info.map((c) => c.x + 250)) - 24) + "px";
-        zone.setAttribute("aria-label", "流动人员分组");
-        const list = el("div", "ca-bundles");
-        for (const bundle of core.bundles(current)) {
-          const n = el("section", "ca-bundle"); n.dataset.bundle = bundle.key; n.tabIndex = 0;
-          n.setAttribute("aria-label", "流动分组，可去" + bundle.allowed.map(courtLabel).join("、") + "号场"); n.title = "拖入这里收回流动人名；可去" + bundle.allowed.map(courtLabel).join("、") + "号场";
-          const grouped = bundle.people.filter((p) => !current.assignments[p.key].position), columns = Math.min(4, Math.max(1, grouped.length));
-          n.style.width = (columns * 124 + (columns - 1) * 8 + 24) + "px";
-          const cards = el("div", "ca-bundle-people"); cards.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
-          grouped.forEach((p) => cards.append(personButton(p))); n.append(cards);
-          n.addEventListener("click", (e) => { if (!e.target.closest(".ca-person")) select({ type: "bundle", key: bundle.key }); });
-          n.addEventListener("keydown", (e) => { if (e.target === n && ["Enter", " "].includes(e.key)) { e.preventDefault(); select({ type: "bundle", key: bundle.key }); } });
-          list.append(n);
+      for (const display of flowLayout()) {
+        const { bundle, grouped, position, width } = display;
+        if (grouped.length === 1) {
+          const card = personButton(grouped[0], true, position); card.classList.add("ca-flow-single"); card.dataset.flowBundle = bundle.key; board.append(card); continue;
         }
-        zone.append(list); board.append(zone);
-        moving.filter((p) => current.assignments[p.key].position).forEach((p) => board.append(personButton(p, true)));
+        const n = el("section", "ca-bundle"); n.dataset.bundle = bundle.key; n.tabIndex = 0;
+        n.style.left = position.x + "px"; n.style.top = position.y + "px"; n.style.width = width + "px";
+        const label = "流动分组，可去" + bundle.allowed.map(courtLabel).join("、") + "号场";
+        n.setAttribute("aria-label", label); n.title = "拖动边框或把手移动整组；可去" + bundle.allowed.map(courtLabel).join("、") + "号场；拖入人名采用本组可去场地"; n.setAttribute("aria-keyshortcuts", "ArrowUp ArrowDown ArrowLeft ArrowRight");
+        const grip = el("button", "ca-bundle-grip"); grip.type = "button"; grip.append(icon("grip")); grip.setAttribute("aria-label", "拖动" + label); grip.title = "拖动整组；方向键调整位置"; n.append(grip);
+        const cards = el("div", "ca-bundle-people"); cards.style.gridTemplateColumns = `repeat(${display.columns}, minmax(0, 1fr))`;
+        grouped.forEach((person) => cards.append(personButton(person))); n.append(cards);
+        n.addEventListener("pointerdown", (e) => { if (!e.target.closest(".ca-person")) beginDrag(e, "bundle", bundle.key); });
+        n.addEventListener("click", (e) => { if (!e.target.closest(".ca-person")) select({ type: "bundle", key: bundle.key }); });
+        n.addEventListener("keydown", (e) => {
+          if (e.target !== n && !e.target.closest(".ca-bundle-grip")) return;
+          const delta = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+          if (delta) {
+            e.preventDefault(); const point = current.bundlePositions?.[bundle.key] || position;
+            setBundlePosition(bundle.key, { x: point.x + delta[0] * (e.shiftKey ? 64 : 16), y: point.y + delta[1] * (e.shiftKey ? 64 : 16) });
+            n.style.left = current.bundlePositions[bundle.key].x + "px"; n.style.top = current.bundlePositions[bundle.key].y + "px"; saveActivity(); sizeBoard(); scheduleLines();
+          } else if (["Enter", " "].includes(e.key)) { e.preventDefault(); select({ type: "bundle", key: bundle.key }); }
+        });
+        board.append(n);
       }
+      current.roster.filter((person) => !current.assignments[person.key].courtId && current.assignments[person.key].position).forEach((person) => board.append(personButton(person, true)));
       if (!current.roster.length) { const empty = el("div", "ca-empty"); empty.append(el("strong", "", "先添加本次接龙人员"), el("p", "", "返回接龙助手填写名单，再打开这里。你也可以先在“偏好与小团体”中设置长期偏好。")); board.append(empty); }
       root.lucide?.createIcons({ root: board }); sizeBoard(); highlight(); scheduleLines();
     }
+    function setBundlePosition(key, point) {
+      current.bundlePositions ||= {};
+      current.bundlePositions[key] = { x: Math.min(20000, Math.max(0, Math.round(point.x / 8) * 8)), y: Math.min(20000, Math.max(0, Math.round(point.y / 8) * 8)) };
+    }
+    function flowLayout() {
+      const info = core.courtInfo(current, config), right = Math.max(324, ...info.map((c) => c.x + 250)), result = [];
+      let x = 24, y = Math.max(24, ...info.map((c) => c.y + c.height)) + 64, rowHeight = 0;
+      for (const bundle of core.bundles(current)) {
+        const grouped = bundle.people.filter((person) => !current.assignments[person.key].position);
+        if (!grouped.length) continue;
+        const columns = Math.min(4, grouped.length), width = grouped.length === 1 ? 124 : columns * 124 + (columns - 1) * 8 + 24;
+        const height = grouped.length === 1 ? 44 : 24 + Math.ceil(grouped.length / columns) * 52;
+        if (x > 24 && x + width > right) { x = 24; y += rowHeight + 32; rowHeight = 0; }
+        const position = current.bundlePositions?.[bundle.key] || { x, y };
+        result.push({ bundle, grouped, columns, width, position }); x += width + 24; rowHeight = Math.max(rowHeight, height);
+      }
+      return result;
+    }
+    function bundleSource(key) { return findData(".ca-bundle", "bundle", key) || findData(".ca-flow-single", "flowBundle", key); }
     function sizeBoard() {
       if (!current) return;
-      const info = core.courtInfo(current, config), moving = [...board.querySelectorAll(".ca-roaming, .ca-floating")];
+      const info = core.courtInfo(current, config), moving = [...board.querySelectorAll(".ca-bundle, .ca-floating")];
       const width = Math.max(330, ...info.map((c) => c.x + 274), ...moving.map((n) => n.offsetLeft + n.offsetWidth + 24));
       const height = Math.max(280, ...info.map((c) => c.y + c.height + 30), ...moving.map((n) => n.offsetTop + n.offsetHeight + 24));
       board.style.width = width + "px"; board.style.height = height + "px"; board.style.transform = `scale(${zoom})`;
@@ -242,14 +269,20 @@
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path"); path.setAttribute("d", `M ${from.x} ${from.y} L ${to.x} ${to.y}`); path.dataset.courtLine = courtId;
         if (active) path.classList.add("ca-line-active"); svg.append(path);
       };
+      const bundleLines = (bundle, courtId = null, active = false) => {
+        const source = bundleSource(bundle.key);
+        const ids = courtId ? [courtId] : bundle.allowed;
+        if (source) for (const id of ids) line(source, id, active);
+        for (const person of bundle.people.filter((p) => current.assignments[p.key].position)) for (const id of ids) line(findData(".ca-person", "person", person.key), id, active);
+      };
       if (selection?.type === "person") {
-        const a = current.assignments[selection.key]; if (a && !a.courtId) for (const id of a.allowed) line(findData(".ca-person", "person", selection.key), id, true);
+        const assignment = current.assignments[selection.key]; if (assignment && !assignment.courtId) for (const id of assignment.allowed) line(findData(".ca-person", "person", selection.key), id, true);
       } else if (selection?.type === "court") {
-        for (const b of core.bundles(current)) if (b.allowed.includes(selection.key)) line(findData(".ca-bundle", "bundle", b.key), selection.key, true);
+        for (const bundle of core.bundles(current)) if (bundle.allowed.includes(selection.key)) bundleLines(bundle, selection.key, true);
       } else if (selection?.type === "bundle") {
-        const b = core.bundles(current).find((g) => g.key === selection.key); if (b) for (const id of b.allowed) line(findData(".ca-bundle", "bundle", b.key), id, true);
+        const bundle = core.bundles(current).find((g) => g.key === selection.key); if (bundle) for (const id of bundle.allowed) line(bundleSource(bundle.key), id, true);
       } else if (current.lineMode === "bundled") {
-        for (const b of core.bundles(current)) for (const id of b.allowed) line(findData(".ca-bundle", "bundle", b.key), id, false);
+        for (const bundle of core.bundles(current)) bundleLines(bundle);
       }
     }
     function select(next) { selection = selection?.type === next.type && selection?.key === next.key ? null : next; editorKey = null; highlight(); renderInspector(); scheduleLines(); }
@@ -267,6 +300,7 @@
           : selection?.type === "bundle" ? core.bundles(current).find((g) => g.key === selection.key)?.people.some((p) => p.key === key) : false;
         n.classList.toggle("ca-active", Boolean(active)); n.classList.toggle("ca-related", related.has(current.roster.find((p) => p.key === key)?.playerId));
       }
+      for (const n of board.querySelectorAll(".ca-bundle")) n.classList.toggle("ca-active", selection?.type === "bundle" && selection.key === n.dataset.bundle);
       for (const n of board.querySelectorAll(".ca-court")) n.classList.toggle("ca-active", selection?.type === "court" ? selection.key === n.dataset.court : selection?.type === "person" ? current.assignments[selection.key]?.allowed.includes(n.dataset.court) : false);
     }
     function render() {
@@ -355,7 +389,7 @@
         else { if (index && index % 3 === 0) { x = 24; y += rowHeight + 58; rowHeight = 0; } c.x = x; c.y = y; x += 278; rowHeight = Math.max(rowHeight, info[index].height); }
       });
       for (const a of Object.values(current.assignments)) delete a.position;
-      saveActivity(); render(); fit();
+      delete current.bundlePositions; saveActivity(); render(); fit();
     }
     function addCourt() {
       if (current.courts.length >= 32) return;
@@ -433,6 +467,7 @@
       const target = event.currentTarget; target.setPointerCapture(event.pointerId);
       drag = { type, key, target, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false };
       if (type === "court") { const c = current.courts.find((r) => r.id === key); drag.startCourt = { x: c.x, y: c.y }; }
+      if (type === "bundle") { drag.startBundle = { x: parseFloat(target.style.left), y: parseFloat(target.style.top) }; drag.previousBundle = current.bundlePositions?.[key] ? { ...current.bundlePositions[key] } : null; }
       target.addEventListener("pointermove", moveDrag); target.addEventListener("pointerup", endDrag); target.addEventListener("pointercancel", cancelDrag);
     }
     function moveDrag(event) {
@@ -442,11 +477,14 @@
       if (drag.type === "court") {
         const c = current.courts.find((r) => r.id === drag.key); c.x = Math.min(20000, Math.max(0, Math.round((drag.startCourt.x + (event.clientX - drag.startX) / zoom) / 8) * 8)); c.y = Math.min(20000, Math.max(0, Math.round((drag.startCourt.y + (event.clientY - drag.startY) / zoom) / 8) * 8));
         const n = findData(".ca-court", "court", c.id); n.style.left = c.x + "px"; n.style.top = c.y + "px"; scheduleLines();
+      } else if (drag.type === "bundle") {
+        setBundlePosition(drag.key, { x: drag.startBundle.x + (event.clientX - drag.startX) / zoom, y: drag.startBundle.y + (event.clientY - drag.startY) / zoom });
+        drag.target.style.left = current.bundlePositions[drag.key].x + "px"; drag.target.style.top = current.bundlePositions[drag.key].y + "px"; scheduleLines();
       } else {
         if (!drag.ghost) { drag.ghost = drag.target.cloneNode(true); drag.ghost.classList.remove("ca-floating"); drag.ghost.classList.add("ca-ghost"); document.body.append(drag.ghost); drag.target.classList.add("ca-dragging"); }
         drag.ghost.style.left = event.clientX - 45 + "px"; drag.ghost.style.top = event.clientY - 18 + "px";
-        const point = boardPoint(event), court = hitCourt(point), bundle = court ? null : hitBundle(point);
-        board.querySelectorAll(".ca-court, .ca-bundle").forEach((n) => n.classList.toggle("ca-drop-target", n.classList.contains("ca-court") ? n.dataset.court === court?.id : n.dataset.bundle === bundle?.key));
+        const point = boardPoint(event), court = hitCourt(point), bundle = court ? null : hitBundle(point, drag.key);
+        board.querySelectorAll(".ca-court, .ca-bundle, .ca-floating").forEach((n) => n.classList.toggle("ca-drop-target", n.classList.contains("ca-court") ? n.dataset.court === court?.id : n.classList.contains("ca-bundle") ? n.dataset.bundle === bundle?.key : n.dataset.person === bundle?.partnerKey));
       }
       const bounds = scroll.getBoundingClientRect(); if (event.clientX > bounds.right - 24) scroll.scrollLeft += 12; if (event.clientX < bounds.left + 24) scroll.scrollLeft -= 12; if (event.clientY > bounds.bottom - 24) scroll.scrollTop += 12; if (event.clientY < bounds.top + 24) scroll.scrollTop -= 12;
     }
@@ -458,7 +496,22 @@
       return point.x >= x && point.x <= x + bounds.width / zoom && point.y >= y && point.y <= y + bounds.height / zoom;
     }
     function hitCourt(point) { return [...core.courtInfo(current, config)].reverse().find((c) => containsPoint(findData(".ca-court", "court", c.id), point)); }
-    function hitBundle(point) { return core.bundles(current).find((b) => containsPoint(findData(".ca-bundle", "bundle", b.key), point)); }
+    function nodePosition(node) { const bounds = node.getBoundingClientRect(), origin = board.getBoundingClientRect(); return { x: Math.max(0, (bounds.left - origin.left) / zoom), y: Math.max(0, (bounds.top - origin.top) / zoom) }; }
+    function hitBundle(point, excludedPerson = null) {
+      for (const display of flowLayout()) {
+        const node = bundleSource(display.bundle.key);
+        if (display.grouped.length === 1 && display.grouped[0].key === excludedPerson) continue;
+        if (containsPoint(node, point)) return { ...display.bundle, position: display.position, partnerKey: display.grouped.length === 1 ? display.grouped[0].key : null };
+      }
+      for (const person of current.roster) {
+        const assignment = current.assignments[person.key];
+        if (person.key === excludedPerson || assignment.courtId || !assignment.position) continue;
+        const node = findData(".ca-person", "person", person.key); if (!containsPoint(node, point)) continue;
+        const key = core.bundleKey(assignment.allowed), existing = bundleSource(key);
+        return { key, allowed: [...assignment.allowed], partnerKey: person.key, position: existing ? nodePosition(existing) : nodePosition(node) };
+      }
+      return null;
+    }
     function cleanDrag() {
       if (!drag) return; const d = drag; d.ghost?.remove(); d.target.classList.remove("ca-dragging"); d.target.removeEventListener("pointermove", moveDrag); d.target.removeEventListener("pointerup", endDrag); d.target.removeEventListener("pointercancel", cancelDrag);
       try { d.target.releasePointerCapture(d.pointerId); } catch {} drag = null; board.querySelectorAll(".ca-drop-target").forEach((n) => n.classList.remove("ca-drop-target")); return d;
@@ -466,12 +519,17 @@
     function endDrag(event) {
       if (!drag) return; const d = cleanDrag(); if (!d.moved) return;
       event.preventDefault(); event.stopPropagation(); suppressClickUntil = performance.now() + 350;
-      if (d.type === "court") { saveActivity(); sizeBoard(); scheduleLines(); }
+      if (d.type === "court" || d.type === "bundle") { saveActivity(); sizeBoard(); scheduleLines(); }
       else { const bounds = scroll.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) return;
-        const point = boardPoint(event), target = hitCourt(point), bundle = target ? null : hitBundle(point); selection = { type: "person", key: d.key };
+        const point = boardPoint(event), target = hitCourt(point), bundle = target ? null : hitBundle(point, d.key); selection = { type: "person", key: d.key };
+        if (bundle) { if (bundle.partnerKey) delete current.assignments[bundle.partnerKey].position; setBundlePosition(bundle.key, bundle.position); }
         setPlacement(d.key, target?.id || null, target || bundle ? undefined : { x: Math.max(0, Math.min(20000, point.x - 50)), y: Math.max(0, Math.min(20000, point.y - 20)) }, bundle?.allowed); }
     }
-    function cancelDrag() { if (drag?.type === "court") Object.assign(current.courts.find((c) => c.id === drag.key), drag.startCourt); cleanDrag(); renderBoard(); }
+    function cancelDrag() {
+      if (drag?.type === "court") Object.assign(current.courts.find((c) => c.id === drag.key), drag.startCourt);
+      if (drag?.type === "bundle") { if (drag.previousBundle) current.bundlePositions[drag.key] = drag.previousBundle; else if (current.bundlePositions) delete current.bundlePositions[drag.key]; }
+      cleanDrag(); renderBoard();
+    }
     async function copy() {
       const lines = [`${activeDate} 场地安排（${current.roster.length}人／${current.courts.length}片场地）`];
       for (const c of core.courtInfo(current, config)) lines.push(`\n${c.label}号场${c.protected ? "（高手专场）" : ""}\n固定：${c.fixed.length ? c.fixed.map((p) => p.name + "（" + grade(p) + "）").join("、") : "无，流动人员补位"}`);

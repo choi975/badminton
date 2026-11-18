@@ -17,7 +17,7 @@ assert.doesNotMatch(ui, /安排建议|流动人员 ·|按可去场地合并，�
 assert.match(css, /\.modal\.ca-dialog\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
 assert.match(css, /\.ca-workspace\s*\{[^}]*position: relative/);
 assert.match(css, /\.ca-inspector\s*\{[^}]*position: absolute/);
-assert.match(ui, /function hitBundle\(point\)/);
+assert.match(ui, /function hitBundle\(point, excludedPerson = null\)/);
 assert.match(ui, /setPlacement\(d\.key,[\s\S]*?bundle\?\.allowed\)/);
 assert.match(ui, /target \|\| bundle \? undefined/);
 assert.match(ui, /bundleAllowed \? \[\.\.\.bundleAllowed\]/);

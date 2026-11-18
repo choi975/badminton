@@ -25,19 +25,19 @@ async (page) => {
   for(const id of ['caCopy','caSettingsToggle','caClose']){const control=page.locator('#'+id);assert((await control.innerText()).trim()==='','Header actions are icons only');assert(await control.locator('svg').count()===1,'Header icon is rendered');assert(!!await control.getAttribute('aria-label'),'Icon action has an accessible name');}
   assert(await page.locator('.ca-header-actions').evaluate(n=>[...n.children].map(c=>c.id).join(','))==='caCopy,caSettingsToggle,caClose','Preferences sits beside Close');
   assert(await page.locator('.ca-person').count()===20,'Each attendee appears once');
-  assert(await page.locator('.ca-bundle').count()===2,'Flow groups reflect distinct allowed court sets');
+  assert(await page.locator('.ca-bundle').count()===1,'Only the paired flow players have a frame; the independently placed single has none');
   assert(await page.locator('.ca-roaming-head, .ca-bundle-head, .ca-bundle-note').count()===0,'Removed flow headings and destination counters');
   await page.waitForFunction(()=>document.querySelectorAll('.ca-lines path').length===7);
   assert(await page.locator('.ca-lines path').evaluateAll(paths=>paths.every(n=>/^M [-\d.]+ [-\d.]+ L [-\d.]+ [-\d.]+$/.test(n.getAttribute('d')))),'All default group links are simple straight segments');
   const pointDrag=async(from,to,checkHover=false)=>{const a=await from.boundingBox(),b=await to.boundingBox();assert(a&&b,'Drag nodes are visible');await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:10});if(checkHover)assert(await to.evaluate(n=>n.classList.contains('ca-drop-target')),'Flow group highlights during a valid drop');await page.mouse.up();await saved();};
   const floated=fixture[19], person=()=>page.locator('.ca-person[data-person="'+floated.key+'"]');
-  await pointDrag(person(),page.locator('.ca-bundle').nth(1),true);
+  await person().focus();await page.keyboard.press('F2');await page.getByRole('button',{name:'放回流动分组',exact:true}).click();await saved();await page.getByRole('button',{name:'关闭个人编辑',exact:true}).click();
   let state=await read(), a=state.activity.content.assignments[floated.key];
   assert(!a.position&&a.courtId===null&&a.allowed.length===3,'Returning to its group clears independent position without changing permissions');
-  assert(await page.locator('.ca-bundle').nth(1).locator('.ca-person[data-person="'+floated.key+'"]').count()===1,'Returned card is physically inside its group');
+  assert(await page.locator('.ca-flow-single[data-person="'+floated.key+'"]').count()===1,'A lone returned card remains unframed');
   assert(await page.locator('.ca-person').count()===20,'Returning does not duplicate names');
   await page.reload();await page.locator('#courtArrangementBtn').click();await saved();
-  assert(await page.locator('.ca-bundle').nth(1).locator('.ca-person[data-person="'+floated.key+'"]').count()===1,'Group return survives browser reload');
+  assert(await page.locator('.ca-flow-single[data-person="'+floated.key+'"]').count()===1,'Unframed singleton placement survives browser reload');
   await pointDrag(person(),page.locator('.ca-bundle').first(),true);state=await read();a=state.activity.content.assignments[floated.key];
   assert(a.allowed.length===4&&!a.position&&a.courtId===null,'Dropping into another flow group adopts its destinations');
   await pointDrag(person(),page.locator('.ca-court').first());state=await read();assert(state.activity.content.assignments[floated.key].courtId===state.activity.content.courts[0].id,'Flow-to-court fixed placement still works');
@@ -82,5 +82,5 @@ async (page) => {
   await page.waitForFunction(()=>document.activeElement?.id==='courtArrangementBtn');
   assert(await page.locator('#courtArrangementBtn').evaluate(n=>n===document.activeElement),'Close icon restores keyboard focus');
   await page.locator('#courtArrangementBtn').click();await saved();assert(await page.locator('#caSettingsPanel').isHidden(),'Window always reopens on the court canvas');
-  await page.evaluate(()=>{window.__courtCompactQa=['removed stats/tabs/advice','icon actions','full-width canvas','straight group links','empty original group return','alternate group permissions','fixed/flow roundtrip','reload persistence','context editor and return button','copy','50% mobile hit testing','mobile targets and visible icons','touch input','focus restoration','canvas default'];});
+  await page.evaluate(()=>{window.__courtCompactQa=['removed stats/tabs/advice','icon actions','full-width canvas','straight group links','single returned without an empty frame','alternate group permissions','fixed/flow roundtrip','reload persistence','context editor and return button','copy','50% mobile hit testing','mobile targets and visible icons','touch input','focus restoration','canvas default'];});
 }

@@ -14,6 +14,12 @@ async (page) => {
   const saved = async () => { await page.locator('#caSave[data-tone="saved"]').waitFor({timeout:20000}); };
   page.on('dialog', dialog => dialog.accept());
   await page.setViewportSize({width:1536,height:900}); await page.reload();
+  const existing=await read();
+  const initial=await page.evaluate(f=>BadmintonCourtArrangementCore.recommend(f.roster.map(p=>({key:'p-'+p.id,playerId:p.id,name:p.name,level:p.level})),BadmintonCourtArrangementCore.settings()),f);
+  for(const [kind,content,revision] of [['settings',{version:1,preferences:{},groups:[],excludedCandidates:[]},existing.settings?.revision||0],['activity',initial,existing.activity?.revision||0]]) {
+    const response=await page.request.post(base+'/api/court-arrangements',{headers:{origin:base},data:{kind,date,revision,mutationId:crypto.randomUUID(),content}});
+    assert(response.ok(),'Reset isolated browser fixture only');
+  }
   await page.locator('#chainInput').fill(f.text); await page.locator('#courtArrangementBtn').click();
   await saved(); assert(await page.locator('.ca-person').count() === 23, 'All 23 names must appear exactly once');
   assert(await page.locator('.ca-court').count() === 4, '23 people defaults to four courts');
@@ -30,7 +36,7 @@ async (page) => {
   await page.evaluate(()=>courtArrangementController.refresh()); await page.locator('#caRecommend').click(); await saved();
   assert(await page.locator('.ca-protected').count()===1,'Six competitive players form one protected court');
   assert(await page.locator('.ca-protected .ca-person').count()===6,'Protected court contains six fixed players');
-  assert((await page.locator('.ca-protected .ca-court-stat').innerText()).includes('可串入0人'),'No automatic ordinary roamers in protected court');
+  assert(await page.evaluate(()=>BadmintonCourtArrangementCore.courtInfo(courtArrangementController.getPlan(),courtArrangementController.getSettings()).find(c=>c.protected).moving.length===0),'No automatic ordinary roamers in protected court');
   const roamer = page.locator('.ca-person[data-person="p-'+f.roster[8].id+'"]');
   await roamer.click(); await page.locator('#caEditPerson').click(); assert(await page.locator('#caInspector .ca-checks label').count()===4,'Destinations can be explicitly edited');
   await page.waitForFunction(()=>document.querySelectorAll('.ca-lines path').length===3);
@@ -54,7 +60,7 @@ async (page) => {
   state=await read(); assert(state.activity.content.courts[1].x!==before.x&&state.activity.content.courts[1].y!==before.y,'Court rectangles support actual pointer dragging');
   await page.locator('#caLayout').selectOption('horizontal'); await saved();
   const person=page.locator('.ca-person[data-person="p-'+f.roster[0].id+'"]'), pr=await person.boundingBox(), br=await page.locator('#caBoard').boundingBox();
-  const extent=await page.evaluate(()=>Math.max(...BadmintonCourtArrangementCore.courtInfo(courtArrangementController.getPlan(),courtArrangementController.getSettings()).map(c=>c.y+c.height)));
+  const extent=await page.evaluate(()=>Math.max(...BadmintonCourtArrangementCore.courtInfo(courtArrangementController.getPlan(),courtArrangementController.getSettings()).map(c=>c.y+c.height))*document.querySelector('#caBoard').getBoundingClientRect().width/parseFloat(document.querySelector('#caBoard').style.width));
   await page.mouse.move(pr.x+pr.width/2,pr.y+pr.height/2); await page.mouse.down(); await page.mouse.move(br.x+180,br.y+extent+35,{steps:8}); await page.mouse.up(); await saved();
   state=await read(); assert(state.activity.content.assignments['p-'+f.roster[0].id].courtId===null,'Dragging outside makes a floating person'); assert(state.activity.content.assignments['p-'+f.roster[0].id].position,'Free placement survives saving');
   await page.request.post(base+'/__test/failure',{data:{lost:1}});

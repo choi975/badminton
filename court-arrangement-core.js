@@ -2,6 +2,7 @@
   "use strict";
   const MODES = ["auto", "fixed", "roam", "competitive"];
   const COACHES = ["none", "friends", "selected", "any"];
+  const GRADE_ORDER = "numbered-desc-v1";
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const positiveId = (value) => Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : null;
   const uniqueIds = (values) => [...new Set((Array.isArray(values) ? values : []).map(positiveId).filter(Boolean))];
@@ -54,6 +55,15 @@
   function makeCourts(count) {
     return Array.from({ length: clamp(count, 1, 32) }, (_, i) => ({ id: "court-" + (i + 1), label: String(i + 1), x: 24 + (count <= 4 ? i : i % 3) * 278, y: count <= 4 ? 24 : 24 + Math.floor(i / 3) * 290 }));
   }
+  function bundleKey(allowed = []) { return [...new Set(allowed)].sort().join("|"); }
+  function numberedCourts(courts, descending = false) {
+    const number = (label) => { const match = String(label).match(/\d+(?:\.\d+)?/); return match ? Number(match[0]) : null; };
+    return [...courts].sort((a, b) => {
+      const left = number(a.label), right = number(b.label);
+      const order = left !== null && right !== null ? left - right : left !== null ? -1 : right !== null ? 1 : String(a.label).localeCompare(String(b.label), "zh-CN", { numeric: true });
+      return (descending ? -order : order) || a.id.localeCompare(b.id);
+    });
+  }
   function plan(value = {}) {
     const courts = Array.isArray(value.courts) && value.courts.length ? value.courts.map((c, i) => ({ id: String(c.id), label: String(c.label || i + 1), x: clamp(c.x, 0, 20000), y: clamp(c.y, 0, 20000) })) : makeCourts(1);
     const ids = new Set(courts.map((c) => c.id)), people = roster(value.roster || []), assignments = {}, overrides = {};
@@ -68,7 +78,15 @@
         if (value.overrides[person.key].level !== undefined) overrides[person.key].level = level(value.overrides[person.key].level);
       }
     }
-    return { version: 1, courts, roster: people, assignments, overrides, lineMode: value.lineMode === "selected" ? "selected" : "bundled" };
+    const activeBundles = new Set(people.filter((p) => !assignments[p.key].courtId).map((p) => bundleKey(assignments[p.key].allowed)));
+    const bundlePositions = {};
+    for (const [key, position] of Object.entries(value.bundlePositions || {}).slice(0, 200)) {
+      if (!activeBundles.has(key) || !position || !Number.isFinite(Number(position.x)) || !Number.isFinite(Number(position.y))) continue;
+      bundlePositions[key] = { x: clamp(position.x, 0, 20000), y: clamp(position.y, 0, 20000) };
+    }
+    return { version: 1, courts, roster: people, assignments, overrides, lineMode: value.lineMode === "selected" ? "selected" : "bundled",
+      ...(value.bundlePositions !== undefined ? { bundlePositions } : {}), ...(value.gradeOrder === GRADE_ORDER ? { gradeOrder: GRADE_ORDER } : {}) };
+
   }
   // Contiguous grade partitions favor similar levels without imposing a minimum court population.
   function partition(people, count, ranks, prefs) {
@@ -101,22 +119,26 @@
     while (protectedCount && people.length >= result.courts.length * 4 && people.length - protectedCount * 6 < 4) protectedCount--;
     const reserved = protectedCount ? competitive.slice(-protectedCount * 6) : [];
     const outside = sorted.filter((p) => !reserved.includes(p));
-    const protectedCourts = new Set(result.courts.slice(result.courts.length - protectedCount).map((c) => c.id));
-    const buckets = protectedCount
-      ? [...partition(outside, result.courts.length - protectedCount, ranks, prefs), ...partition(reserved, protectedCount, ranks, prefs)]
-      : partition(sorted, result.courts.length, ranks, prefs);
-    const openCourts = result.courts.filter((c) => !protectedCourts.has(c.id)).map((c) => c.id);
+    // Court numbering determines grade order, not array order or where a rectangle was dragged.
+    const orderedCourts = numberedCourts(result.courts, true);
+    const reservedBuckets = protectedCount ? partition(reserved, protectedCount, ranks, prefs) : [];
+    const protectedBuckets = new Set(reservedBuckets);
+    const average = (bucket) => bucket.length ? bucket.reduce((sum, p) => sum + (ranks.get(p.key) ?? 2), 0) / bucket.length : -Infinity;
+    const buckets = (protectedCount ? [...partition(outside, result.courts.length - protectedCount, ranks, prefs), ...reservedBuckets]
+      : partition(sorted, result.courts.length, ranks, prefs)).sort((a, b) => average(a) - average(b));
+    const protectedCourts = new Set(buckets.flatMap((bucket, i) => protectedBuckets.has(bucket) ? [orderedCourts[i].id] : []));
+    const openCourts = orderedCourts.filter((c) => !protectedCourts.has(c.id)).map((c) => c.id);
     const targetCourts = (pref, person) => {
       if (pref.level < 3 || !["friends", "selected"].includes(pref.coach)) return openCourts;
       const targets = new Set(pref.coach === "selected" ? pref.targets : config.groups.filter((g) => g.members.includes(person.playerId)).flatMap((g) => g.members).filter((id) => id !== person.playerId));
       const matching = buckets.flatMap((bucket, index) => {
-        const id = result.courts[index]?.id;
+        const id = orderedCourts[index]?.id;
         return openCourts.includes(id) && bucket.some((p) => targets.has(p.playerId) || Math.abs((ranks.get(p.key) ?? -10) - pref.level) <= .5) ? [id] : [];
       });
       return matching.length ? matching : openCourts.slice(-1);
     };
     buckets.forEach((bucket, index) => {
-      const court = result.courts[index]; if (!court) return;
+      const court = orderedCourts[index]; if (!court) return;
       for (const person of bucket) {
         const old = result.assignments[person.key];
         if (old?.locked && (old.courtId || old.allowed.length)) continue;
@@ -134,12 +156,13 @@
         if (!a.allowed.length) a.allowed = result.courts.map((c) => c.id);
       }
     }
+    result.gradeOrder = GRADE_ORDER;
     return result;
   }
   function reconcile(value, entries, config) {
     const previous = plan(value), people = roster(entries), oldKeys = new Set(previous.roster.map((p) => p.key));
     const result = recommend(people, config, previous);
-    for (const person of people) if (oldKeys.has(person.key)) result.assignments[person.key] = previous.assignments[person.key];
+    for (const person of people) if (previous.gradeOrder === GRADE_ORDER && oldKeys.has(person.key)) result.assignments[person.key] = previous.assignments[person.key];
     return result;
   }
   function courtInfo(value, config = {}) {
@@ -150,14 +173,14 @@
       const ranks = fixed.map((p) => effective(p, config, value).level).filter((r) => r !== null);
       return { ...court, fixed, moving, competitive, protected: competitive.length >= 6 && competitive.length === fixed.length && (value.courts.length > 1 || value.roster.length === fixed.length),
         min: ranks.length ? Math.min(...ranks) : null, max: ranks.length ? Math.max(...ranks) : null,
-        height: Math.max(224, 108 + Math.ceil(fixed.length / 2) * 52) };
+        height: Math.max(180, 76 + Math.ceil(fixed.length / 2) * 52) };
     });
   }
   function bundles(value) {
     const groups = new Map(), order = value.courts.map((c) => c.id);
     for (const person of value.roster) {
       const a = value.assignments[person.key]; if (a?.courtId) continue;
-      const allowed = order.filter((id) => a?.allowed.includes(id)), key = allowed.join("|");
+      const allowed = order.filter((id) => a?.allowed.includes(id)), key = bundleKey(allowed);
       if (!groups.has(key)) groups.set(key, { key, allowed, people: [] });
       groups.get(key).people.push(person);
     }
@@ -237,8 +260,16 @@
       const o = raw.overrides?.[p.key];
       if (o && (!MODES.includes(o.mode) || !COACHES.includes(o.coach) || !Array.isArray(o.targets) || o.targets.length > 200 || o.targets.some((id) => !positiveId(id)) || (o.level !== undefined && o.level !== null && level(o.level) === null))) throw new Error("本次个人偏好无效");
     }
+    if (raw.gradeOrder !== undefined && raw.gradeOrder !== GRADE_ORDER) throw new Error("排场等级顺序标记无效");
+    if (raw.bundlePositions !== undefined) {
+      if (!raw.bundlePositions || typeof raw.bundlePositions !== "object" || Array.isArray(raw.bundlePositions) || Object.keys(raw.bundlePositions).length > 200) throw new Error("流动分组布局格式无效");
+      for (const [key, position] of Object.entries(raw.bundlePositions)) {
+        const allowed = key.split("|");
+        if (!key || key !== bundleKey(allowed) || allowed.length > raw.courts.length || allowed.some((id) => !ids.has(id)) || !point(position)) throw new Error("流动分组位置或可去场地无效");
+      }
+    }
     if (Object.keys(raw.assignments || {}).some((key) => !keys.has(key)) || Object.keys(raw.overrides || {}).some((key) => !keys.has(key))) throw new Error("安排包含不在本次名单中的人员");
     return plan(raw);
   }
-  root.BadmintonCourtArrangementCore = Object.freeze({ MODES, COACHES, level, validDate, preference, settings, roster, guestKey, effective, defaultCourtCount, makeCourts, plan, recommend, reconcile, courtInfo, bundles, diagnostics, relationshipGroups, groupCandidates, validateSettings, validatePlan, clone });
+  root.BadmintonCourtArrangementCore = Object.freeze({ MODES, COACHES, level, validDate, preference, settings, roster, guestKey, effective, bundleKey, numberedCourts, defaultCourtCount, makeCourts, plan, recommend, reconcile, courtInfo, bundles, diagnostics, relationshipGroups, groupCandidates, validateSettings, validatePlan, clone });
 })(globalThis);
