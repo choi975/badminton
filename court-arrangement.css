@@ -28,12 +28,13 @@
 .ca-court { position: absolute; width: 250px; border: 1.5px solid var(--line-strong); background: var(--panel); border-radius: 6px; z-index: 2; overflow: hidden; transition: border-color .15s ease; }
 .ca-court.ca-active, .ca-court.ca-drop-target { border-color: var(--accent); outline: 2px solid var(--focus); outline-offset: 2px; }
 .ca-court.ca-protected { border-color: var(--accent); }
-.ca-court-head { padding: 9px 10px; background: var(--accent-soft); border-bottom: 1px solid var(--line); }
+.ca-court-head { padding: 9px 10px; background: var(--accent-soft); border-bottom: 1px solid var(--line); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.ca-court-head:focus-visible { outline: 2px solid var(--focus); outline-offset: -3px; }
+.ca-court-head.ca-court-drag-ready { cursor: grabbing; outline: 2px solid var(--accent); outline-offset: -3px; }
+.ca-court-head input { cursor: text; user-select: text; -webkit-user-select: text; }
 .ca-court-title { display: flex; align-items: center; gap: 5px; }
 .ca-court-title input { width: 44px; min-width: 0; min-height: 30px; text-align: center; font-weight: 700; padding: 3px; background: var(--panel); }
 .ca-court-title button { min-height: 30px; width: 28px; padding: 0; background: transparent; border-color: transparent; flex: 0 0 auto; }
-.ca-court-grip { cursor: grab; touch-action: none; }
-.ca-court-grip:active { cursor: grabbing; }
 .ca-court-title svg { width: 16px; height: 16px; display: block; margin: auto; }
 .ca-court-title .ca-court-remove { margin-left: 0; color: var(--muted); }
 .ca-court-label { white-space: nowrap; }

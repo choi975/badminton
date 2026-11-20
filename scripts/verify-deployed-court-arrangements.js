@@ -15,6 +15,11 @@ for (const file of ["court-arrangement-core.js", "court-arrangement.js", "court-
   if (file.endsWith(".css")) assert.match(response.headers.get("content-type"), /text\/css/);
   else assert.match(response.headers.get("content-type"), /(?:java|ecma)script/);
   if (file === "court-arrangement-core.js") deployedCore = text;
+  if (file === "court-arrangement.js") {
+    assert.doesNotMatch(text, /ca-court-grip/);
+    assert.match(text, /title\.append\(input, el\("span", "ca-court-label", "号场"\), level, remove\)/);
+    assert.match(text, /COURT_HOLD_MS = 350/);
+  }
 }
 const context = vm.createContext({}); vm.runInContext(deployedCore, context, { timeout: 1000 });
 assert.deepEqual([7, 20, 23].map((n) => context.BadmintonCourtArrangementCore.defaultCourtCount(n)), [1, 3, 4]);

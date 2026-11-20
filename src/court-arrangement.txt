@@ -2,6 +2,7 @@
   "use strict";
   const core = root.BadmintonCourtArrangementCore;
   const KEY = "badminton.court-arrangements.v1";
+  const COURT_HOLD_MS = 350;
   const modes = { auto: "按等级默认", fixed: "固定场地，不串场", roam: "流动串场", competitive: "只打高手局" };
   const coaches = { none: "未设置带人偏好", friends: "愿意带小团体／最佳拍档", selected: "愿意带指定球友", any: "愿意陪低等级球友打" };
   const el = (tag, className, text) => { const n = document.createElement(tag); if (className) n.className = className; if (text !== undefined) n.textContent = text; return n; };
@@ -176,22 +177,35 @@
       return n;
     }
     function renderBoard() {
+      if (drag) cancelDrag(null, false);
       board.replaceChildren(); const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.classList.add("ca-lines"); svg.setAttribute("aria-hidden", "true"); board.append(svg);
       const info = core.courtInfo(current, config);
       for (const court of info) {
         const n = el("section", "ca-court" + (court.protected ? " ca-protected" : "")); n.dataset.court = court.id; n.style.left = court.x + "px"; n.style.top = court.y + "px"; n.style.height = court.height + "px";
         n.setAttribute("aria-label", `${court.label}号场，固定${court.fixed.length}人，另有${court.moving.length}人可串入`);
-        const head = el("div", "ca-court-head"), title = el("div", "ca-court-title"), grip = button("", () => select({ type: "court", key: court.id }), "ca-court-grip");
-        grip.append(icon("grip")); grip.title = "拖动场地布局；也可用方向键移动"; grip.setAttribute("aria-label", "拖动" + court.label + "号场，方向键调整位置");
-        grip.addEventListener("pointerdown", (e) => beginDrag(e, "court", court.id));
-        grip.addEventListener("keydown", (e) => { const delta = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key]; if (!delta) return; e.preventDefault(); const c = current.courts.find((r) => r.id === court.id); c.x = Math.max(0, Math.min(20000, c.x + delta[0] * (e.shiftKey ? 64 : 16))); c.y = Math.max(0, Math.min(20000, c.y + delta[1] * (e.shiftKey ? 64 : 16))); n.style.left = c.x + "px"; n.style.top = c.y + "px"; saveActivity(); sizeBoard(); scheduleLines(); });
+        const head = el("div", "ca-court-head"), title = el("div", "ca-court-title");
+        head.tabIndex = 0; head.setAttribute("role", "group");
+        head.title = "长按浅绿色标题区后拖动场地；聚焦后也可用方向键移动";
+        head.setAttribute("aria-label", court.label + "号场布局，长按标题区拖动，方向键调整位置");
+        head.setAttribute("aria-keyshortcuts", "ArrowUp ArrowDown ArrowLeft ArrowRight");
+        head.addEventListener("pointerdown", (e) => { if (!e.target.closest("input, button")) beginDrag(e, "court", court.id); });
+        head.addEventListener("contextmenu", (e) => { if (!e.target.closest("input, button")) e.preventDefault(); });
+        head.addEventListener("keydown", (e) => {
+          if (e.target !== head) return;
+          const delta = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+          if (delta) {
+            e.preventDefault(); const c = current.courts.find((r) => r.id === court.id);
+            c.x = Math.max(0, Math.min(20000, c.x + delta[0] * (e.shiftKey ? 64 : 16))); c.y = Math.max(0, Math.min(20000, c.y + delta[1] * (e.shiftKey ? 64 : 16)));
+            n.style.left = c.x + "px"; n.style.top = c.y + "px"; saveActivity(); sizeBoard(); scheduleLines();
+          } else if (["Enter", " "].includes(e.key)) { e.preventDefault(); select({ type: "court", key: court.id }); }
+        });
         const input = el("input"); input.value = court.label; input.maxLength = 16; input.setAttribute("aria-label", "场地编号：" + court.label);
         input.addEventListener("change", () => { const label = input.value.trim(); if (!label || current.courts.some((c) => c.id !== court.id && c.label === label)) { input.value = court.label; adapter.toast("场地编号不能为空或重复"); return; } current.courts.find((c) => c.id === court.id).label = label; current = core.recommend(adapter.roster(), recommendationConfig(), current); saveActivity(); render(); });
         const remove = button("", () => removeCourt(court.id), "ca-court-remove"); remove.append(icon("x")); remove.setAttribute("aria-label", "删除" + court.label + "号场"); remove.disabled = current.courts.length === 1;
         const range = court.min !== null ? (court.min === court.max ? court.min : court.min + "～" + court.max) + "级" : "流动场";
         const level = el("span", "ca-court-level", range); level.title = range + (court.protected ? " · 高手专场" : "");
         if (court.protected) level.classList.add("ca-protection-label");
-        title.append(grip, el("span", "ca-court-label", "场地"), input, level, remove); head.append(title);
+        title.append(input, el("span", "ca-court-label", "号场"), level, remove); head.append(title);
         head.addEventListener("click", (e) => { if (!e.target.closest("input, button")) select({ type: "court", key: court.id }); }); n.append(head);
         if (court.fixed.length) { const list = el("div", "ca-court-people"); court.fixed.forEach((p) => list.append(personButton(p))); n.append(list); }
         else n.append(el("div", "ca-court-empty", "流动场\n由流动人员现场补位\n点击场地查看可来人员"));
@@ -522,18 +536,29 @@
         const group = { ...groupDraft, name: groupDraft.name.trim() }; config.groups = [...config.groups.filter((g) => g.id !== group.id), group]; saveSettings(); groupDraft = null; render(); adapter.toast("小团体已保存"); }); host.append(form);
     }
     function beginDrag(event, type, key) {
-      if (event.button !== 0 || drag) return;
+      if (event.button !== 0 || event.isPrimary === false || drag) return;
       editorKey = null; bundleDraft = null; renderInspector();
       const target = event.currentTarget, captureTarget = type === "bundle" ? event.target.closest(".ca-bundle-grip") || target : target;
       captureTarget.setPointerCapture(event.pointerId);
-      drag = { type, key, target, captureTarget, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false };
-      if (type === "court") { const c = current.courts.find((r) => r.id === key); drag.startCourt = { x: c.x, y: c.y }; }
+      drag = { type, key, target, captureTarget, sourcePlan: current, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false, armed: type !== "court" };
+      if (type === "court") {
+        const c = current.courts.find((r) => r.id === key), pending = drag; drag.startCourt = { x: c.x, y: c.y };
+        drag.holdTimer = setTimeout(() => {
+          if (drag !== pending) return;
+          if (!target.isConnected || !dialog.classList.contains("open") || tab !== "board") { cancelDrag(); return; }
+          pending.armed = true; target.classList.add("ca-court-drag-ready");
+        }, COURT_HOLD_MS);
+      }
       if (type === "bundle") { drag.startBundle = { x: parseFloat(target.style.left), y: parseFloat(target.style.top) }; drag.previousBundle = current.bundlePositions?.[key] ? { ...current.bundlePositions[key] } : null; }
-      target.addEventListener("pointermove", moveDrag); target.addEventListener("pointerup", endDrag); target.addEventListener("pointercancel", cancelDrag);
+      target.addEventListener("pointermove", moveDrag); target.addEventListener("pointerup", endDrag); target.addEventListener("pointercancel", cancelDrag); target.addEventListener("lostpointercapture", cancelDrag);
     }
     function moveDrag(event) {
       if (!drag || event.pointerId !== drag.pointerId) return;
-      if (!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 6) return;
+      if (drag.cancelled) return;
+      const distance = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
+      // A quick swipe cancels the hold; only a stationary long press enables court movement.
+      if (!drag.armed) { if (distance >= 6) { clearTimeout(drag.holdTimer); drag.cancelled = true; } return; }
+      if (!drag.moved && distance < 6) return;
       event.preventDefault(); drag.moved = true;
       if (drag.type === "court") {
         const c = current.courts.find((r) => r.id === drag.key); c.x = Math.min(20000, Math.max(0, Math.round((drag.startCourt.x + (event.clientX - drag.startX) / zoom) / 8) * 8)); c.y = Math.min(20000, Math.max(0, Math.round((drag.startCourt.y + (event.clientY - drag.startY) / zoom) / 8) * 8));
@@ -574,11 +599,13 @@
       return null;
     }
     function cleanDrag() {
-      if (!drag) return; const d = drag; d.ghost?.remove(); d.target.classList.remove("ca-dragging"); d.target.removeEventListener("pointermove", moveDrag); d.target.removeEventListener("pointerup", endDrag); d.target.removeEventListener("pointercancel", cancelDrag);
+      if (!drag) return; const d = drag; clearTimeout(d.holdTimer); d.ghost?.remove(); d.target.classList.remove("ca-dragging", "ca-court-drag-ready"); d.target.removeEventListener("pointermove", moveDrag); d.target.removeEventListener("pointerup", endDrag); d.target.removeEventListener("pointercancel", cancelDrag); d.target.removeEventListener("lostpointercapture", cancelDrag);
       try { d.captureTarget.releasePointerCapture(d.pointerId); } catch {} drag = null; board.querySelectorAll(".ca-drop-target").forEach((n) => n.classList.remove("ca-drop-target")); return d;
     }
     function endDrag(event) {
-      if (!drag) return; const d = cleanDrag(); if (!d.moved) return;
+      if (!drag || event.pointerId !== drag.pointerId) return; const d = cleanDrag();
+      if (d.cancelled) { event.preventDefault(); suppressClickUntil = performance.now() + 350; return; }
+      if (!d.moved) return;
       event.preventDefault(); event.stopPropagation(); suppressClickUntil = performance.now() + 350;
       if (d.type === "court" || d.type === "bundle") { saveActivity(); sizeBoard(); scheduleLines(); }
       else { const bounds = scroll.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) return;
@@ -586,10 +613,11 @@
         if (bundle) { if (bundle.partnerKey) delete current.assignments[bundle.partnerKey].position; setBundlePosition(bundle.key, bundle.position); }
         setPlacement(d.key, target?.id || null, target || bundle ? undefined : { x: Math.max(0, Math.min(20000, point.x - 50)), y: Math.max(0, Math.min(20000, point.y - 20)) }, bundle?.allowed, bundle?.key); }
     }
-    function cancelDrag() {
-      if (drag?.type === "court") Object.assign(current.courts.find((c) => c.id === drag.key), drag.startCourt);
-      if (drag?.type === "bundle") { if (drag.previousBundle) current.bundlePositions[drag.key] = drag.previousBundle; else if (current.bundlePositions) delete current.bundlePositions[drag.key]; }
-      cleanDrag(); renderBoard();
+    function cancelDrag(event = null, redraw = true) {
+      if (!drag || (event?.pointerId !== undefined && event.pointerId !== drag.pointerId)) return;
+      if (drag.sourcePlan === current && drag.type === "court") { const court = current.courts.find((c) => c.id === drag.key); if (court) Object.assign(court, drag.startCourt); }
+      if (drag.sourcePlan === current && drag.type === "bundle") { if (drag.previousBundle) current.bundlePositions[drag.key] = drag.previousBundle; else if (current.bundlePositions) delete current.bundlePositions[drag.key]; }
+      cleanDrag(); if (redraw) renderBoard();
     }
     async function copy() {
       const lines = [`${activeDate} 场地安排（${current.roster.length}人／${current.courts.length}片场地）`];
@@ -608,13 +636,18 @@
     $("caGroupFilter").addEventListener("change", () => { selectedGroup = $("caGroupFilter").value; highlight(); renderInspector(); });
     $("caSettingsToggle").addEventListener("click", () => showView(tab === "board" ? "settings" : "board"));
     $("caEditPerson").addEventListener("click", () => { if (selection?.type === "person") openEditor(selection.key); else if (selection?.type === "bundle") openBundleEditor(selection.key); });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && dialog.classList.contains("open") && !dialog.inert && !inspector.hidden) { e.preventDefault(); e.stopPropagation(); closeEditor(); } }, true);
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || !dialog.classList.contains("open") || dialog.inert) return;
+      if (drag) { e.preventDefault(); e.stopPropagation(); cancelDrag(); }
+      else if (!inspector.hidden) { e.preventDefault(); e.stopPropagation(); closeEditor(); }
+    }, true);
     board.addEventListener("click", (e) => { if (performance.now() < suppressClickUntil) { e.preventDefault(); e.stopPropagation(); } }, true);
     $("caRetry").addEventListener("click", async () => { errors.clear(); persist(); await refresh(); }); $("caUseCloud").addEventListener("click", () => void resolveConflict(true)); $("caKeepLocal").addEventListener("click", () => void resolveConflict(false));
     $("caCopy").addEventListener("click", () => void copy());
     board.addEventListener("click", (e) => { if (!e.target.closest(".ca-person, .ca-court, .ca-bundle")) { selection = null; editorKey = null; bundleDraft = null; highlight(); renderInspector(); scheduleLines(); } });
     const resize = new ResizeObserver(() => { if (dialog.classList.contains("open") && tab === "board") { sizeBoard(); scheduleLines(); } }); resize.observe(scroll);
     new MutationObserver(() => { if (!dialog.classList.contains("open") && drag) cancelDrag(); }).observe(dialog, { attributes: true, attributeFilter: ["class"] });
+    window.addEventListener("blur", cancelDrag);
     window.addEventListener("online", () => { if (activeDate) void refresh(); });
     window.addEventListener("beforeunload", (e) => { if (localError) { e.preventDefault(); e.returnValue = ""; } });
     return Object.freeze({ open, refresh: () => refresh(), getPlan: () => core.clone(current), getSettings: () => core.clone(config) });

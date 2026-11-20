@@ -42,7 +42,7 @@ const invalid=core.clone(roaming);invalid.bundlePositions={"missing-court":{x:1,
 const unknown=core.clone(roaming);unknown.gradeOrder="unknown";assert.throws(()=>core.validatePlan(unknown));
 const ui=readFileSync(new URL("../court-arrangement.js",import.meta.url),"utf8"), css=readFileSync(new URL("../court-arrangement.css",import.meta.url),"utf8");
 assert.doesNotMatch(ui,/ca-court-stat|固定\$\{court.fixed.length\}人 · 可串入/);
-assert.match(ui,/title\.append\(grip, el\("span", "ca-court-label", "场地"\), input, level, remove\)/);
+assert.match(ui,/title\.append\(input, el\("span", "ca-court-label", "号场"\), level, remove\)/);
 assert.match(ui,/if \(grouped.length === 1\)/); assert.match(ui,/if \(!grouped.length\) continue/);
 assert.match(ui,/beginDrag\(e, "bundle", bundle.key\)/);assert.match(ui,/d.type === "court" \|\| d.type === "bundle"/);
 assert.match(ui,/current\.bundlePositions\[key\]/);assert.match(ui,/bundleSource\(key\)/);

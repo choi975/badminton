@@ -55,8 +55,8 @@ async (page) => {
   await page.locator('.ca-person[data-person="p-'+f.roster[8].id+'"]').dragTo(page.locator('.ca-court').nth(1)); await saved();
   state=await read(); assert(state.activity.content.assignments['p-'+f.roster[8].id].courtId===state.activity.content.courts[1].id,'Dragging a roamer into a court makes them fixed');
   assert(state.activity.content.assignments['p-'+f.roster[8].id].locked,'Manual changes are locked against rerolls');
-  const before = {...state.activity.content.courts[1]}, grip=page.locator('.ca-court-grip').nth(1), rect=await grip.boundingBox();
-  await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2); await page.mouse.down(); await page.mouse.move(rect.x+rect.width/2+70,rect.y+rect.height/2+80,{steps:8}); await page.mouse.up(); await saved();
+  const before = {...state.activity.content.courts[1]}, head=page.locator('.ca-court-head').nth(1), rect=await head.boundingBox();
+  await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height-5); await page.mouse.down(); await page.locator('.ca-court-drag-ready').waitFor(); await page.mouse.move(rect.x+rect.width/2+70,rect.y+rect.height-5+80,{steps:8}); await page.mouse.up(); await saved();
   state=await read(); assert(state.activity.content.courts[1].x!==before.x&&state.activity.content.courts[1].y!==before.y,'Court rectangles support actual pointer dragging');
   await page.locator('#caLayout').selectOption('horizontal'); await saved();
   const person=page.locator('.ca-person[data-person="p-'+f.roster[0].id+'"]'), pr=await person.boundingBox(), br=await page.locator('#caBoard').boundingBox();
